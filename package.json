@@ -26,6 +26,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "@types/react-slick": "^0.23.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

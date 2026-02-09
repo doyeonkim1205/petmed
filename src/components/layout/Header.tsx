@@ -28,8 +28,8 @@ export function Header() {
           <Menu size={24} />
         </button>
 
-        <Link href="/" className="text-xl font-bold text-[#7C3AED] flex items-center gap-1">
-          PetMed
+        <Link href="/" className="text-xl font-bold text-blue-600 flex items-center gap-1">
+          🐾 PetMed
         </Link>
 
         <Link href="/profile" className="p-2 -mr-2 text-gray-700">
@@ -37,6 +37,7 @@ export function Header() {
         </Link>
       </header>
 
+      {/* Mobile Sidebar Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -56,7 +57,7 @@ export function Header() {
               className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 shadow-xl flex flex-col"
             >
               <div className="h-14 flex items-center justify-between px-4 border-b border-gray-100">
-                <span className="font-bold text-lg text-[#7C3AED]">Menu</span>
+                <span className="font-bold text-lg text-blue-600">Menu</span>
                 <button onClick={toggleMenu} className="p-2 text-gray-500">
                   <X size={24} />
                 </button>
@@ -80,12 +81,12 @@ export function Header() {
 
               <div className="p-4 border-t border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-[#7C3AED]/10 flex items-center justify-center text-[#7C3AED] font-bold">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                     {profile?.nickname?.[0] || 'U'}
                   </div>
                   <div>
-                    <p className="font-bold text-sm">{profile?.nickname || '로그인 필요'}</p>
-                    <p className="text-xs text-gray-500">{user?.email || '로그인해주세요'}</p>
+                    <p className="font-bold text-sm">{profile?.nickname || 'User Nickname'}</p>
+                    <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
                   </div>
                 </div>
                 <button
