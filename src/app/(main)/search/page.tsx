@@ -2,8 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, PlayCircle, AlertTriangle, Pill, ShoppingCart, Image as ImageIcon, FileText } from 'lucide-react';
+import { Search as SearchIcon, PlayCircle, AlertTriangle, Pill, ShoppingCart, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
+import { usePubMedSearch } from '@/hooks/usePubMedSearch';
+import { PaperSection } from '@/components/PaperSection';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -11,8 +13,12 @@ function SearchContent() {
 
   const [query, setQuery] = useState(initialQuery);
   const [petType, setPetType] = useState<'cat' | 'dog'>('cat');
-  const [result, setResult] = useState<Disease | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string | null>(initialQuery || null);
+  const [mockResult, setMockResult] = useState<Disease | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(['소화기 림프종', '슬개골 탈구', '신부전']);
+
+  // PubMed + AI 분석 훅
+  const pubmed = usePubMedSearch(searchTerm, petType);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,16 +28,22 @@ function SearchContent() {
        setRecentSearches([query, ...recentSearches].slice(0, 10));
     }
 
+    // mock 데이터에서 매칭 (fallback용)
     const found = mockDiseases.find(d => d.name.includes(query));
-    setResult(found || null);
+    setMockResult(found || null);
+
+    // PubMed 검색 트리거
+    setSearchTerm(query.trim());
   };
 
   useEffect(() => {
     if (initialQuery) {
-        const found = mockDiseases.find(d => d.name.includes(initialQuery));
-        setResult(found || null);
+      const found = mockDiseases.find(d => d.name.includes(initialQuery));
+      setMockResult(found || null);
     }
   }, [initialQuery]);
+
+  const hasSearched = searchTerm !== null;
 
   return (
     <div className="flex flex-col h-full bg-gray-50 min-h-[calc(100vh-8rem)]">
@@ -65,14 +77,19 @@ function SearchContent() {
 
       {/* Content Area */}
       <div className="flex-1 p-4">
-        {!result ? (
+        {!hasSearched ? (
             <div className="mt-4">
                <h3 className="font-bold text-gray-700 mb-3 text-sm">최근 검색어</h3>
                <div className="flex flex-wrap gap-2">
                  {recentSearches.map((term, idx) => (
                     <button
                         key={idx}
-                        onClick={() => { setQuery(term); const found = mockDiseases.find(d => d.name.includes(term)); setResult(found || null); }}
+                        onClick={() => {
+                          setQuery(term);
+                          const found = mockDiseases.find(d => d.name.includes(term));
+                          setMockResult(found || null);
+                          setSearchTerm(term);
+                        }}
                         className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:bg-gray-50"
                     >
                         {term}
@@ -87,107 +104,130 @@ function SearchContent() {
             </div>
         ) : (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               {/* 1. Paper Summary */}
-               <section className="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 relative overflow-hidden">
-                  <div className="flex justify-between items-start mb-3">
-                     <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        <FileText className="text-blue-500" size={20}/>
-                        논문 요약
-                     </h2>
-                     <button className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors">
-                        원본 논문 보기
-                     </button>
-                  </div>
-                  <div className="space-y-2">
-                     <h3 className="font-bold text-lg text-gray-800">{result.name}</h3>
-                     <p className="text-gray-600 text-sm leading-relaxed">{result.summary}</p>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">최신 논문 반영</span>
-                    <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">신뢰도 높음</span>
-                  </div>
-               </section>
+               {/* 1. Paper Summary - PubMed + AI */}
+               <PaperSection
+                 pubmed={pubmed}
+                 diseaseName={searchTerm || ''}
+                 diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
+               />
 
-               {/* 2. Precautions */}
+               {/* 2. Precautions - AI 분석 결과 우선, mock fallback */}
                <section className="bg-white p-5 rounded-2xl shadow-sm border border-red-50">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
                      <AlertTriangle className="text-red-500" size={20}/>
                      주의사항 & 대처방법
                   </h2>
-                  <ul className="space-y-2">
-                     {result.precautions.map((item, idx) => (
+                  {pubmed.analysisLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                      <Loader2 size={16} className="animate-spin" />
+                      AI가 논문을 분석하고 있습니다...
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {(pubmed.analysis?.precautions && pubmed.analysis.precautions.length > 0
+                        ? pubmed.analysis.precautions
+                        : mockResult?.precautions || ['검색 결과를 분석 중입니다...']
+                      ).map((item, idx) => (
                         <li key={idx} className="flex gap-2 text-sm text-gray-700 items-start">
                            <span className="text-red-400 mt-1">•</span>
                            {item}
                         </li>
-                     ))}
-                  </ul>
+                      ))}
+                    </ul>
+                  )}
+                  {pubmed.analysis?.precautions && pubmed.analysis.precautions.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
+                    </div>
+                  )}
                </section>
 
-               {/* 3. Helpful Ingredients */}
+               {/* 3. Helpful Ingredients - AI 분석 결과 우선, mock fallback */}
                <section className="bg-white p-5 rounded-2xl shadow-sm border border-purple-50">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
                      <Pill className="text-purple-500" size={20}/>
                      도움되는 성분
                   </h2>
-                  <div className="flex flex-wrap gap-2">
-                     {result.ingredients.map((item, idx) => (
+                  {pubmed.analysisLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                      <Loader2 size={16} className="animate-spin" />
+                      성분 분석 중...
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(pubmed.analysis?.ingredients && pubmed.analysis.ingredients.length > 0
+                        ? pubmed.analysis.ingredients
+                        : mockResult?.ingredients || ['분석 중...']
+                      ).map((item, idx) => (
                         <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
                            {item}
                         </span>
-                     ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
+                  {pubmed.analysis?.ingredients && pubmed.analysis.ingredients.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
+                    </div>
+                  )}
                </section>
 
                {/* 4. Recommended Products */}
-               <section className="bg-white p-5 rounded-2xl shadow-sm border border-orange-50">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                     <ShoppingCart className="text-orange-500" size={20}/>
-                     추천 제품/식품
-                  </h2>
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
-                     {result.products.length > 0 ? result.products.map((prod) => (
-                        <div key={prod.id} className="flex-shrink-0 w-32 group cursor-pointer">
-                           <div className="w-32 h-32 rounded-lg bg-gray-100 overflow-hidden mb-2 relative">
-                              <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                           </div>
-                           <p className="text-xs font-medium text-gray-800 line-clamp-2">{prod.name}</p>
-                           <p className="text-xs font-bold text-blue-600 mt-1">{prod.price}</p>
-                        </div>
-                     )) : (
-                        <p className="text-sm text-gray-400">추천 제품 데이터가 없습니다.</p>
-                     )}
-                  </div>
-               </section>
+               {mockResult && mockResult.products.length > 0 && (
+                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-orange-50">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                       <ShoppingCart className="text-orange-500" size={20}/>
+                       추천 제품/식품
+                    </h2>
+                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
+                       {mockResult.products.map((prod) => (
+                          <div key={prod.id} className="flex-shrink-0 w-32 group cursor-pointer">
+                             <div className="w-32 h-32 rounded-lg bg-gray-100 overflow-hidden mb-2 relative">
+                                <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                             </div>
+                             <p className="text-xs font-medium text-gray-800 line-clamp-2">{prod.name}</p>
+                             <p className="text-xs font-bold text-blue-600 mt-1">{prod.price}</p>
+                          </div>
+                       ))}
+                    </div>
+                 </section>
+               )}
 
                {/* 5. Youtube */}
-               <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                     <PlayCircle className="text-red-600" size={20}/>
-                     관련 유튜브 영상
-                  </h2>
-                  <div className="aspect-video bg-black rounded-lg flex items-center justify-center text-white relative overflow-hidden group cursor-pointer">
-                      <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                          <span className="text-sm text-gray-400">Video Placeholder ({result.youtubeId})</span>
-                      </div>
-                      <PlayCircle size={48} className="relative z-10 opacity-80 group-hover:opacity-100 transition-opacity" />
-                  </div>
-               </section>
+               {mockResult?.youtubeId && (
+                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                       <PlayCircle className="text-red-600" size={20}/>
+                       관련 유튜브 영상
+                    </h2>
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                       <iframe
+                         src={`https://www.youtube.com/embed/${mockResult.youtubeId}`}
+                         title="Related video"
+                         className="w-full h-full"
+                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                         allowFullScreen
+                       />
+                    </div>
+                 </section>
+               )}
 
                {/* 6. Images */}
-               <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                     <ImageIcon className="text-green-600" size={20}/>
-                     관련 이미지
-                  </h2>
-                  <div className="grid grid-cols-2 gap-2">
-                     {result.images.map((img, idx) => (
-                        <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                           <img src={img} alt="Related" className="w-full h-full object-cover" />
-                        </div>
-                     ))}
-                  </div>
-               </section>
+               {mockResult && mockResult.images.length > 0 && (
+                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                       <ImageIcon className="text-green-600" size={20}/>
+                       관련 이미지
+                    </h2>
+                    <div className="grid grid-cols-2 gap-2">
+                       {mockResult.images.map((img, idx) => (
+                          <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                             <img src={img} alt="Related" className="w-full h-full object-cover" />
+                          </div>
+                       ))}
+                    </div>
+                 </section>
+               )}
             </div>
         )}
       </div>
