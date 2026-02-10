@@ -40,8 +40,13 @@ function AccordionItem({ article, index, analysis, analysisLoading }: {
       >
         <div className="flex-1 pr-2">
           <p className="text-sm font-semibold text-gray-800 leading-snug">
-            {article.title}
+            {analysis?.titles?.[index] || article.title}
           </p>
+          {analysis?.titles?.[index] && (
+            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">
+              {article.title}
+            </p>
+          )}
           <p className="text-xs text-gray-400 mt-1">
             {article.authors.slice(0, 3).join(', ')}
             {article.authors.length > 3 && ' et al.'}
