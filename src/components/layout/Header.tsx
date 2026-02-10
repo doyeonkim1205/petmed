@@ -23,7 +23,7 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4">
+      <header className="sticky top-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4">
         <button onClick={toggleMenu} className="p-2 -ml-2 text-gray-700">
           <Menu size={24} />
         </button>

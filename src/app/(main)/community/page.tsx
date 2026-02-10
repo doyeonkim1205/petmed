@@ -210,7 +210,8 @@ export default function CommunityPage() {
 
       <button
         onClick={handleWriteClick}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40 max-w-md"
+        style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
       >
         <Plus size={28} />
       </button>

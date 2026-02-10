@@ -7,12 +7,14 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <main className="flex-1 pt-14 pb-16 w-full max-w-md mx-auto bg-white shadow-sm min-h-screen">
-        {children}
-      </main>
-      <Footer />
+    <div className="min-h-screen bg-gray-50 flex justify-center">
+      <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
