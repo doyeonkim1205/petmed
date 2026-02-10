@@ -11,6 +11,8 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, nickname: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithKakao: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
 }
@@ -41,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
+          await ensureProfile(session.user);
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
@@ -51,6 +54,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const ensureProfile = async (authUser: User) => {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', authUser.id)
+      .single();
+
+    if (!existingProfile) {
+      const metadata = authUser.user_metadata;
+      await supabase.from('profiles').insert({
+        id: authUser.id,
+        email: authUser.email ?? '',
+        nickname:
+          metadata?.full_name ||
+          metadata?.name ||
+          metadata?.nickname ||
+          authUser.email?.split('@')[0] ||
+          '사용자',
+        avatar_url: metadata?.avatar_url || metadata?.picture || null,
+      });
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -111,6 +137,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
+  const signInWithKakao = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -145,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signUp,
         signIn,
+        signInWithGoogle,
+        signInWithKakao,
         signOut,
         updateProfile,
       }}

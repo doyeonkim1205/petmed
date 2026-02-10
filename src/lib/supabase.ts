@@ -37,3 +37,13 @@ export interface Comment {
   updated_at: string;
   profiles?: Profile;
 }
+
+export interface Pet {
+  id: string;
+  user_id: string;
+  name: string;
+  type: 'dog' | 'cat';
+  breed?: string;
+  birth_date?: string;
+  created_at: string;
+}
