@@ -84,7 +84,7 @@ export default function RegisterPage() {
                 placeholder="닉네임을 입력하세요"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
             </div>
@@ -100,7 +100,7 @@ export default function RegisterPage() {
                 placeholder="example@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
             </div>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                 placeholder="6자 이상 입력하세요"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
               <button
@@ -139,7 +139,7 @@ export default function RegisterPage() {
                 placeholder="비밀번호를 다시 입력하세요"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
             </div>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="w-full h-12 text-base font-semibold bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg disabled:opacity-50"
+            className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
             disabled={loading}
           >
             {loading ? '가입 중...' : '회원가입'}
@@ -157,7 +157,7 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-500">
             이미 계정이 있으신가요?{' '}
-            <Link href="/login" className="text-[#7C3AED] font-semibold hover:underline">
+            <Link href="/login" className="text-blue-600 font-semibold hover:underline">
               로그인
             </Link>
           </p>

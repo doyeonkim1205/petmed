@@ -76,7 +76,7 @@ export default function CommunityWritePage() {
         <button
           onClick={handleSubmit}
           disabled={loading || !title.trim() || !content.trim()}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {loading ? '등록 중...' : '등록'}
         </button>
@@ -117,7 +117,7 @@ export default function CommunityWritePage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
 
@@ -128,7 +128,7 @@ export default function CommunityWritePage() {
             placeholder="내용을 입력하세요"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none min-h-[200px] resize-none"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[200px] resize-none"
           />
         </div>
 
@@ -140,7 +140,7 @@ export default function CommunityWritePage() {
               placeholder="https://example.com/image.jpg"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
             {imageUrl && (
               <button

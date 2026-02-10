@@ -40,7 +40,7 @@ export default function ProfilePage() {
           </button>
           <button
             onClick={() => router.push('/login')}
-            className="flex-1 h-12 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg font-medium"
+            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
           >
             로그인
           </button>
@@ -53,7 +53,7 @@ export default function ProfilePage() {
     <div className="bg-gray-50 min-h-[calc(100vh-8rem)]">
       <div className="bg-white p-6 mb-2 border-b border-gray-100">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-[#7C3AED]/10 rounded-full flex items-center justify-center text-[#7C3AED]">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -75,12 +75,12 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <div className="bg-[#7C3AED]/5 rounded-xl p-4 flex justify-between items-center">
+        <div className="bg-blue-50 rounded-xl p-4 flex justify-between items-center">
           <div>
-            <p className="text-xs text-[#7C3AED] font-bold mb-1">나의 반려동물</p>
+            <p className="text-xs text-blue-600 font-bold mb-1">나의 반려동물</p>
             <p className="text-sm text-gray-500">아직 등록된 반려동물이 없습니다.</p>
           </div>
-          <button className="text-xs bg-white border border-[#7C3AED]/30 text-[#7C3AED] px-3 py-1.5 rounded-lg font-medium hover:bg-[#7C3AED]/5">
+          <button className="text-xs bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-50">
             등록하기
           </button>
         </div>

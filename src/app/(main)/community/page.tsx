@@ -6,14 +6,14 @@ import { Plus, Heart, MessageCircle, Search } from 'lucide-react';
 import { supabase, Post } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-type CategoryFilter = 'all' | 'boast' | 'info' | 'lost' | 'found';
+type CategoryFilter = 'all' | 'boast' | 'info' | 'adoption' | 'lost';
 
 const tabs = [
   { id: 'all', label: '전체' },
   { id: 'boast', label: '자랑' },
   { id: 'info', label: '정보' },
-  { id: 'lost', label: '실종' },
-  { id: 'found', label: '발견' },
+  { id: 'adoption', label: '입양/임보' },
+  { id: 'lost', label: '실종/발견' },
 ];
 
 const getCategoryStyle = (category: string) => {
@@ -24,7 +24,7 @@ const getCategoryStyle = (category: string) => {
       return 'bg-blue-100 text-blue-600';
     case 'lost':
       return 'bg-red-100 text-red-600';
-    case 'found':
+    case 'adoption':
       return 'bg-green-100 text-green-600';
     default:
       return 'bg-gray-100 text-gray-600';
@@ -122,7 +122,7 @@ export default function CommunityPage() {
               placeholder="관심있는 내용을 검색해보세요"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm border-none focus:ring-1 focus:ring-[#7C3AED] focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm border-none focus:ring-1 focus:ring-blue-500 focus:outline-none"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           </div>
@@ -134,7 +134,7 @@ export default function CommunityPage() {
               onClick={() => setActiveTab(tab.id as CategoryFilter)}
               className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-[#7C3AED] text-[#7C3AED]'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -210,7 +210,7 @@ export default function CommunityPage() {
 
       <button
         onClick={handleWriteClick}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-[#7C3AED] text-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#6D28D9] active:scale-95 transition-all z-40"
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
       >
         <Plus size={28} />
       </button>

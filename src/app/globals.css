@@ -3,8 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --primary: #7C3AED;
-  --primary-hover: #6D28D9;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
 }
 
 body {
@@ -54,4 +54,35 @@ input, textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Slick Carousel customization */
+.slick-dots {
+  bottom: -20px;
+}
+.slick-dots li button:before {
+  color: #fff;
+}
+.slick-dots li.slick-active button:before {
+  color: #fff;
+}
+.popular-disease-slider .slick-dots {
+  bottom: 10px;
+  text-align: right;
+  padding-right: 20px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area for mobile footer */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

@@ -155,7 +155,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="bg-white p-4 mb-2">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-[#7C3AED]/10 rounded-full flex items-center justify-center text-[#7C3AED] font-semibold">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
             {post.profiles?.nickname?.[0] || '?'}
           </div>
           <div className="flex-1">
@@ -219,12 +219,12 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             disabled={!user || submitting}
-            className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!user || !newComment.trim() || submitting}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
           >
             <Send size={18} />
           </button>

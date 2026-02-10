@@ -64,7 +64,7 @@ export default function LoginPage() {
                 placeholder="example@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
             </div>
@@ -80,7 +80,7 @@ export default function LoginPage() {
                 placeholder="비밀번호를 입력하세요"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
               />
               <button
@@ -95,7 +95,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full h-12 text-base font-semibold bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg disabled:opacity-50"
+            className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
             disabled={loading}
           >
             {loading ? '로그인 중...' : '로그인'}
@@ -105,7 +105,7 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-500">
             아직 계정이 없으신가요?{' '}
-            <Link href="/register" className="text-[#7C3AED] font-semibold hover:underline">
+            <Link href="/register" className="text-blue-600 font-semibold hover:underline">
               회원가입
             </Link>
           </p>
