@@ -17,7 +17,7 @@ export interface Profile {
 export interface Post {
   id: string;
   user_id: string;
-  category: 'boast' | 'info' | 'lost' | 'found';
+  category: 'boast' | 'info';
   title: string;
   content: string;
   image_url?: string;

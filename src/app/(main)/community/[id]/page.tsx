@@ -10,14 +10,12 @@ const getCategoryStyle = (category: string) => {
   switch (category) {
     case 'boast': return 'bg-pink-100 text-pink-600';
     case 'info': return 'bg-blue-100 text-blue-600';
-    case 'lost': return 'bg-red-100 text-red-600';
-    case 'found': return 'bg-green-100 text-green-600';
     default: return 'bg-gray-100 text-gray-600';
   }
 };
 
 const getCategoryLabel = (category: string) => {
-  const labels: Record<string, string> = { boast: '자랑', info: '정보', lost: '실종', found: '발견' };
+  const labels: Record<string, string> = { boast: '자랑', info: '정보' };
   return labels[category] || category;
 };
 

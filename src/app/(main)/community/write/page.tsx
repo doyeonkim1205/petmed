@@ -6,13 +6,11 @@ import { ArrowLeft, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-type Category = 'boast' | 'info' | 'lost' | 'found';
+type Category = 'boast' | 'info';
 
 const categories: { id: Category; label: string; color: string }[] = [
   { id: 'boast', label: '자랑', color: 'bg-pink-100 text-pink-600 border-pink-200' },
   { id: 'info', label: '정보', color: 'bg-blue-100 text-blue-600 border-blue-200' },
-  { id: 'lost', label: '실종', color: 'bg-red-100 text-red-600 border-red-200' },
-  { id: 'found', label: '발견', color: 'bg-green-100 text-green-600 border-green-200' },
 ];
 
 export default function CommunityWritePage() {

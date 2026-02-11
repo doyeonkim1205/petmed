@@ -2,18 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Heart, MessageCircle, Search } from 'lucide-react';
+import { Plus, Heart, MessageCircle, Search, User } from 'lucide-react';
 import { supabase, Post } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-type CategoryFilter = 'all' | 'boast' | 'info' | 'adoption' | 'lost';
+type CategoryFilter = 'all' | 'boast' | 'info';
 
 const tabs = [
   { id: 'all', label: '전체' },
   { id: 'boast', label: '자랑' },
   { id: 'info', label: '정보' },
-  { id: 'adoption', label: '입양/임보' },
-  { id: 'lost', label: '실종/발견' },
 ];
 
 const getCategoryStyle = (category: string) => {
@@ -22,10 +20,6 @@ const getCategoryStyle = (category: string) => {
       return 'bg-pink-100 text-pink-600';
     case 'info':
       return 'bg-blue-100 text-blue-600';
-    case 'lost':
-      return 'bg-red-100 text-red-600';
-    case 'adoption':
-      return 'bg-green-100 text-green-600';
     default:
       return 'bg-gray-100 text-gray-600';
   }
@@ -111,6 +105,26 @@ export default function CommunityPage() {
     if (diffDays < 7) return `${diffDays}일 전`;
     return date.toLocaleDateString('ko-KR');
   };
+
+  if (!user) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center p-6">
+        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+          <User size={40} className="text-gray-400" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+        <p className="text-gray-500 text-center mb-6">
+          커뮤니티를 이용하려면<br />로그인해주세요.
+        </p>
+        <button
+          onClick={() => router.push('/login')}
+          className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+        >
+          로그인하기
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-full pb-20 relative">
