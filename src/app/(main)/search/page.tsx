@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, PlayCircle, AlertTriangle, Pill, ShoppingCart, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2 } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -10,9 +10,10 @@ import { PaperSection } from '@/components/PaperSection';
 function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
+  const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
 
   const [query, setQuery] = useState(initialQuery);
-  const [petType, setPetType] = useState<'cat' | 'dog'>('cat');
+  const [petType, setPetType] = useState<'cat' | 'dog'>(initialPet);
   const [searchTerm, setSearchTerm] = useState<string | null>(initialQuery || null);
   const [mockResult, setMockResult] = useState<Disease | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(['소화기 림프종', '슬개골 탈구', '신부전']);
@@ -171,63 +172,6 @@ function SearchContent() {
                     </div>
                   )}
                </section>
-
-               {/* 4. Recommended Products */}
-               {mockResult && mockResult.products.length > 0 && (
-                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-orange-50">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                       <ShoppingCart className="text-orange-500" size={20}/>
-                       추천 제품/식품
-                    </h2>
-                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
-                       {mockResult.products.map((prod) => (
-                          <div key={prod.id} className="flex-shrink-0 w-32 group cursor-pointer">
-                             <div className="w-32 h-32 rounded-lg bg-gray-100 overflow-hidden mb-2 relative">
-                                <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                             </div>
-                             <p className="text-xs font-medium text-gray-800 line-clamp-2">{prod.name}</p>
-                             <p className="text-xs font-bold text-blue-600 mt-1">{prod.price}</p>
-                          </div>
-                       ))}
-                    </div>
-                 </section>
-               )}
-
-               {/* 5. Youtube */}
-               {mockResult?.youtubeId && (
-                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                       <PlayCircle className="text-red-600" size={20}/>
-                       관련 유튜브 영상
-                    </h2>
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                       <iframe
-                         src={`https://www.youtube.com/embed/${mockResult.youtubeId}`}
-                         title="Related video"
-                         className="w-full h-full"
-                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                         allowFullScreen
-                       />
-                    </div>
-                 </section>
-               )}
-
-               {/* 6. Images */}
-               {mockResult && mockResult.images.length > 0 && (
-                 <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                       <ImageIcon className="text-green-600" size={20}/>
-                       관련 이미지
-                    </h2>
-                    <div className="grid grid-cols-2 gap-2">
-                       {mockResult.images.map((img, idx) => (
-                          <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                             <img src={img} alt="Related" className="w-full h-full object-cover" />
-                          </div>
-                       ))}
-                    </div>
-                 </section>
-               )}
             </div>
         )}
       </div>
