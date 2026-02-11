@@ -16,9 +16,22 @@ export default function RecordsPage() {
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('records');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { records, loading } = useHealthRecords(selectedPetId || undefined);
+
+  if (authLoading) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] animate-pulse p-4">
+        <div className="h-12 bg-gray-200 rounded-lg mb-3" />
+        <div className="h-10 bg-gray-200 rounded-lg mb-4" />
+        <div className="space-y-3">
+          <div className="h-20 bg-gray-200 rounded-xl" />
+          <div className="h-20 bg-gray-200 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

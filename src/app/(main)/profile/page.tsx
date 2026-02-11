@@ -78,13 +78,20 @@ function PetModal({
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true });
-    setPets(data ?? []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('pets')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      setPets(data ?? []);
+    } catch (err) {
+      console.error('Error fetching pets:', err);
+      setPets([]);
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => { if (open) fetchPets(); }, [open, fetchPets]);
@@ -302,27 +309,7 @@ function EventCouponModal({ open, onClose }: { open: boolean; onClose: () => voi
 
 // ─── App Settings Modal ────────────────────────────────────
 function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [darkMode, setDarkMode] = useState(false);
-  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
-
-  useEffect(() => {
-    if (open) {
-      setDarkMode(localStorage.getItem('app_darkmode') === 'true');
-      setFontSize((localStorage.getItem('app_fontsize') as 'small' | 'medium' | 'large') || 'medium');
-    }
-  }, [open]);
-
   if (!open) return null;
-
-  const handleDarkMode = (value: boolean) => {
-    setDarkMode(value);
-    localStorage.setItem('app_darkmode', String(value));
-  };
-
-  const handleFontSize = (size: 'small' | 'medium' | 'large') => {
-    setFontSize(size);
-    localStorage.setItem('app_fontsize', size);
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -331,26 +318,11 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
           <h3 className="text-lg font-bold">앱 설정</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
         </div>
-        <div className="space-y-5">
-          <ToggleRow label="다크 모드" desc="어두운 테마를 사용합니다" checked={darkMode} onChange={handleDarkMode} />
-          <div>
-            <p className="text-sm font-medium text-gray-900 mb-2">글꼴 크기</p>
-            <div className="flex gap-2">
-              {([['small', '작게'], ['medium', '보통'], ['large', '크게']] as const).map(([size, label]) => (
-                <button
-                  key={size}
-                  onClick={() => handleFontSize(size)}
-                  className={`flex-1 h-10 rounded-lg border text-sm font-medium ${
-                    fontSize === size ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="text-center py-8 text-gray-400">
+          <Settings size={32} className="mx-auto mb-3 text-gray-300" />
+          <p className="text-sm">앱 설정 기능을 준비 중입니다.</p>
         </div>
-        <button onClick={onClose} className="w-full h-11 mt-6 bg-blue-600 text-white rounded-lg font-medium">확인</button>
+        <button onClick={onClose} className="w-full h-11 mt-2 bg-blue-600 text-white rounded-lg font-medium">확인</button>
       </div>
     </div>
   );
@@ -390,13 +362,36 @@ export default function ProfilePage() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
-    router.push('/');
+    try {
+      await signOut();
+      router.push('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      // 강제로 상태 초기화하고 이동
+      router.push('/');
+      router.refresh();
+    }
   };
 
   const handleSaveNickname = async (nickname: string) => {
     await updateProfile({ nickname });
   };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] animate-pulse p-6">
+        <div className="bg-white p-6 rounded-xl mb-2">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 bg-gray-200 rounded w-24" />
+              <div className="h-4 bg-gray-100 rounded w-40" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

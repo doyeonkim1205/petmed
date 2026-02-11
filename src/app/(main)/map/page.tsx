@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X } from 'lucide-react';
+import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -41,8 +41,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState('');
-  const [userLat, setUserLat] = useState(DEFAULT_LAT);
-  const [userLng, setUserLng] = useState(DEFAULT_LNG);
+  const [showResearch, setShowResearch] = useState(false);
 
   // 1. Load Kakao Maps SDK
   useEffect(() => {
@@ -52,13 +51,11 @@ export default function MapPage() {
       return;
     }
 
-    // Already loaded
     if (window.kakao?.maps?.Map) {
       initMap();
       return;
     }
 
-    // Check if script already exists
     const existing = document.querySelector('script[src*="dapi.kakao.com"]');
     if (existing) {
       existing.addEventListener('load', () => {
@@ -74,13 +71,12 @@ export default function MapPage() {
       window.kakao.maps.load(() => initMap());
     };
     script.onerror = () => {
-      setError('카카오맵 SDK 로드에 실패했습니다. 도메인이 등록되어 있는지 확인해주세요.');
+      setError('카카오맵 SDK 로드에 실패했습니다.');
       setLoading(false);
     };
     document.head.appendChild(script);
   }, []);
 
-  // Init map with geolocation
   const initMap = useCallback(() => {
     if (!mapContainerRef.current) return;
 
@@ -89,19 +85,18 @@ export default function MapPage() {
         const container = mapContainerRef.current;
         if (!container) return;
 
-        const options = {
+        const map = new window.kakao.maps.Map(container, {
           center: new window.kakao.maps.LatLng(lat, lng),
           level: 5,
-        };
-
-        const map = new window.kakao.maps.Map(container, options);
+        });
         mapInstance.current = map;
-
-        setUserLat(lat);
-        setUserLng(lng);
         setMapReady(true);
 
-        // Search hospitals after map is ready
+        // 지도 이동 완료 시 "이 지역 검색" 버튼 표시
+        window.kakao.maps.event.addListener(map, 'dragend', () => {
+          setShowResearch(true);
+        });
+
         searchHospitals(lat, lng);
       } catch (err) {
         console.error('Map init error:', err);
@@ -110,7 +105,6 @@ export default function MapPage() {
       }
     };
 
-    // Try geolocation
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => createMap(pos.coords.latitude, pos.coords.longitude),
@@ -126,6 +120,7 @@ export default function MapPage() {
   const searchHospitals = useCallback((lat: number, lng: number, keyword?: string) => {
     if (!window.kakao?.maps?.services) return;
     setLoading(true);
+    setShowResearch(false);
 
     const ps = new window.kakao.maps.services.Places();
     const searchText = keyword?.trim() || '동물병원';
@@ -161,6 +156,16 @@ export default function MapPage() {
     );
   }, []);
 
+  // "이 지역 검색" - 현재 지도 중심으로 재검색
+  const handleResearchArea = () => {
+    if (!mapInstance.current) return;
+    const center = mapInstance.current.getCenter();
+    const keyword = searchQuery.trim()
+      ? `${searchQuery.trim()} 동물병원`
+      : '동물병원';
+    searchHospitals(center.getLat(), center.getLng(), keyword);
+  };
+
   // Filter places
   useEffect(() => {
     let result = places;
@@ -176,7 +181,6 @@ export default function MapPage() {
   useEffect(() => {
     if (!mapInstance.current || !window.kakao?.maps) return;
 
-    // Clear old markers
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
@@ -195,7 +199,6 @@ export default function MapPage() {
         map: mapInstance.current,
       });
 
-      // Custom overlay for label
       const content = `<div style="
         padding: 2px 8px;
         background: ${place.is24h ? '#EF4444' : '#3B82F6'};
@@ -221,7 +224,7 @@ export default function MapPage() {
       });
 
       markersRef.current.push(marker);
-      markersRef.current.push(overlay); // track for cleanup
+      markersRef.current.push(overlay);
       bounds.extend(position);
     });
 
@@ -231,10 +234,12 @@ export default function MapPage() {
   // Search handler
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mapInstance.current) return;
+    const center = mapInstance.current.getCenter();
     const query = searchQuery.trim()
       ? `${searchQuery.trim()} 동물병원`
       : '동물병원';
-    searchHospitals(userLat, userLng, query);
+    searchHospitals(center.getLat(), center.getLng(), query);
   };
 
   // Recenter
@@ -246,8 +251,6 @@ export default function MapPage() {
         const position = new window.kakao.maps.LatLng(latitude, longitude);
         mapInstance.current.setCenter(position);
         mapInstance.current.setLevel(5);
-        setUserLat(latitude);
-        setUserLng(longitude);
         searchHospitals(latitude, longitude);
       },
       () => {},
@@ -266,14 +269,12 @@ export default function MapPage() {
       className="relative w-full overflow-hidden"
       style={{ height: 'calc(100dvh - 7.5rem)' }}
     >
-      {/* Map Container - must have explicit dimensions */}
       <div
         ref={mapContainerRef}
         id="kakao-map"
         className="w-full h-full"
       />
 
-      {/* Error state */}
       {error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-30 p-6">
           <div className="text-center">
@@ -288,7 +289,6 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* Loading overlay */}
       {!error && !mapReady && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-20">
           <div className="flex flex-col items-center gap-2">
@@ -310,6 +310,9 @@ export default function MapPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-sm outline-none bg-transparent"
             />
+            <button type="submit" className="ml-1 text-blue-600 flex-shrink-0">
+              <Search size={18} />
+            </button>
           </div>
           <button
             type="button"
@@ -345,6 +348,19 @@ export default function MapPage() {
           );
         })}
       </div>
+
+      {/* "이 지역 검색" 버튼 - 지도 이동 후 표시 */}
+      {showResearch && (
+        <div className="absolute top-28 left-1/2 -translate-x-1/2 z-10">
+          <button
+            onClick={handleResearchArea}
+            className="flex items-center gap-1.5 bg-white text-blue-600 px-4 py-2 rounded-full shadow-lg text-sm font-medium border border-blue-100 hover:bg-blue-50 active:scale-95 transition-all"
+          >
+            <RefreshCw size={14} />
+            이 지역 검색
+          </button>
+        </div>
+      )}
 
       {/* Bottom Sheet */}
       {selectedPlace && (
