@@ -4,8 +4,17 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2 } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
-import { usePubMedSearch } from '@/hooks/usePubMedSearch';
+import { usePubMedSearch, SearchStep } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
+
+const stepMessages: Record<SearchStep, string> = {
+  idle: '',
+  translating: '검색어 번역 중...',
+  searching: '논문 검색 중...',
+  fetching: '논문 정보 가져오는 중...',
+  analyzing: 'AI가 논문을 분석하고 있습니다...',
+  done: '',
+};
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -105,6 +114,17 @@ function SearchContent() {
             </div>
         ) : (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               {/* Step Progress */}
+               {pubmed.step !== 'idle' && pubmed.step !== 'done' && (
+                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-3">
+                   <Loader2 size={18} className="animate-spin text-blue-500 flex-shrink-0" />
+                   <div>
+                     <p className="text-sm font-medium text-blue-700">{stepMessages[pubmed.step]}</p>
+                     <p className="text-xs text-blue-400 mt-0.5">잠시만 기다려주세요</p>
+                   </div>
+                 </div>
+               )}
+
                {/* 1. Paper Summary - PubMed + AI */}
                <PaperSection
                  pubmed={pubmed}

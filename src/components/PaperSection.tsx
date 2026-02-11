@@ -107,7 +107,7 @@ export function PaperSection({
         </h2>
       </div>
 
-      {loading && <SkeletonLoader />}
+      {loading && !error && articles.length === 0 && <SkeletonLoader />}
 
       {error && (
         <div className="flex items-center gap-2 mb-3 p-3 bg-red-50 rounded-lg text-sm text-red-600">

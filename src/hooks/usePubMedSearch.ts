@@ -9,14 +9,16 @@ import {
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult } from '@/services/openai';
 
+export type SearchStep = 'idle' | 'translating' | 'searching' | 'fetching' | 'analyzing' | 'done';
+
 export interface UsePubMedSearchResult {
   articles: ArticleSummary[];
   loading: boolean;
   error: string | null;
   retry: () => void;
-  /** AI 분석 결과 (한국어 요약, 주의사항, 성분) */
   analysis: AiAnalysisResult | null;
   analysisLoading: boolean;
+  step: SearchStep;
 }
 
 export function usePubMedSearch(
@@ -28,6 +30,7 @@ export function usePubMedSearch(
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AiAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [step, setStep] = useState<SearchStep>('idle');
 
   const fetchArticles = useCallback(async () => {
     if (!diseaseName) return;
@@ -35,22 +38,27 @@ export function usePubMedSearch(
     setLoading(true);
     setError(null);
     setAnalysis(null);
+    setStep('translating');
 
     try {
       const englishQuery = await toEnglishQuery(diseaseName);
-      const pmids = await searchPubMed(englishQuery, petType, 5);
+
+      setStep('searching');
+      const pmids = await searchPubMed(englishQuery, petType, 3);
 
       if (pmids.length === 0) {
         setArticles([]);
         setLoading(false);
+        setStep('done');
         return;
       }
 
+      setStep('fetching');
       const summaries = await fetchArticleSummaries(pmids);
       setArticles(summaries);
       setLoading(false);
 
-      // 논문 목록 표시 후, GPT에 제목/저널/날짜만 보내서 분석
+      setStep('analyzing');
       setAnalysisLoading(true);
       try {
         const result = await analyzePapers(
@@ -68,6 +76,7 @@ export function usePubMedSearch(
         console.error('[AI 분석 실패]', aiErr);
       } finally {
         setAnalysisLoading(false);
+        setStep('done');
       }
     } catch (err) {
       const message =
@@ -75,6 +84,7 @@ export function usePubMedSearch(
       setError(message);
       setArticles([]);
       setLoading(false);
+      setStep('done');
     }
   }, [diseaseName, petType]);
 
@@ -89,5 +99,6 @@ export function usePubMedSearch(
     retry: fetchArticles,
     analysis,
     analysisLoading,
+    step,
   };
 }
