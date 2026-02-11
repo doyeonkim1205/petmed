@@ -15,7 +15,7 @@ export function Footer() {
   ];
 
   return (
-    <nav className="sticky bottom-0 bg-white border-t border-gray-200 h-16 flex items-center justify-around z-50 safe-area-bottom">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 h-16 flex items-center justify-around z-50 safe-area-bottom">
       {navItems.map((item) => {
         const isActive = pathname === item.path ||
           (item.path !== '/' && pathname.startsWith(item.path));

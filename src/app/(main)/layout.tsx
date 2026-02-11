@@ -10,7 +10,7 @@ export default function MainLayout({
     <div className="min-h-screen bg-gray-50 flex justify-center">
       <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1">
+        <main className="flex-1 pb-16">
           {children}
         </main>
         <Footer />
