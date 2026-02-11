@@ -251,7 +251,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         <div className="space-y-4">
           <ToggleRow label="푸시 알림" desc="앱 알림을 받습니다" checked={pushEnabled}
             onChange={v => toggle('notify_push', v, setPushEnabled)} />
-          <ToggleRow label="커뮤니티 알림" desc="댓글, 좋아요 등 알림" checked={communityEnabled}
+          <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={communityEnabled}
             onChange={v => toggle('notify_community', v, setCommunityEnabled)} />
           <ToggleRow label="이벤트 알림" desc="이벤트, 프로모션 알림" checked={eventEnabled}
             onChange={v => toggle('notify_event', v, setEventEnabled)} />
