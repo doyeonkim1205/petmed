@@ -83,3 +83,19 @@ export async function analyzePapers(
     throw new Error('OpenAI 응답 파싱 실패');
   }
 }
+
+// Document analysis types
+export interface DocumentAnalysisResult {
+  hospital_name: string | null;
+  visit_date: string | null;
+  diagnosis: string | null;
+  treatments: string[];
+  medications: {
+    name: string;
+    dosage: string | null;
+    frequency: string | null;
+    duration: string | null;
+  }[];
+  cost: number | null;
+  summary: string;
+}

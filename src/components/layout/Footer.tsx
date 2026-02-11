@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, FileText, Map as MapIcon, User } from 'lucide-react';
+import { Search, ClipboardList, Map as MapIcon, User } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
 
   const navItems = [
     { icon: Search, label: '검색', path: '/search' },
-    { icon: FileText, label: '게시판', path: '/community' },
+    { icon: ClipboardList, label: '기록장', path: '/records' },
     { icon: MapIcon, label: '맵', path: '/map' },
     { icon: User, label: '계정', path: '/profile' },
   ];

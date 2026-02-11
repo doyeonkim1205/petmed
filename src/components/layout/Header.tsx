@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, User, X, Search, FileText, Map as MapIcon } from 'lucide-react';
+import { Menu, User, X, Search, ClipboardList, Map as MapIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,7 +16,7 @@ export function Header() {
 
   const menuItems = [
     { icon: Search, label: '질병 검색', path: '/search' },
-    { icon: FileText, label: '커뮤니티', path: '/community' },
+    { icon: ClipboardList, label: '건강 기록장', path: '/records' },
     { icon: MapIcon, label: '동물병원 지도', path: '/map' },
     { icon: User, label: '마이페이지', path: '/profile' },
   ];
