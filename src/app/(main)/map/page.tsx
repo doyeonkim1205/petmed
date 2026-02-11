@@ -32,6 +32,7 @@ export default function MapPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const skipDragEnd = useRef(false);
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
@@ -92,12 +93,15 @@ export default function MapPage() {
         mapInstance.current = map;
         setMapReady(true);
 
-        // 지도 이동 완료 시 "이 지역 검색" 버튼 표시
         window.kakao.maps.event.addListener(map, 'dragend', () => {
+          if (skipDragEnd.current) {
+            skipDragEnd.current = false;
+            return;
+          }
           setShowResearch(true);
         });
 
-        searchHospitals(lat, lng);
+        searchNearby(lat, lng);
       } catch (err) {
         console.error('Map init error:', err);
         setError('지도 초기화에 실패했습니다.');
@@ -116,32 +120,18 @@ export default function MapPage() {
     }
   }, []);
 
-  // Search nearby hospitals
-  const searchHospitals = useCallback((lat: number, lng: number, keyword?: string) => {
+  // 주변 동물병원 검색 (기본)
+  const searchNearby = useCallback((lat: number, lng: number) => {
     if (!window.kakao?.maps?.services) return;
     setLoading(true);
     setShowResearch(false);
 
     const ps = new window.kakao.maps.services.Places();
-    const searchText = keyword?.trim() || '동물병원';
-
     ps.keywordSearch(
-      searchText,
+      '동물병원',
       (data: any[], status: string) => {
         if (status === window.kakao.maps.services.Status.OK) {
-          const parsed: Place[] = data.map((item: any) => ({
-            id: item.id,
-            place_name: item.place_name,
-            address_name: item.address_name,
-            road_address_name: item.road_address_name || item.address_name,
-            phone: item.phone || '',
-            x: item.x,
-            y: item.y,
-            category_name: item.category_name || '',
-            place_url: item.place_url || '',
-            is24h: /24시|24h|야간|응급/i.test(item.place_name),
-          }));
-          setPlaces(parsed);
+          setPlaces(parseResults(data));
         } else {
           setPlaces([]);
         }
@@ -149,21 +139,62 @@ export default function MapPage() {
       },
       {
         location: new window.kakao.maps.LatLng(lat, lng),
-        radius: 5000,
+        radius: 20000,
         size: 15,
         sort: window.kakao.maps.services.SortBy.DISTANCE,
       }
     );
   }, []);
 
-  // "이 지역 검색" - 현재 지도 중심으로 재검색
+  // 키워드 검색 (검색바 입력)
+  const searchByKeyword = useCallback((lat: number, lng: number, keyword: string) => {
+    if (!window.kakao?.maps?.services) return;
+    setLoading(true);
+    setShowResearch(false);
+
+    const ps = new window.kakao.maps.services.Places();
+    const searchText = /동물병원|동물|병원|pet|vet/i.test(keyword)
+      ? keyword
+      : `${keyword} 동물병원`;
+
+    ps.keywordSearch(
+      searchText,
+      (data: any[], status: string) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          setPlaces(parseResults(data));
+        } else {
+          setPlaces([]);
+        }
+        setLoading(false);
+      },
+      {
+        location: new window.kakao.maps.LatLng(lat, lng),
+        radius: 20000,
+        size: 15,
+        sort: window.kakao.maps.services.SortBy.DISTANCE,
+      }
+    );
+  }, []);
+
+  const parseResults = (data: any[]): Place[] =>
+    data.map((item: any) => ({
+      id: item.id,
+      place_name: item.place_name,
+      address_name: item.address_name,
+      road_address_name: item.road_address_name || item.address_name,
+      phone: item.phone || '',
+      x: item.x,
+      y: item.y,
+      category_name: item.category_name || '',
+      place_url: item.place_url || '',
+      is24h: /24시|24h|야간|응급/i.test(item.place_name),
+    }));
+
+  // "이 지역 검색" — 항상 동물병원 검색 (검색바 키워드 무시)
   const handleResearchArea = () => {
     if (!mapInstance.current) return;
     const center = mapInstance.current.getCenter();
-    const keyword = searchQuery.trim()
-      ? `${searchQuery.trim()} 동물병원`
-      : '동물병원';
-    searchHospitals(center.getLat(), center.getLng(), keyword);
+    searchNearby(center.getLat(), center.getLng());
   };
 
   // Filter places
@@ -228,18 +259,20 @@ export default function MapPage() {
       bounds.extend(position);
     });
 
+    skipDragEnd.current = true;
     mapInstance.current.setBounds(bounds);
   }, [filteredPlaces]);
 
-  // Search handler
+  // Search bar submit
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!mapInstance.current) return;
     const center = mapInstance.current.getCenter();
-    const query = searchQuery.trim()
-      ? `${searchQuery.trim()} 동물병원`
-      : '동물병원';
-    searchHospitals(center.getLat(), center.getLng(), query);
+    if (searchQuery.trim()) {
+      searchByKeyword(center.getLat(), center.getLng(), searchQuery.trim());
+    } else {
+      searchNearby(center.getLat(), center.getLng());
+    }
   };
 
   // Recenter
@@ -251,7 +284,7 @@ export default function MapPage() {
         const position = new window.kakao.maps.LatLng(latitude, longitude);
         mapInstance.current.setCenter(position);
         mapInstance.current.setLevel(5);
-        searchHospitals(latitude, longitude);
+        searchNearby(latitude, longitude);
       },
       () => {},
       { timeout: 5000 }
@@ -305,7 +338,7 @@ export default function MapPage() {
             <Search size={18} className="text-gray-400 mr-2 flex-shrink-0" />
             <input
               type="text"
-              placeholder="동물병원 검색"
+              placeholder="병원명 또는 지역 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-sm outline-none bg-transparent"
@@ -349,7 +382,7 @@ export default function MapPage() {
         })}
       </div>
 
-      {/* "이 지역 검색" 버튼 - 지도 이동 후 표시 */}
+      {/* "이 지역 검색" 버튼 */}
       {showResearch && (
         <div className="absolute top-28 left-1/2 -translate-x-1/2 z-10">
           <button
