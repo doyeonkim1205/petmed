@@ -44,7 +44,7 @@ export function usePubMedSearch(
       const englishQuery = await toEnglishQuery(diseaseName);
 
       setStep('searching');
-      const pmids = await searchPubMed(englishQuery, petType, 3);
+      const pmids = await searchPubMed(englishQuery, petType, 5);
 
       if (pmids.length === 0) {
         setArticles([]);

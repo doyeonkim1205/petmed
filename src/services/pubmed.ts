@@ -20,7 +20,8 @@ export async function searchPubMed(
   const petFilter = petType === 'cat'
     ? '(cat OR cats OR feline OR kitten)'
     : '(dog OR dogs OR canine OR puppy)';
-  const searchQuery = `${query} AND ${petFilter}`;
+  const qualityBoost = '(Review[pt] OR Meta-Analysis[pt] OR Systematic Review[pt] OR "last 10 years"[PDat])';
+  const searchQuery = `(${query}) AND ${petFilter} AND ${qualityBoost}`;
   const url = `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}&sort=relevance&term=${encodeURIComponent(searchQuery)}`;
 
   const res = await fetch(url);
