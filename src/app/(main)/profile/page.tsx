@@ -398,14 +398,6 @@ export default function ProfilePage() {
     await updateProfile({ nickname });
   };
 
-  if (loading) {
-    return (
-      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] flex items-center justify-center">
-        <div className="text-gray-500">로딩 중...</div>
-      </div>
-    );
-  }
-
   if (!user) {
     return (
       <div className="bg-gray-50 min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center p-6">
