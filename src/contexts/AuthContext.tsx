@@ -26,15 +26,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let initialLoad = true;
+
+    // Safety timeout — never stay loading forever
+    const timeout = setTimeout(() => {
+      if (initialLoad) {
+        initialLoad = false;
+        setLoading(false);
+      }
+    }, 4000);
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).finally(() => {
+          initialLoad = false;
+        });
       } else {
+        initialLoad = false;
         setLoading(false);
       }
+    }).catch(() => {
+      initialLoad = false;
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -43,7 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await ensureProfile(session.user);
+          try {
+            await ensureProfile(session.user);
+          } catch (e) {
+            console.error('ensureProfile failed:', e);
+          }
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
@@ -52,7 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const ensureProfile = async (authUser: User) => {
