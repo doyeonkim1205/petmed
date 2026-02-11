@@ -15,6 +15,7 @@ export function useMedications() {
     start_date: string;
     end_date?: string;
     frequency: string;
+    color?: string;
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');
 

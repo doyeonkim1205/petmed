@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
+import { ColorPicker } from '@/components/records/ColorPicker';
 import { supabase, Pet, HealthRecord, Medication } from '@/lib/supabase';
 
 interface MedicationInput {
@@ -15,6 +16,7 @@ interface MedicationInput {
   start_date: string;
   end_date: string;
   frequency: string;
+  color: string;
   isNew?: boolean;
 }
 
@@ -32,6 +34,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [hospitalName, setHospitalName] = useState('');
   const [visitDate, setVisitDate] = useState('');
   const [cost, setCost] = useState('');
+  const [recordColor, setRecordColor] = useState('#3B82F6');
+  const [nextAppointmentDate, setNextAppointmentDate] = useState('');
+  const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +61,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setHospitalName(record.hospital_name || '');
       setVisitDate(record.visit_date.split('T')[0]);
       setCost(record.cost ? String(record.cost) : '');
+      setRecordColor(record.color || '#3B82F6');
+      setRecordType(record.record_type);
+      setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
 
       if (record.medications) {
         setMedications(
@@ -66,6 +74,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             start_date: m.start_date,
             end_date: m.end_date || '',
             frequency: m.frequency,
+            color: m.color || '#3B82F6',
           }))
         );
       }
@@ -80,7 +89,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', isNew: true },
     ]);
   };
 
@@ -110,6 +119,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
+        color: recordColor,
+        next_appointment_date: nextAppointmentDate || null,
       } as any);
 
       // Delete removed medications
@@ -127,6 +138,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             start_date: med.start_date,
             end_date: med.end_date || undefined,
             frequency: med.frequency,
+            color: med.color,
           });
         }
       }
@@ -232,6 +244,22 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
+        {/* Record Color */}
+        <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+
+        {/* Next Appointment Date */}
+        {recordType === 'visit' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">다음 예약일</label>
+            <input
+              type="date"
+              value={nextAppointmentDate}
+              onChange={(e) => setNextAppointmentDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
+        )}
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium">투약 정보</label>
@@ -297,6 +325,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   />
                 </div>
               </div>
+              <ColorPicker
+                label="캘린더 색상"
+                value={med.color}
+                onChange={(c) => updateMedicationField(i, 'color', c)}
+              />
             </div>
           ))}
         </div>

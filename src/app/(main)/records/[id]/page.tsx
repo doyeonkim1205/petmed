@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, ExternalLink, Dog, Cat } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, ExternalLink, Dog, Cat, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile } from '@/lib/supabase';
@@ -152,6 +152,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
             </div>
           )}
+          {record.next_appointment_date && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500 flex items-center gap-1">
+                <Calendar size={14} /> 다음 예약일
+              </span>
+              <span className="text-sm font-medium text-purple-600">{formatDate(record.next_appointment_date)}</span>
+            </div>
+          )}
         </div>
 
         {record.ai_summary && (
@@ -172,7 +180,12 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <div className="space-y-2">
             {record.medications.map((med) => (
               <div key={med.id} className="p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium text-sm text-gray-900">{med.name}</p>
+                <div className="flex items-center gap-1.5">
+                  {med.color && (
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: med.color }} />
+                  )}
+                  <p className="font-medium text-sm text-gray-900">{med.name}</p>
+                </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
                   {med.dosage && <span>{med.dosage}</span>}
                   <span>{med.frequency}</span>

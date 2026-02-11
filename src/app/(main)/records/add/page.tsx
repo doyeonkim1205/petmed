@@ -9,6 +9,7 @@ import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { FileUploader } from '@/components/records/FileUploader';
 import { FileAnalysisResult } from '@/components/records/FileAnalysisResult';
+import { ColorPicker } from '@/components/records/ColorPicker';
 import { DocumentAnalysisResult } from '@/services/openai';
 import { uploadFile, saveFileRecord } from '@/services/fileUpload';
 
@@ -24,6 +25,7 @@ interface MedicationInput {
   start_date: string;
   end_date: string;
   frequency: string;
+  color: string;
 }
 
 export default function RecordAddPage() {
@@ -40,6 +42,8 @@ export default function RecordAddPage() {
   const [hospitalName, setHospitalName] = useState('');
   const [visitDate, setVisitDate] = useState(new Date().toISOString().split('T')[0]);
   const [cost, setCost] = useState('');
+  const [recordColor, setRecordColor] = useState('#3B82F6');
+  const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [analysisResult, setAnalysisResult] = useState<DocumentAnalysisResult | null>(null);
@@ -99,6 +103,7 @@ export default function RecordAddPage() {
           start_date: visitDate,
           end_date: '',
           frequency: m.frequency || '1일 1회',
+          color: '#3B82F6',
         }))
       );
     }
@@ -107,7 +112,7 @@ export default function RecordAddPage() {
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회' },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6' },
     ]);
   };
 
@@ -138,6 +143,8 @@ export default function RecordAddPage() {
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
         ai_summary: analysisResult?.summary || undefined,
+        color: recordType === 'symptom' ? '#F97316' : recordColor,
+        next_appointment_date: nextAppointmentDate || undefined,
       });
 
       // Upload files
@@ -169,6 +176,7 @@ export default function RecordAddPage() {
             start_date: med.start_date,
             end_date: med.end_date || undefined,
             frequency: med.frequency,
+            color: med.color,
           });
         } catch (err) {
           console.error('Medication add error:', err);
@@ -300,6 +308,11 @@ export default function RecordAddPage() {
           />
         </div>
 
+        {/* Record Color */}
+        {(recordType === 'visit' || recordType === 'manual') && (
+          <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+        )}
+
         {/* Description */}
         <div className="space-y-2">
           <label className="text-sm font-medium">설명</label>
@@ -334,6 +347,19 @@ export default function RecordAddPage() {
               />
             </div>
           </>
+        )}
+
+        {/* Next Appointment Date */}
+        {recordType === 'visit' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">다음 예약일</label>
+            <input
+              type="date"
+              value={nextAppointmentDate}
+              onChange={(e) => setNextAppointmentDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
         )}
 
         {/* Medications */}
@@ -398,6 +424,11 @@ export default function RecordAddPage() {
                     />
                   </div>
                 </div>
+                <ColorPicker
+                  label="캘린더 색상"
+                  value={med.color}
+                  onChange={(c) => updateMedication(i, 'color', c)}
+                />
               </div>
             ))}
           </div>

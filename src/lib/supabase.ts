@@ -62,6 +62,8 @@ export interface HealthRecord {
   visit_date: string;
   cost?: number;
   ai_summary?: string;
+  color?: string;
+  next_appointment_date?: string;
   created_at: string;
   updated_at: string;
   pets?: Pet;
@@ -78,6 +80,7 @@ export interface Medication {
   start_date: string;
   end_date?: string;
   frequency: string;
+  color?: string;
   created_at: string;
 }
 

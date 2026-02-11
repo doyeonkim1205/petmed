@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, ChevronLeft, ChevronRight, Pill, Calendar } from 'lucide-react';
 
 interface CalendarViewProps {
   records: HealthRecord[];
@@ -17,15 +17,86 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 export function CalendarView({ records, onDateSelect, selectedDate }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
 
-  const recordDates = records.reduce<Record<string, HealthRecord[]>>((acc, record) => {
-    const dateKey = record.visit_date.split('T')[0];
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(record);
-    return acc;
-  }, {});
+  // Build dot map, appointment dates, and medication map
+  const { dotMap, appointmentDates, medicationMap } = useMemo(() => {
+    const dots: Record<string, string[]> = {};
+    const appointments = new Set<string>();
+    const medMap: Record<string, { name: string; dosage?: string; frequency: string; color: string }[]> = {};
+
+    const addDot = (dateKey: string, color: string) => {
+      if (!dots[dateKey]) dots[dateKey] = [];
+      if (!dots[dateKey].includes(color) && dots[dateKey].length < 4) {
+        dots[dateKey].push(color);
+      }
+    };
+
+    const addMed = (dateKey: string, med: { name: string; dosage?: string; frequency: string; color: string }) => {
+      if (!medMap[dateKey]) medMap[dateKey] = [];
+      medMap[dateKey].push(med);
+    };
+
+    for (const record of records) {
+      // Record visit_date dot
+      const visitKey = record.visit_date.split('T')[0];
+      const recordColor = record.color || '#3B82F6';
+      addDot(visitKey, recordColor);
+
+      // Next appointment date
+      if (record.next_appointment_date) {
+        const apptKey = record.next_appointment_date.split('T')[0];
+        appointments.add(apptKey);
+      }
+
+      // Medications: spread across date range
+      if (record.medications) {
+        for (const med of record.medications) {
+          const medColor = med.color || '#3B82F6';
+          const start = new Date(med.start_date);
+          const end = med.end_date ? new Date(med.end_date) : addDays(start, 90);
+          const maxEnd = addDays(start, 365); // safety limit
+          const actualEnd = end < maxEnd ? end : maxEnd;
+
+          let d = start;
+          while (d <= actualEnd) {
+            const dateKey = format(d, 'yyyy-MM-dd');
+            addDot(dateKey, medColor);
+            addMed(dateKey, { name: med.name, dosage: med.dosage, frequency: med.frequency, color: medColor });
+            d = addDays(d, 1);
+          }
+        }
+      }
+    }
+
+    return { dotMap: dots, appointmentDates: appointments, medicationMap: medMap };
+  }, [records]);
+
+  // Build record map for selected date details
+  const recordDates = useMemo(() => {
+    return records.reduce<Record<string, HealthRecord[]>>((acc, record) => {
+      const dateKey = record.visit_date.split('T')[0];
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(record);
+      return acc;
+    }, {});
+  }, [records]);
+
+  // Appointment records for a given date
+  const appointmentRecords = useMemo(() => {
+    const map: Record<string, HealthRecord[]> = {};
+    for (const record of records) {
+      if (record.next_appointment_date) {
+        const key = record.next_appointment_date.split('T')[0];
+        if (!map[key]) map[key] = [];
+        map[key].push(record);
+      }
+    }
+    return map;
+  }, [records]);
 
   const selectedDateKey = format(selectedDate, 'yyyy-MM-dd');
   const dayRecords = recordDates[selectedDateKey] || [];
+  const dayMedications = medicationMap[selectedDateKey] || [];
+  const dayAppointments = appointmentRecords[selectedDateKey] || [];
 
   const typeIcon = {
     symptom: AlertCircle,
@@ -97,7 +168,8 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
       <div className="grid grid-cols-7 px-3 pb-3">
         {days.map((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
-          const hasRecords = !!recordDates[dateKey];
+          const dots = dotMap[dateKey] || [];
+          const isAppointment = appointmentDates.has(dateKey);
           const isSelected = isSameDay(d, selectedDate);
           const isCurrentMonth = isSameMonth(d, currentMonth);
           const isTodayDate = isToday(d);
@@ -115,7 +187,8 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                   : isCurrentMonth
                   ? 'text-gray-800 hover:bg-gray-50'
                   : 'text-gray-300'
-              }`}
+              } ${isAppointment && !isSelected ? 'ring-2 ring-dashed ring-blue-300' : ''}`}
+              style={isAppointment && !isSelected ? { outline: '2px dashed #93C5FD', outlineOffset: '-2px', borderRadius: '12px' } : undefined}
             >
               <span
                 className={`text-sm leading-none ${
@@ -134,25 +207,32 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               >
                 {d.getDate()}
               </span>
-              {hasRecords && (
-                <span
-                  className={`absolute bottom-1 w-1 h-1 rounded-full ${
-                    isSelected ? 'bg-white' : 'bg-blue-500'
-                  }`}
-                />
+              {/* Multi-color dots */}
+              {dots.length > 0 && (
+                <div className="absolute bottom-0.5 flex gap-[2px]">
+                  {dots.slice(0, 4).map((color, i) => (
+                    <span
+                      key={i}
+                      className="w-1 h-1 rounded-full"
+                      style={{ backgroundColor: isSelected ? 'white' : color }}
+                    />
+                  ))}
+                </div>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Selected Date Records */}
+      {/* Selected Date Details */}
       <div className="border-t border-gray-100 px-4 py-3">
         <h4 className="text-sm font-bold text-gray-800 mb-2">
           {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
         </h4>
-        {dayRecords.length > 0 ? (
-          <div className="space-y-2">
+
+        {/* Records */}
+        {dayRecords.length > 0 && (
+          <div className="space-y-2 mb-3">
             {dayRecords.map((record) => {
               const Icon = typeIcon[record.record_type] || FileEdit;
               const color = typeColor[record.record_type] || 'text-gray-500';
@@ -166,7 +246,12 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                     <Icon size={16} className={color} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{record.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      {record.color && (
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: record.color }} />
+                      )}
+                      <p className="text-sm font-medium text-gray-900 truncate">{record.title}</p>
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-xs font-medium ${color}`}>{label}</span>
                       {record.hospital_name && (
@@ -178,7 +263,48 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               );
             })}
           </div>
-        ) : (
+        )}
+
+        {/* Active Medications */}
+        {dayMedications.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
+              <Pill size={12} /> 투약 중
+            </p>
+            <div className="space-y-1.5">
+              {dayMedications.map((med, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: med.color }} />
+                  <span className="text-sm font-medium text-gray-800">{med.name}</span>
+                  {med.dosage && <span className="text-xs text-gray-500">{med.dosage}</span>}
+                  <span className="text-xs text-gray-400">{med.frequency}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Appointments */}
+        {dayAppointments.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
+              <Calendar size={12} /> 예약
+            </p>
+            <div className="space-y-1.5">
+              {dayAppointments.map((record) => (
+                <div key={record.id} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
+                  <Calendar size={14} className="text-purple-500" />
+                  <span className="text-sm font-medium text-gray-800">{record.title}</span>
+                  {record.hospital_name && (
+                    <span className="text-xs text-gray-400">{record.hospital_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dayRecords.length === 0 && dayMedications.length === 0 && dayAppointments.length === 0 && (
           <p className="text-sm text-gray-400 py-2">기록이 없습니다</p>
         )}
       </div>
