@@ -12,19 +12,25 @@ interface PetSelectorProps {
 
 export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
   const [pets, setPets] = useState<Pet[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const { user } = useAuth();
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     supabase
       .from('pets')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: true })
-      .then(({ data }) => setPets(data || []));
-  }, [user]);
+      .then(({ data }) => {
+        setPets(data || []);
+        setLoaded(true);
+      });
+  }, [userId]);
 
-  if (pets.length === 0) return null;
+  // Don't render until loaded; if loaded and no pets, hide
+  if (!loaded || pets.length === 0) return null;
 
   return (
     <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-3">

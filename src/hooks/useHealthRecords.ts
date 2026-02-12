@@ -8,9 +8,10 @@ export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const userId = user?.id;
 
   const fetchRecords = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setRecords([]);
       setLoading(false);
       return;
@@ -26,7 +27,7 @@ export function useHealthRecords(petId?: string) {
           medications (*),
           record_files (*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('visit_date', { ascending: false });
 
       if (petId) {
@@ -41,7 +42,7 @@ export function useHealthRecords(petId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [user, petId]);
+  }, [userId, petId]);
 
   useEffect(() => {
     fetchRecords();

@@ -26,46 +26,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let initialLoad = true;
+    // Track which user ID we already started fetching for (dedup)
+    let fetchingForId: string | null = null;
 
-    // Safety timeout — never stay loading forever
-    const timeout = setTimeout(() => {
-      if (initialLoad) {
-        initialLoad = false;
-        setLoading(false);
-      }
-    }, 4000);
+    // Safety timeout — 2s max (was 4s)
+    const timeout = setTimeout(() => setLoading(false), 2000);
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const handleUser = async (authUser: User) => {
+      // Deduplicate: skip if already fetching for this exact user
+      if (fetchingForId === authUser.id) return;
+      fetchingForId = authUser.id;
+      await fetchProfile(authUser.id);
+    };
+
+    // 1) Fast initial session (reads from local storage — near instant)
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).finally(() => {
-          initialLoad = false;
-        });
+        await handleUser(session.user);
       } else {
-        initialLoad = false;
         setLoading(false);
       }
     }).catch(() => {
-      initialLoad = false;
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // 2) Listen for subsequent auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
         if (session?.user) {
-          try {
-            await ensureProfile(session.user);
-          } catch (e) {
-            console.error('ensureProfile failed:', e);
+          // Only create profile on actual sign-in (not initial page load)
+          if (event === 'SIGNED_IN') {
+            try { await ensureProfile(session.user); } catch {}
           }
-          await fetchProfile(session.user.id);
+          await handleUser(session.user);
         } else {
+          fetchingForId = null;
           setProfile(null);
           setLoading(false);
         }
@@ -79,26 +79,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const ensureProfile = async (authUser: User) => {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', authUser.id)
-      .single();
-
-    if (!existingProfile) {
-      const metadata = authUser.user_metadata;
-      await supabase.from('profiles').insert({
-        id: authUser.id,
-        email: authUser.email ?? '',
-        nickname:
-          metadata?.full_name ||
-          metadata?.name ||
-          metadata?.nickname ||
-          authUser.email?.split('@')[0] ||
-          '사용자',
-        avatar_url: metadata?.avatar_url || metadata?.picture || null,
-      });
-    }
+    const metadata = authUser.user_metadata;
+    // Use upsert — single query instead of SELECT then INSERT
+    await supabase.from('profiles').upsert({
+      id: authUser.id,
+      email: authUser.email ?? '',
+      nickname:
+        metadata?.full_name ||
+        metadata?.name ||
+        metadata?.nickname ||
+        authUser.email?.split('@')[0] ||
+        '사용자',
+      avatar_url: metadata?.avatar_url || metadata?.picture || null,
+    }, { onConflict: 'id', ignoreDuplicates: true });
   };
 
   const fetchProfile = async (userId: string) => {
@@ -127,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Create profile after signup
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -202,14 +194,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (!user) throw new Error('No user logged in');
 
+      // Optimistic update — UI reflects immediately
+      setProfile(prev => prev ? { ...prev, ...updates } : null);
+
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // Revert on failure — re-fetch from DB
+        await fetchProfile(user.id);
+        throw error;
+      }
 
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
       return { error: null };
     } catch (error) {
       return { error: error as Error };
