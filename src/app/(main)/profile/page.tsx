@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Pet } from '@/lib/supabase';
+import { supabase, Pet, HealthRecord } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
-  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Smartphone,
-  Globe, Trash, Info,
+  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
+  Globe, Trash, Info, Download, Clock, Shield, Eye,
 } from 'lucide-react';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
@@ -42,7 +42,7 @@ function NicknameModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">닉네임 변경</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -131,7 +131,7 @@ function PetModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
           <h3 className="text-lg font-bold">나의 반려동물</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -260,7 +260,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold">알림 설정</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -279,21 +279,41 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
-// ─── App Settings Modal (Dark Mode + Settings) ─────────────
-function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+// ─── App Settings Modal (Full Featured) ─────────────────────
+function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [language, setLanguage] = useState('ko');
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [medAlarmTime, setMedAlarmTime] = useState('09:00');
+  const [autoLogin, setAutoLogin] = useState(true);
+  const [highContrast, setHighContrast] = useState(false);
+  const [defaultPetId, setDefaultPetId] = useState<string>('');
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
 
   useEffect(() => {
     if (open) {
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
       setLanguage(localStorage.getItem('language') || 'ko');
+      setMedAlarmTime(localStorage.getItem('medAlarmTime') || '09:00');
+      setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
+      setHighContrast(document.documentElement.classList.contains('high-contrast'));
+      setDefaultPetId(localStorage.getItem('defaultPetId') || '');
       setCacheCleared(false);
+      setExportDone(false);
+
+      // Fetch pets for default pet selector
+      supabase
+        .from('pets')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .then(({ data }) => setPets(data || []));
     }
-  }, [open]);
+  }, [open, userId]);
 
   if (!open) return null;
 
@@ -308,15 +328,98 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
     }
   };
 
+  const handleHighContrastToggle = (enabled: boolean) => {
+    setHighContrast(enabled);
+    if (enabled) {
+      document.documentElement.classList.add('high-contrast');
+      localStorage.setItem('highContrast', 'true');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+      localStorage.setItem('highContrast', 'false');
+    }
+  };
+
   const handleFontSize = (size: string) => {
     setFontSize(size);
     localStorage.setItem('fontSize', size);
     document.documentElement.style.fontSize = `${size}px`;
   };
 
+  const handleMedAlarmTime = (time: string) => {
+    setMedAlarmTime(time);
+    localStorage.setItem('medAlarmTime', time);
+  };
+
+  const handleAutoLogin = (enabled: boolean) => {
+    setAutoLogin(enabled);
+    localStorage.setItem('autoLogin', String(enabled));
+  };
+
+  const handleDefaultPet = (petId: string) => {
+    setDefaultPetId(petId);
+    if (petId) {
+      localStorage.setItem('defaultPetId', petId);
+    } else {
+      localStorage.removeItem('defaultPetId');
+    }
+  };
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const { data: records } = await supabase
+        .from('health_records')
+        .select('*, pets:pet_id (name, type), medications (*)')
+        .eq('user_id', userId)
+        .order('visit_date', { ascending: false });
+
+      if (!records || records.length === 0) {
+        alert('내보낼 기록이 없습니다.');
+        setExporting(false);
+        return;
+      }
+
+      // Build CSV
+      const BOM = '\uFEFF';
+      const headers = ['날짜', '반려동물', '유형', '제목', '설명', '병원', '비용', '투약정보', '다음예약일'];
+      const typeMap: Record<string, string> = { symptom: '증상', visit: '진료', manual: '기록' };
+
+      const rows = records.map((r: HealthRecord & { pets?: { name: string; type: string } }) => {
+        const petName = r.pets?.name || '';
+        const meds = r.medications?.map(m => `${m.name}(${m.frequency})`).join('; ') || '';
+        return [
+          r.visit_date?.split('T')[0] || '',
+          petName,
+          typeMap[r.record_type] || r.record_type,
+          `"${(r.title || '').replace(/"/g, '""')}"`,
+          `"${(r.description || '').replace(/"/g, '""')}"`,
+          r.hospital_name || '',
+          r.cost ? String(r.cost) : '',
+          `"${meds}"`,
+          r.next_appointment_date?.split('T')[0] || '',
+        ].join(',');
+      });
+
+      const csv = BOM + headers.join(',') + '\n' + rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `petmed_records_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportDone(true);
+      setTimeout(() => setExportDone(false), 3000);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('내보내기에 실패했습니다.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleClearCache = () => {
-    // Clear app-specific cache (not auth)
-    const keysToKeep = ['sb-ylbxtzwbwbnlmfxqgmoz-auth-token', 'theme', 'fontSize', 'language'];
+    const keysToKeep = ['sb-ylbxtzwbwbnlmfxqgmoz-auth-token', 'theme', 'fontSize', 'language', 'autoLogin', 'medAlarmTime', 'defaultPetId', 'highContrast'];
     const allKeys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -337,9 +440,19 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
     { value: '18', label: '크게' },
   ];
 
+  const alarmTimes = [
+    { value: '07:00', label: '오전 7시' },
+    { value: '08:00', label: '오전 8시' },
+    { value: '09:00', label: '오전 9시' },
+    { value: '10:00', label: '오전 10시' },
+    { value: '12:00', label: '낮 12시' },
+    { value: '18:00', label: '오후 6시' },
+    { value: '21:00', label: '오후 9시' },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
           <h3 className="text-lg font-bold">앱 설정</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -348,24 +461,13 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
           {/* Dark Mode */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              {darkMode ? <Moon size={16} className="text-blue-500" /> : <Sun size={16} className="text-orange-500" />}
-              <span className="text-sm font-bold text-gray-700">화면 모드</span>
-            </div>
-            <ToggleRow
-              label="다크 모드"
-              desc="어두운 배경으로 눈의 피로를 줄입니다"
-              checked={darkMode}
-              onChange={handleDarkToggle}
-            />
+            <SectionHeader icon={darkMode ? Moon : Sun} iconColor={darkMode ? 'text-blue-500' : 'text-orange-500'} label="화면 모드" />
+            <ToggleRow label="다크 모드" desc="어두운 배경으로 눈의 피로를 줄입니다" checked={darkMode} onChange={handleDarkToggle} />
           </div>
 
           {/* Font Size */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Type size={16} className="text-gray-500" />
-              <span className="text-sm font-bold text-gray-700">글자 크기</span>
-            </div>
+            <SectionHeader icon={Type} iconColor="text-gray-500" label="글자 크기" />
             <div className="flex gap-2">
               {fontSizes.map((fs) => (
                 <button
@@ -383,19 +485,88 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
           </div>
 
+          {/* Default Pet */}
+          {pets.length > 0 && (
+            <div>
+              <SectionHeader icon={Dog} iconColor="text-gray-500" label="기본 반려동물" />
+              <p className="text-xs text-gray-400 mb-2">기록장 진입 시 자동 선택됩니다</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleDefaultPet('')}
+                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    defaultPetId === '' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
+                  }`}
+                >
+                  전체
+                </button>
+                {pets.map((pet) => {
+                  const Icon = pet.type === 'cat' ? Cat : Dog;
+                  return (
+                    <button
+                      key={pet.id}
+                      onClick={() => handleDefaultPet(pet.id)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        defaultPetId === pet.id ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      {pet.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Medication Alarm Time */}
+          <div>
+            <SectionHeader icon={Clock} iconColor="text-gray-500" label="투약 알림 시간" />
+            <p className="text-xs text-gray-400 mb-2">매일 투약 확인 알림을 보낼 시간</p>
+            <select
+              value={medAlarmTime}
+              onChange={(e) => handleMedAlarmTime(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              {alarmTimes.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Auto Login */}
+          <div>
+            <SectionHeader icon={Shield} iconColor="text-gray-500" label="보안" />
+            <ToggleRow label="자동 로그인" desc="앱 재시작 시 자동으로 로그인합니다" checked={autoLogin} onChange={handleAutoLogin} />
+          </div>
+
+          {/* Accessibility */}
+          <div>
+            <SectionHeader icon={Eye} iconColor="text-gray-500" label="접근성" />
+            <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
+          </div>
+
+          {/* Data Export */}
+          <div>
+            <SectionHeader icon={Download} iconColor="text-gray-500" label="데이터 백업" />
+            <p className="text-xs text-gray-400 mb-2">건강 기록을 CSV 파일로 내보냅니다</p>
+            <button
+              onClick={handleExportCSV}
+              disabled={exporting}
+              className="w-full h-10 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Download size={14} />
+              {exporting ? '내보내는 중...' : exportDone ? 'CSV 다운로드 완료!' : '건강 기록 CSV 내보내기'}
+            </button>
+          </div>
+
           {/* Language */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Globe size={16} className="text-gray-500" />
-              <span className="text-sm font-bold text-gray-700">언어</span>
-            </div>
+            <SectionHeader icon={Globe} iconColor="text-gray-500" label="언어" />
             <div className="flex gap-2">
               <button
                 onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
                 className={`flex-1 h-10 rounded-lg border text-sm font-medium transition-colors ${
-                  language === 'ko'
-                    ? 'border-blue-500 bg-blue-50 text-blue-600'
-                    : 'border-gray-200 text-gray-500'
+                  language === 'ko' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
                 }`}
               >
                 한국어
@@ -403,9 +574,7 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
               <button
                 onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
                 className={`flex-1 h-10 rounded-lg border text-sm font-medium transition-colors ${
-                  language === 'en'
-                    ? 'border-blue-500 bg-blue-50 text-blue-600'
-                    : 'border-gray-200 text-gray-500'
+                  language === 'en' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
                 }`}
               >
                 English
@@ -415,10 +584,7 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
 
           {/* Cache Clear */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Trash size={16} className="text-gray-500" />
-              <span className="text-sm font-bold text-gray-700">캐시 관리</span>
-            </div>
+            <SectionHeader icon={Trash} iconColor="text-gray-500" label="캐시 관리" />
             <button
               onClick={handleClearCache}
               className="w-full h-10 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -429,19 +595,10 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
 
           {/* App Info */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Info size={16} className="text-gray-500" />
-              <span className="text-sm font-bold text-gray-700">앱 정보</span>
-            </div>
+            <SectionHeader icon={Info} iconColor="text-gray-500" label="앱 정보" />
             <div className="space-y-2 text-sm text-gray-500">
-              <div className="flex justify-between">
-                <span>버전</span>
-                <span className="text-gray-700">1.0.0</span>
-              </div>
-              <div className="flex justify-between">
-                <span>개발</span>
-                <span className="text-gray-700">PetMed Team</span>
-              </div>
+              <div className="flex justify-between"><span>버전</span><span className="text-gray-700">1.0.0</span></div>
+              <div className="flex justify-between"><span>개발</span><span className="text-gray-700">PetMed Team</span></div>
             </div>
           </div>
         </div>
@@ -450,6 +607,16 @@ function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => voi
           <button onClick={onClose} className="w-full h-11 bg-blue-600 text-white rounded-lg font-medium">확인</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Section Header ────────────────────────────────────────
+function SectionHeader({ icon: Icon, iconColor, label }: { icon: React.ComponentType<{ size?: number; className?: string }>; iconColor: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <Icon size={16} className={iconColor} />
+      <span className="text-sm font-bold text-gray-700">{label}</span>
     </div>
   );
 }
@@ -644,6 +811,7 @@ export default function ProfilePage() {
       <AppSettingsModal
         open={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        userId={user.id}
       />
     </div>
   );

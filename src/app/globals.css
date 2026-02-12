@@ -166,3 +166,29 @@ html.dark {
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ─── High Contrast Mode ────────────────────────────────── */
+html.high-contrast {
+  --color-gray-400: #374151;
+  --color-gray-500: #1f2937;
+  --color-gray-600: #111827;
+  --border: rgba(0, 0, 0, 0.3);
+}
+
+html.high-contrast.dark {
+  --color-gray-400: #cbd5e1;
+  --color-gray-500: #e2e8f0;
+  --color-gray-600: #f1f5f9;
+  --border: rgba(255, 255, 255, 0.3);
+}
+
+html.high-contrast button,
+html.high-contrast a {
+  font-weight: 600;
+}
+
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  border-width: 2px;
+}

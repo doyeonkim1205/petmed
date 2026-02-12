@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,12 @@ import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 type Tab = 'records' | 'calendar';
 
 export default function RecordsPage() {
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('defaultPetId') || null;
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState<Tab>('records');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { user, loading: authLoading } = useAuth();

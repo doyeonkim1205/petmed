@@ -35,6 +35,8 @@ export default function RootLayout({
             if (t === 'dark') document.documentElement.classList.add('dark');
             var fs = localStorage.getItem('fontSize');
             if (fs) document.documentElement.style.fontSize = fs + 'px';
+            var hc = localStorage.getItem('highContrast');
+            if (hc === 'true') document.documentElement.classList.add('high-contrast');
           } catch(e) {}
         ` }} />
       </head>
