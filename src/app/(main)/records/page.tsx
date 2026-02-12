@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar } from 'lucide-react';
+import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { PetSelector } from '@/components/records/PetSelector';
@@ -18,7 +18,7 @@ export default function RecordsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { records, loading } = useHealthRecords(selectedPetId || undefined);
+  const { records, loading, error, fetchRecords } = useHealthRecords(selectedPetId || undefined);
 
   if (authLoading) {
     return (
@@ -86,7 +86,24 @@ export default function RecordsPage() {
       {activeTab === 'records' ? (
         <div className="flex flex-col gap-2 p-4">
           {loading ? (
-            <div className="text-center py-20 text-gray-400 text-sm">로딩 중...</div>
+            <div className="py-20 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <AlertTriangle size={48} className="mx-auto mb-3 text-orange-400" />
+              <p className="text-gray-600 text-sm mb-1">기록을 불러올 수 없습니다</p>
+              <p className="text-gray-400 text-xs mb-4">{error}</p>
+              <button
+                onClick={fetchRecords}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+              >
+                <RefreshCw size={14} />
+                다시 시도
+              </button>
+            </div>
           ) : records.length === 0 ? (
             <div className="text-center py-20">
               <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />

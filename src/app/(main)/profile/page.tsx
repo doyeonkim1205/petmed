@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import {
-  User, Settings, Bell, LogOut, ChevronRight, Gift, Edit2,
-  X, Plus, Trash2, Dog, Cat,
+  User, Settings, Bell, LogOut, ChevronRight, Edit2,
+  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Smartphone,
+  Globe, Trash, Info,
 } from 'lucide-react';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
@@ -16,26 +17,32 @@ function NicknameModal({
   open: boolean;
   currentNickname: string;
   onClose: () => void;
-  onSave: (nickname: string) => Promise<void>;
+  onSave: (nickname: string) => Promise<{ error: Error | null }>;
 }) {
   const [nickname, setNickname] = useState(currentNickname);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  useEffect(() => { setNickname(currentNickname); }, [currentNickname]);
+  useEffect(() => { setNickname(currentNickname); setErrorMsg(''); }, [currentNickname]);
 
   if (!open) return null;
 
   const handleSave = async () => {
     if (nickname.trim().length < 2) return;
     setSaving(true);
-    await onSave(nickname.trim());
+    setErrorMsg('');
+    const result = await onSave(nickname.trim());
     setSaving(false);
-    onClose();
+    if (result.error) {
+      setErrorMsg(result.error.message || '저장에 실패했습니다');
+    } else {
+      onClose();
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">닉네임 변경</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -45,9 +52,12 @@ function NicknameModal({
           value={nickname}
           onChange={e => setNickname(e.target.value)}
           placeholder="새 닉네임 (2자 이상)"
-          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none mb-4"
+          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none mb-2"
         />
-        <div className="flex gap-3">
+        {errorMsg && (
+          <p className="text-red-500 text-xs mb-2">{errorMsg}</p>
+        )}
+        <div className="flex gap-3 mt-2">
           <button onClick={onClose} className="flex-1 h-11 border border-gray-300 rounded-lg font-medium">취소</button>
           <button
             onClick={handleSave}
@@ -121,7 +131,7 @@ function PetModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
           <h3 className="text-lg font-bold">나의 반려동물</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -230,13 +240,13 @@ function PetModal({
 // ─── Notification Settings Modal ───────────────────────────
 function NotificationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [pushEnabled, setPushEnabled] = useState(true);
-  const [communityEnabled, setCommunityEnabled] = useState(true);
+  const [recordEnabled, setRecordEnabled] = useState(true);
   const [eventEnabled, setEventEnabled] = useState(false);
 
   useEffect(() => {
     if (open) {
       setPushEnabled(localStorage.getItem('notify_push') !== 'false');
-      setCommunityEnabled(localStorage.getItem('notify_community') !== 'false');
+      setRecordEnabled(localStorage.getItem('notify_community') !== 'false');
       setEventEnabled(localStorage.getItem('notify_event') === 'true');
     }
   }, [open]);
@@ -250,7 +260,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold">알림 설정</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
@@ -258,8 +268,8 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         <div className="space-y-4">
           <ToggleRow label="푸시 알림" desc="앱 알림을 받습니다" checked={pushEnabled}
             onChange={v => toggle('notify_push', v, setPushEnabled)} />
-          <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={communityEnabled}
-            onChange={v => toggle('notify_community', v, setCommunityEnabled)} />
+          <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={recordEnabled}
+            onChange={v => toggle('notify_community', v, setRecordEnabled)} />
           <ToggleRow label="이벤트 알림" desc="이벤트, 프로모션 알림" checked={eventEnabled}
             onChange={v => toggle('notify_event', v, setEventEnabled)} />
         </div>
@@ -269,60 +279,176 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
-// ─── Events / Coupons Modal ────────────────────────────────
-function EventCouponModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+// ─── App Settings Modal (Dark Mode + Settings) ─────────────
+function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [darkMode, setDarkMode] = useState(false);
+  const [fontSize, setFontSize] = useState('16');
+  const [language, setLanguage] = useState('ko');
+  const [cacheCleared, setCacheCleared] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setDarkMode(document.documentElement.classList.contains('dark'));
+      setFontSize(localStorage.getItem('fontSize') || '16');
+      setLanguage(localStorage.getItem('language') || 'ko');
+      setCacheCleared(false);
+    }
+  }, [open]);
+
   if (!open) return null;
 
-  const mockEvents = [
-    { id: '1', title: '신규 가입 축하 쿠폰', desc: '첫 진료 10% 할인', expires: '2026-03-31', type: 'coupon' as const },
-    { id: '2', title: '봄맞이 건강검진 이벤트', desc: '종합 건강검진 20% 할인', expires: '2026-04-30', type: 'event' as const },
-    { id: '3', title: '친구 초대 리워드', desc: '친구 1명 초대 시 5,000원 쿠폰', expires: '2026-12-31', type: 'coupon' as const },
+  const handleDarkToggle = (enabled: boolean) => {
+    setDarkMode(enabled);
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  const handleFontSize = (size: string) => {
+    setFontSize(size);
+    localStorage.setItem('fontSize', size);
+    document.documentElement.style.fontSize = `${size}px`;
+  };
+
+  const handleClearCache = () => {
+    // Clear app-specific cache (not auth)
+    const keysToKeep = ['sb-ylbxtzwbwbnlmfxqgmoz-auth-token', 'theme', 'fontSize', 'language'];
+    const allKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) allKeys.push(key);
+    }
+    allKeys.forEach(key => {
+      if (!keysToKeep.some(k => key.includes(k))) {
+        localStorage.removeItem(key);
+      }
+    });
+    setCacheCleared(true);
+    setTimeout(() => setCacheCleared(false), 2000);
+  };
+
+  const fontSizes = [
+    { value: '14', label: '작게' },
+    { value: '16', label: '보통' },
+    { value: '18', label: '크게' },
   ];
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
-          <h3 className="text-lg font-bold">이벤트 / 쿠폰함</h3>
-          <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3">
-          {mockEvents.map(evt => (
-            <div key={evt.id} className="p-4 border border-gray-100 rounded-xl">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                  evt.type === 'coupon' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'
-                }`}>
-                  {evt.type === 'coupon' ? '쿠폰' : '이벤트'}
-                </span>
-                <span className="text-xs text-gray-400">~{evt.expires}</span>
-              </div>
-              <p className="font-medium text-gray-900">{evt.title}</p>
-              <p className="text-sm text-gray-500">{evt.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── App Settings Modal ────────────────────────────────────
-function AppSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold">앱 설정</h3>
           <button onClick={onClose} className="p-1 text-gray-400"><X size={20} /></button>
         </div>
-        <div className="text-center py-8 text-gray-400">
-          <Settings size={32} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-sm">앱 설정 기능을 준비 중입니다.</p>
+
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+          {/* Dark Mode */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              {darkMode ? <Moon size={16} className="text-blue-500" /> : <Sun size={16} className="text-orange-500" />}
+              <span className="text-sm font-bold text-gray-700">화면 모드</span>
+            </div>
+            <ToggleRow
+              label="다크 모드"
+              desc="어두운 배경으로 눈의 피로를 줄입니다"
+              checked={darkMode}
+              onChange={handleDarkToggle}
+            />
+          </div>
+
+          {/* Font Size */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Type size={16} className="text-gray-500" />
+              <span className="text-sm font-bold text-gray-700">글자 크기</span>
+            </div>
+            <div className="flex gap-2">
+              {fontSizes.map((fs) => (
+                <button
+                  key={fs.value}
+                  onClick={() => handleFontSize(fs.value)}
+                  className={`flex-1 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                    fontSize === fs.value
+                      ? 'border-blue-500 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {fs.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Language */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Globe size={16} className="text-gray-500" />
+              <span className="text-sm font-bold text-gray-700">언어</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
+                className={`flex-1 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                  language === 'ko'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 text-gray-500'
+                }`}
+              >
+                한국어
+              </button>
+              <button
+                onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
+                className={`flex-1 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                  language === 'en'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 text-gray-500'
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
+          {/* Cache Clear */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Trash size={16} className="text-gray-500" />
+              <span className="text-sm font-bold text-gray-700">캐시 관리</span>
+            </div>
+            <button
+              onClick={handleClearCache}
+              className="w-full h-10 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              {cacheCleared ? '캐시 삭제 완료!' : '캐시 데이터 삭제'}
+            </button>
+          </div>
+
+          {/* App Info */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Info size={16} className="text-gray-500" />
+              <span className="text-sm font-bold text-gray-700">앱 정보</span>
+            </div>
+            <div className="space-y-2 text-sm text-gray-500">
+              <div className="flex justify-between">
+                <span>버전</span>
+                <span className="text-gray-700">1.0.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>개발</span>
+                <span className="text-gray-700">PetMed Team</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button onClick={onClose} className="w-full h-11 mt-2 bg-blue-600 text-white rounded-lg font-medium">확인</button>
+
+        <div className="p-6 pt-4 border-t border-gray-100">
+          <button onClick={onClose} className="w-full h-11 bg-blue-600 text-white rounded-lg font-medium">확인</button>
+        </div>
       </div>
     </div>
   );
@@ -358,23 +484,15 @@ export default function ProfilePage() {
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [showPetModal, setShowPetModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showEventModal, setShowEventModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      router.push('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      // 강제로 상태 초기화하고 이동
-      router.push('/');
-      router.refresh();
-    }
+    await signOut();
+    router.push('/');
   };
 
   const handleSaveNickname = async (nickname: string) => {
-    await updateProfile({ nickname });
+    return await updateProfile({ nickname });
   };
 
   if (loading) {
@@ -479,21 +597,8 @@ export default function ProfilePage() {
           <ChevronRight size={16} className="text-gray-400" />
         </button>
         <button
-          onClick={() => setShowEventModal(true)}
-          className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
-        >
-          <div className="flex items-center gap-3 text-gray-700">
-            <Gift size={20} />
-            <span>이벤트 / 쿠폰함</span>
-          </div>
-          <ChevronRight size={16} className="text-gray-400" />
-        </button>
-      </div>
-
-      <div className="bg-white border-t border-b border-gray-100">
-        <button
           onClick={() => setShowSettingsModal(true)}
-          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50"
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
         >
           <div className="flex items-center gap-3 text-gray-700">
             <Settings size={20} />
@@ -501,6 +606,9 @@ export default function ProfilePage() {
           </div>
           <ChevronRight size={16} className="text-gray-400" />
         </button>
+      </div>
+
+      <div className="bg-white border-t border-b border-gray-100">
         <button
           onClick={handleLogout}
           className="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-red-500"
@@ -532,10 +640,6 @@ export default function ProfilePage() {
       <NotificationModal
         open={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
-      />
-      <EventCouponModal
-        open={showEventModal}
-        onClose={() => setShowEventModal(false)}
       />
       <AppSettingsModal
         open={showSettingsModal}

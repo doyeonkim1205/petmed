@@ -39,6 +39,66 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* ─── Dark Mode ─────────────────────────────────────────── */
+html.dark {
+  color-scheme: dark;
+
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --card: #1e293b;
+  --card-foreground: #e2e8f0;
+  --popover: #1e293b;
+  --popover-foreground: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: #e2e8f0;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.1);
+  --input-background: #1e293b;
+  --switch-background: #475569;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: #e2e8f0;
+  --sidebar-primary-foreground: #1e293b;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: #334155;
+}
+
+/* Remap Tailwind gray scale for dark mode */
+html.dark {
+  --color-white: #1e293b;
+  --color-black: #f1f5f9;
+  --color-gray-50: #0f172a;
+  --color-gray-100: #1e293b;
+  --color-gray-200: #334155;
+  --color-gray-300: #475569;
+  --color-gray-400: #64748b;
+  --color-gray-500: #94a3b8;
+  --color-gray-600: #94a3b8;
+  --color-gray-700: #cbd5e1;
+  --color-gray-800: #e2e8f0;
+  --color-gray-900: #f1f5f9;
+
+  /* Colored backgrounds for dark mode */
+  --color-blue-50: #172554;
+  --color-blue-100: #1e3a5f;
+  --color-orange-50: #431407;
+  --color-orange-100: #4a2c1a;
+  --color-green-50: #052e16;
+  --color-green-100: #14532d;
+  --color-purple-50: #2e1065;
+  --color-purple-100: #3b0764;
+  --color-red-50: #450a0a;
+  --color-red-100: #7f1d1d;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

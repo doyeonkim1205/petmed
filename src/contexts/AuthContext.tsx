@@ -184,32 +184,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setSession(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('signOut error:', err);
+    } finally {
+      // Always clear state, even if signOut API fails
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) return { error: new Error('No user logged in') };
+
+    const prevProfile = profile;
+    setProfile(prev => prev ? { ...prev, ...updates } : null);
+
     try {
-      if (!user) throw new Error('No user logged in');
-
-      // Optimistic update — UI reflects immediately
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
-
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id);
 
-      if (error) {
-        // Revert on failure — re-fetch from DB
-        await fetchProfile(user.id);
-        throw error;
-      }
+      if (error) throw error;
 
+      // Re-fetch to confirm the update was saved
+      await fetchProfile(user.id);
       return { error: null };
     } catch (error) {
+      // Revert optimistic update
+      setProfile(prevProfile);
       return { error: error as Error };
     }
   };

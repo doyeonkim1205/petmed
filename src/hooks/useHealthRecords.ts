@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const userId = user?.id;
 
@@ -14,10 +15,12 @@ export function useHealthRecords(petId?: string) {
     if (!userId) {
       setRecords([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
     setLoading(true);
+    setError(null);
     try {
       let query = supabase
         .from('health_records')
@@ -34,11 +37,14 @@ export function useHealthRecords(petId?: string) {
         query = query.eq('pet_id', petId);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      const { data, error: queryError } = await query;
+      if (queryError) throw queryError;
       setRecords(data || []);
-    } catch (error) {
-      console.error('Error fetching records:', error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '기록을 불러오는데 실패했습니다';
+      console.error('Error fetching records:', err);
+      setError(message);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -118,5 +124,5 @@ export function useHealthRecords(petId?: string) {
     return data as HealthRecord;
   };
 
-  return { records, loading, fetchRecords, createRecord, updateRecord, deleteRecord, getRecord };
+  return { records, loading, error, fetchRecords, createRecord, updateRecord, deleteRecord, getRecord };
 }

@@ -26,7 +26,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        {/* Prevent flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var t = localStorage.getItem('theme');
+            if (t === 'dark') document.documentElement.classList.add('dark');
+            var fs = localStorage.getItem('fontSize');
+            if (fs) document.documentElement.style.fontSize = fs + 'px';
+          } catch(e) {}
+        ` }} />
+      </head>
       <body className={`${geist.variable} antialiased bg-gray-50`}>
         <Providers>
           {children}
