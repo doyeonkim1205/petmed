@@ -187,7 +187,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                   : isCurrentMonth
                   ? 'text-gray-800 hover:bg-gray-50'
                   : 'text-gray-300'
-              } ${isAppointment && !isSelected ? 'ring-2 ring-dashed ring-blue-300' : ''}`}
+              }`}
               style={isAppointment && !isSelected ? { outline: '2px dashed #93C5FD', outlineOffset: '-2px', borderRadius: '12px' } : undefined}
             >
               <span
