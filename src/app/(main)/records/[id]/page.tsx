@@ -2,10 +2,10 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, ExternalLink, Dog, Cat, Calendar } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
-import { HealthRecord, Medication, RecordFile } from '@/lib/supabase';
+import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
 
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
@@ -208,15 +208,58 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             첨부 파일
           </h3>
           <div className="space-y-2">
-            {record.record_files.map((file) => (
-              <div key={file.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Paperclip size={16} className="text-gray-400" />
-                <span className="flex-1 text-sm text-gray-700 truncate">{file.file_name}</span>
-                <span className="text-xs text-gray-400">
-                  {(file.file_size / 1024).toFixed(0)}KB
-                </span>
-              </div>
-            ))}
+            {record.record_files.map((file) => {
+              const { data: urlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path);
+              const fileUrl = urlData.publicUrl;
+              const isImage = file.file_type?.startsWith('image/');
+              const FileIcon = isImage ? Image : FileText;
+
+              return (
+                <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
+                  {isImage && (
+                    <button
+                      onClick={() => window.open(fileUrl, '_blank')}
+                      className="w-full block cursor-pointer"
+                    >
+                      <img
+                        src={fileUrl}
+                        alt={file.file_name}
+                        className="w-full max-h-48 object-cover bg-gray-100"
+                      />
+                    </button>
+                  )}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50">
+                    <FileIcon size={16} className={isImage ? 'text-green-500' : 'text-blue-500'} />
+                    <button
+                      onClick={() => window.open(fileUrl, '_blank')}
+                      className="flex-1 text-sm text-gray-700 truncate text-left hover:text-blue-600 transition-colors"
+                    >
+                      {file.file_name}
+                    </button>
+                    <span className="text-xs text-gray-400 flex-shrink-0">
+                      {(file.file_size / 1024).toFixed(0)}KB
+                    </span>
+                    <a
+                      href={fileUrl}
+                      download={file.file_name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                      title="다운로드"
+                    >
+                      <Download size={16} />
+                    </a>
+                    <button
+                      onClick={() => window.open(fileUrl, '_blank')}
+                      className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                      title="새 탭에서 열기"
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

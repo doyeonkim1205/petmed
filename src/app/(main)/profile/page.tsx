@@ -241,13 +241,11 @@ function PetModal({
 function NotificationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [recordEnabled, setRecordEnabled] = useState(true);
-  const [eventEnabled, setEventEnabled] = useState(false);
 
   useEffect(() => {
     if (open) {
       setPushEnabled(localStorage.getItem('notify_push') !== 'false');
       setRecordEnabled(localStorage.getItem('notify_community') !== 'false');
-      setEventEnabled(localStorage.getItem('notify_event') === 'true');
     }
   }, [open]);
 
@@ -270,8 +268,6 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
             onChange={v => toggle('notify_push', v, setPushEnabled)} />
           <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={recordEnabled}
             onChange={v => toggle('notify_community', v, setRecordEnabled)} />
-          <ToggleRow label="이벤트 알림" desc="이벤트, 프로모션 알림" checked={eventEnabled}
-            onChange={v => toggle('notify_event', v, setEventEnabled)} />
         </div>
         <button onClick={onClose} className="w-full h-11 mt-6 bg-blue-600 text-white rounded-lg font-medium">확인</button>
       </div>
@@ -580,6 +576,9 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                 English
               </button>
             </div>
+            {language === 'en' && (
+              <p className="text-xs text-orange-500 mt-2">영어 지원은 준비 중입니다. 빠른 시일 내에 제공될 예정입니다.</p>
+            )}
           </div>
 
           {/* Cache Clear */}

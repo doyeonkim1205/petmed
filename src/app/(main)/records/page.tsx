@@ -15,15 +15,35 @@ type Tab = 'records' | 'calendar';
 export default function RecordsPage() {
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('defaultPetId') || null;
+      return localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId') || null;
     }
     return null;
   });
-  const [activeTab, setActiveTab] = useState<Tab>('records');
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordsActiveTab');
+      if (saved === 'records' || saved === 'calendar') return saved;
+    }
+    return 'records';
+  });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { records, loading, error, fetchRecords } = useHealthRecords(selectedPetId || undefined);
+
+  const handlePetSelect = (petId: string | null) => {
+    setSelectedPetId(petId);
+    if (petId) {
+      localStorage.setItem('lastSelectedPetId', petId);
+    } else {
+      localStorage.removeItem('lastSelectedPetId');
+    }
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    localStorage.setItem('recordsActiveTab', tab);
+  };
 
   if (authLoading) {
     return (
@@ -66,14 +86,14 @@ export default function RecordsPage() {
   return (
     <div className="bg-gray-50 min-h-full pb-20 relative">
       <div className="bg-white sticky top-14 z-30 shadow-sm">
-        <PetSelector selectedPetId={selectedPetId} onSelect={setSelectedPetId} />
+        <PetSelector selectedPetId={selectedPetId} onSelect={handlePetSelect} />
         <div className="flex border-t border-gray-100">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
