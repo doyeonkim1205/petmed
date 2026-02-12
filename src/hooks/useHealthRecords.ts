@@ -22,6 +22,7 @@ export function useHealthRecords(petId?: string) {
     setLoading(true);
     setError(null);
     try {
+      // First try with joins
       let query = supabase
         .from('health_records')
         .select(`
@@ -38,7 +39,21 @@ export function useHealthRecords(petId?: string) {
       }
 
       const { data, error: queryError } = await query;
-      if (queryError) throw queryError;
+
+      if (queryError) {
+        // If join query fails, try simple query without joins
+        console.error('Join query failed, trying simple query:', queryError);
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('health_records')
+          .select('*')
+          .eq('user_id', userId)
+          .order('visit_date', { ascending: false });
+
+        if (simpleError) throw simpleError;
+        setRecords((simpleData || []).map(r => ({ ...r, medications: [], record_files: [] })));
+        return;
+      }
+
       setRecords(data || []);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '기록을 불러오는데 실패했습니다';

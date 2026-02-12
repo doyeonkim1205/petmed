@@ -24,8 +24,13 @@ export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
-        setPets(data || []);
+        const petList = data || [];
+        setPets(petList);
         setLoaded(true);
+        // If selectedPetId is set but doesn't exist in the pet list, reset to "전체"
+        if (selectedPetId && petList.length > 0 && !petList.find(p => p.id === selectedPetId)) {
+          onSelect(null);
+        }
       });
   }, [userId]);
 

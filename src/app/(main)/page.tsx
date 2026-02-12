@@ -12,6 +12,15 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+
+    // Save to recent searches before navigating
+    try {
+      const saved = localStorage.getItem('recentSearches');
+      const existing: string[] = saved ? JSON.parse(saved) : [];
+      const updated = [query.trim(), ...existing.filter(s => s !== query.trim())].slice(0, 10);
+      localStorage.setItem('recentSearches', JSON.stringify(updated));
+    } catch {}
+
     router.push(`/search?q=${encodeURIComponent(query.trim())}&pet=${petType}`);
   };
 

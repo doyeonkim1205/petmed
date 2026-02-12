@@ -24,6 +24,7 @@ export interface UsePubMedSearchResult {
 export function usePubMedSearch(
   diseaseName: string | null,
   petType: 'cat' | 'dog' = 'cat',
+  searchKey: number = 0,
 ): UsePubMedSearchResult {
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +87,7 @@ export function usePubMedSearch(
       setLoading(false);
       setStep('done');
     }
-  }, [diseaseName, petType]);
+  }, [diseaseName, petType, searchKey]);
 
   useEffect(() => {
     fetchArticles();

@@ -35,12 +35,31 @@ function SearchContent() {
     } catch {}
   }, []);
 
-  const pubmed = usePubMedSearch(searchTerm, petType);
+  // searchKey: changes every time user triggers a search, forces usePubMedSearch to re-run
+  const [searchKey, setSearchKey] = useState(0);
+  const pubmed = usePubMedSearch(searchTerm, petType, searchKey);
 
   const saveHistory = (searches: string[]) => {
     setRecentSearches(searches);
     localStorage.setItem('recentSearches', JSON.stringify(searches));
   };
+
+  // Save initialQuery (from main page) to recent searches
+  useEffect(() => {
+    if (initialQuery) {
+      const found = mockDiseases.find(d => d.name.includes(initialQuery));
+      setMockResult(found || null);
+
+      // Save to recent searches in localStorage
+      try {
+        const saved = localStorage.getItem('recentSearches');
+        const existing: string[] = saved ? JSON.parse(saved) : [];
+        const updated = [initialQuery, ...existing.filter(s => s !== initialQuery)].slice(0, 10);
+        localStorage.setItem('recentSearches', JSON.stringify(updated));
+        setRecentSearches(updated);
+      } catch {}
+    }
+  }, [initialQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +72,7 @@ function SearchContent() {
     const found = mockDiseases.find(d => d.name.includes(query));
     setMockResult(found || null);
     setSearchTerm(query.trim());
+    setSearchKey(k => k + 1); // force re-search even if same term
   };
 
   const deleteSearchTerm = (term: string) => {
@@ -64,14 +84,8 @@ function SearchContent() {
     const found = mockDiseases.find(d => d.name.includes(term));
     setMockResult(found || null);
     setSearchTerm(term);
+    setSearchKey(k => k + 1);
   };
-
-  useEffect(() => {
-    if (initialQuery) {
-      const found = mockDiseases.find(d => d.name.includes(initialQuery));
-      setMockResult(found || null);
-    }
-  }, [initialQuery]);
 
   const hasSearched = searchTerm !== null;
 
