@@ -245,7 +245,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   useEffect(() => {
     if (open) {
       setPushEnabled(localStorage.getItem('notify_push') !== 'false');
-      setRecordEnabled(localStorage.getItem('notify_community') !== 'false');
+      setRecordEnabled(localStorage.getItem('notify_record') !== 'false');
     }
   }, [open]);
 
@@ -267,7 +267,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           <ToggleRow label="푸시 알림" desc="앱 알림을 받습니다" checked={pushEnabled}
             onChange={v => toggle('notify_push', v, setPushEnabled)} />
           <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={recordEnabled}
-            onChange={v => toggle('notify_community', v, setRecordEnabled)} />
+            onChange={v => toggle('notify_record', v, setRecordEnabled)} />
         </div>
         <button onClick={onClose} className="w-full h-11 mt-6 bg-blue-600 text-white rounded-lg font-medium">확인</button>
       </div>

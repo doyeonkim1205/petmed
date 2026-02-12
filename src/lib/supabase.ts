@@ -14,30 +14,6 @@ export interface Profile {
   created_at: string;
 }
 
-export interface Post {
-  id: string;
-  user_id: string;
-  category: 'boast' | 'info';
-  title: string;
-  content: string;
-  image_url?: string;
-  likes: number;
-  created_at: string;
-  updated_at: string;
-  profiles?: Profile;
-  comment_count?: number;
-}
-
-export interface Comment {
-  id: string;
-  post_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  profiles?: Profile;
-}
-
 export interface Pet {
   id: string;
   user_id: string;

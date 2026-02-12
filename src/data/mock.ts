@@ -18,17 +18,6 @@ export interface Product {
   price: string;
 }
 
-export interface Post {
-  id: string;
-  title: string;
-  author: string;
-  category: 'boast' | 'info' | 'adoption' | 'lost';
-  content: string;
-  likes: number;
-  image?: string;
-  date: string;
-}
-
 export interface Hospital {
   id: string;
   name: string;
@@ -117,14 +106,6 @@ export const mockDiseases: Disease[] = [
     youtubeId: 'MNO345Test',
     images: [catImages[1]]
   }
-];
-
-export const mockPosts: Post[] = [
-  { id: '1', title: '우리 댕댕이 미모 보고 가세요', author: '강쥐맘', category: 'boast', content: '너무 귀엽죠?', likes: 120, image: dogImages[0], date: '2023-10-25' },
-  { id: '2', title: '슬개골 수술 후기 공유합니다', author: '초코파이', category: 'info', content: '수술 비용이랑 재활 과정...', likes: 85, date: '2023-10-24' },
-  { id: '3', title: '아기 고양이 임보처 구해요', author: '냥줍', category: 'adoption', content: '길에서 구조했어요.', likes: 200, image: catImages[0], date: '2023-10-23' },
-  { id: '4', title: '강아지 잃어버리신 분 있나요?', author: '찾아드림', category: 'lost', content: '강남역 근처에서 발견.', likes: 50, image: dogImages[2], date: '2023-10-22' },
-  { id: '5', title: '사료 추천 부탁드립니다', author: '초보집사', category: 'info', content: '입맛이 너무 까다로워요.', likes: 15, date: '2023-10-21' },
 ];
 
 export const mockHospitals: Hospital[] = [
