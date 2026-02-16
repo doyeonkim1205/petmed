@@ -109,26 +109,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
 
     // Listen for subsequent auth changes (sign in, sign out, token refresh)
+    // CRITICAL: This callback MUST be synchronous (not async).
+    // supabase-js awaits all onAuthStateChange callbacks inside _notifyAllSubscribers(),
+    // which runs inside _initialize(). If this callback calls any Supabase DB operation,
+    // that operation calls getSession() which awaits initializePromise (= _initialize()),
+    // creating a circular wait → DEADLOCK. All DB work is deferred via setTimeout.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         if (!mounted) return;
 
+        // Synchronous state updates — safe, no Supabase calls
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        if (newSession?.user) {
-          if (event === 'SIGNED_IN') {
-            try { await ensureProfile(newSession.user); } catch {}
+        if (!newSession?.user) {
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // Defer DB operations to next tick to break the deadlock chain
+        const authUser = newSession.user;
+        const isSignIn = event === 'SIGNED_IN';
+        setTimeout(async () => {
+          if (!mounted) return;
+          if (isSignIn) {
+            try { await ensureProfile(authUser); } catch {}
           }
-          const profileData = await fetchProfile(newSession.user.id);
+          const profileData = await fetchProfile(authUser.id);
           if (mounted) {
             setProfile(profileData);
             setLoading(false);
           }
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
+        }, 0);
       }
     );
 
