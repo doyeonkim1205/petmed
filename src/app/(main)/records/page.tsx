@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { PetSelector } from '@/components/records/PetSelector';
 import { RecordCard } from '@/components/records/RecordCard';
@@ -11,6 +12,50 @@ import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 
 type Tab = 'records' | 'calendar';
+
+// Diagnostic panel — shows exact auth/query state for debugging
+function DiagnosticPanel({ user, authLoading, records, loading, error, selectedPetId }: {
+  user: any; authLoading: boolean; records: any[]; loading: boolean; error: string | null; selectedPetId: string | null;
+}) {
+  const [sessionInfo, setSessionInfo] = useState<string>('checking...');
+  const [directQuery, setDirectQuery] = useState<string>('checking...');
+
+  useEffect(() => {
+    // Check 1: Does supabase client have a session?
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const exp = new Date(JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000);
+        setSessionInfo(`YES (expires: ${exp.toLocaleTimeString()})`);
+      } else {
+        setSessionInfo('NO SESSION');
+      }
+    }).catch(e => setSessionInfo(`ERROR: ${e.message}`));
+
+    // Check 2: Direct query to pets table
+    if (user?.id) {
+      supabase.from('pets').select('id, name').eq('user_id', user.id).then(({ data, error: e }) => {
+        if (e) setDirectQuery(`ERROR: ${e.message} (code: ${e.code})`);
+        else setDirectQuery(`${data?.length ?? 0} pets: ${data?.map(p => p.name).join(', ') || 'none'}`);
+      });
+    } else {
+      setDirectQuery('no user id');
+    }
+  }, [user]);
+
+  return (
+    <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 m-4 text-xs font-mono space-y-1">
+      <p className="font-bold text-yellow-800">🔍 진단 패널 (디버깅용 - 추후 제거)</p>
+      <p>authLoading: <b>{String(authLoading)}</b></p>
+      <p>user: <b>{user ? `${user.email} (${user.id.slice(0,8)}...)` : 'null'}</b></p>
+      <p>session: <b>{sessionInfo}</b></p>
+      <p>selectedPetId: <b>{selectedPetId || 'null (전체)'}</b></p>
+      <p>records loading: <b>{String(loading)}</b></p>
+      <p>records count: <b>{records.length}</b></p>
+      <p>records error: <b>{error || 'none'}</b></p>
+      <p>direct pets query: <b>{directQuery}</b></p>
+    </div>
+  );
+}
 
 export default function RecordsPage() {
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
@@ -85,6 +130,7 @@ export default function RecordsPage() {
 
   return (
     <div className="bg-gray-50 min-h-full pb-20 relative">
+      <DiagnosticPanel user={user} authLoading={authLoading} records={records} loading={loading} error={error} selectedPetId={selectedPetId} />
       <div className="bg-white sticky top-14 z-30 shadow-sm">
         <PetSelector selectedPetId={selectedPetId} onSelect={handlePetSelect} />
         <div className="flex border-t border-gray-100">
