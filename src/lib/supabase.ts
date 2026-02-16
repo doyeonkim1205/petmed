@@ -3,14 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'pkce',
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+// No custom auth options — use supabase-js defaults
+// flowType: 'implicit', autoRefreshToken: true, persistSession: true
+// Custom PKCE options caused _initialize() to hang in Next.js SSR
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Types for database tables
 export interface Profile {
