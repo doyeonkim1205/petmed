@@ -188,7 +188,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      router.push(`/records/${id}`);
+      router.replace(`/records/${id}`);
     } catch (err) {
       console.error('Error updating record:', err);
       setError('수정에 실패했습니다.');
