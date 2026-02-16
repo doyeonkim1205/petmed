@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, ensureValidSession } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useMedications() {
@@ -46,6 +46,9 @@ export function useMedications() {
 
     setLoading(true);
     try {
+      const session = await ensureValidSession();
+      if (!session) return [];
+
       const today = new Date().toISOString().split('T')[0];
 
       const query = supabase

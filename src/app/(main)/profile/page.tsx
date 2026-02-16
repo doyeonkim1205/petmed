@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Pet, HealthRecord } from '@/lib/supabase';
+import { supabase, Pet, HealthRecord, ensureValidSession } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
@@ -93,6 +93,11 @@ function PetModal({
       console.warn('PetModal: fetch timed out after 5s');
     }, 5000);
     try {
+      const session = await ensureValidSession();
+      if (!session) {
+        setPets([]);
+        return;
+      }
       const { data, error } = await supabase
         .from('pets')
         .select('*')

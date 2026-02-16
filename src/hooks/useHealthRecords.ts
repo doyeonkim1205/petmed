@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, HealthRecord } from '@/lib/supabase';
+import { supabase, HealthRecord, ensureValidSession } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useHealthRecords(petId?: string) {
@@ -22,6 +22,15 @@ export function useHealthRecords(petId?: string) {
     setLoading(true);
     setError(null);
     try {
+      // Ensure we have a valid (non-expired) JWT before querying
+      const session = await ensureValidSession();
+      if (!session) {
+        setRecords([]);
+        setLoading(false);
+        setError('세션이 만료되었습니다. 다시 로그인해주세요.');
+        return;
+      }
+
       // First try with joins
       let query = supabase
         .from('health_records')

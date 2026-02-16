@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase, Pet } from '@/lib/supabase';
+import { supabase, Pet, ensureValidSession } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dog, Cat } from 'lucide-react';
 
@@ -23,6 +23,12 @@ export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
     }
     const fetchPets = async () => {
       try {
+        const session = await ensureValidSession();
+        if (!session) {
+          setPets([]);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('pets')
           .select('*')
