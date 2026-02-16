@@ -211,6 +211,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             {record.record_files.map((file) => {
               const { data: urlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path);
               const fileUrl = urlData.publicUrl;
+              const { data: downloadUrlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path, { download: file.file_name });
+              const downloadUrl = downloadUrlData.publicUrl;
               const isImage = file.file_type?.startsWith('image/');
               const FileIcon = isImage ? Image : FileText;
 
@@ -240,10 +242,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                       {(file.file_size / 1024).toFixed(0)}KB
                     </span>
                     <a
-                      href={fileUrl}
-                      download={file.file_name}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={downloadUrl}
                       className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
                       title="다운로드"
                     >
