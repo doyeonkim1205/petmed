@@ -193,7 +193,6 @@ export default function RecordAddPage() {
   };
 
   const showHospitalFields = recordType === 'visit' || recordType === 'manual';
-  const showFileUpload = recordType === 'visit';
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -256,30 +255,28 @@ export default function RecordAddPage() {
           </select>
         </div>
 
-        {/* File Upload (visit only) */}
-        {showFileUpload && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">진료 서류 첨부</label>
-            <FileUploader files={files} onFilesChange={setFiles} />
-            {files.length > 0 && !analysisResult && (
-              <button
-                type="button"
-                onClick={handleAnalyze}
-                disabled={analyzing}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {analyzing ? (
-                  <><Loader2 size={16} className="animate-spin" /> AI 분석 중...</>
-                ) : (
-                  <><Sparkles size={16} /> AI 분석하기</>
-                )}
-              </button>
-            )}
-            {analysisResult && (
-              <FileAnalysisResult result={analysisResult} onApply={applyAnalysis} />
-            )}
-          </div>
-        )}
+        {/* File Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">첨부 파일</label>
+          <FileUploader files={files} onFilesChange={setFiles} maxFiles={3} />
+          {files.length > 0 && recordType === 'visit' && !analysisResult && (
+            <button
+              type="button"
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {analyzing ? (
+                <><Loader2 size={16} className="animate-spin" /> AI 분석 중...</>
+              ) : (
+                <><Sparkles size={16} /> AI 분석하기</>
+              )}
+            </button>
+          )}
+          {analysisResult && (
+            <FileAnalysisResult result={analysisResult} onApply={applyAnalysis} />
+          )}
+        </div>
 
         {/* Title */}
         <div className="space-y-2">

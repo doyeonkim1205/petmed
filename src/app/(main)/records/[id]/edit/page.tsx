@@ -2,12 +2,14 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
-import { supabase, Pet, HealthRecord, Medication } from '@/lib/supabase';
+import { FileUploader } from '@/components/records/FileUploader';
+import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
+import { uploadFile, saveFileRecord, deleteFile } from '@/services/fileUpload';
 
 interface MedicationInput {
   id?: string;
@@ -39,6 +41,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
+  const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
+  const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -78,6 +83,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           }))
         );
       }
+
+      if (record.record_files) {
+        setExistingFiles(record.record_files);
+      }
     } catch (error) {
       console.error('Error loading record:', error);
       router.push('/records');
@@ -103,6 +112,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setMedications(medications.filter((_, i) => i !== index));
   };
 
+  const removeExistingFile = (fileId: string) => {
+    setDeletedFileIds([...deletedFileIds, fileId]);
+    setExistingFiles(existingFiles.filter((f) => f.id !== fileId));
+  };
+
+  const activeFileCount = existingFiles.length + newFiles.length;
+  const maxNewFiles = 3 - existingFiles.length;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -122,6 +139,34 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         color: recordColor,
         next_appointment_date: nextAppointmentDate || null,
       } as any);
+
+      // Delete removed files
+      for (const fileId of deletedFileIds) {
+        try {
+          const file = (await supabase.from('record_files').select('file_path').eq('id', fileId).single()).data;
+          if (file) await deleteFile(file.file_path);
+          await supabase.from('record_files').delete().eq('id', fileId);
+        } catch (err) {
+          console.error('File delete error:', err);
+        }
+      }
+
+      // Upload new files
+      for (const file of newFiles) {
+        try {
+          const { path } = await uploadFile(file, user.id, id);
+          await saveFileRecord({
+            record_id: id,
+            user_id: user.id,
+            file_name: file.name,
+            file_path: path,
+            file_type: file.type,
+            file_size: file.size,
+          });
+        } catch (err) {
+          console.error('File upload error:', err);
+        }
+      }
 
       // Delete removed medications
       for (const medId of deletedMedIds) {
@@ -242,6 +287,70 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             onChange={(e) => setCost(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
+        </div>
+
+        {/* Attached Files */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <Paperclip size={16} /> 첨부 파일
+          </label>
+
+          {/* Existing files */}
+          {existingFiles.length > 0 && (
+            <div className="space-y-2">
+              {existingFiles.map((file) => {
+                const isImage = file.file_type?.startsWith('image/');
+                const FileIcon = isImage ? ImageIcon : FileText;
+                const { data: urlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path);
+                const { data: dlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path, { download: file.file_name });
+
+                return (
+                  <div key={file.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    {isImage ? (
+                      <img
+                        src={urlData.publicUrl}
+                        alt={file.file_name}
+                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <FileIcon size={20} className="text-gray-400 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">{file.file_name}</p>
+                      <p className="text-xs text-gray-400">{(file.file_size / 1024).toFixed(0)}KB</p>
+                    </div>
+                    <a
+                      href={dlData.publicUrl}
+                      className="p-1.5 text-gray-400 hover:text-blue-600"
+                      title="다운로드"
+                    >
+                      <Download size={16} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeExistingFile(file.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500"
+                      title="삭제"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* New file upload */}
+          {activeFileCount < 3 && (
+            <FileUploader
+              files={newFiles}
+              onFilesChange={setNewFiles}
+              maxFiles={maxNewFiles}
+            />
+          )}
+          {activeFileCount >= 3 && (
+            <p className="text-xs text-gray-400 text-center">최대 3개 파일까지 첨부 가능합니다.</p>
+          )}
         </div>
 
         {/* Record Color */}
