@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
+import { cleanupOldCache } from '@/lib/cacheCleanup';
 
 interface AuthContextType {
   user: User | null;
@@ -58,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+
+    // Auto-cleanup cache items older than 6 months
+    cleanupOldCache();
 
     // Safety timeout: if everything hangs, at least stop showing loading
     const timeout = setTimeout(() => {

@@ -285,7 +285,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [language, setLanguage] = useState('ko');
-  const [cacheCleared, setCacheCleared] = useState(false);
   const [medAlarmTime, setMedAlarmTime] = useState('09:00');
   const [autoLogin, setAutoLogin] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
@@ -303,7 +302,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(document.documentElement.classList.contains('high-contrast'));
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
-      setCacheCleared(false);
       setExportDone(false);
 
       // Fetch pets for default pet selector
@@ -417,22 +415,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     } finally {
       setExporting(false);
     }
-  };
-
-  const handleClearCache = () => {
-    const keysToKeep = ['sb-ylbxtzwbwbnlmfxqgmoz-auth-token', 'theme', 'fontSize', 'language', 'autoLogin', 'medAlarmTime', 'defaultPetId', 'highContrast'];
-    const allKeys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) allKeys.push(key);
-    }
-    allKeys.forEach(key => {
-      if (!keysToKeep.some(k => key.includes(k))) {
-        localStorage.removeItem(key);
-      }
-    });
-    setCacheCleared(true);
-    setTimeout(() => setCacheCleared(false), 2000);
   };
 
   const fontSizes = [
@@ -586,15 +568,10 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             )}
           </div>
 
-          {/* Cache Clear */}
+          {/* Cache Info */}
           <div>
             <SectionHeader icon={Trash} iconColor="text-gray-500" label="캐시 관리" />
-            <button
-              onClick={handleClearCache}
-              className="w-full h-10 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              {cacheCleared ? '캐시 삭제 완료!' : '캐시 데이터 삭제'}
-            </button>
+            <p className="text-xs text-gray-400">6개월 이상 된 캐시 데이터는 자동으로 정리됩니다.</p>
           </div>
 
           {/* App Info */}
