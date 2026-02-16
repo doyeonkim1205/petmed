@@ -1,4 +1,4 @@
-import { createClient, Session } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -8,37 +8,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce',
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true, // Auto-detect OAuth code in URL and exchange it
+    detectSessionInUrl: true,
   },
 });
-
-/**
- * Ensures a valid (non-expired) Supabase session before data queries.
- * If token is expired/expiring, refreshes it automatically.
- * Returns session if valid, null if user needs to re-login.
- */
-export async function ensureValidSession(): Promise<Session | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-
-  try {
-    const payload = JSON.parse(atob(session.access_token.split('.')[1]));
-    const now = Math.floor(Date.now() / 1000);
-
-    if (now >= payload.exp - 60) {
-      // Token expired or about to expire — refresh
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error || !data.session) return null;
-      return data.session;
-    }
-  } catch {
-    // Can't parse token — try refresh anyway
-    const { data } = await supabase.auth.refreshSession();
-    return data.session;
-  }
-
-  return session;
-}
 
 // Types for database tables
 export interface Profile {
