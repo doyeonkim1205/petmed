@@ -41,7 +41,7 @@ function NicknameModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">닉네임 변경</h3>
@@ -135,7 +135,7 @@ function PetModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
           <h3 className="text-lg font-bold">나의 반려동물</h3>
@@ -262,7 +262,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold">알림 설정</h3>
@@ -452,7 +452,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 pb-4">
           <h3 className="text-lg font-bold">앱 설정</h3>
@@ -657,9 +657,16 @@ export default function ProfilePage() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  const handleLogout = async () => {
-    await signOut();
-    // Full page reload to completely reset all state
+  const handleLogout = () => {
+    // Clear auth localStorage FIRST (synchronous, guaranteed)
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') && key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {}
+    // Full page reload — AuthContext.init() will find no session → show login
     window.location.href = '/';
   };
 

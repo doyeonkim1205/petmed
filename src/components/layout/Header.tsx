@@ -46,7 +46,7 @@ export function Header() {
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
               onClick={toggleMenu}
-              className="fixed inset-0 bg-black z-50"
+              className="fixed inset-0 bg-black z-[60]"
             />
 
             <motion.div
@@ -54,7 +54,7 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 shadow-xl flex flex-col"
+              className="fixed top-0 left-0 bottom-0 w-64 bg-white z-[60] shadow-xl flex flex-col"
             >
               <div className="h-14 flex items-center justify-between px-4 border-b border-gray-100">
                 <span className="font-bold text-lg text-blue-600">Menu</span>
@@ -82,11 +82,11 @@ export function Header() {
               <div className="p-4 border-t border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                    {profile?.nickname?.[0] || 'U'}
+                    {profile?.nickname?.[0] || (user ? 'U' : 'G')}
                   </div>
                   <div>
-                    <p className="font-bold text-sm">{profile?.nickname || 'User Nickname'}</p>
-                    <p className="text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
+                    <p className="font-bold text-sm">{profile?.nickname || (user ? '사용자' : '게스트')}</p>
+                    <p className="text-xs text-gray-500">{user?.email || '로그인해주세요'}</p>
                   </div>
                 </div>
                 <button

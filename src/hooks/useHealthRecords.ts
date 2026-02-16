@@ -43,11 +43,15 @@ export function useHealthRecords(petId?: string) {
       if (queryError) {
         // If join query fails, try simple query without joins
         console.error('Join query failed, trying simple query:', queryError);
-        const { data: simpleData, error: simpleError } = await supabase
+        let fallback = supabase
           .from('health_records')
           .select('*')
           .eq('user_id', userId)
           .order('visit_date', { ascending: false });
+        if (petId) {
+          fallback = fallback.eq('pet_id', petId);
+        }
+        const { data: simpleData, error: simpleError } = await fallback;
 
         if (simpleError) throw simpleError;
         setRecords((simpleData || []).map(r => ({ ...r, medications: [], record_files: [] })));

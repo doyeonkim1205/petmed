@@ -25,78 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let fetchingForId: string | null = null;
-    const timeout = setTimeout(() => setLoading(false), 3000);
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    const handleUser = async (authUser: User) => {
-      if (fetchingForId === authUser.id) return;
-      fetchingForId = authUser.id;
-      await fetchProfile(authUser.id);
-    };
-
-    // Initialize: getSession for fast load, then VERIFY with getUser
-    const init = async () => {
-      try {
-        // 1) Read session from localStorage (instant)
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          setLoading(false);
-          return;
-        }
-
-        // 2) VERIFY the session is actually valid by calling the server
-        const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !verifiedUser) {
-          // Session in localStorage is INVALID (expired, revoked, etc.)
-          // Clear it so the user sees the login prompt
-          console.warn('Session invalid, clearing:', userError?.message);
-          await supabase.auth.signOut({ scope: 'local' });
-          setUser(null);
-          setSession(null);
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-
-        // 3) Session is valid - set state
-        setSession(session);
-        setUser(verifiedUser);
-        await handleUser(verifiedUser);
-      } catch (err) {
-        console.error('Auth init error:', err);
-        setLoading(false);
-      }
-    };
-
-    init();
-
-    // Listen for subsequent auth changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          if (event === 'SIGNED_IN') {
-            try { await ensureProfile(session.user); } catch {}
-          }
-          await handleUser(session.user);
-        } else {
-          fetchingForId = null;
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => {
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
-  }, []);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+  };
 
   const ensureProfile = async (authUser: User) => {
     const metadata = authUser.user_metadata;
@@ -113,22 +56,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, { onConflict: 'id', ignoreDuplicates: true });
   };
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+  useEffect(() => {
+    let mounted = true;
 
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Safety timeout: if everything hangs, at least stop showing loading
+    const timeout = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 5000);
+
+    // Initialize auth state
+    const init = async () => {
+      try {
+        // 1) Quick check: is there a session in localStorage?
+        const { data: { session: localSession } } = await supabase.auth.getSession();
+        if (!localSession) {
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        // 2) VERIFY session is actually valid (server round-trip)
+        const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser();
+
+        if (verifyError || !verifiedUser) {
+          // Session expired or revoked — clear it
+          console.warn('Session invalid, clearing:', verifyError?.message);
+          await supabase.auth.signOut({ scope: 'local' });
+          if (mounted) {
+            setUser(null);
+            setSession(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // 3) Session is valid — set everything
+        if (mounted) {
+          setSession(localSession);
+          setUser(verifiedUser);
+          const profileData = await fetchProfile(verifiedUser.id);
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    init();
+
+    // Listen for subsequent auth changes (sign in, sign out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!mounted) return;
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          if (event === 'SIGNED_IN') {
+            try { await ensureProfile(newSession.user); } catch {}
+          }
+          const profileData = await fetchProfile(newSession.user.id);
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
+          }
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
@@ -190,12 +199,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (err) {
-      console.error('signOut error:', err);
-    }
-    // Force clear auth from localStorage regardless
+    // 1) Clear React state immediately
+    setUser(null);
+    setProfile(null);
+    setSession(null);
+
+    // 2) Clear auth tokens from localStorage (synchronous, guaranteed)
     try {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') && key.includes('auth')) {
@@ -203,9 +212,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch {}
-    setUser(null);
-    setProfile(null);
-    setSession(null);
+
+    // 3) Tell Supabase to sign out (fire-and-forget)
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -221,7 +230,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id);
 
       if (error) throw error;
-      await fetchProfile(user.id);
+      const freshProfile = await fetchProfile(user.id);
+      setProfile(freshProfile);
       return { error: null };
     } catch (error) {
       setProfile(prevProfile);
