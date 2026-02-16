@@ -26,40 +26,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Track which user ID we already started fetching for (dedup)
     let fetchingForId: string | null = null;
-
-    // Safety timeout — 2s max (was 4s)
-    const timeout = setTimeout(() => setLoading(false), 2000);
+    const timeout = setTimeout(() => setLoading(false), 3000);
 
     const handleUser = async (authUser: User) => {
-      // Deduplicate: skip if already fetching for this exact user
       if (fetchingForId === authUser.id) return;
       fetchingForId = authUser.id;
       await fetchProfile(authUser.id);
     };
 
-    // 1) Fast initial session (reads from local storage — near instant)
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await handleUser(session.user);
-      } else {
+    // Initialize: getSession for fast load, then VERIFY with getUser
+    const init = async () => {
+      try {
+        // 1) Read session from localStorage (instant)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          setLoading(false);
+          return;
+        }
+
+        // 2) VERIFY the session is actually valid by calling the server
+        const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !verifiedUser) {
+          // Session in localStorage is INVALID (expired, revoked, etc.)
+          // Clear it so the user sees the login prompt
+          console.warn('Session invalid, clearing:', userError?.message);
+          await supabase.auth.signOut({ scope: 'local' });
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // 3) Session is valid - set state
+        setSession(session);
+        setUser(verifiedUser);
+        await handleUser(verifiedUser);
+      } catch (err) {
+        console.error('Auth init error:', err);
         setLoading(false);
       }
-    }).catch(() => {
-      setLoading(false);
-    });
+    };
 
-    // 2) Listen for subsequent auth changes
+    init();
+
+    // Listen for subsequent auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Only create profile on actual sign-in (not initial page load)
           if (event === 'SIGNED_IN') {
             try { await ensureProfile(session.user); } catch {}
           }
@@ -80,7 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ensureProfile = async (authUser: User) => {
     const metadata = authUser.user_metadata;
-    // Use upsert — single query instead of SELECT then INSERT
     await supabase.from('profiles').upsert({
       id: authUser.id,
       email: authUser.email ?? '',
@@ -113,22 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            email,
-            nickname,
-          });
-
+          .insert({ id: data.user.id, email, nickname });
         if (profileError) throw profileError;
       }
 
@@ -140,11 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { error: null };
     } catch (error) {
@@ -185,16 +191,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      // scope: 'local' — clears localStorage without network call
-      // This ensures logout ALWAYS works, even offline
       await supabase.auth.signOut({ scope: 'local' });
     } catch (err) {
       console.error('signOut error:', err);
-    } finally {
-      setUser(null);
-      setProfile(null);
-      setSession(null);
     }
+    // Force clear auth from localStorage regardless
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') && key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {}
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -210,12 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id);
 
       if (error) throw error;
-
-      // Re-fetch to confirm the update was saved
       await fetchProfile(user.id);
       return { error: null };
     } catch (error) {
-      // Revert optimistic update
       setProfile(prevProfile);
       return { error: error as Error };
     }
@@ -224,16 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        profile,
-        session,
-        loading,
-        signUp,
-        signIn,
-        signInWithGoogle,
-        signInWithKakao,
-        signOut,
-        updateProfile,
+        user, profile, session, loading,
+        signUp, signIn, signInWithGoogle, signInWithKakao, signOut, updateProfile,
       }}
     >
       {children}

@@ -659,7 +659,8 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await signOut();
-    router.push('/');
+    // Full page reload to completely reset all state
+    window.location.href = '/';
   };
 
   const handleSaveNickname = async (nickname: string) => {
