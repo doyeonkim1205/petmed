@@ -17,21 +17,31 @@ export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
   const userId = user?.id;
 
   useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from('pets')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
+    if (!userId) {
+      setLoaded(true);
+      return;
+    }
+    const fetchPets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: true });
+        if (error) console.error('PetSelector fetch error:', error);
         const petList = data || [];
         setPets(petList);
-        setLoaded(true);
-        // If selectedPetId is set but doesn't exist in the pet list, reset to "전체"
         if (selectedPetId && petList.length > 0 && !petList.find(p => p.id === selectedPetId)) {
           onSelect(null);
         }
-      });
+      } catch (err) {
+        console.error('PetSelector query failed:', err);
+        setPets([]);
+      } finally {
+        setLoaded(true);
+      }
+    };
+    fetchPets();
   }, [userId]);
 
   // Don't render until loaded; if loaded and no pets, hide

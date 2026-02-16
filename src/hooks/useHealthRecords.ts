@@ -6,10 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const userId = user?.id;
+  const [loading, setLoading] = useState(!!userId);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!userId) {

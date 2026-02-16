@@ -88,6 +88,10 @@ function PetModal({
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      console.warn('PetModal: fetch timed out after 5s');
+    }, 5000);
     try {
       const { data, error } = await supabase
         .from('pets')
@@ -100,6 +104,7 @@ function PetModal({
       console.error('Error fetching pets:', err);
       setPets([]);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   }, [userId]);
