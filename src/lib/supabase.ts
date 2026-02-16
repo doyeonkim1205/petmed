@@ -3,10 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// No custom auth options — use supabase-js defaults
-// flowType: 'implicit', autoRefreshToken: true, persistSession: true
-// Custom PKCE options caused _initialize() to hang in Next.js SSR
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Bypass navigator.locks (Web Locks API) to prevent deadlocks
+// supabase-js uses navigator.locks internally for cross-tab session coordination.
+// In Next.js SPA navigation, locks can deadlock causing getSession() and all
+// queries to hang forever. Using a simple pass-through lock prevents this.
+const noopLock = async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
+  return await fn();
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    lock: noopLock,
+  },
+});
 
 // Types for database tables
 export interface Profile {
