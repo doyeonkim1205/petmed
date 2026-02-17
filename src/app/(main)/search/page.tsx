@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
-import { usePubMedSearch, SearchStep } from '@/hooks/usePubMedSearch';
+import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
 
 const stepMessages: Record<SearchStep, string> = {
@@ -21,11 +21,24 @@ function SearchContent() {
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
 
-  const [query, setQuery] = useState(initialQuery);
-  const [petType, setPetType] = useState<'cat' | 'dog'>(initialPet);
-  const [searchTerm, setSearchTerm] = useState<string | null>(initialQuery || null);
-  const [mockResult, setMockResult] = useState<Disease | null>(null);
+  // Restore cached search state from sessionStorage (when returning via tab navigation)
+  const [cached] = useState(() => {
+    if (initialQuery) return null; // URL params take priority
+    try {
+      const raw = sessionStorage.getItem('searchCache');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+
+  const [query, setQuery] = useState(cached?.query || initialQuery);
+  const [petType, setPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
+  const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || initialQuery || null);
+  const [mockResult, setMockResult] = useState<Disease | null>(cached?.mockResult || null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // Cached pubmed results to avoid re-fetching when returning to this tab
+  const [cachedPubmed, setCachedPubmed] = useState<{ articles: any[]; analysis: any } | null>(
+    cached ? { articles: cached.articles, analysis: cached.analysis } : null
+  );
 
   // Load real search history from localStorage
   useEffect(() => {
@@ -37,12 +50,37 @@ function SearchContent() {
 
   // searchKey: changes every time user triggers a search, forces usePubMedSearch to re-run
   const [searchKey, setSearchKey] = useState(0);
-  const pubmed = usePubMedSearch(searchTerm, petType, searchKey);
+  // Pass null to hook when using cached results (prevents re-fetching)
+  const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
+
+  // Merge cached or live results into a single display object
+  const displayPubmed: UsePubMedSearchResult = cachedPubmed ? {
+    articles: cachedPubmed.articles,
+    analysis: cachedPubmed.analysis,
+    loading: false,
+    analysisLoading: false,
+    step: 'done' as SearchStep,
+    error: null,
+    retry: () => { setCachedPubmed(null); },
+  } : pubmed;
 
   const saveHistory = (searches: string[]) => {
     setRecentSearches(searches);
     localStorage.setItem('recentSearches', JSON.stringify(searches));
   };
+
+  // Save search results to sessionStorage when search completes
+  useEffect(() => {
+    if (pubmed.step === 'done' && searchTerm && pubmed.articles.length > 0) {
+      try {
+        sessionStorage.setItem('searchCache', JSON.stringify({
+          query, petType, searchTerm, mockResult,
+          articles: pubmed.articles,
+          analysis: pubmed.analysis,
+        }));
+      } catch {}
+    }
+  }, [pubmed.step, pubmed.articles, pubmed.analysis, query, petType, searchTerm, mockResult]);
 
   // Save initialQuery (from main page) to recent searches
   useEffect(() => {
@@ -69,6 +107,7 @@ function SearchContent() {
     const updated = [query.trim(), ...recentSearches.filter(s => s !== query.trim())].slice(0, 10);
     saveHistory(updated);
 
+    setCachedPubmed(null); // Clear cache — use live results
     const found = mockDiseases.find(d => d.name.includes(query));
     setMockResult(found || null);
     setSearchTerm(query.trim());
@@ -81,6 +120,7 @@ function SearchContent() {
 
   const clickSearchTerm = (term: string) => {
     setQuery(term);
+    setCachedPubmed(null); // Clear cache — use live results
     const found = mockDiseases.find(d => d.name.includes(term));
     setMockResult(found || null);
     setSearchTerm(term);
@@ -148,18 +188,18 @@ function SearchContent() {
           </div>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {pubmed.step !== 'idle' && pubmed.step !== 'done' && (
+            {displayPubmed.step !== 'idle' && displayPubmed.step !== 'done' && (
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-3">
                 <Loader2 size={18} className="animate-spin text-blue-500 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-700">{stepMessages[pubmed.step]}</p>
+                  <p className="text-sm font-medium text-blue-700">{stepMessages[displayPubmed.step]}</p>
                   <p className="text-xs text-blue-400 mt-0.5">잠시만 기다려주세요</p>
                 </div>
               </div>
             )}
 
             <PaperSection
-              pubmed={pubmed}
+              pubmed={displayPubmed}
               diseaseName={searchTerm || ''}
               diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
             />
@@ -169,15 +209,15 @@ function SearchContent() {
                 <AlertTriangle className="text-red-500" size={20}/>
                 주의사항 & 대처방법
               </h2>
-              {pubmed.analysisLoading ? (
+              {displayPubmed.analysisLoading ? (
                 <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
                   <Loader2 size={16} className="animate-spin" />
                   AI가 논문을 분석하고 있습니다...
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {(pubmed.analysis?.precautions && pubmed.analysis.precautions.length > 0
-                    ? pubmed.analysis.precautions
+                  {(displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0
+                    ? displayPubmed.analysis.precautions
                     : mockResult?.precautions || ['검색 결과를 분석 중입니다...']
                   ).map((item, idx) => (
                     <li key={idx} className="flex gap-2 text-sm text-gray-700 items-start">
@@ -187,7 +227,7 @@ function SearchContent() {
                   ))}
                 </ul>
               )}
-              {pubmed.analysis?.precautions && pubmed.analysis.precautions.length > 0 && (
+              {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
                 <div className="mt-3">
                   <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
                 </div>
@@ -199,15 +239,15 @@ function SearchContent() {
                 <Pill className="text-purple-500" size={20}/>
                 도움되는 성분
               </h2>
-              {pubmed.analysisLoading ? (
+              {displayPubmed.analysisLoading ? (
                 <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
                   <Loader2 size={16} className="animate-spin" />
                   성분 분석 중...
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {(pubmed.analysis?.ingredients && pubmed.analysis.ingredients.length > 0
-                    ? pubmed.analysis.ingredients
+                  {(displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0
+                    ? displayPubmed.analysis.ingredients
                     : mockResult?.ingredients || ['분석 중...']
                   ).map((item, idx) => (
                     <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
@@ -216,7 +256,7 @@ function SearchContent() {
                   ))}
                 </div>
               )}
-              {pubmed.analysis?.ingredients && pubmed.analysis.ingredients.length > 0 && (
+              {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
                 <div className="mt-3">
                   <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
                 </div>
