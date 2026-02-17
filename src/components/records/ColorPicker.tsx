@@ -35,7 +35,7 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
               boxShadow: value === hex ? `0 0 0 2px white, 0 0 0 3.5px ${hex}` : 'none',
             }}
           >
-            {value === hex && <Check size={14} className="text-white" strokeWidth={3} />}
+            {value === hex && <Check size={14} className="text-[#fff]" strokeWidth={3} />}
           </button>
         ))}
       </div>

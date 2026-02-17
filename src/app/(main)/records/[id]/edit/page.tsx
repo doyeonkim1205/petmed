@@ -215,7 +215,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <button
           onClick={handleSubmit}
           disabled={saving || !title.trim()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {saving ? '저장 중...' : '저장'}
         </button>

@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Pet, HealthRecord } from '@/lib/supabase';
+import { supabase, Pet } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
-  Globe, Trash, Info, Download, Clock, Shield, Eye,
+  Globe, Trash, Info, Clock, Shield, Eye,
 } from 'lucide-react';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
@@ -62,7 +62,7 @@ function NicknameModal({
           <button
             onClick={handleSave}
             disabled={saving || nickname.trim().length < 2}
-            className="flex-1 h-11 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+            className="flex-1 h-11 bg-blue-600 text-[#fff] rounded-lg font-medium disabled:opacity-50"
           >
             {saving ? '저장 중...' : '저장'}
           </button>
@@ -218,7 +218,7 @@ function PetModal({
                 <button
                   onClick={handleAdd}
                   disabled={saving || !newPet.name.trim()}
-                  className="flex-1 h-10 bg-blue-600 text-white rounded-lg font-medium text-sm disabled:opacity-50"
+                  className="flex-1 h-10 bg-blue-600 text-[#fff] rounded-lg font-medium text-sm disabled:opacity-50"
                 >
                   {saving ? '등록 중...' : '등록'}
                 </button>
@@ -274,7 +274,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={recordEnabled}
             onChange={v => toggle('notify_record', v, setRecordEnabled)} />
         </div>
-        <button onClick={onClose} className="w-full h-11 mt-6 bg-blue-600 text-white rounded-lg font-medium">확인</button>
+        <button onClick={onClose} className="w-full h-11 mt-6 bg-blue-600 text-[#fff] rounded-lg font-medium">확인</button>
       </div>
     </div>
   );
@@ -290,8 +290,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   const [highContrast, setHighContrast] = useState(false);
   const [defaultPetId, setDefaultPetId] = useState<string>('');
   const [pets, setPets] = useState<Pet[]>([]);
-  const [exporting, setExporting] = useState(false);
-  const [exportDone, setExportDone] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -302,8 +300,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(document.documentElement.classList.contains('high-contrast'));
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
-      setExportDone(false);
-
       // Fetch pets for default pet selector
       supabase
         .from('pets')
@@ -360,60 +356,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       localStorage.setItem('defaultPetId', petId);
     } else {
       localStorage.removeItem('defaultPetId');
-    }
-  };
-
-  const handleExportCSV = async () => {
-    setExporting(true);
-    try {
-      const { data: records } = await supabase
-        .from('health_records')
-        .select('*, pets:pet_id (name, type), medications (*)')
-        .eq('user_id', userId)
-        .order('visit_date', { ascending: false });
-
-      if (!records || records.length === 0) {
-        alert('내보낼 기록이 없습니다.');
-        setExporting(false);
-        return;
-      }
-
-      // Build CSV
-      const BOM = '\uFEFF';
-      const headers = ['날짜', '반려동물', '유형', '제목', '설명', '병원', '비용', '투약정보', '다음예약일'];
-      const typeMap: Record<string, string> = { symptom: '증상', visit: '진료', manual: '기록' };
-
-      const rows = records.map((r: HealthRecord & { pets?: { name: string; type: string } }) => {
-        const petName = r.pets?.name || '';
-        const meds = r.medications?.map(m => `${m.name}(${m.frequency})`).join('; ') || '';
-        return [
-          r.visit_date?.split('T')[0] || '',
-          petName,
-          typeMap[r.record_type] || r.record_type,
-          `"${(r.title || '').replace(/"/g, '""')}"`,
-          `"${(r.description || '').replace(/"/g, '""')}"`,
-          r.hospital_name || '',
-          r.cost ? String(r.cost) : '',
-          `"${meds}"`,
-          r.next_appointment_date?.split('T')[0] || '',
-        ].join(',');
-      });
-
-      const csv = BOM + headers.join(',') + '\n' + rows.join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `petmed_records_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setExportDone(true);
-      setTimeout(() => setExportDone(false), 3000);
-    } catch (err) {
-      console.error('Export error:', err);
-      alert('내보내기에 실패했습니다.');
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -528,20 +470,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
           </div>
 
-          {/* Data Export */}
-          <div>
-            <SectionHeader icon={Download} iconColor="text-gray-500" label="데이터 백업" />
-            <p className="text-xs text-gray-400 mb-2">건강 기록을 CSV 파일로 내보냅니다</p>
-            <button
-              onClick={handleExportCSV}
-              disabled={exporting}
-              className="w-full h-10 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Download size={14} />
-              {exporting ? '내보내는 중...' : exportDone ? 'CSV 다운로드 완료!' : '건강 기록 CSV 내보내기'}
-            </button>
-          </div>
-
           {/* Language */}
           <div>
             <SectionHeader icon={Globe} iconColor="text-gray-500" label="언어" />
@@ -585,7 +513,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         </div>
 
         <div className="p-6 pt-4 border-t border-gray-100">
-          <button onClick={onClose} className="w-full h-11 bg-blue-600 text-white rounded-lg font-medium">확인</button>
+          <button onClick={onClose} className="w-full h-11 bg-blue-600 text-[#fff] rounded-lg font-medium">확인</button>
         </div>
       </div>
     </div>
@@ -616,7 +544,7 @@ function ToggleRow({ label, desc, checked, onChange }: {
         onClick={() => onChange(!checked)}
         className={`w-11 h-6 rounded-full transition-colors relative ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}
       >
-        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+        <span className={`absolute top-0.5 w-5 h-5 bg-[#fff] rounded-full shadow transition-transform ${
           checked ? 'left-[22px]' : 'left-0.5'
         }`} />
       </button>
@@ -686,7 +614,7 @@ export default function ProfilePage() {
           </button>
           <button
             onClick={() => router.push('/login')}
-            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-lg font-medium"
           >
             로그인
           </button>

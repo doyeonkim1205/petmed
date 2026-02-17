@@ -66,7 +66,7 @@ export function FileAnalysisResult({ result, onApply }: FileAnalysisResultProps)
       <button
         type="button"
         onClick={() => onApply(result)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-[#fff] rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
       >
         <Check size={16} />
         분석 결과 적용하기

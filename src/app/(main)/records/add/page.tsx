@@ -204,7 +204,7 @@ export default function RecordAddPage() {
         <button
           onClick={handleSubmit}
           disabled={saving || !title.trim() || !petId}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {saving ? '저장 중...' : '저장'}
         </button>
@@ -264,7 +264,7 @@ export default function RecordAddPage() {
               type="button"
               onClick={handleAnalyze}
               disabled={analyzing}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-[#fff] rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {analyzing ? (
                 <><Loader2 size={16} className="animate-spin" /> AI 분석 중...</>

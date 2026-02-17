@@ -96,7 +96,7 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
               <div
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                   isChecked
-                    ? 'bg-green-500 border-green-500 text-white'
+                    ? 'bg-green-500 border-green-500 text-[#fff]'
                     : 'border-gray-300'
                 }`}
               >

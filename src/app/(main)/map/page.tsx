@@ -372,7 +372,7 @@ export default function MapPage() {
               onClick={() => setActiveFilter(f.id)}
               className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm transition-colors border ${
                 activeFilter === f.id
-                  ? 'bg-blue-600 text-white border-blue-600'
+                  ? 'bg-blue-600 text-[#fff] border-blue-600'
                   : 'bg-white text-gray-700 border-gray-200'
               }`}
             >
@@ -429,7 +429,7 @@ export default function MapPage() {
             {selectedPlace.phone && (
               <a
                 href={`tel:${selectedPlace.phone}`}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-blue-600 text-[#fff] rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
               >
                 <Phone size={16} /> 전화하기
               </a>

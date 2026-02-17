@@ -181,7 +181,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               onClick={() => onDateSelect(d)}
               className={`relative flex flex-col items-center justify-center h-11 rounded-xl transition-all ${
                 isSelected
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-[#fff]'
                   : isTodayDate
                   ? 'bg-blue-50 text-blue-600'
                   : isCurrentMonth
@@ -203,7 +203,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                     : dayOfWeek === 6
                     ? 'text-blue-500'
                     : ''
-                } ${isSelected ? '!text-white' : ''}`}
+                } ${isSelected ? '!text-[#fff]' : ''}`}
               >
                 {d.getDate()}
               </span>

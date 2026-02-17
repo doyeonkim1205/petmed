@@ -70,7 +70,7 @@ export default function RecordsPage() {
         </p>
         <button
           onClick={() => router.push('/login')}
-          className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+          className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-lg font-medium"
         >
           로그인하기
         </button>
@@ -123,7 +123,7 @@ export default function RecordsPage() {
               <p className="text-gray-400 text-xs mb-4">{error}</p>
               <button
                 onClick={fetchRecords}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-[#fff] rounded-lg text-sm font-medium"
               >
                 <RefreshCw size={14} />
                 다시 시도
@@ -160,7 +160,7 @@ export default function RecordsPage() {
 
       <button
         onClick={() => router.push('/records/add')}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-[#fff] rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
         style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
       >
         <Plus size={28} />
