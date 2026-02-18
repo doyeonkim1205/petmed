@@ -8,9 +8,10 @@ import { Dog, Cat } from 'lucide-react';
 interface PetSelectorProps {
   selectedPetId: string | null;
   onSelect: (petId: string | null) => void;
+  onPetsLoaded?: (count: number) => void;
 }
 
-export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
+export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelectorProps) {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loaded, setLoaded] = useState(false);
   const { user } = useAuth();
@@ -31,6 +32,7 @@ export function PetSelector({ selectedPetId, onSelect }: PetSelectorProps) {
         if (error) console.error('PetSelector fetch error:', error);
         const petList = data || [];
         setPets(petList);
+        onPetsLoaded?.(petList.length);
         if (selectedPetId && petList.length > 0 && !petList.find(p => p.id === selectedPetId)) {
           onSelect(null);
         }
