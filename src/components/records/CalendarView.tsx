@@ -20,7 +20,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
   // Build dot map, appointment dates, and medication map
   const { dotMap, appointmentDates, medicationMap } = useMemo(() => {
     const dots: Record<string, string[]> = {};
-    const appointments = new Set<string>();
+    const appointments = new Map<string, string>(); // dateKey → color
     const medMap: Record<string, { name: string; dosage?: string; frequency: string; color: string }[]> = {};
 
     const addDot = (dateKey: string, color: string) => {
@@ -41,10 +41,11 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
       const recordColor = record.color || '#3B82F6';
       addDot(visitKey, recordColor);
 
-      // Next appointment date
+      // Next appointment date with its own color
       if (record.next_appointment_date) {
         const apptKey = record.next_appointment_date.split('T')[0];
-        appointments.add(apptKey);
+        const apptColor = record.next_appointment_color || '#8B5CF6';
+        appointments.set(apptKey, apptColor);
       }
 
       // Medications: spread across date range
@@ -169,7 +170,8 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
         {days.map((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
           const dots = dotMap[dateKey] || [];
-          const isAppointment = appointmentDates.has(dateKey);
+          const appointmentColor = appointmentDates.get(dateKey);
+          const isAppointment = !!appointmentColor;
           const isSelected = isSameDay(d, selectedDate);
           const isCurrentMonth = isSameMonth(d, currentMonth);
           const isTodayDate = isToday(d);
@@ -188,7 +190,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                   ? 'text-gray-800 hover:bg-gray-50'
                   : 'text-gray-300'
               }`}
-              style={isAppointment && !isSelected ? { outline: '2px dashed #93C5FD', outlineOffset: '-2px', borderRadius: '12px' } : undefined}
+              style={isAppointment && !isSelected ? { outline: `2px dashed ${appointmentColor}`, outlineOffset: '-2px', borderRadius: '12px' } : undefined}
             >
               <span
                 className={`text-sm leading-none ${

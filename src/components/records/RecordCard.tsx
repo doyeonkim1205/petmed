@@ -1,7 +1,7 @@
 'use client';
 
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, Pill, Paperclip } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, CalendarClock } from 'lucide-react';
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -55,7 +55,7 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
           {record.description && (
             <p className="text-sm text-gray-500 line-clamp-2 mt-1">{record.description}</p>
           )}
-          <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+          <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
             {record.hospital_name && (
               <span>{record.hospital_name}</span>
             )}
@@ -63,13 +63,31 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
               <span className="font-medium text-gray-600">{formatCost(record.cost)}</span>
             )}
             {record.medications && record.medications.length > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Pill size={12} /> {record.medications.length}
+              <span className="flex items-center gap-1">
+                <Pill size={12} />
+                {record.medications.map((med, i) => (
+                  <span
+                    key={i}
+                    className="w-2 h-2 rounded-full inline-block"
+                    style={{ backgroundColor: med.color || '#3B82F6' }}
+                    title={med.name}
+                  />
+                ))}
               </span>
             )}
             {record.record_files && record.record_files.length > 0 && (
               <span className="flex items-center gap-0.5">
                 <Paperclip size={12} /> {record.record_files.length}
+              </span>
+            )}
+            {record.next_appointment_date && (
+              <span className="flex items-center gap-1">
+                <CalendarClock size={12} />
+                <span
+                  className="w-2 h-2 rounded-full inline-block"
+                  style={{ backgroundColor: record.next_appointment_color || '#8B5CF6' }}
+                />
+                <span>{new Date(record.next_appointment_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
               </span>
             )}
           </div>

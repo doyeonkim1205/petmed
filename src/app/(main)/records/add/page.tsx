@@ -44,6 +44,7 @@ export default function RecordAddPage() {
   const [cost, setCost] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
+  const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [analysisResult, setAnalysisResult] = useState<DocumentAnalysisResult | null>(null);
@@ -145,6 +146,7 @@ export default function RecordAddPage() {
         ai_summary: analysisResult?.summary || undefined,
         color: recordType === 'symptom' ? '#F97316' : recordColor,
         next_appointment_date: nextAppointmentDate || undefined,
+        next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
       });
 
       // Upload files
@@ -356,6 +358,9 @@ export default function RecordAddPage() {
               onChange={(e) => setNextAppointmentDate(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
+            {nextAppointmentDate && (
+              <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+            )}
           </div>
         )}
 

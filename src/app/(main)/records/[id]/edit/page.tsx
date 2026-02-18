@@ -38,6 +38,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [cost, setCost] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
+  const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
@@ -69,6 +70,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setRecordColor(record.color || '#3B82F6');
       setRecordType(record.record_type);
       setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
+      setNextAppointmentColor(record.next_appointment_color || '#8B5CF6');
 
       if (record.medications) {
         setMedications(
@@ -138,6 +140,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         cost: cost ? Number(cost) : undefined,
         color: recordColor,
         next_appointment_date: nextAppointmentDate || null,
+        next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
       } as any);
 
       // Delete removed files
@@ -366,6 +369,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               onChange={(e) => setNextAppointmentDate(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
+            {nextAppointmentDate && (
+              <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+            )}
           </div>
         )}
 
