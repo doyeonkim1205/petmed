@@ -9,7 +9,7 @@ import {
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult } from '@/services/openai';
 
-export type SearchStep = 'idle' | 'translating' | 'searching' | 'fetching' | 'analyzing' | 'done';
+export type SearchStep = 'idle' | 'validating' | 'translating' | 'searching' | 'fetching' | 'analyzing' | 'done';
 
 export interface UsePubMedSearchResult {
   articles: ArticleSummary[];
@@ -19,6 +19,23 @@ export interface UsePubMedSearchResult {
   analysis: AiAnalysisResult | null;
   analysisLoading: boolean;
   step: SearchStep;
+}
+
+/**
+ * 검색어가 반려동물 건강 관련인지 서버에서 AI로 검증
+ */
+async function validateSearchTerm(query: string): Promise<{ valid: boolean; reason?: string }> {
+  try {
+    const res = await fetch('/api/validate-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return { valid: false, reason: '검색어 검증에 실패했습니다.' };
+    return await res.json();
+  } catch {
+    return { valid: false, reason: '검색어 검증에 실패했습니다. 다시 시도해주세요.' };
+  }
 }
 
 export function usePubMedSearch(
@@ -39,9 +56,20 @@ export function usePubMedSearch(
     setLoading(true);
     setError(null);
     setAnalysis(null);
-    setStep('translating');
+    setArticles([]);
+
+    // Step 0: AI 기반 검색어 검증
+    setStep('validating');
+    const validation = await validateSearchTerm(diseaseName);
+    if (!validation.valid) {
+      setError(validation.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
+      setLoading(false);
+      setStep('done');
+      return;
+    }
 
     try {
+      setStep('translating');
       const englishQuery = await toEnglishQuery(diseaseName);
 
       setStep('searching');

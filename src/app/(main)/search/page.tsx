@@ -9,6 +9,7 @@ import { PaperSection } from '@/components/PaperSection';
 
 const stepMessages: Record<SearchStep, string> = {
   idle: '',
+  validating: '검색어 확인 중...',
   translating: '검색어 번역 중...',
   searching: '논문 검색 중...',
   fetching: '논문 정보 가져오는 중...',
@@ -99,36 +100,11 @@ function SearchContent() {
     }
   }, [initialQuery]);
 
-  const [searchWarning, setSearchWarning] = useState('');
-  const [validating, setValidating] = useState(false);
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     const q = query.trim();
-    setSearchWarning('');
-
-    // AI 기반 검색어 검증
-    setValidating(true);
-    try {
-      const res = await fetch('/api/validate-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
-      });
-      const result = await res.json();
-      if (!result.valid) {
-        setSearchWarning(result.reason || '반려동물 질병/증상과 관련된 검색어를 입력해주세요.');
-        setValidating(false);
-        return;
-      }
-    } catch {
-      setSearchWarning('검색어 검증에 실패했습니다. 다시 시도해주세요.');
-      setValidating(false);
-      return;
-    }
-    setValidating(false);
 
     // Add to history (deduplicate, max 10)
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
@@ -179,17 +155,11 @@ function SearchContent() {
               placeholder="질병명을 입력하세요..."
               className="w-full h-12 pl-4 pr-10 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
-            <button type="submit" disabled={validating} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-              {validating ? <Loader2 size={20} className="animate-spin" /> : <SearchIcon size={20} />}
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+              <SearchIcon size={20} />
             </button>
           </div>
         </form>
-        {searchWarning && (
-          <div className="mt-2 p-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
-            <AlertTriangle size={16} className="text-orange-500 flex-shrink-0" />
-            <p className="text-xs text-orange-600">{searchWarning}</p>
-          </div>
-        )}
       </div>
 
       {/* Content Area */}
@@ -231,70 +201,81 @@ function SearchContent() {
               </div>
             )}
 
-            <PaperSection
-              pubmed={displayPubmed}
-              diseaseName={searchTerm || ''}
-              diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
-            />
+            {/* 검증 실패 또는 에러 시 명확한 에러 메시지 표시 */}
+            {displayPubmed.error && displayPubmed.step === 'done' ? (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 text-center">
+                <AlertTriangle size={40} className="mx-auto mb-3 text-orange-400" />
+                <p className="text-sm font-medium text-orange-700 mb-1">{displayPubmed.error}</p>
+                <p className="text-xs text-orange-400">예: 구토, 슬개골 탈구, 피부염, 기침, 설사</p>
+              </div>
+            ) : (
+              <>
+                <PaperSection
+                  pubmed={displayPubmed}
+                  diseaseName={searchTerm || ''}
+                  diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
+                />
 
-            <section className="bg-white p-5 rounded-2xl shadow-sm border border-red-50">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                <AlertTriangle className="text-red-500" size={20}/>
-                주의사항 & 대처방법
-              </h2>
-              {displayPubmed.analysisLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
-                  <Loader2 size={16} className="animate-spin" />
-                  AI가 논문을 분석하고 있습니다...
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {(displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0
-                    ? displayPubmed.analysis.precautions
-                    : mockResult?.precautions || ['검색 결과를 분석 중입니다...']
-                  ).map((item, idx) => (
-                    <li key={idx} className="flex gap-2 text-sm text-gray-700 items-start">
-                      <span className="text-red-400 mt-1">•</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
-                </div>
-              )}
-            </section>
+                <section className="bg-white p-5 rounded-2xl shadow-sm border border-red-50">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                    <AlertTriangle className="text-red-500" size={20}/>
+                    주의사항 & 대처방법
+                  </h2>
+                  {displayPubmed.analysisLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                      <Loader2 size={16} className="animate-spin" />
+                      AI가 논문을 분석하고 있습니다...
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {(displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0
+                        ? displayPubmed.analysis.precautions
+                        : mockResult?.precautions || ['검색 결과를 분석 중입니다...']
+                      ).map((item, idx) => (
+                        <li key={idx} className="flex gap-2 text-sm text-gray-700 items-start">
+                          <span className="text-red-400 mt-1">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
+                    </div>
+                  )}
+                </section>
 
-            <section className="bg-white p-5 rounded-2xl shadow-sm border border-purple-50">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-                <Pill className="text-purple-500" size={20}/>
-                도움되는 성분
-              </h2>
-              {displayPubmed.analysisLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
-                  <Loader2 size={16} className="animate-spin" />
-                  성분 분석 중...
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {(displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0
-                    ? displayPubmed.analysis.ingredients
-                    : mockResult?.ingredients || ['분석 중...']
-                  ).map((item, idx) => (
-                    <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
-                </div>
-              )}
-            </section>
+                <section className="bg-white p-5 rounded-2xl shadow-sm border border-purple-50">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                    <Pill className="text-purple-500" size={20}/>
+                    도움되는 성분
+                  </h2>
+                  {displayPubmed.analysisLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                      <Loader2 size={16} className="animate-spin" />
+                      성분 분석 중...
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0
+                        ? displayPubmed.analysis.ingredients
+                        : mockResult?.ingredients || ['분석 중...']
+                      ).map((item, idx) => (
+                        <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded">AI 논문 분석 기반</span>
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
           </div>
         )}
       </div>
