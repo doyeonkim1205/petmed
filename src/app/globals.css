@@ -168,6 +168,15 @@ html.dark {
   scrollbar-width: none;
 }
 
+/* Force date/time inputs to use light color scheme in dark mode
+   (prevents invisible text from color-scheme: dark on mobile) */
+html.dark input[type="date"],
+html.dark input[type="time"],
+html.dark input[type="datetime-local"] {
+  color-scheme: light;
+  color: #fafafa;
+}
+
 /* Safe area for mobile footer */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);

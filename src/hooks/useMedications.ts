@@ -41,12 +41,12 @@ export function useMedications() {
     if (error) throw error;
   };
 
-  const getTodayMedications = useCallback(async (petId?: string) => {
+  const getTodayMedications = useCallback(async (petId?: string, date?: string) => {
     if (!user) return [];
 
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const targetDate = date || new Date().toISOString().split('T')[0];
 
       const query = supabase
         .from('medications')
@@ -55,13 +55,23 @@ export function useMedications() {
           health_records!inner (pet_id, pets:pet_id (id, name, type))
         `)
         .eq('user_id', user.id)
-        .lte('start_date', today);
+        .lte('start_date', targetDate);
 
       const { data, error } = await query;
       if (error) throw error;
 
       const filtered = (data || []).filter((med: any) => {
-        const endOk = !med.end_date || med.end_date >= today;
+        // If end_date exists, check it; if not, default to 90 days from start_date
+        let endOk: boolean;
+        if (med.end_date) {
+          endOk = med.end_date >= targetDate;
+        } else {
+          // No end_date: default to 90 days from start_date (same as CalendarView)
+          const start = new Date(med.start_date);
+          const defaultEnd = new Date(start);
+          defaultEnd.setDate(defaultEnd.getDate() + 90);
+          endOk = targetDate <= defaultEnd.toISOString().split('T')[0];
+        }
         const petOk = !petId || med.health_records?.pet_id === petId;
         return endOk && petOk;
       });

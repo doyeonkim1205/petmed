@@ -99,18 +99,36 @@ function SearchContent() {
     }
   }, [initialQuery]);
 
+  const [searchWarning, setSearchWarning] = useState('');
+
+  // Simple check for non-pet-related search terms
+  const NON_PET_KEYWORDS = [
+    '맛집', '날씨', '영화', '음식', '게임', '여행', '뉴스', '주식', '부동산',
+    '쇼핑', '패션', '음악', '드라마', '요리', '레시피', '운동', '축구', '야구',
+    '코딩', '프로그래밍', '수학', '역사', '정치', '경제',
+  ];
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
+    const q = query.trim();
+
+    // Check for non-pet-related keywords
+    if (NON_PET_KEYWORDS.some(kw => q.includes(kw))) {
+      setSearchWarning('반려동물 질병/증상과 관련된 검색어를 입력해주세요.');
+      return;
+    }
+    setSearchWarning('');
+
     // Add to history (deduplicate, max 10)
-    const updated = [query.trim(), ...recentSearches.filter(s => s !== query.trim())].slice(0, 10);
+    const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
     saveHistory(updated);
 
     setCachedPubmed(null); // Clear cache — use live results
     const found = mockDiseases.find(d => d.name.includes(query));
     setMockResult(found || null);
-    setSearchTerm(query.trim());
+    setSearchTerm(q);
     setSearchKey(k => k + 1); // force re-search even if same term
   };
 
@@ -157,6 +175,12 @@ function SearchContent() {
             </button>
           </div>
         </form>
+        {searchWarning && (
+          <div className="mt-2 p-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+            <AlertTriangle size={16} className="text-orange-500 flex-shrink-0" />
+            <p className="text-xs text-orange-600">{searchWarning}</p>
+          </div>
+        )}
       </div>
 
       {/* Content Area */}

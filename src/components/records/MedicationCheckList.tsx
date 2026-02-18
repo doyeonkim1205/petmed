@@ -26,7 +26,7 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
     setLoading(true);
     try {
       const [meds, chks] = await Promise.all([
-        getTodayMedications(petId || undefined),
+        getTodayMedications(petId || undefined, today),
         getChecksForDate(today),
       ]);
       setMedications(meds);

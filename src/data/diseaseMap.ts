@@ -44,17 +44,24 @@ const diseaseMap: Record<string, string> = {
 const LS_KEY = 'petmed_translation_cache';
 
 function loadCache(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
   try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
   catch { return {}; }
 }
 
 function saveToCache(key: string, value: string) {
+  if (typeof window === 'undefined') return;
   const cache = loadCache();
   cache[key] = value;
   localStorage.setItem(LS_KEY, JSON.stringify(cache));
 }
 
-const translationCache: Record<string, string> = loadCache();
+// Lazy-load: avoid module-level localStorage access (causes SSR/hydration issues on mobile)
+let translationCache: Record<string, string> | null = null;
+function getCache(): Record<string, string> {
+  if (!translationCache) translationCache = loadCache();
+  return translationCache;
+}
 
 /**
  * MyMemory API로 한국어 → 영어 번역
@@ -114,14 +121,15 @@ export async function toEnglishQuery(koreanName: string): Promise<string> {
   }
 
   // 4) 번역 캐시 확인
-  if (translationCache[trimmed]) {
-    return translationCache[trimmed];
+  const cache = getCache();
+  if (cache[trimmed]) {
+    return cache[trimmed];
   }
 
   // 5) MyMemory API 번역 폴백
   try {
     const translated = await translateWithMyMemory(trimmed);
-    translationCache[trimmed] = translated;
+    cache[trimmed] = translated;
     saveToCache(trimmed, translated);
     return translated;
   } catch {

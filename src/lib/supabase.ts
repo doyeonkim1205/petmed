@@ -14,6 +14,8 @@ const noopLock = async <R>(_name: string, _acquireTimeout: number, fn: () => Pro
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     lock: noopLock,
+    flowType: 'pkce',
+    detectSessionInUrl: true,
   },
 });
 

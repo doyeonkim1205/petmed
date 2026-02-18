@@ -239,7 +239,7 @@ export default function RecordsPage() {
             onDateSelect={setSelectedDate}
           />
           <div className="border-t border-gray-100">
-            <MedicationCheckList petId={selectedPetId || undefined} />
+            <MedicationCheckList petId={selectedPetId || undefined} date={selectedDate.toISOString().split('T')[0]} />
           </div>
         </div>
       )}
