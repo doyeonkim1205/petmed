@@ -124,7 +124,9 @@ function SearchContent() {
         return;
       }
     } catch {
-      // 검증 실패 시 검색 허용
+      setSearchWarning('검색어 검증에 실패했습니다. 다시 시도해주세요.');
+      setValidating(false);
+      return;
     }
     setValidating(false);
 
