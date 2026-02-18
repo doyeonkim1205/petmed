@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, FileEdit, Plus, X, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Plus, X, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -16,7 +16,6 @@ import { uploadFile, saveFileRecord } from '@/services/fileUpload';
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700' },
-  { id: 'manual' as RecordType, label: '직접 입력', icon: FileEdit, color: 'border-green-300 bg-green-50 text-green-700' },
 ];
 
 interface MedicationInput {
@@ -194,7 +193,7 @@ export default function RecordAddPage() {
     }
   };
 
-  const showHospitalFields = recordType === 'visit' || recordType === 'manual';
+  const showHospitalFields = recordType === 'visit';
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -308,7 +307,7 @@ export default function RecordAddPage() {
         </div>
 
         {/* Record Color */}
-        {(recordType === 'visit' || recordType === 'manual') && (
+        {recordType === 'visit' && (
           <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
         )}
 
@@ -365,7 +364,7 @@ export default function RecordAddPage() {
         )}
 
         {/* Medications */}
-        {(recordType === 'visit' || recordType === 'manual') && (
+        {recordType === 'visit' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">투약 정보</label>
