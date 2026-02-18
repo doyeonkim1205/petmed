@@ -168,13 +168,32 @@ html.dark {
   scrollbar-width: none;
 }
 
-/* Force date/time inputs to use light color scheme in dark mode
-   (prevents invisible text from color-scheme: dark on mobile) */
+/* Force date/time inputs to use light color scheme in dark mode */
 html.dark input[type="date"],
 html.dark input[type="time"],
 html.dark input[type="datetime-local"] {
   color-scheme: light;
   color: #fafafa;
+}
+
+/* Make date input placeholder text (yyyy-mm-dd) visible on mobile
+   Mobile browsers render <input type="date"> with native controls
+   and the format text can be invisible without explicit styling */
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-text {
+  color: inherit;
+}
+/* Empty date input: show placeholder color */
+input[type="date"].date-empty::-webkit-datetime-edit-year-field,
+input[type="date"].date-empty::-webkit-datetime-edit-month-field,
+input[type="date"].date-empty::-webkit-datetime-edit-day-field,
+input[type="date"].date-empty::-webkit-datetime-edit-text {
+  color: #9ca3af;
 }
 
 /* Safe area for mobile footer */

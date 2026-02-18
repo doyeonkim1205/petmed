@@ -16,7 +16,10 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
   const [loading, setLoading] = useState(true);
   const { getTodayMedications, getChecksForDate, toggleCheck } = useMedications();
 
-  const today = date || new Date().toISOString().split('T')[0];
+  const today = date || (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   useEffect(() => {
     loadData();
@@ -71,7 +74,13 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Pill size={18} className="text-blue-600" />
-          <h4 className="font-semibold text-sm text-gray-900">오늘의 투약</h4>
+          <h4 className="font-semibold text-sm text-gray-900">
+            {(() => {
+              const d = new Date();
+              const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              return today === localToday ? '오늘의 투약' : `${parseInt(today.split('-')[1])}/${parseInt(today.split('-')[2])} 투약`;
+            })()}
+          </h4>
         </div>
         <span className="text-xs text-gray-400">
           {checkedCount}/{medications.length} 완료

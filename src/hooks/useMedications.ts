@@ -46,7 +46,10 @@ export function useMedications() {
 
     setLoading(true);
     try {
-      const targetDate = date || new Date().toISOString().split('T')[0];
+      const targetDate = date || (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
 
       const query = supabase
         .from('medications')

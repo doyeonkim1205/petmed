@@ -100,26 +100,33 @@ function SearchContent() {
   }, [initialQuery]);
 
   const [searchWarning, setSearchWarning] = useState('');
+  const [validating, setValidating] = useState(false);
 
-  // Simple check for non-pet-related search terms
-  const NON_PET_KEYWORDS = [
-    '맛집', '날씨', '영화', '음식', '게임', '여행', '뉴스', '주식', '부동산',
-    '쇼핑', '패션', '음악', '드라마', '요리', '레시피', '운동', '축구', '야구',
-    '코딩', '프로그래밍', '수학', '역사', '정치', '경제',
-  ];
-
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     const q = query.trim();
-
-    // Check for non-pet-related keywords
-    if (NON_PET_KEYWORDS.some(kw => q.includes(kw))) {
-      setSearchWarning('반려동물 질병/증상과 관련된 검색어를 입력해주세요.');
-      return;
-    }
     setSearchWarning('');
+
+    // AI 기반 검색어 검증
+    setValidating(true);
+    try {
+      const res = await fetch('/api/validate-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+      });
+      const result = await res.json();
+      if (!result.valid) {
+        setSearchWarning(result.reason || '반려동물 질병/증상과 관련된 검색어를 입력해주세요.');
+        setValidating(false);
+        return;
+      }
+    } catch {
+      // 검증 실패 시 검색 허용
+    }
+    setValidating(false);
 
     // Add to history (deduplicate, max 10)
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
@@ -170,8 +177,8 @@ function SearchContent() {
               placeholder="질병명을 입력하세요..."
               className="w-full h-12 pl-4 pr-10 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <SearchIcon size={20} />
+            <button type="submit" disabled={validating} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+              {validating ? <Loader2 size={20} className="animate-spin" /> : <SearchIcon size={20} />}
             </button>
           </div>
         </form>

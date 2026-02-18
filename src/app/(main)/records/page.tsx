@@ -178,13 +178,15 @@ export default function RecordsPage() {
               onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <input
-              type="date"
-              placeholder="생년월일 (선택)"
-              value={newPet.birth_date}
-              onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">생년월일 (선택)</label>
+              <input
+                type="date"
+                value={newPet.birth_date}
+                onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
+                className={`w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
+              />
+            </div>
             <button
               onClick={handleAddPet}
               disabled={savingPet || !newPet.name.trim()}
@@ -239,7 +241,7 @@ export default function RecordsPage() {
             onDateSelect={setSelectedDate}
           />
           <div className="border-t border-gray-100">
-            <MedicationCheckList petId={selectedPetId || undefined} date={selectedDate.toISOString().split('T')[0]} />
+            <MedicationCheckList petId={selectedPetId || undefined} date={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`} />
           </div>
         </div>
       )}

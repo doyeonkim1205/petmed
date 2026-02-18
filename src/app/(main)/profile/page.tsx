@@ -204,12 +204,15 @@ function PetModal({
                 onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <input
-                type="date"
-                value={newPet.birth_date}
-                onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">생년월일 (선택)</label>
+                <input
+                  type="date"
+                  value={newPet.birth_date}
+                  onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
+                />
+              </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => { setShowAddForm(false); setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' }); }}
