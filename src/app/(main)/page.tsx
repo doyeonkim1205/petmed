@@ -29,7 +29,7 @@ export default function HomePage() {
       {/* Logo */}
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-extrabold text-blue-600 mb-2">
-          🐾 PetMed
+          🐾 PawDex
         </h1>
         <p className="text-sm text-gray-500">
           AI가 수의학 논문을 분석하여 알려드립니다

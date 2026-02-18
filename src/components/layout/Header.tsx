@@ -29,7 +29,7 @@ export function Header() {
         </button>
 
         <Link href="/" className="text-xl font-bold text-blue-600 flex items-center gap-1">
-          🐾 PetMed
+          🐾 PawDex
         </Link>
 
         <Link href="/profile" className="p-2 -mr-2 text-gray-700">

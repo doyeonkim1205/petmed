@@ -510,7 +510,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             <SectionHeader icon={Info} iconColor="text-gray-500" label="앱 정보" />
             <div className="space-y-2 text-sm text-gray-500">
               <div className="flex justify-between"><span>버전</span><span className="text-gray-700">1.0.0</span></div>
-              <div className="flex justify-between"><span>개발</span><span className="text-gray-700">PetMed Team</span></div>
+              <div className="flex justify-between"><span>개발</span><span className="text-gray-700">PawDex Team</span></div>
             </div>
           </div>
         </div>
@@ -606,7 +606,7 @@ export default function ProfilePage() {
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
         <p className="text-gray-500 text-center mb-6">
-          PetMed의 모든 기능을 이용하려면<br />로그인해주세요.
+          PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
         </p>
         <div className="flex gap-3 w-full max-w-xs">
           <button
@@ -708,8 +708,8 @@ export default function ProfilePage() {
       </div>
 
       <div className="p-6 text-center text-xs text-gray-400">
-        <p>PetMed v1.0.0</p>
-        <p className="mt-1">문의: help@petmed.com</p>
+        <p>PawDex v1.0.0</p>
+        <p className="mt-1">문의: help@pawdex.com</p>
       </div>
 
       {/* Modals */}

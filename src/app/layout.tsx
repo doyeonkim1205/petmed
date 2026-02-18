@@ -9,7 +9,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "PetMed - 반려동물 건강 정보 플랫폼",
+  title: "PawDex - 반려동물 건강 정보 플랫폼",
   description: "반려동물 질병 정보, 건강 기록장, 동물병원 찾기",
 };
 

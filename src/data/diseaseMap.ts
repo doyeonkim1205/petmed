@@ -41,7 +41,7 @@ const diseaseMap: Record<string, string> = {
 };
 
 // 번역 결과 캐시 — localStorage 기반으로 새로고침 후에도 유지
-const LS_KEY = 'petmed_translation_cache';
+const LS_KEY = 'pawdex_translation_cache';
 
 function loadCache(): Record<string, string> {
   if (typeof window === 'undefined') return {};
