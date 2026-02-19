@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { toEnglishQuery } from '@/data/diseaseMap';
 import {
   searchPubMed,
   fetchArticleSummaries,
@@ -9,7 +8,7 @@ import {
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult } from '@/services/openai';
 
-export type SearchStep = 'idle' | 'validating' | 'translating' | 'searching' | 'fetching' | 'analyzing' | 'done';
+export type SearchStep = 'idle' | 'validating' | 'searching' | 'fetching' | 'analyzing' | 'done';
 
 export interface UsePubMedSearchResult {
   articles: ArticleSummary[];
@@ -22,11 +21,15 @@ export interface UsePubMedSearchResult {
 }
 
 /**
- * 검색어가 반려동물 건강 관련인지 서버에서 AI로 검증
+ * 검증 + 번역을 하나의 API 호출로 처리
  */
-async function validateSearchTerm(query: string): Promise<{ valid: boolean; reason?: string }> {
+async function validateAndTranslate(query: string): Promise<{
+  valid: boolean;
+  reason?: string;
+  englishQuery?: string;
+}> {
   try {
-    const res = await fetch('/api/validate-search', {
+    const res = await fetch('/api/validate-and-translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
@@ -58,22 +61,20 @@ export function usePubMedSearch(
     setAnalysis(null);
     setArticles([]);
 
-    // Step 0: AI 기반 검색어 검증
+    // Step 1: 검증 + 번역 (하나의 API 호출)
     setStep('validating');
-    const validation = await validateSearchTerm(diseaseName);
-    if (!validation.valid) {
-      setError(validation.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
+    const result = await validateAndTranslate(diseaseName);
+    if (!result.valid || !result.englishQuery) {
+      setError(result.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
       setLoading(false);
       setStep('done');
       return;
     }
 
     try {
-      setStep('translating');
-      const englishQuery = await toEnglishQuery(diseaseName);
-
+      // Step 2: PubMed 검색
       setStep('searching');
-      const pmids = await searchPubMed(englishQuery, petType, 5);
+      const pmids = await searchPubMed(result.englishQuery, petType, 5);
 
       if (pmids.length === 0) {
         setArticles([]);
@@ -82,15 +83,17 @@ export function usePubMedSearch(
         return;
       }
 
+      // Step 3: 논문 정보 가져오기
       setStep('fetching');
       const summaries = await fetchArticleSummaries(pmids);
       setArticles(summaries);
       setLoading(false);
 
+      // Step 4: AI 분석 (백그라운드)
       setStep('analyzing');
       setAnalysisLoading(true);
       try {
-        const result = await analyzePapers(
+        const aiResult = await analyzePapers(
           diseaseName,
           petType,
           summaries.map((s) => ({
@@ -100,7 +103,7 @@ export function usePubMedSearch(
             pubDate: s.pubDate,
           })),
         );
-        setAnalysis(result);
+        setAnalysis(aiResult);
       } catch (aiErr) {
         console.error('[AI 분석 실패]', aiErr);
       } finally {

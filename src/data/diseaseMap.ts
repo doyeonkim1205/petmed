@@ -2,7 +2,7 @@
  * 한국어 질병명 → 영문 PubMed 검색어 매핑
  */
 
-const diseaseMap: Record<string, string> = {
+export const diseaseMap: Record<string, string> = {
   '소화기 림프종': 'gastrointestinal lymphoma',
   '림프종': 'lymphoma',
   '슬개골 탈구': 'patellar luxation',

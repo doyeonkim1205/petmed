@@ -10,7 +10,6 @@ import { PaperSection } from '@/components/PaperSection';
 const stepMessages: Record<SearchStep, string> = {
   idle: '',
   validating: '검색어 확인 중...',
-  translating: '검색어 번역 중...',
   searching: '논문 검색 중...',
   fetching: '논문 정보 가져오는 중...',
   analyzing: 'AI가 논문을 분석하고 있습니다...',
