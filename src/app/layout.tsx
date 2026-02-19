@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -11,6 +12,10 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "PawDex - 반려동물 건강 정보 플랫폼",
   description: "반려동물 질병 정보, 건강 기록장, 동물병원 찾기",
+  manifest: "/manifest.json",
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -18,6 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -44,6 +50,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

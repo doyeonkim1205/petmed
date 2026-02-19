@@ -1,0 +1,24 @@
+{
+  "name": "PawDex - 반려동물 건강 정보 플랫폼",
+  "short_name": "PawDex",
+  "description": "반려동물 질병 정보, 건강 기록장, 동물병원 찾기",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

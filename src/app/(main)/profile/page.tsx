@@ -7,8 +7,9 @@ import { supabase, Pet } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
-  Globe, Trash, Info, Clock, Shield, Eye,
+  Globe, Trash, Info, Clock, Shield, Eye, FileText,
 } from 'lucide-react';
+import Link from 'next/link';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -693,6 +694,30 @@ export default function ProfilePage() {
           </div>
           <ChevronRight size={16} className="text-gray-400" />
         </button>
+      </div>
+
+      {/* Legal Links */}
+      <div className="bg-white border-t border-b border-gray-100 mb-2">
+        <Link
+          href="/terms"
+          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50"
+        >
+          <div className="flex items-center gap-3 text-gray-700">
+            <FileText size={20} />
+            <span>이용약관</span>
+          </div>
+          <ChevronRight size={16} className="text-gray-400" />
+        </Link>
+        <Link
+          href="/privacy"
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
+        >
+          <div className="flex items-center gap-3 text-gray-700">
+            <Shield size={20} />
+            <span>개인정보처리방침</span>
+          </div>
+          <ChevronRight size={16} className="text-gray-400" />
+        </Link>
       </div>
 
       <div className="bg-white border-t border-b border-gray-100">
