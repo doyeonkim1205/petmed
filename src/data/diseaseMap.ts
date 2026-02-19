@@ -99,6 +99,8 @@ export const diseaseMap: Record<string, string> = {
   '파보 바이러스': 'canine parvovirus',
   '켄넬코프': 'kennel cough',
   '디스템퍼': 'canine distemper',
+  '홍역': 'canine distemper',
+  '코로나 바이러스': 'canine coronavirus',
   '코로나 장염': 'canine coronavirus enteritis',
 };
 
