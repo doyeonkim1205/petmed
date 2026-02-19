@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           scopes: 'profile_nickname profile_image account_email',
-          queryParams: { prompt: 'login consent' },
+          queryParams: { prompt: 'login,consent' },
         },
       });
       if (error) throw error;
