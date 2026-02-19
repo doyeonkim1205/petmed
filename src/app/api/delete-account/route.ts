@@ -1,25 +1,27 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Unlink from OAuth provider so consent screen reappears on next login
-async function unlinkProvider(provider: string | undefined, providerToken: string | undefined) {
-  if (!providerToken || !provider) return;
+// Unlink from OAuth provider using server-side admin keys
+async function unlinkKakao(kakaoUserId: string) {
+  const adminKey = process.env.KAKAO_ADMIN_KEY;
+  if (!adminKey || !kakaoUserId) return;
 
-  try {
-    if (provider === 'kakao') {
-      await fetch('https://kapi.kakao.com/v1/user/unlink', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${providerToken}` },
-      });
-    } else if (provider === 'google') {
-      await fetch(`https://oauth2.googleapis.com/revoke?token=${providerToken}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      });
-    }
-  } catch {
-    // Best-effort: don't block deletion if unlink fails
-  }
+  await fetch('https://kapi.kakao.com/v1/user/unlink', {
+    method: 'POST',
+    headers: {
+      Authorization: `KakaoAK ${adminKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `target_id_type=user_id&target_id=${kakaoUserId}`,
+  });
+}
+
+async function revokeGoogle(providerToken: string | undefined) {
+  if (!providerToken) return;
+  await fetch(`https://oauth2.googleapis.com/revoke?token=${providerToken}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
 }
 
 export async function POST(request: Request) {
@@ -37,15 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 });
     }
 
-    // Parse provider info from request body
+    // Parse optional provider token (for Google revoke)
     let providerToken: string | undefined;
-    let provider: string | undefined;
     try {
       const body = await request.json();
       providerToken = body.providerToken;
-      provider = body.provider;
     } catch {
-      // Body may be empty for email/password users
+      // Body may be empty
     }
 
     // Verify the caller's session
@@ -58,8 +58,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '유효하지 않은 세션입니다.' }, { status: 401 });
     }
 
-    // Unlink from OAuth provider first (while token is still valid)
-    await unlinkProvider(provider, providerToken);
+    // Unlink from OAuth provider (best-effort, don't block deletion)
+    const provider = user.app_metadata?.provider;
+    try {
+      if (provider === 'kakao') {
+        const kakaoId = user.user_metadata?.sub || user.user_metadata?.provider_id;
+        await unlinkKakao(kakaoId);
+      } else if (provider === 'google') {
+        await revokeGoogle(providerToken);
+      }
+    } catch {
+      // Continue with deletion even if unlink fails
+    }
 
     // Create admin client
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
