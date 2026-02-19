@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <ul>
           <li>회원가입 및 본인 확인</li>
           <li>반려동물 건강 기록 관리</li>
-          <li>커뮤니티 게시글·댓글 작성</li>
+          <li>질병 검색 결과 저장 및 분석</li>
           <li>동물병원 찾기 서비스 제공</li>
           <li>질병 정보 검색 및 논문 분석 결과 제공</li>
           <li>서비스 개선 및 오류 대응</li>

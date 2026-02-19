@@ -7,7 +7,7 @@ import { supabase, Pet } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
-  Globe, Trash, Info, Clock, Shield, Eye, FileText,
+  Globe, Trash, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -556,6 +556,87 @@ function ToggleRow({ label, desc, checked, onChange }: {
   );
 }
 
+// ─── Delete Account Modal ─────────────────────────────────
+function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => { if (open) { setConfirmText(''); setErrorMsg(''); } }, [open]);
+
+  if (!open) return null;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setErrorMsg('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('세션이 만료되었습니다.');
+
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || '삭제 실패');
+
+      // Clear local state and redirect
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-') && key.includes('auth')) localStorage.removeItem(key);
+        });
+      } catch {}
+      window.location.href = '/';
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : '오류가 발생했습니다.');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+        <div className="flex flex-col items-center mb-5">
+          <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <AlertTriangle size={28} className="text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">정말 탈퇴하시겠어요?</h3>
+          <p className="text-sm text-gray-500 text-center leading-relaxed">
+            탈퇴 시 모든 데이터(반려동물 정보, 건강 기록 등)가<br />
+            <span className="text-red-500 font-medium">영구적으로 삭제</span>되며 복구할 수 없습니다.
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-xs text-gray-500 mb-2">확인을 위해 <span className="font-bold text-gray-700">&quot;탈퇴합니다&quot;</span>를 입력해주세요.</p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={e => setConfirmText(e.target.value)}
+            placeholder="탈퇴합니다"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm"
+          />
+        </div>
+
+        {errorMsg && <p className="text-red-500 text-xs mb-3">{errorMsg}</p>}
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 h-11 border border-gray-300 rounded-lg font-medium text-sm">
+            취소
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting || confirmText !== '탈퇴합니다'}
+            className="flex-1 h-11 bg-red-500 text-[#fff] rounded-lg font-medium text-sm disabled:opacity-40"
+          >
+            {deleting ? '처리 중...' : '탈퇴하기'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Profile Page ─────────────────────────────────────
 export default function ProfilePage() {
   const { user, profile, loading, signOut, updateProfile } = useAuth();
@@ -565,6 +646,7 @@ export default function ProfilePage() {
   const [showPetModal, setShowPetModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleLogout = () => {
     // Clear auth localStorage FIRST (synchronous, guaranteed)
@@ -723,11 +805,20 @@ export default function ProfilePage() {
       <div className="bg-white border-t border-b border-gray-100">
         <button
           onClick={handleLogout}
-          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-red-500"
+          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 text-red-500"
         >
           <div className="flex items-center gap-3">
             <LogOut size={20} />
             <span>로그아웃</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-gray-400"
+        >
+          <div className="flex items-center gap-3">
+            <UserX size={20} />
+            <span className="text-sm">회원 탈퇴</span>
           </div>
         </button>
       </div>
@@ -757,6 +848,10 @@ export default function ProfilePage() {
         open={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         userId={user.id}
+      />
+      <DeleteAccountModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
       />
     </div>
   );
