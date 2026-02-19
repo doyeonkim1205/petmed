@@ -30,17 +30,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ valid: true, englishQuery: diseaseMap[trimmed] });
     }
 
-    // 2) diseaseMap 부분 매치 (가장 긴 키부터)
+    // 2) diseaseMap 부분 매치 — 입력이 키를 포함하는 경우만 (가장 긴 키부터)
     const sortedKeys = Object.keys(diseaseMap).sort((a, b) => b.length - a.length);
     for (const key of sortedKeys) {
-      if (trimmed.includes(key) || key.includes(trimmed)) {
+      if (trimmed.includes(key)) {
         return NextResponse.json({ valid: true, englishQuery: diseaseMap[key] });
       }
-    }
-
-    // 3) 영문인 경우 그대로 사용 (의학 용어일 가능성 높음)
-    if (isEnglish && trimmed.length >= 3) {
-      return NextResponse.json({ valid: true, englishQuery: trimmed });
     }
 
     // 4) OpenAI로 검증 + 번역을 한 번에 처리

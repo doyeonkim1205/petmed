@@ -3,41 +3,103 @@
  */
 
 export const diseaseMap: Record<string, string> = {
-  '소화기 림프종': 'gastrointestinal lymphoma',
-  '림프종': 'lymphoma',
-  '슬개골 탈구': 'patellar luxation',
-  '신부전': 'renal failure',
-  '만성 신부전': 'chronic kidney disease',
-  '급성 신부전': 'acute kidney injury',
-  '심장사상충': 'heartworm disease',
-  '치주질환': 'periodontal disease',
-  '구내염': 'stomatitis',
-  '당뇨': 'diabetes mellitus',
-  '갑상선 기능 항진증': 'hyperthyroidism',
-  '방광염': 'cystitis',
-  '요로결석': 'urolithiasis',
-  '피부염': 'dermatitis',
-  '아토피': 'atopic dermatitis',
-  '외이염': 'otitis externa',
+  // 소화기
   '구토': 'vomiting',
   '설사': 'diarrhea',
   '췌장염': 'pancreatitis',
-  '간질': 'epilepsy',
-  '백내장': 'cataract',
-  '녹내장': 'glaucoma',
-  '고관절 이형성': 'hip dysplasia',
-  '추간판 질환': 'intervertebral disc disease',
-  '기관 허탈': 'tracheal collapse',
-  '비만세포종': 'mast cell tumor',
-  '유선종양': 'mammary tumor',
+  '위염': 'gastritis',
+  '장염': 'enteritis',
+  '이물섭식': 'foreign body ingestion',
+  '식욕부진': 'anorexia',
+  '구취': 'halitosis',
+
+  // 신장/비뇨기
+  '신부전': 'renal failure',
+  '만성 신부전': 'chronic kidney disease',
+  '급성 신부전': 'acute kidney injury',
+  '방광염': 'cystitis',
+  '요로결석': 'urolithiasis',
+  '혈뇨': 'hematuria',
+
+  // 내분비
+  '당뇨': 'diabetes mellitus',
+  '당뇨병': 'diabetes mellitus',
+  '갑상선 기능 항진증': 'hyperthyroidism',
   '쿠싱 증후군': 'hyperadrenocorticism',
   '애디슨병': 'hypoadrenocorticism',
+  '비만': 'obesity',
+
+  // 근골격
+  '슬개골 탈구': 'patellar luxation',
+  '고관절 이형성': 'hip dysplasia',
+  '추간판 질환': 'intervertebral disc disease',
+  '골관절염': 'osteoarthritis',
+  '관절염': 'arthritis',
+  '십자인대 파열': 'cranial cruciate ligament rupture',
+
+  // 피부
+  '피부염': 'dermatitis',
+  '아토피': 'atopic dermatitis',
+  '알레르기성 피부염': 'allergic dermatitis',
+  '피부 감염': 'skin infection',
+  '탈모': 'alopecia',
+  '귀 진드기': 'ear mites',
+
+  // 눈
+  '백내장': 'cataract',
+  '녹내장': 'glaucoma',
+  '결막염': 'conjunctivitis',
+  '각막염': 'keratitis',
+
+  // 구강
+  '치주질환': 'periodontal disease',
+  '치주염': 'periodontitis',
+  '치은염': 'gingivitis',
+  '구내염': 'stomatitis',
+
+  // 호흡기
+  '기관 허탈': 'tracheal collapse',
+  '기침': 'cough',
+  '천식': 'asthma',
+  '상부 호흡기 감염': 'upper respiratory infection',
+
+  // 심혈관
+  '심장사상충': 'heartworm disease',
+  '심장병': 'heart disease',
+
+  // 간
+  '간질환': 'liver disease',
+  '지방간': 'hepatic lipidosis',
+
+  // 신경
+  '간질': 'epilepsy',
+  '발작': 'seizure',
+
+  // 귀
+  '외이염': 'otitis externa',
+
+  // 종양
+  '소화기 림프종': 'gastrointestinal lymphoma',
+  '림프종': 'lymphoma',
+  '비만세포종': 'mast cell tumor',
+  '유선종양': 'mammary tumor',
+
+  // 감염병 (고양이)
   '고양이 전염성 복막염': 'feline infectious peritonitis',
+  '전염성 복막염': 'feline infectious peritonitis',
   'FIP': 'feline infectious peritonitis',
   '범백혈구감소증': 'feline panleukopenia',
   '고양이 허피스': 'feline herpesvirus',
+  '허피스 바이러스': 'feline herpesvirus',
+  '칼리시 바이러스': 'feline calicivirus',
+  '고양이 감기': 'feline upper respiratory infection',
+
+  // 감염병 (강아지)
   '파보바이러스': 'canine parvovirus',
+  '파보 바이러스': 'canine parvovirus',
   '켄넬코프': 'kennel cough',
+  '디스템퍼': 'canine distemper',
+  '코로나 장염': 'canine coronavirus enteritis',
 };
 
 // 번역 결과 캐시 — localStorage 기반으로 새로고침 후에도 유지
