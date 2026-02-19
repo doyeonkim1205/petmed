@@ -10,64 +10,59 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Check for error in URL params (Google returns error=403 etc.)
-        const params = new URLSearchParams(window.location.search);
-        const errorParam = params.get('error');
-        const errorDesc = params.get('error_description');
-        if (errorParam) {
-          setError(errorDesc || `로그인 오류: ${errorParam}`);
-          setTimeout(() => router.replace('/login'), 2000);
-          return;
-        }
+    // Check for error in URL params (Google returns error=403 etc.)
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam) {
+      const errorDesc = params.get('error_description');
+      setError(errorParam === 'access_denied'
+        ? '로그인이 취소되었습니다.'
+        : errorDesc || `로그인 오류: ${errorParam}`);
+      setTimeout(() => router.replace('/login'), 2000);
+      return;
+    }
 
-        // Explicit PKCE code exchange for mobile compatibility
-        const code = params.get('code');
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            console.error('Code exchange error:', exchangeError);
-            setError('로그인 처리에 실패했습니다. 다시 시도해주세요.');
-            setTimeout(() => router.replace('/login'), 2000);
-            return;
-          }
-          router.replace('/profile');
-          return;
-        }
-
-        // Fallback: check if session already exists (hash-based flow)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          router.replace('/profile');
-          return;
-        }
-
-        // Listen for auth state change as last resort
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event) => {
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-              clearTimeout(timeout);
-              subscription.unsubscribe();
-              router.replace('/profile');
-            }
-          }
-        );
-
-        // Safety timeout
-        const timeout = setTimeout(() => {
-          subscription.unsubscribe();
-          setError('로그인 처리 시간이 초과되었습니다. 다시 시도해주세요.');
-          setTimeout(() => router.replace('/login'), 2000);
-        }, 10000);
-      } catch (err) {
-        console.error('Auth callback error:', err);
-        setError('로그인 처리 중 오류가 발생했습니다.');
-        setTimeout(() => router.replace('/login'), 2000);
-      }
+    // The Supabase client automatically handles PKCE code exchange
+    // via detectSessionInUrl: true during initialization.
+    // DO NOT call exchangeCodeForSession manually — OnboardingGate
+    // delays this page's mount, so AuthContext's init() triggers
+    // _initialize() first and consumes the code_verifier.
+    let redirected = false;
+    const doRedirect = () => {
+      if (redirected) return;
+      redirected = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+      router.replace('/');
     };
 
-    handleCallback();
+    // Listen for auth state change (catches SIGNED_IN after subscription)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+          doRedirect();
+        }
+      }
+    );
+
+    // Fallback: session may already exist if exchange completed before mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) doRedirect();
+    });
+
+    // Safety timeout
+    const timeout = setTimeout(() => {
+      if (!redirected) {
+        subscription.unsubscribe();
+        setError('로그인 처리 시간이 초과되었습니다. 다시 시도해주세요.');
+        setTimeout(() => router.replace('/login'), 2000);
+      }
+    }, 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [router]);
 
   if (error) {
