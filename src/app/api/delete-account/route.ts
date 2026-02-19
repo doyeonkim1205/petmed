@@ -1,9 +1,29 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Unlink from OAuth provider so consent screen reappears on next login
+async function unlinkProvider(provider: string | undefined, providerToken: string | undefined) {
+  if (!providerToken || !provider) return;
+
+  try {
+    if (provider === 'kakao') {
+      await fetch('https://kapi.kakao.com/v1/user/unlink', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${providerToken}` },
+      });
+    } else if (provider === 'google') {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${providerToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+    }
+  } catch {
+    // Best-effort: don't block deletion if unlink fails
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    // Verify the caller has a valid session by extracting the access token
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
@@ -17,7 +37,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 });
     }
 
-    // Create anon client to verify the user's token
+    // Parse provider info from request body
+    let providerToken: string | undefined;
+    let provider: string | undefined;
+    try {
+      const body = await request.json();
+      providerToken = body.providerToken;
+      provider = body.provider;
+    } catch {
+      // Body may be empty for email/password users
+    }
+
+    // Verify the caller's session
     const anonClient = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } },
     });
@@ -27,7 +58,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '유효하지 않은 세션입니다.' }, { status: 401 });
     }
 
-    // Create admin client with service role key
+    // Unlink from OAuth provider first (while token is still valid)
+    await unlinkProvider(provider, providerToken);
+
+    // Create admin client
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
