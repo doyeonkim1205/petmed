@@ -2,20 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, ClipboardList, Map as MapIcon, User } from 'lucide-react';
+import { FileText, ClipboardList, MapPin, User } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
 
   const navItems = [
-    { icon: Search, label: '검색', path: '/search' },
-    { icon: ClipboardList, label: '기록장', path: '/records' },
-    { icon: MapIcon, label: '맵', path: '/map' },
-    { icon: User, label: '계정', path: '/profile' },
+    { icon: FileText, label: '질병 검색', path: '/search', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
+    { icon: ClipboardList, label: '건강 기록장', path: '/records', color: 'bg-emerald-100 text-emerald-600', activeColor: 'bg-emerald-600 text-white' },
+    { icon: MapPin, label: '병원 찾기', path: '/map', color: 'bg-rose-100 text-rose-600', activeColor: 'bg-rose-600 text-white' },
+    { icon: User, label: '마이페이지', path: '/profile', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-600 text-white' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 h-16 flex items-center justify-around z-50 safe-area-bottom">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] h-18 flex items-center justify-around z-50 safe-area-bottom px-2 py-2">
       {navItems.map((item) => {
         const isActive = pathname === item.path ||
           (item.path !== '/' && pathname.startsWith(item.path));
@@ -25,12 +25,16 @@ export function Footer() {
           <Link
             key={item.path}
             href={item.path}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-              isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className="flex flex-col items-center justify-center gap-1 w-full"
           >
-            <Icon size={24} />
-            <span className="text-xs font-medium">{item.label}</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              isActive ? item.activeColor : item.color
+            }`}>
+              <Icon size={20} />
+            </div>
+            <span className={`text-[10px] font-medium ${
+              isActive ? 'text-gray-900' : 'text-gray-500'
+            }`}>{item.label}</span>
           </Link>
         );
       })}

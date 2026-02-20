@@ -5,17 +5,12 @@ import { useRouter } from 'next/navigation';
 import {
   Search as SearchIcon,
   Plus,
-  FileText,
-  ClipboardList,
-  MapPin,
-  User,
   X,
   Dog,
   Cat,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
-import { mockDiseases } from '@/data/mock';
 
 export default function HomePage() {
   const [query, setQuery] = useState('');
@@ -73,17 +68,6 @@ export default function HomePage() {
       setRecentSearches(updated.slice(0, 5));
     } catch {}
   };
-
-  const recommendedDiseases = mockDiseases.filter(
-    d => d.type === petType || d.type === 'all'
-  );
-
-  const quickMenuItems = [
-    { icon: FileText, label: '질병 검색', href: '/search', color: 'bg-blue-100 text-blue-600' },
-    { icon: ClipboardList, label: '건강 기록장', href: '/records', color: 'bg-emerald-100 text-emerald-600' },
-    { icon: MapPin, label: '동물병원 찾기', href: '/map', color: 'bg-rose-100 text-rose-600' },
-    { icon: User, label: '마이페이지', href: '/profile', color: 'bg-amber-100 text-amber-600' },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -205,48 +189,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 5. Recommended Searches */}
-      <section className="mt-6 px-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">추천 검색어</h2>
-        <div className="flex flex-wrap gap-2">
-          {recommendedDiseases.map((disease) => (
-            <button
-              key={disease.id}
-              onClick={() => saveAndNavigate(disease.name)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                disease.type === 'dog'
-                  ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  : disease.type === 'cat'
-                  ? 'bg-pink-50 text-pink-700 hover:bg-pink-100'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              {disease.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 6. Quick Menu */}
-      <section className="mt-6 px-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">빠른 메뉴</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {quickMenuItems.map((item) => (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left"
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color}`}>
-                <item.icon size={20} />
-              </div>
-              <span className="text-sm font-medium text-gray-700">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. Tagline */}
+      {/* Tagline */}
       <div className="mt-8 text-center">
         <p className="text-xs text-gray-400">PawDex — AI 기반 반려동물 건강 플랫폼</p>
       </div>
