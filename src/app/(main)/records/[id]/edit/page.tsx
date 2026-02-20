@@ -27,7 +27,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const { user } = useAuth();
   const { getRecord, updateRecord } = useHealthRecords();
-  const { addMedication, deleteMedication, getMedicationsByRecordId } = useMedications();
+  const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [petId, setPetId] = useState('');
@@ -189,7 +189,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         await deleteMedication(medId);
       }
 
-      // Add new medications
+      // Update existing / add new medications
       for (const med of medications) {
         if (med.isNew && med.name.trim()) {
           await addMedication({
@@ -198,6 +198,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             dosage: med.dosage.trim() || undefined,
             start_date: med.start_date,
             end_date: med.end_date || undefined,
+            frequency: med.frequency,
+            color: med.color,
+          });
+        } else if (med.id && med.name.trim()) {
+          await updateMed(med.id, {
+            name: med.name.trim(),
+            dosage: med.dosage.trim() || undefined,
+            start_date: med.start_date,
+            end_date: med.end_date || null,
             frequency: med.frequency,
             color: med.color,
           });
@@ -425,23 +434,20 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 placeholder="약 이름"
                 value={med.name}
                 onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
-                disabled={!med.isNew && !!med.id}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white disabled:bg-gray-100"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
                   placeholder="용량"
                   value={med.dosage}
                   onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                  disabled={!med.isNew && !!med.id}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white disabled:bg-gray-100"
+                                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <input
                   placeholder="빈도"
                   value={med.frequency}
                   onChange={(e) => updateMedicationField(i, 'frequency', e.target.value)}
-                  disabled={!med.isNew && !!med.id}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white disabled:bg-gray-100"
+                                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -451,8 +457,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="date"
                     value={med.start_date}
                     onChange={(e) => updateMedicationField(i, 'start_date', e.target.value)}
-                    disabled={!med.isNew && !!med.id}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white disabled:bg-gray-100"
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                   />
                 </div>
                 <div>
@@ -461,8 +466,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="date"
                     value={med.end_date}
                     onChange={(e) => updateMedicationField(i, 'end_date', e.target.value)}
-                    disabled={!med.isNew && !!med.id}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white disabled:bg-gray-100"
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                   />
                 </div>
               </div>

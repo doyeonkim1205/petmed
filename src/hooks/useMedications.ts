@@ -29,6 +29,25 @@ export function useMedications() {
     return data;
   };
 
+  const updateMedication = async (id: string, updates: {
+    name?: string;
+    dosage?: string;
+    start_date?: string;
+    end_date?: string | null;
+    frequency?: string;
+    color?: string;
+  }) => {
+    if (!user) throw new Error('로그인이 필요합니다');
+
+    const { error } = await supabase
+      .from('medications')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+  };
+
   const deleteMedication = async (id: string) => {
     if (!user) throw new Error('로그인이 필요합니다');
 
@@ -151,6 +170,7 @@ export function useMedications() {
   return {
     loading,
     addMedication,
+    updateMedication,
     deleteMedication,
     getTodayMedications,
     getChecksForDate,
