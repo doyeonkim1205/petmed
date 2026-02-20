@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat } from 'lucide-react';
+import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Stethoscope, AlertCircle, Building2, FileEdit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -12,6 +12,15 @@ import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 
 type Tab = 'records' | 'calendar';
+type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'manual';
+
+const filterOptions: { id: RecordFilter; label: string }[] = [
+  { id: 'all', label: '전체' },
+  { id: 'symptom', label: '증상' },
+  { id: 'visit', label: '진료' },
+  { id: 'hospitalization', label: '입퇴원' },
+  { id: 'manual', label: '직접입력' },
+];
 
 export default function RecordsPage() {
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
@@ -26,6 +35,13 @@ export default function RecordsPage() {
       if (saved === 'records' || saved === 'calendar') return saved;
     }
     return 'records';
+  });
+  const [recordFilter, setRecordFilter] = useState<RecordFilter>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordFilter');
+      if (saved && filterOptions.some(f => f.id === saved)) return saved as RecordFilter;
+    }
+    return 'all';
   });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [petCount, setPetCount] = useState<number | null>(null);
@@ -69,6 +85,15 @@ export default function RecordsPage() {
     setActiveTab(tab);
     localStorage.setItem('recordsActiveTab', tab);
   };
+
+  const handleFilterChange = (filter: RecordFilter) => {
+    setRecordFilter(filter);
+    localStorage.setItem('recordFilter', filter);
+  };
+
+  const filteredRecords = recordFilter === 'all'
+    ? records
+    : records.filter(r => r.record_type === recordFilter);
 
   if (authLoading) {
     return (
@@ -130,6 +155,23 @@ export default function RecordsPage() {
             );
           })}
         </div>
+        {activeTab === 'records' && (
+          <div className="flex gap-1.5 px-4 py-2 overflow-x-auto max-w-sm mx-auto">
+            {filterOptions.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => handleFilterChange(f.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  recordFilter === f.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {petCount === 0 ? (
@@ -222,8 +264,13 @@ export default function RecordsPage() {
               <p className="text-gray-400 text-sm">아직 기록이 없습니다.</p>
               <p className="text-gray-300 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
             </div>
+          ) : filteredRecords.length === 0 ? (
+            <div className="text-center py-20">
+              <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-gray-400 text-sm">해당 유형의 기록이 없습니다.</p>
+            </div>
           ) : (
-            records.map((record) => (
+            filteredRecords.map((record) => (
               <RecordCard
                 key={record.id}
                 record={record}

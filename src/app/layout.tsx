@@ -42,7 +42,7 @@ export default function RootLayout({
             var fs = parseInt(localStorage.getItem('fontSize'), 10);
             if (fs >= 12 && fs <= 24) document.documentElement.style.fontSize = fs + 'px';
             var hc = localStorage.getItem('highContrast');
-            if (hc === 'true') document.documentElement.classList.add('high-contrast');
+            if (hc !== 'false') document.documentElement.classList.add('high-contrast');
           } catch(e) {}
         ` }} />
       </head>

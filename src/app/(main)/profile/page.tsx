@@ -291,7 +291,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   const [language, setLanguage] = useState('ko');
   const [medAlarmTime, setMedAlarmTime] = useState('09:00');
   const [autoLogin, setAutoLogin] = useState(true);
-  const [highContrast, setHighContrast] = useState(false);
+  const [highContrast, setHighContrast] = useState(true);
   const [defaultPetId, setDefaultPetId] = useState<string>('');
   const [pets, setPets] = useState<Pet[]>([]);
 
@@ -302,7 +302,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       setLanguage(localStorage.getItem('language') || 'ko');
       setMedAlarmTime(localStorage.getItem('medAlarmTime') || '09:00');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
-      setHighContrast(document.documentElement.classList.contains('high-contrast'));
+      setHighContrast(localStorage.getItem('highContrast') !== 'false');
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
       // Fetch pets for default pet selector
       supabase
