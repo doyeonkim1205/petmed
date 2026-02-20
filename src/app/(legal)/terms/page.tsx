@@ -2,7 +2,7 @@ export default function TermsPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">이용약관</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 19일</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 20일</p>
 
       <Section title="제1조 (목적)">
         <p>
@@ -83,6 +83,8 @@ export default function TermsPage() {
               <li>서비스 또는 제3자의 저작권 등 지적재산권에 대한 침해</li>
               <li>서비스 또는 제3자의 명예를 손상시키거나 업무를 방해하는 행위</li>
               <li>외설적, 폭력적, 기타 공서양속에 반하는 정보를 서비스에 공개 또는 게시하는 행위</li>
+              <li>자동화된 수단(봇, 스크래퍼 등)을 이용하여 서비스의 API를 비정상적으로 호출하거나 과도한 요청을 발생시키는 행위</li>
+              <li>서비스의 AI 분석 기능을 본래 목적 외의 용도로 악용하는 행위</li>
             </ul>
           </li>
         </ol>
@@ -96,7 +98,16 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제10조 (면책조항)">
+      <Section title="제10조 (AI 분석 서비스)">
+        <ol>
+          <li>서비스는 OpenAI의 AI 기술을 활용하여 논문 분석, 건강 정보 요약 등의 기능을 제공합니다.</li>
+          <li>AI 분석 기능은 로그인한 회원에게만 제공되며, 인증된 요청에 한해 처리됩니다.</li>
+          <li>AI 분석 결과는 참고 목적으로만 제공되며, 전문 수의사의 판단을 대체하지 않습니다.</li>
+          <li>서비스는 AI 분석 과정에서 이용자의 개인정보를 AI 제공업체에 전달하지 않으며, 질병·증상 관련 텍스트만 처리합니다.</li>
+        </ol>
+      </Section>
+
+      <Section title="제11조 (면책조항)">
         <ol>
           <li>서비스에서 제공하는 건강 정보는 참고 목적이며, 전문 수의사의 진단 및 치료를 대체하지 않습니다.</li>
           <li>서비스는 논문 검색 및 AI 분석 결과의 정확성을 보증하지 않으며, 이를 기반으로 한 의료적 판단에 대해 책임지지 않습니다.</li>
@@ -106,7 +117,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제11조 (분쟁 해결)">
+      <Section title="제12조 (분쟁 해결)">
         <ol>
           <li>서비스와 이용자 간에 발생한 분쟁에 관한 소송은 대한민국 법률에 따릅니다.</li>
           <li>서비스와 이용자 간에 분쟁이 발생한 경우, 양 당사자는 분쟁의 해결을 위해 성실히 협의합니다.</li>

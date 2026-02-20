@@ -73,7 +73,8 @@ export default function RecordAddPage() {
       const formData = new FormData();
       formData.append('file', files[0]);
 
-      const res = await fetch('/api/analyze-document', {
+      const { authFetch } = await import('@/lib/authFetch');
+      const res = await authFetch('/api/analyze-document', {
         method: 'POST',
         body: formData,
       });

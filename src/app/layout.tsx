@@ -38,9 +38,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             var t = localStorage.getItem('theme');
-            if (t === 'dark') document.documentElement.classList.add('dark');
-            var fs = localStorage.getItem('fontSize');
-            if (fs) document.documentElement.style.fontSize = fs + 'px';
+            if (t === 'dark' || t === 'light') document.documentElement.classList.add(t);
+            var fs = parseInt(localStorage.getItem('fontSize'), 10);
+            if (fs >= 12 && fs <= 24) document.documentElement.style.fontSize = fs + 'px';
             var hc = localStorage.getItem('highContrast');
             if (hc === 'true') document.documentElement.classList.add('high-contrast');
           } catch(e) {}

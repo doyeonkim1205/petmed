@@ -17,7 +17,8 @@ export async function analyzePapers(
   petType: 'cat' | 'dog',
   papers: { pmid: string; title: string; journal: string; pubDate: string }[],
 ): Promise<AiAnalysisResult> {
-  const res = await fetch('/api/analyze-papers', {
+  const { authFetch } = await import('@/lib/authFetch');
+  const res = await authFetch('/api/analyze-papers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ diseaseName, petType, papers }),

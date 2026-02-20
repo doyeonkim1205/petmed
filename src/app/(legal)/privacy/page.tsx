@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">개인정보처리방침</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 19일</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 20일</p>
 
       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
         PawDex(이하 &quot;서비스&quot;)는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.
@@ -66,6 +66,11 @@ export default function PrivacyPage() {
               <td className="py-2">웹 애플리케이션 호스팅</td>
               <td className="py-2">글로벌 CDN</td>
             </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">OpenAI, Inc.</td>
+              <td className="py-2">AI 기반 논문 분석 및 건강 정보 요약</td>
+              <td className="py-2">미국</td>
+            </tr>
           </tbody>
         </table>
       </Section>
@@ -74,6 +79,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>파기 절차:</strong> 회원 탈퇴 요청 시 즉시 파기하며, 법령에 따라 보관이 필요한 정보는 별도 분리하여 보관 후 기간 만료 시 파기합니다.</li>
           <li><strong>파기 방법:</strong> 전자적 파일은 복구 불가능한 방법으로 삭제하며, 종이 문서는 분쇄 또는 소각합니다.</li>
+          <li><strong>소셜 로그인 연동 해제:</strong> 회원 탈퇴 시 Google 또는 카카오 소셜 로그인 연동을 서버 측에서 자동 해제하여, 재가입 시 새로운 동의 절차를 거치도록 합니다.</li>
         </ul>
       </Section>
 
@@ -100,7 +106,18 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="9. 개인정보처리방침의 변경">
+      <Section title="9. 개인정보의 안전성 확보 조치">
+        <p>서비스는 개인정보의 안전성 확보를 위해 다음 조치를 취하고 있습니다.</p>
+        <ul>
+          <li>모든 데이터 전송 시 HTTPS(TLS) 암호화 적용</li>
+          <li>비밀번호 해시 처리 저장 (평문 저장 금지)</li>
+          <li>API 접근 시 인증 토큰 기반 접근 제어</li>
+          <li>서버 측 보안 헤더 적용 (XSS, 클릭재킹 방지)</li>
+          <li>민감한 API 키의 서버 측 전용 관리 (클라이언트 노출 방지)</li>
+        </ul>
+      </Section>
+
+      <Section title="10. 개인정보처리방침의 변경">
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
     </article>

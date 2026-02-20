@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { diseaseMap } from '@/data/diseaseMap';
+import { verifyAuth } from '@/lib/apiAuth';
 
-const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const REJECT = {
   valid: false,
@@ -15,6 +16,9 @@ const REJECT = {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await verifyAuth(request);
+    if (auth.error) return auth.error;
+
     const { query } = await request.json();
     if (!query || query.trim().length < 1) {
       return NextResponse.json(REJECT);

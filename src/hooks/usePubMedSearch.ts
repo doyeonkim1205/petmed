@@ -29,7 +29,8 @@ async function validateAndTranslate(query: string): Promise<{
   englishQuery?: string;
 }> {
   try {
-    const res = await fetch('/api/validate-and-translate', {
+    const { authFetch } = await import('@/lib/authFetch');
+    const res = await authFetch('/api/validate-and-translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),

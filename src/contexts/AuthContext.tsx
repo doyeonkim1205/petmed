@@ -126,15 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        // Save provider token for later use (e.g. account deletion unlink)
-        if (event === 'SIGNED_IN' && newSession?.provider_token) {
-          try {
-            localStorage.setItem('pawdex_provider_token', newSession.provider_token);
-            const provider = newSession.user?.app_metadata?.provider;
-            if (provider) localStorage.setItem('pawdex_provider', provider);
-          } catch {}
-        }
-
         if (!newSession?.user) {
           setProfile(null);
           setLoading(false);
@@ -242,7 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
 
     // 3) Tell Supabase to sign out (fire-and-forget)
-    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    supabase.auth.signOut({ scope: 'global' }).catch(() => {});
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

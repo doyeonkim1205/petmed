@@ -573,27 +573,17 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('세션이 만료되었습니다.');
 
-      // Send provider token for OAuth unlink (Kakao/Google)
-      const providerToken = localStorage.getItem('pawdex_provider_token') || undefined;
-      const provider = localStorage.getItem('pawdex_provider') || undefined;
-
       const res = await fetch('/api/delete-account', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ providerToken, provider }),
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || '삭제 실패');
 
       // Clear all local state and redirect
       try {
-        localStorage.removeItem('pawdex_provider_token');
-        localStorage.removeItem('pawdex_provider');
         Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('sb-') && key.includes('auth')) localStorage.removeItem(key);
+          if (key.startsWith('sb-') || key.startsWith('pawdex_')) localStorage.removeItem(key);
         });
       } catch {}
       window.location.href = '/';
