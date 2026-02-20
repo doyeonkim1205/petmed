@@ -717,7 +717,7 @@ export default function ProfilePage() {
                 alt="프로필"
                 className="w-full h-full rounded-full object-cover"
                 referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
+
               />
             ) : (
               <User size={28} />
