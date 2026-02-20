@@ -94,9 +94,64 @@ export default function HomePage() {
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}
-              className="text-6xl"
             >
-              {petType === 'dog' ? '🐶' : '🐱'}
+              {petType === 'dog' ? (
+                <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+                  {/* Floppy ears */}
+                  <ellipse cx="22" cy="38" rx="14" ry="20" fill="#C4956A" transform="rotate(-15 22 38)" />
+                  <ellipse cx="22" cy="38" rx="10" ry="16" fill="#E8C5A0" transform="rotate(-15 22 38)" />
+                  <ellipse cx="78" cy="38" rx="14" ry="20" fill="#C4956A" transform="rotate(15 78 38)" />
+                  <ellipse cx="78" cy="38" rx="10" ry="16" fill="#E8C5A0" transform="rotate(15 78 38)" />
+                  {/* Face */}
+                  <circle cx="50" cy="52" r="32" fill="#F5DEB3" />
+                  {/* Eyes */}
+                  <circle cx="38" cy="48" r="5" fill="#3B2F2F" />
+                  <circle cx="62" cy="48" r="5" fill="#3B2F2F" />
+                  <circle cx="40" cy="46" r="2" fill="white" />
+                  <circle cx="64" cy="46" r="2" fill="white" />
+                  {/* Nose */}
+                  <ellipse cx="50" cy="58" rx="5" ry="4" fill="#3B2F2F" />
+                  <ellipse cx="50" cy="57" rx="2" ry="1" fill="#6B5B5B" />
+                  {/* Mouth */}
+                  <path d="M46 62 Q50 67 54 62" stroke="#3B2F2F" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                  {/* Tongue */}
+                  <ellipse cx="50" cy="67" rx="3" ry="4" fill="#FF8B8B" />
+                  {/* Cheeks */}
+                  <circle cx="30" cy="58" r="5" fill="#FFD6D6" opacity="0.5" />
+                  <circle cx="70" cy="58" r="5" fill="#FFD6D6" opacity="0.5" />
+                </svg>
+              ) : (
+                <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+                  {/* Pointed ears */}
+                  <polygon points="22,18 14,48 36,42" fill="#B0B0B0" />
+                  <polygon points="24,24 18,44 34,40" fill="#E8E0E0" />
+                  <polygon points="78,18 86,48 64,42" fill="#B0B0B0" />
+                  <polygon points="76,24 82,44 66,40" fill="#E8E0E0" />
+                  {/* Inner ear pink */}
+                  <polygon points="24,26 20,40 32,38" fill="#FFB6C1" opacity="0.6" />
+                  <polygon points="76,26 80,40 68,38" fill="#FFB6C1" opacity="0.6" />
+                  {/* Face */}
+                  <circle cx="50" cy="55" r="30" fill="#E8E0E0" />
+                  {/* Eyes */}
+                  <ellipse cx="38" cy="50" rx="4.5" ry="5.5" fill="#3B2F2F" />
+                  <ellipse cx="62" cy="50" rx="4.5" ry="5.5" fill="#3B2F2F" />
+                  <circle cx="40" cy="48" r="2" fill="white" />
+                  <circle cx="64" cy="48" r="2" fill="white" />
+                  {/* Nose */}
+                  <polygon points="50,57 47,60 53,60" fill="#FFB6C1" />
+                  {/* Mouth */}
+                  <path d="M45 63 Q50 67 55 63" stroke="#3B2F2F" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                  <path d="M50 60 L50 63" stroke="#3B2F2F" strokeWidth="1.2" strokeLinecap="round" />
+                  {/* Whiskers */}
+                  <line x1="12" y1="56" x2="32" y2="58" stroke="#C0C0C0" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="12" y1="62" x2="32" y2="62" stroke="#C0C0C0" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="88" y1="56" x2="68" y2="58" stroke="#C0C0C0" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="88" y1="62" x2="68" y2="62" stroke="#C0C0C0" strokeWidth="1" strokeLinecap="round" />
+                  {/* Cheeks */}
+                  <circle cx="30" cy="62" r="5" fill="#FFD6D6" opacity="0.4" />
+                  <circle cx="70" cy="62" r="5" fill="#FFD6D6" opacity="0.4" />
+                </svg>
+              )}
             </motion.div>
           </motion.div>
         </AnimatePresence>
