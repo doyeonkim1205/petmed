@@ -9,6 +9,7 @@ import {
   Dog,
   Cat,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 
@@ -70,106 +71,78 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* 1. Hero */}
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 px-6 pt-12 pb-14 text-white">
-        {user && profile ? (
-          <>
-            <h1 className="text-2xl font-bold">안녕하세요, {profile.nickname}님 🐾</h1>
-            <p className="text-blue-100 text-sm mt-1">오늘도 반려동물의 건강을 챙겨볼까요?</p>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold">🐾 PawDex</h1>
-            <p className="text-blue-100 text-sm mt-1">AI 수의학 논문 분석 서비스</p>
-          </>
-        )}
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
+      {/* Animal Character Animation */}
+      <div className="mb-3">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={petType}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.3 }}
+            onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
+            className="cursor-pointer select-none"
+          >
+            <motion.div
+              animate={{
+                x: [-8, 8, -8],
+                y: [0, -6, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="text-6xl"
+            >
+              {petType === 'dog' ? '🐶' : '🐱'}
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* 2. Search Bar */}
-      <div className="-mt-6 mx-4">
-        <form
-          onSubmit={handleSearch}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
-        >
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-              className={`h-12 w-12 rounded-xl flex items-center justify-center border transition-colors flex-shrink-0 ${
-                petType === 'cat'
-                  ? 'bg-pink-50 border-pink-200'
-                  : 'bg-blue-50 border-blue-200'
-              }`}
-            >
-              {petType === 'cat' ? (
-                <Cat size={24} className="text-pink-500" />
-              ) : (
-                <Dog size={24} className="text-blue-500" />
-              )}
-            </button>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="질병명을 검색하세요"
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
-              />
-              <button
-                type="submit"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"
-              >
-                <SearchIcon size={20} />
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+      {/* Subtitle */}
+      <p className="text-sm text-gray-400 mt-1 mb-6">AI 수의학 논문 분석 서비스</p>
 
-      {/* 3. My Pets */}
-      {user && (
-        <section className="mt-6 px-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">내 반려동물</h2>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => setPetType(pet.type)}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium flex-shrink-0 border transition-colors ${
-                  pet.type === petType
-                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                    : 'bg-white border-gray-200 text-gray-600'
-                }`}
-              >
-                {pet.type === 'dog' ? (
-                  <Dog size={14} />
-                ) : (
-                  <Cat size={14} />
-                )}
-                {pet.name}
-              </button>
-            ))}
-            <button
-              onClick={() => router.push('/profile')}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-400 flex-shrink-0 border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-500 transition-colors"
-            >
-              <Plus size={14} />
-              추가
-            </button>
-          </div>
-        </section>
-      )}
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="w-full max-w-sm mx-auto">
+        <div className="flex items-center rounded-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow px-1.5 py-1">
+          <button
+            type="button"
+            onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
+            className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              petType === 'cat'
+                ? 'bg-pink-50 text-pink-500'
+                : 'bg-blue-50 text-blue-500'
+            }`}
+          >
+            {petType === 'cat' ? <Cat size={18} /> : <Dog size={18} />}
+          </button>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="질병명을 검색하세요"
+            className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
+          />
+          <button
+            type="submit"
+            className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-blue-600 transition-colors"
+          >
+            <SearchIcon size={18} />
+          </button>
+        </div>
+      </form>
 
-      {/* 4. Recent Searches */}
+      {/* Recent Searches */}
       {recentSearches.length > 0 && (
-        <section className="mt-6 px-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">최근 검색</h2>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <div className="mt-4 w-full max-w-sm">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 justify-center flex-wrap">
             {recentSearches.map((term) => (
               <div
                 key={term}
-                className="flex items-center gap-1 rounded-full bg-white border border-gray-200 pl-3 pr-1.5 py-1.5 text-sm text-gray-600 flex-shrink-0"
+                className="flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200 pl-3 pr-1.5 py-1 text-xs text-gray-500 flex-shrink-0"
               >
                 <button
                   onClick={() => saveAndNavigate(term)}
@@ -179,20 +152,44 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={() => removeRecentSearch(term)}
-                  className="p-0.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X size={12} />
+                  <X size={10} />
                 </button>
               </div>
             ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Tagline */}
-      <div className="mt-8 text-center">
-        <p className="text-xs text-gray-400">PawDex — AI 기반 반려동물 건강 플랫폼</p>
-      </div>
+      {/* My Pets */}
+      {user && (
+        <div className="mt-3 w-full max-w-sm">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 justify-center flex-wrap">
+            {pets.map((pet) => (
+              <button
+                key={pet.id}
+                onClick={() => setPetType(pet.type)}
+                className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium flex-shrink-0 border transition-colors ${
+                  pet.type === petType
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                }`}
+              >
+                {pet.type === 'dog' ? <Dog size={12} /> : <Cat size={12} />}
+                {pet.name}
+              </button>
+            ))}
+            <button
+              onClick={() => router.push('/profile')}
+              className="flex items-center gap-1 rounded-full px-3 py-1 text-xs text-gray-400 flex-shrink-0 border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-500 transition-colors"
+            >
+              <Plus size={12} />
+              추가
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
