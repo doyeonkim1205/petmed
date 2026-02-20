@@ -85,36 +85,36 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const PetIcon = record.pets?.type === 'cat' ? Cat : Dog;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b bg-white sticky top-0 z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft className="w-6 h-6" />
+    <div className="min-h-screen bg-white flex flex-col">
+      <header className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-10">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold">기록 상세</h1>
+        <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
         <div className="relative">
-          <button onClick={() => setShowMenu(!showMenu)} className="p-2 -mr-2">
-            <MoreVertical className="w-6 h-6" />
+          <button onClick={() => setShowMenu(!showMenu)} className="p-2 -mr-2 text-gray-500">
+            <MoreVertical className="w-5 h-5" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-10 bg-white border rounded-lg shadow-lg py-1 min-w-32 z-20">
+            <div className="absolute right-0 top-10 bg-white border border-gray-100 rounded-xl shadow-md py-1 min-w-32 z-20">
               <button
                 onClick={() => { setShowMenu(false); router.push(`/records/${record.id}/edit`); }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-600"
               >
-                <Edit2 size={16} /> 수정하기
+                <Edit2 size={14} /> 수정하기
               </button>
               <button
                 onClick={() => { setShowMenu(false); handleDelete(); }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2 text-sm text-red-500"
               >
-                <Trash2 size={16} /> 삭제하기
+                <Trash2 size={14} /> 삭제하기
               </button>
             </div>
           )}
         </div>
       </header>
 
-      <div className="bg-white p-4 mb-2">
+      <div className="p-4 max-w-sm mx-auto w-full">
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-12 h-12 rounded-full flex items-center justify-center ${config.color}`}>
             <TypeIcon size={24} />
@@ -185,9 +185,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
       {/* Medications */}
       {record.medications && record.medications.length > 0 && (
-        <div className="bg-white p-4 mb-2">
-          <h3 className="flex items-center gap-2 font-semibold text-gray-900 mb-3">
-            <Pill size={18} className="text-blue-600" />
+        <div className="p-4 max-w-sm mx-auto w-full">
+          <h3 className="flex items-center gap-2 font-semibold text-sm text-gray-700 mb-3">
+            <Pill size={16} className="text-blue-500" />
             투약 정보
           </h3>
           <div className="space-y-2">
@@ -215,9 +215,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
       {/* Files */}
       {record.record_files && record.record_files.length > 0 && (
-        <div className="bg-white p-4 mb-2">
-          <h3 className="flex items-center gap-2 font-semibold text-gray-900 mb-3">
-            <Paperclip size={18} className="text-blue-600" />
+        <div className="p-4 max-w-sm mx-auto w-full">
+          <h3 className="flex items-center gap-2 font-semibold text-sm text-gray-700 mb-3">
+            <Paperclip size={16} className="text-blue-500" />
             첨부 파일
           </h3>
           <div className="space-y-2">

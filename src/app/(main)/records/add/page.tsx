@@ -211,21 +211,21 @@ export default function RecordAddPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-white z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft className="w-6 h-6" />
+      <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold">기록 추가</h1>
+        <h1 className="text-sm font-semibold text-gray-700">기록 추가</h1>
         <button
           onClick={handleSubmit}
           disabled={saving || !title.trim() || !petId}
-          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
         >
           {saving ? '저장 중...' : '저장'}
         </button>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5 max-w-sm mx-auto">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}

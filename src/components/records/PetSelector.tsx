@@ -50,13 +50,13 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
   if (!loaded || pets.length === 0) return null;
 
   return (
-    <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-3">
+    <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-3 justify-center">
       <button
         onClick={() => onSelect(null)}
-        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
           selectedPetId === null
             ? 'bg-blue-600 text-[#fff]'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
         }`}
       >
         전체
@@ -67,13 +67,13 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
           <button
             key={pet.id}
             onClick={() => onSelect(pet.id)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               selectedPetId === pet.id
                 ? 'bg-blue-600 text-[#fff]'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
             }`}
           >
-            <Icon size={16} />
+            <Icon size={12} />
             {pet.name}
           </button>
         );

@@ -72,12 +72,11 @@ export default function RecordsPage() {
 
   if (authLoading) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] animate-pulse p-4">
-        <div className="h-12 bg-gray-200 rounded-lg mb-3" />
-        <div className="h-10 bg-gray-200 rounded-lg mb-4" />
+      <div className="bg-white min-h-[calc(100vh-8rem)] animate-pulse p-4 max-w-sm mx-auto">
+        <div className="h-10 bg-gray-100 rounded-full mb-4 mt-4" />
         <div className="space-y-3">
-          <div className="h-20 bg-gray-200 rounded-xl" />
-          <div className="h-20 bg-gray-200 rounded-xl" />
+          <div className="h-20 bg-gray-50 rounded-xl" />
+          <div className="h-20 bg-gray-50 rounded-xl" />
         </div>
       </div>
     );
@@ -85,17 +84,17 @@ export default function RecordsPage() {
 
   if (!user) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center p-6">
-        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-          <User size={40} className="text-gray-400" />
+      <div className="bg-white min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-6">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <User size={28} className="text-gray-400" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
-        <p className="text-gray-500 text-center mb-6">
+        <h2 className="text-lg font-bold text-gray-800 mb-1">로그인이 필요합니다</h2>
+        <p className="text-sm text-gray-400 text-center mb-8">
           건강 기록장을 이용하려면<br />로그인해주세요.
         </p>
         <button
           onClick={() => router.push('/login')}
-          className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-lg font-medium"
+          className="h-11 px-8 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
         >
           로그인하기
         </button>
@@ -109,23 +108,23 @@ export default function RecordsPage() {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-full pb-20 relative">
-      <div className="bg-white sticky top-14 z-30 shadow-sm">
+    <div className="bg-white min-h-full pb-20 relative">
+      <div className="sticky top-14 z-30 bg-white">
         <PetSelector key={petRefreshKey} selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
-        <div className="flex border-t border-gray-100">
+        <div className="flex max-w-sm mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={14} />
                 {tab.label}
               </button>
             );
@@ -135,11 +134,11 @@ export default function RecordsPage() {
 
       {petCount === 0 ? (
         <div className="flex flex-col items-center px-6 py-16">
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-            <Dog size={40} className="text-blue-400" />
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+            <Dog size={28} className="text-blue-400" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">반려동물을 등록해주세요</h2>
-          <p className="text-sm text-gray-500 text-center mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">반려동물을 등록해주세요</h2>
+          <p className="text-sm text-gray-400 text-center mb-8">
             건강 기록을 시작하려면<br />먼저 반려동물을 등록해야 합니다.
           </p>
 
@@ -149,26 +148,26 @@ export default function RecordsPage() {
               placeholder="이름"
               value={newPet.name}
               onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setNewPet(p => ({ ...p, type: 'dog' }))}
-                className={`flex-1 h-11 rounded-lg border font-medium text-sm flex items-center justify-center gap-1.5 ${
-                  newPet.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
+                className={`flex-1 h-10 rounded-xl border font-medium text-sm flex items-center justify-center gap-1.5 transition-colors ${
+                  newPet.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                 }`}
               >
-                <Dog size={16} /> 강아지
+                <Dog size={14} /> 강아지
               </button>
               <button
                 type="button"
                 onClick={() => setNewPet(p => ({ ...p, type: 'cat' }))}
-                className={`flex-1 h-11 rounded-lg border font-medium text-sm flex items-center justify-center gap-1.5 ${
-                  newPet.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'
+                className={`flex-1 h-10 rounded-xl border font-medium text-sm flex items-center justify-center gap-1.5 transition-colors ${
+                  newPet.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                 }`}
               >
-                <Cat size={16} /> 고양이
+                <Cat size={14} /> 고양이
               </button>
             </div>
             <input
@@ -176,42 +175,42 @@ export default function RecordsPage() {
               placeholder="품종 (선택)"
               value={newPet.breed}
               onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <div>
-              <label className="text-sm text-gray-500 mb-1 block">생년월일 (선택)</label>
+              <label className="text-xs text-gray-400 mb-1 block">생년월일 (선택)</label>
               <input
                 type="date"
                 value={newPet.birth_date}
                 onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-                className={`w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
               />
             </div>
             <button
               onClick={handleAddPet}
               disabled={savingPet || !newPet.name.trim()}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-lg font-medium disabled:opacity-50 transition-colors"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors"
             >
               {savingPet ? '등록 중...' : '등록하기'}
             </button>
           </div>
         </div>
       ) : activeTab === 'records' ? (
-        <div className="flex flex-col gap-2 p-4">
+        <div className="flex flex-col gap-2 p-4 max-w-sm mx-auto">
           {loading ? (
             <div className="py-20 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-gray-200 rounded-xl animate-pulse" />
+                <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : error ? (
             <div className="text-center py-20">
-              <AlertTriangle size={48} className="mx-auto mb-3 text-orange-400" />
+              <AlertTriangle size={40} className="mx-auto mb-3 text-orange-300" />
               <p className="text-gray-600 text-sm mb-1">기록을 불러올 수 없습니다</p>
               <p className="text-gray-400 text-xs mb-4">{error}</p>
               <button
                 onClick={fetchRecords}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-[#fff] rounded-lg text-sm font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-[#fff] rounded-full text-sm font-medium"
               >
                 <RefreshCw size={14} />
                 다시 시도
@@ -219,9 +218,9 @@ export default function RecordsPage() {
             </div>
           ) : records.length === 0 ? (
             <div className="text-center py-20">
-              <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
+              <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 text-sm">아직 기록이 없습니다.</p>
-              <p className="text-gray-400 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
+              <p className="text-gray-300 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
             </div>
           ) : (
             records.map((record) => (
@@ -234,7 +233,7 @@ export default function RecordsPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white">
+        <div className="bg-white max-w-sm mx-auto">
           <CalendarView
             records={records}
             selectedDate={selectedDate}
@@ -249,10 +248,10 @@ export default function RecordsPage() {
       {petCount !== 0 && (
         <button
           onClick={() => router.push('/records/add')}
-          className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-[#fff] rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+          className="fixed bottom-20 right-4 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
           style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
         >
-          <Plus size={28} />
+          <Plus size={24} />
         </button>
       )}
     </div>

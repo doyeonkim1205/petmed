@@ -34,29 +34,29 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+      className="rounded-xl p-4 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
     >
       <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${config.color}`}>
-          <Icon size={20} />
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${config.color}`}>
+          <Icon size={16} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${config.color}`}>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${config.color}`}>
               {config.label}
             </span>
             {record.pets && (
-              <span className="text-xs text-gray-400">{record.pets.name}</span>
+              <span className="text-[11px] text-gray-400">{record.pets.name}</span>
             )}
-            <span className="text-xs text-gray-400 ml-auto flex-shrink-0">
+            <span className="text-[11px] text-gray-300 ml-auto flex-shrink-0">
               {formatDate(record.visit_date)}
             </span>
           </div>
-          <h3 className="font-bold text-gray-900 line-clamp-1">{record.title}</h3>
+          <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">{record.title}</h3>
           {record.description && (
-            <p className="text-sm text-gray-500 line-clamp-2 mt-1">{record.description}</p>
+            <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">{record.description}</p>
           )}
-          <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
+          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400 flex-wrap">
             {record.hospital_name && (
               <span>{record.hospital_name}</span>
             )}
