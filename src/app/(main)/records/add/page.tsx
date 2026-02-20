@@ -225,7 +225,7 @@ export default function RecordAddPage() {
         </button>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5 max-w-sm mx-auto">
+      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
