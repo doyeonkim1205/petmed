@@ -132,58 +132,58 @@ function SearchContent() {
   const hasSearched = searchTerm !== null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 min-h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
       {/* Search Header */}
-      <div className="bg-white p-4 sticky top-14 z-40 border-b border-gray-100 shadow-sm">
-        <form onSubmit={handleSearch} className="flex gap-2 relative">
-          <div className="relative">
+      <div className="bg-white px-4 pt-6 pb-4 sticky top-14 z-40">
+        <form onSubmit={handleSearch} className="max-w-sm mx-auto">
+          <div className="flex items-center rounded-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow px-1.5 py-1">
             <button
               type="button"
               onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-              className={`h-12 w-12 rounded-lg flex items-center justify-center text-2xl border transition-colors ${petType === 'cat' ? 'bg-pink-50 border-pink-200' : 'bg-blue-50 border-blue-200'}`}
+              className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors bg-blue-50 text-blue-600 text-xs font-medium"
             >
-              {petType === 'cat' ? '🐱' : '🐶'}
+              {petType === 'dog' ? '강아지' : '고양이'}
             </button>
-            <div className="absolute -bottom-1 -right-1 bg-gray-800 text-white text-[10px] px-1 rounded">▼</div>
-          </div>
-          <div className="flex-1 relative">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="질병명을 입력하세요..."
-              className="w-full h-12 pl-4 pr-10 rounded-lg bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="질병명을 검색하세요"
+              className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-              <SearchIcon size={20} />
+            <button
+              type="submit"
+              className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              <SearchIcon size={18} />
             </button>
           </div>
         </form>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 px-4 pb-4">
         {!hasSearched ? (
-          <div className="mt-4">
-            <h3 className="font-bold text-gray-700 mb-3 text-sm">최근 검색어</h3>
+          <div className="max-w-sm mx-auto mt-6">
+            <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>
             {recentSearches.length === 0 ? (
-              <p className="text-sm text-gray-400">검색 기록이 없습니다.</p>
+              <p className="text-sm text-gray-400">검색기록이 없습니다.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {recentSearches.map((term, idx) => (
-                  <div key={idx} className="flex items-center gap-1 pl-3 pr-1.5 py-1.5 bg-white border border-gray-200 rounded-full">
-                    <button onClick={() => clickSearchTerm(term)} className="text-sm text-gray-600 hover:text-gray-900">
+                  <div key={idx} className="flex items-center gap-1 pl-3 pr-1.5 py-1 bg-gray-50 border border-gray-200 rounded-full">
+                    <button onClick={() => clickSearchTerm(term)} className="text-xs text-gray-500 hover:text-blue-600 transition-colors">
                       {term}
                     </button>
-                    <button onClick={() => deleteSearchTerm(term)} className="p-0.5 text-gray-300 hover:text-red-500 transition-colors">
-                      <X size={14} />
+                    <button onClick={() => deleteSearchTerm(term)} className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
+                      <X size={10} />
                     </button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="mt-8 text-center text-gray-400">
+            <div className="mt-10 text-center text-gray-400">
               <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
               <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
             </div>
