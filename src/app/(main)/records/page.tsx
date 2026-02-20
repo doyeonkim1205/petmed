@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Stethoscope, AlertCircle, Building2, FileEdit } from 'lucide-react';
+import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -12,14 +12,13 @@ import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 
 type Tab = 'records' | 'calendar';
-type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'manual';
+type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
 
 const filterOptions: { id: RecordFilter; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'symptom', label: '증상' },
   { id: 'visit', label: '진료' },
   { id: 'hospitalization', label: '입퇴원' },
-  { id: 'manual', label: '직접입력' },
 ];
 
 export default function RecordsPage() {
