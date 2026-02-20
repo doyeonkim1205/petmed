@@ -138,6 +138,10 @@ export default function RecordAddPage() {
     if (nextAppointmentDate && nextAppointmentDate < visitDate) {
       setError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
     }
+    const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
+    if (badMed) {
+      setError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name || '약 이름 없음'})`); return;
+    }
 
     setSaving(true);
     setError('');
