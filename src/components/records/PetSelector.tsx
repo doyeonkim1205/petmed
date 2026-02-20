@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Pet } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dog, Cat } from 'lucide-react';
+
 
 interface PetSelectorProps {
   selectedPetId: string | null;
@@ -61,23 +61,19 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
       >
         전체
       </button>
-      {pets.map((pet) => {
-        const Icon = pet.type === 'cat' ? Cat : Dog;
-        return (
+      {pets.map((pet) => (
           <button
             key={pet.id}
             onClick={() => onSelect(pet.id)}
-            className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               selectedPetId === pet.id
                 ? 'bg-blue-600 text-[#fff]'
                 : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
             }`}
           >
-            <Icon size={12} />
             {pet.name}
           </button>
-        );
-      })}
+      ))}
     </div>
   );
 }

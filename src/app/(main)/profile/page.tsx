@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
-  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type,
+  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart,
   Globe, Trash, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -746,7 +746,7 @@ export default function ProfilePage() {
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
-            <Dog size={18} className="text-gray-400" />
+            <Heart size={18} className="text-pink-400" />
             <span className="text-sm">나의 반려동물</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
