@@ -3,38 +3,181 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
+/* ─── SVG Illustrations ─── */
+
+function IllustPaw() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle */}
+      <circle cx="100" cy="100" r="90" fill="#DBEAFE" />
+      <circle cx="100" cy="100" r="70" fill="#BFDBFE" opacity="0.6" />
+      {/* Paw pad - main */}
+      <ellipse cx="100" cy="120" rx="28" ry="24" fill="#3B82F6" />
+      {/* Paw toes */}
+      <ellipse cx="72" cy="90" rx="14" ry="17" fill="#3B82F6" transform="rotate(-15, 72, 90)" />
+      <ellipse cx="92" cy="78" rx="13" ry="16" fill="#3B82F6" transform="rotate(-5, 92, 78)" />
+      <ellipse cx="112" cy="78" rx="13" ry="16" fill="#3B82F6" transform="rotate(5, 112, 78)" />
+      <ellipse cx="130" cy="90" rx="14" ry="17" fill="#3B82F6" transform="rotate(15, 130, 90)" />
+      {/* Heart */}
+      <path d="M90 135 C90 130, 82 125, 82 130 C82 136, 90 142, 90 142 C90 142, 98 136, 98 130 C98 125, 90 130, 90 135Z" fill="#EF4444" opacity="0.8" transform="translate(12, -2) scale(1.2)" />
+      {/* Sparkles */}
+      <circle cx="45" cy="55" r="3" fill="#FBBF24" />
+      <circle cx="155" cy="60" r="2.5" fill="#FBBF24" />
+      <circle cx="50" cy="150" r="2" fill="#FBBF24" />
+      <circle cx="160" cy="140" r="3" fill="#FBBF24" />
+      {/* Cross sparkle */}
+      <path d="M150 45 L152 40 L154 45 L159 47 L154 49 L152 54 L150 49 L145 47Z" fill="#F59E0B" opacity="0.7" />
+      <path d="M38 120 L40 116 L42 120 L46 122 L42 124 L40 128 L38 124 L34 122Z" fill="#F59E0B" opacity="0.5" />
+    </svg>
+  );
+}
+
+function IllustSearch() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle */}
+      <circle cx="100" cy="100" r="90" fill="#D1FAE5" />
+      <circle cx="100" cy="100" r="70" fill="#A7F3D0" opacity="0.5" />
+      {/* Document */}
+      <rect x="60" y="50" width="70" height="90" rx="8" fill="white" stroke="#10B981" strokeWidth="2.5" />
+      {/* Text lines */}
+      <rect x="72" y="65" width="46" height="4" rx="2" fill="#6EE7B7" />
+      <rect x="72" y="76" width="38" height="4" rx="2" fill="#6EE7B7" />
+      <rect x="72" y="87" width="42" height="4" rx="2" fill="#A7F3D0" />
+      <rect x="72" y="98" width="30" height="4" rx="2" fill="#A7F3D0" />
+      <rect x="72" y="109" width="46" height="4" rx="2" fill="#D1FAE5" />
+      {/* Magnifying glass */}
+      <circle cx="130" cy="120" r="22" fill="white" stroke="#059669" strokeWidth="3" />
+      <line x1="146" y1="136" x2="162" y2="152" stroke="#059669" strokeWidth="4" strokeLinecap="round" />
+      {/* Check mark in magnifier */}
+      <path d="M120 120 L127 127 L142 112" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* AI sparkle */}
+      <circle cx="52" cy="75" r="8" fill="#34D399" opacity="0.3" />
+      <text x="48" y="79" fontSize="10" fontWeight="bold" fill="#059669">AI</text>
+      {/* Small sparkles */}
+      <circle cx="155" cy="55" r="3" fill="#FBBF24" />
+      <circle cx="42" cy="130" r="2.5" fill="#FBBF24" />
+    </svg>
+  );
+}
+
+function IllustCalendar() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle */}
+      <circle cx="100" cy="100" r="90" fill="#FEF3C7" />
+      <circle cx="100" cy="100" r="70" fill="#FDE68A" opacity="0.4" />
+      {/* Calendar body */}
+      <rect x="45" y="55" width="110" height="100" rx="12" fill="white" stroke="#F59E0B" strokeWidth="2.5" />
+      {/* Calendar header */}
+      <rect x="45" y="55" width="110" height="28" rx="12" fill="#F59E0B" />
+      <rect x="45" y="71" width="110" height="12" fill="#F59E0B" />
+      {/* Calendar hooks */}
+      <rect x="72" y="48" width="6" height="16" rx="3" fill="#D97706" />
+      <rect x="122" y="48" width="6" height="16" rx="3" fill="#D97706" />
+      {/* Month text */}
+      <text x="100" y="74" textAnchor="middle" fontSize="13" fontWeight="bold" fill="white">2월</text>
+      {/* Day grid */}
+      {[0, 1, 2, 3, 4, 5, 6].map((col) => (
+        <text key={`h${col}`} x={57 + col * 14} y="97" textAnchor="middle" fontSize="7" fill="#9CA3AF">
+          {['일', '월', '화', '수', '목', '금', '토'][col]}
+        </text>
+      ))}
+      {/* Day dots - colored events */}
+      <circle cx="57" cy="110" r="4" fill="#3B82F6" opacity="0.8" />
+      <circle cx="85" cy="110" r="4" fill="#EF4444" opacity="0.8" />
+      <circle cx="99" cy="124" r="4" fill="#10B981" opacity="0.8" />
+      <circle cx="71" cy="138" r="4" fill="#8B5CF6" opacity="0.8" />
+      <circle cx="113" cy="138" r="4" fill="#3B82F6" opacity="0.8" />
+      {/* Day numbers (faint) */}
+      <text x="57" y="113" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">3</text>
+      <text x="85" y="113" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">5</text>
+      <text x="99" y="127" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">12</text>
+      <text x="71" y="141" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">17</text>
+      <text x="113" y="141" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">19</text>
+      {/* Pencil */}
+      <rect x="140" y="115" width="8" height="38" rx="2" fill="#F59E0B" transform="rotate(25, 144, 134)" />
+      <polygon points="138,150 142,158 146,150" fill="#FDE68A" transform="rotate(25, 142, 154)" />
+      {/* Small sparkles */}
+      <circle cx="38" cy="60" r="3" fill="#FBBF24" />
+      <circle cx="165" cy="70" r="2.5" fill="#FBBF24" />
+    </svg>
+  );
+}
+
+function IllustMap() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle */}
+      <circle cx="100" cy="100" r="90" fill="#FFE4E6" />
+      <circle cx="100" cy="100" r="70" fill="#FECDD3" opacity="0.5" />
+      {/* Map base */}
+      <rect x="40" y="55" width="120" height="95" rx="12" fill="white" stroke="#FB7185" strokeWidth="2" />
+      {/* Map roads */}
+      <line x1="40" y1="90" x2="160" y2="90" stroke="#FED7AA" strokeWidth="6" />
+      <line x1="100" y1="55" x2="100" y2="150" stroke="#FED7AA" strokeWidth="6" />
+      <line x1="55" y1="55" x2="145" y2="150" stroke="#FECACA" strokeWidth="3" opacity="0.5" />
+      {/* Map areas */}
+      <rect x="42" y="57" width="56" height="31" rx="4" fill="#DBEAFE" opacity="0.5" />
+      <rect x="102" y="92" width="56" height="56" rx="4" fill="#D1FAE5" opacity="0.5" />
+      {/* Location pin - main */}
+      <g transform="translate(95, 40)">
+        <path d="M10 0 C4.5 0 0 4.5 0 10 C0 17.5 10 30 10 30 C10 30 20 17.5 20 10 C20 4.5 15.5 0 10 0Z" fill="#EF4444" />
+        <circle cx="10" cy="10" r="5" fill="white" />
+        {/* Cross icon inside pin */}
+        <line x1="7" y1="10" x2="13" y2="10" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" />
+        <line x1="10" y1="7" x2="10" y2="13" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" />
+      </g>
+      {/* Small pins */}
+      <g transform="translate(55, 95) scale(0.5)">
+        <path d="M10 0 C4.5 0 0 4.5 0 10 C0 17.5 10 30 10 30 C10 30 20 17.5 20 10 C20 4.5 15.5 0 10 0Z" fill="#3B82F6" />
+        <circle cx="10" cy="10" r="4" fill="white" />
+      </g>
+      <g transform="translate(130, 70) scale(0.45)">
+        <path d="M10 0 C4.5 0 0 4.5 0 10 C0 17.5 10 30 10 30 C10 30 20 17.5 20 10 C20 4.5 15.5 0 10 0Z" fill="#10B981" />
+        <circle cx="10" cy="10" r="4" fill="white" />
+      </g>
+      {/* 24h badge */}
+      <rect x="120" y="108" width="32" height="16" rx="8" fill="#EF4444" />
+      <text x="136" y="119" textAnchor="middle" fontSize="8" fontWeight="bold" fill="white">24h</text>
+      {/* Pulse rings */}
+      <circle cx="105" cy="55" r="12" fill="none" stroke="#EF4444" strokeWidth="1" opacity="0.3" />
+      <circle cx="105" cy="55" r="18" fill="none" stroke="#EF4444" strokeWidth="0.5" opacity="0.15" />
+      {/* Sparkles */}
+      <circle cx="35" cy="50" r="3" fill="#FBBF24" />
+      <circle cx="170" cy="65" r="2.5" fill="#FBBF24" />
+    </svg>
+  );
+}
+
 const slides = [
   {
-    emoji: '\uD83D\uDC3E',
+    Illustration: IllustPaw,
     title: 'PawDex는 이브의 치료 경험에서\n시작됐어요',
     desc: '10살 이브가 치료를 받던 시간,\n믿을 수 있는 정보와 꾸준한 기록이 꼭 필요했습니다.',
-    gradient: 'from-blue-500/10 via-blue-400/5 to-transparent',
-    ring: 'bg-blue-100 dark:bg-blue-900/40',
-    emojiShadow: 'shadow-blue-200/50 dark:shadow-blue-800/30',
+    gradient: 'from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-950',
+    accentColor: '#3B82F6',
   },
   {
-    emoji: '\uD83D\uDCC4',
+    Illustration: IllustSearch,
     title: '핵심만 빠르게,\n원문까지 투명하게',
     desc: '관련 논문을 번역·요약해 쉽게 이해하고,\n필요하면 원문으로 직접 확인할 수 있어요.',
-    gradient: 'from-emerald-500/10 via-emerald-400/5 to-transparent',
-    ring: 'bg-emerald-100 dark:bg-emerald-900/40',
-    emojiShadow: 'shadow-emerald-200/50 dark:shadow-emerald-800/30',
+    gradient: 'from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-950',
+    accentColor: '#10B981',
   },
   {
-    emoji: '\uD83D\uDCC5',
+    Illustration: IllustCalendar,
     title: '오늘의 상태가\n내일의 힌트가 되도록',
     desc: '증상·진료 기록을 남기면 캘린더에 반영되어\n일정 관리가 쉬워집니다.',
-    gradient: 'from-amber-500/10 via-amber-400/5 to-transparent',
-    ring: 'bg-amber-100 dark:bg-amber-900/40',
-    emojiShadow: 'shadow-amber-200/50 dark:shadow-amber-800/30',
+    gradient: 'from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-950',
+    accentColor: '#F59E0B',
   },
   {
-    emoji: '\uD83D\uDDFA\uFE0F',
+    Illustration: IllustMap,
     title: '급한 순간,\n덜 헤매도록',
     desc: '지도에서 24시 병원을 빠르게 찾고,\n바로 이동할 수 있게 연결해요.',
-    gradient: 'from-rose-500/10 via-rose-400/5 to-transparent',
-    ring: 'bg-rose-100 dark:bg-rose-900/40',
-    emojiShadow: 'shadow-rose-200/50 dark:shadow-rose-800/30',
+    gradient: 'from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-950',
+    accentColor: '#F43F5E',
   },
 ];
 
@@ -79,10 +222,11 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   }, [goNext, goPrev]);
 
   const slide = slides[page];
+  const Illust = slide.Illustration;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col bg-white dark:bg-gray-950 overflow-hidden"
+      className="fixed inset-0 z-[100] flex flex-col bg-white dark:bg-gray-950 overflow-hidden select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -98,14 +242,14 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
         </div>
       )}
 
-      {/* Background gradient — changes per slide */}
+      {/* Background gradient */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`bg-${page}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.5 }}
           className={`absolute inset-0 bg-gradient-to-b ${slide.gradient}`}
         />
       </AnimatePresence>
@@ -116,33 +260,41 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           <motion.div
             key={page}
             custom={direction}
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col items-center text-center max-w-xs"
+            initial={{ opacity: 0, x: direction * 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction * -80 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center text-center w-full max-w-sm"
           >
-            {/* Emoji with decorative ring */}
-            <div className={`relative w-32 h-32 rounded-full ${slide.ring} flex items-center justify-center mb-8 shadow-lg ${slide.emojiShadow}`}>
-              <motion.span
-                initial={{ scale: 0.5, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-                className="text-6xl"
-              >
-                {slide.emoji}
-              </motion.span>
-            </div>
+            {/* Illustration */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
+              className="w-52 h-52 mb-10"
+            >
+              <Illust />
+            </motion.div>
 
             {/* Title */}
-            <h2 className="text-[22px] font-bold text-gray-900 dark:text-white mb-4 leading-snug whitespace-pre-line tracking-tight">
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.4 }}
+              className="text-[22px] font-bold text-gray-900 dark:text-white mb-4 leading-snug whitespace-pre-line tracking-tight"
+            >
               {slide.title}
-            </h2>
+            </motion.h2>
 
             {/* Description */}
-            <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.4 }}
+              className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line"
+            >
               {slide.desc}
-            </p>
+            </motion.p>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -151,12 +303,12 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       <div className="relative pb-10 pt-4 px-8">
         {/* Page indicator */}
         <div className="flex items-center justify-center gap-2 mb-7">
-          {slides.map((_, i) => (
+          {slides.map((s, i) => (
             <motion.div
               key={i}
               animate={{
                 width: i === page ? 24 : 8,
-                backgroundColor: i === page ? '#2563eb' : (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#374151' : '#d1d5db'),
+                backgroundColor: i === page ? s.accentColor : '#D1D5DB',
               }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="h-2 rounded-full"
@@ -168,7 +320,10 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
         <motion.button
           onClick={goNext}
           whileTap={{ scale: 0.97 }}
-          className="w-full h-[52px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-2xl transition-colors text-[16px] shadow-lg shadow-blue-600/25"
+          animate={{ backgroundColor: slide.accentColor }}
+          transition={{ duration: 0.4 }}
+          className="w-full h-[52px] text-white font-semibold rounded-2xl text-[16px] shadow-lg"
+          style={{ boxShadow: `0 8px 24px ${slide.accentColor}33` }}
         >
           {page === slides.length - 1 ? '시작하기' : '다음'}
         </motion.button>
