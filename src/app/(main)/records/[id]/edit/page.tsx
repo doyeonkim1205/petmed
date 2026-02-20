@@ -128,6 +128,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     e.preventDefault();
     if (!user) return;
     if (!title.trim()) { setError('제목을 입력해주세요.'); return; }
+    if (dischargeDate && dischargeDate < visitDate) {
+      setError('퇴원일은 입원일 이후여야 합니다.'); return;
+    }
+    if (nextAppointmentDate && nextAppointmentDate < visitDate) {
+      setError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+    }
 
     setSaving(true);
     setError('');
