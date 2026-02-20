@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, ChevronLeft, ChevronRight, Pill, Calendar } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, Building2, ChevronLeft, ChevronRight, Pill, Calendar } from 'lucide-react';
 
 interface CalendarViewProps {
   records: HealthRecord[];
@@ -102,18 +102,21 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
   const typeIcon = {
     symptom: AlertCircle,
     visit: Stethoscope,
+    hospitalization: Building2,
     manual: FileEdit,
   };
 
   const typeColor = {
     symptom: 'text-orange-500',
     visit: 'text-blue-500',
+    hospitalization: 'text-emerald-500',
     manual: 'text-gray-500',
   };
 
   const typeLabel = {
     symptom: '증상',
     visit: '진료',
+    hospitalization: '입퇴원',
     manual: '기록',
   };
 
@@ -243,7 +246,8 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                 <div key={record.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                     record.record_type === 'visit' ? 'bg-blue-100' :
-                    record.record_type === 'symptom' ? 'bg-orange-100' : 'bg-gray-100'
+                    record.record_type === 'symptom' ? 'bg-orange-100' :
+                    record.record_type === 'hospitalization' ? 'bg-emerald-100' : 'bg-gray-100'
                   }`}>
                     <Icon size={16} className={color} />
                   </div>

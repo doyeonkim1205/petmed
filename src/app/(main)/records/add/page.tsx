@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Plus, X, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -16,6 +16,7 @@ import { uploadFile, saveFileRecord } from '@/services/fileUpload';
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700' },
+  { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
 ];
 
 interface MedicationInput {
@@ -44,6 +45,7 @@ export default function RecordAddPage() {
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
+  const [dischargeDate, setDischargeDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [analysisResult, setAnalysisResult] = useState<DocumentAnalysisResult | null>(null);
@@ -144,7 +146,8 @@ export default function RecordAddPage() {
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
         ai_summary: analysisResult?.summary || undefined,
-        color: recordType === 'symptom' ? '#F97316' : recordColor,
+        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : recordColor,
+        discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
       });
@@ -194,7 +197,7 @@ export default function RecordAddPage() {
     }
   };
 
-  const showHospitalFields = recordType === 'visit';
+  const showHospitalFields = recordType === 'visit' || recordType === 'hospitalization';
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -261,7 +264,7 @@ export default function RecordAddPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium">첨부 파일</label>
           <FileUploader files={files} onFilesChange={setFiles} maxFiles={3} />
-          {files.length > 0 && recordType === 'visit' && !analysisResult && (
+          {files.length > 0 && (recordType === 'visit' || recordType === 'hospitalization') && !analysisResult && (
             <button
               type="button"
               onClick={handleAnalyze}
@@ -283,10 +286,10 @@ export default function RecordAddPage() {
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '증상명' : '제목'}
+            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목'}
           </label>
           <input
-            placeholder={recordType === 'symptom' ? '예: 구토, 설사' : '제목을 입력하세요'}
+            placeholder={recordType === 'symptom' ? '예: 구토, 설사' : recordType === 'hospitalization' ? '예: 슬개골 수술, 장염 치료' : '제목을 입력하세요'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
@@ -297,7 +300,7 @@ export default function RecordAddPage() {
         {/* Date */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '발생일' : '진료일'}
+            {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
           </label>
           <input
             type="date"
@@ -307,8 +310,22 @@ export default function RecordAddPage() {
           />
         </div>
 
+        {/* Discharge Date (hospitalization only) */}
+        {recordType === 'hospitalization' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">퇴원일</label>
+            <input
+              type="date"
+              value={dischargeDate}
+              onChange={(e) => setDischargeDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+          </div>
+        )}
+
         {/* Record Color */}
-        {recordType === 'visit' && (
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
           <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
         )}
 
@@ -349,7 +366,7 @@ export default function RecordAddPage() {
         )}
 
         {/* Next Appointment Date */}
-        {recordType === 'visit' && (
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
           <div className="space-y-2">
             <label className="text-sm font-medium">다음 예약일</label>
             <input
@@ -365,7 +382,7 @@ export default function RecordAddPage() {
         )}
 
         {/* Medications */}
-        {recordType === 'visit' && (
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">투약 정보</label>

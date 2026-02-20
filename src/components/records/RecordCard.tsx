@@ -1,7 +1,7 @@
 'use client';
 
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, CalendarClock } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, CalendarClock } from 'lucide-react';
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -11,6 +11,7 @@ interface RecordCardProps {
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상', color: 'bg-orange-100 text-orange-600' },
   visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600' },
+  hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600' },
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600' },
 };
 

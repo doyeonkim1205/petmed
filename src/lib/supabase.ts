@@ -39,7 +39,7 @@ export interface Pet {
 }
 
 // Health Record types
-export type RecordType = 'symptom' | 'visit' | 'manual';
+export type RecordType = 'symptom' | 'visit' | 'hospitalization' | 'manual';
 
 export interface HealthRecord {
   id: string;
@@ -53,6 +53,7 @@ export interface HealthRecord {
   cost?: number;
   ai_summary?: string;
   color?: string;
+  discharge_date?: string;
   next_appointment_date?: string;
   next_appointment_color?: string;
   created_at: string;

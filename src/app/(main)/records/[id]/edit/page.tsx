@@ -42,6 +42,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
+  const [dischargeDate, setDischargeDate] = useState('');
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -69,6 +70,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setCost(record.cost ? String(record.cost) : '');
       setRecordColor(record.color || '#3B82F6');
       setRecordType(record.record_type);
+      setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
       setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
       setNextAppointmentColor(record.next_appointment_color || '#8B5CF6');
 
@@ -139,6 +141,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
         color: recordColor,
+        discharge_date: dischargeDate || null,
         next_appointment_date: nextAppointmentDate || null,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
       } as any);
@@ -263,6 +266,19 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
+
+        {recordType === 'hospitalization' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">퇴원일</label>
+            <input
+              type="date"
+              value={dischargeDate}
+              onChange={(e) => setDischargeDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium">설명</label>

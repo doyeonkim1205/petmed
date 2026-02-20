@@ -83,6 +83,7 @@ export function useHealthRecords(petId?: string) {
     cost?: number;
     ai_summary?: string;
     color?: string;
+    discharge_date?: string;
     next_appointment_date?: string;
     next_appointment_color?: string;
   }) => {

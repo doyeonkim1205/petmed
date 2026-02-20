@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
   visit: { icon: Stethoscope, label: '진료 기록', color: 'bg-blue-100 text-blue-600' },
+  hospitalization: { icon: Building2, label: '입퇴원 기록', color: 'bg-emerald-100 text-emerald-600' },
   manual: { icon: FileEdit, label: '직접 입력', color: 'bg-green-100 text-green-600' },
 };
 
@@ -150,6 +151,18 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">비용</span>
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
+            </div>
+          )}
+          {record.discharge_date && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">퇴원일</span>
+              <span className="text-sm font-medium text-emerald-600">{formatDate(record.discharge_date)}</span>
+            </div>
+          )}
+          {!record.discharge_date && record.record_type === 'hospitalization' && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">퇴원일</span>
+              <span className="text-sm font-medium text-orange-500">입원 중</span>
             </div>
           )}
           {record.next_appointment_date && (
