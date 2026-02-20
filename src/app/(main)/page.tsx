@@ -2,19 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Search as SearchIcon,
-  X,
-  Dog,
-  Cat,
-} from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 
 export default function HomePage() {
   const [query, setQuery] = useState('');
   const [petType, setPetType] = useState<'cat' | 'dog'>('dog');
-  const [pets, setPets] = useState<Pet[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const router = useRouter();
   const { user } = useAuth();
@@ -28,10 +22,7 @@ export default function HomePage() {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
-      if (data) {
-        setPets(data);
-        if (data.length > 0) setPetType(data[0].type);
-      }
+      if (data && data.length > 0) setPetType(data[0].type);
     };
     fetchPets();
   }, [user]);
@@ -74,14 +65,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
-        <span className="text-blue-500">P</span>
-        <span className="text-red-400">a</span>
-        <span className="text-yellow-400">w</span>
-        <span className="text-blue-500">D</span>
-        <span className="text-green-500">e</span>
-        <span className="text-red-400">x</span>
-      </h1>
+      <h1 className="text-4xl font-bold text-blue-600 tracking-tight">PawDex</h1>
 
       {/* Subtitle */}
       <p className="text-sm text-gray-400 mt-2 mb-6">AI 수의학 논문 분석 서비스</p>
@@ -92,13 +76,9 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-            className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              petType === 'cat'
-                ? 'bg-pink-50 text-pink-500'
-                : 'bg-blue-50 text-blue-500'
-            }`}
+            className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors bg-blue-50 text-blue-600 text-xs font-medium"
           >
-            {petType === 'cat' ? <Cat size={18} /> : <Dog size={18} />}
+            {petType === 'dog' ? '강아지' : '고양이'}
           </button>
           <input
             type="text"
