@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
-import { PawIcon } from '@/components/icons/PawIcon';
 
 export default function HomePage() {
   const [query, setQuery] = useState('');
@@ -66,10 +65,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <div className="flex items-center gap-2">
-        <PawIcon size={44} />
-        <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-      </div>
+      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">🐾 PawDex</h1>
 
       {/* Subtitle */}
       <p className="text-sm text-gray-400 mt-2 mb-6">AI 수의학 논문 분석 서비스</p>
