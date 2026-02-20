@@ -48,6 +48,12 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
         appointments.set(apptKey, apptColor);
       }
 
+      // Discharge date dot
+      if (record.discharge_date) {
+        const dischargeKey = record.discharge_date.split('T')[0];
+        addDot(dischargeKey, '#10B981');
+      }
+
       // Medications: spread across date range
       if (record.medications) {
         for (const med of record.medications) {
@@ -94,10 +100,24 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
     return map;
   }, [records]);
 
+  // Discharge records for a given date
+  const dischargeRecords = useMemo(() => {
+    const map: Record<string, HealthRecord[]> = {};
+    for (const record of records) {
+      if (record.discharge_date) {
+        const key = record.discharge_date.split('T')[0];
+        if (!map[key]) map[key] = [];
+        map[key].push(record);
+      }
+    }
+    return map;
+  }, [records]);
+
   const selectedDateKey = format(selectedDate, 'yyyy-MM-dd');
   const dayRecords = recordDates[selectedDateKey] || [];
   const dayMedications = medicationMap[selectedDateKey] || [];
   const dayAppointments = appointmentRecords[selectedDateKey] || [];
+  const dayDischarges = dischargeRecords[selectedDateKey] || [];
 
   const typeIcon = {
     symptom: AlertCircle,
@@ -310,7 +330,27 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
           </div>
         )}
 
-        {dayRecords.length === 0 && dayMedications.length === 0 && dayAppointments.length === 0 && (
+        {/* Discharges */}
+        {dayDischarges.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
+              <Building2 size={12} /> 퇴원
+            </p>
+            <div className="space-y-1.5">
+              {dayDischarges.map((record) => (
+                <div key={record.id} className="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg">
+                  <Building2 size={14} className="text-emerald-500" />
+                  <span className="text-sm font-medium text-gray-800">{record.title}</span>
+                  {record.hospital_name && (
+                    <span className="text-xs text-gray-400">{record.hospital_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dayRecords.length === 0 && dayMedications.length === 0 && dayAppointments.length === 0 && dayDischarges.length === 0 && (
           <p className="text-sm text-gray-400 py-2">기록이 없습니다</p>
         )}
       </div>

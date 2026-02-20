@@ -1,7 +1,7 @@
 'use client';
 
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, CalendarClock } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, CalendarClock, LogOut } from 'lucide-react';
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -80,6 +80,15 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
               <span className="flex items-center gap-0.5">
                 <Paperclip size={12} /> {record.record_files.length}
               </span>
+            )}
+            {record.discharge_date && (
+              <span className="flex items-center gap-1 text-emerald-600">
+                <LogOut size={12} />
+                <span>{new Date(record.discharge_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 퇴원</span>
+              </span>
+            )}
+            {!record.discharge_date && record.record_type === 'hospitalization' && (
+              <span className="text-orange-500 font-medium">입원 중</span>
             )}
             {record.next_appointment_date && (
               <span className="flex items-center gap-1">
