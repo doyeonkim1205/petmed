@@ -667,15 +667,11 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] animate-pulse p-6">
-        <div className="bg-white p-6 rounded-xl mb-2">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gray-200 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <div className="h-5 bg-gray-200 rounded w-24" />
-              <div className="h-4 bg-gray-100 rounded w-40" />
-            </div>
-          </div>
+      <div className="bg-white min-h-[calc(100vh-8rem)] animate-pulse p-6 max-w-sm mx-auto">
+        <div className="flex flex-col items-center pt-8">
+          <div className="w-16 h-16 bg-gray-100 rounded-full" />
+          <div className="h-5 bg-gray-100 rounded w-24 mt-4" />
+          <div className="h-4 bg-gray-50 rounded w-40 mt-2" />
         </div>
       </div>
     );
@@ -683,24 +679,24 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="bg-gray-50 min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center p-6">
-        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-          <User size={40} className="text-gray-400" />
+      <div className="bg-white min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-6">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <User size={28} className="text-gray-400" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
-        <p className="text-gray-500 text-center mb-6">
+        <h2 className="text-lg font-bold text-gray-800 mb-1">로그인이 필요합니다</h2>
+        <p className="text-sm text-gray-400 text-center mb-8">
           PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
         </p>
         <div className="flex gap-3 w-full max-w-xs">
           <button
             onClick={() => router.push('/register')}
-            className="flex-1 h-12 border border-gray-300 rounded-lg font-medium"
+            className="flex-1 h-11 border border-gray-200 rounded-full font-medium text-sm text-gray-600 hover:border-gray-300 transition-colors"
           >
             회원가입
           </button>
           <button
             onClick={() => router.push('/login')}
-            className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-lg font-medium"
+            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
           >
             로그인
           </button>
@@ -710,11 +706,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-8rem)]">
+    <div className="bg-white min-h-[calc(100vh-8rem)]">
       {/* Profile Header */}
-      <div className="bg-white p-6 mb-2 border-b border-gray-100">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+      <div className="max-w-sm mx-auto px-4 pt-8 pb-6">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-3">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -722,110 +718,111 @@ export default function ProfilePage() {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <User size={32} />
+              <User size={28} />
             )}
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900">
-              {profile?.nickname || '사용자'} 님
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800">
+              {profile?.nickname || '사용자'}
             </h2>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <button
+              onClick={() => setShowNicknameModal(true)}
+              className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
+            >
+              <Edit2 size={14} />
+            </button>
           </div>
-          <button
-            onClick={() => setShowNicknameModal(true)}
-            className="p-2 text-gray-400 hover:text-gray-600"
-          >
-            <Edit2 size={20} />
-          </button>
-        </div>
-
-        {/* Pet Section */}
-        <div className="bg-blue-50 rounded-xl p-4 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-blue-600 font-bold mb-1">나의 반려동물</p>
-            <p className="text-sm text-gray-500">반려동물을 등록하고 관리하세요.</p>
-          </div>
-          <button
-            onClick={() => setShowPetModal(true)}
-            className="text-xs bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-50"
-          >
-            관리하기
-          </button>
+          <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
         </div>
       </div>
 
-      {/* Menu Items */}
-      <div className="bg-white border-t border-b border-gray-100 mb-2">
+      {/* Menu List */}
+      <div className="max-w-sm mx-auto px-4 space-y-1">
+        {/* Pet Management */}
+        <button
+          onClick={() => setShowPetModal(true)}
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <Dog size={18} className="text-gray-400" />
+            <span className="text-sm">나의 반려동물</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </button>
+
         <button
           onClick={() => setShowNotificationModal(true)}
-          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3 text-gray-700">
-            <Bell size={20} />
-            <span>알림 설정</span>
+          <div className="flex items-center gap-3 text-gray-600">
+            <Bell size={18} className="text-gray-400" />
+            <span className="text-sm">알림 설정</span>
           </div>
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={14} className="text-gray-300" />
         </button>
+
         <button
           onClick={() => setShowSettingsModal(true)}
-          className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3 text-gray-700">
-            <Settings size={20} />
-            <span>앱 설정</span>
+          <div className="flex items-center gap-3 text-gray-600">
+            <Settings size={18} className="text-gray-400" />
+            <span className="text-sm">앱 설정</span>
           </div>
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={14} className="text-gray-300" />
         </button>
-      </div>
 
-      {/* Legal Links */}
-      <div className="bg-white border-t border-b border-gray-100 mb-2">
+        {/* Divider */}
+        <div className="border-t border-gray-100 my-2" />
+
         <Link
           href="/terms"
-          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3 text-gray-700">
-            <FileText size={20} />
-            <span>이용약관</span>
+          <div className="flex items-center gap-3 text-gray-600">
+            <FileText size={18} className="text-gray-400" />
+            <span className="text-sm">이용약관</span>
           </div>
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={14} className="text-gray-300" />
         </Link>
+
         <Link
           href="/privacy"
-          className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3 text-gray-700">
-            <Shield size={20} />
-            <span>개인정보처리방침</span>
+          <div className="flex items-center gap-3 text-gray-600">
+            <Shield size={18} className="text-gray-400" />
+            <span className="text-sm">개인정보처리방침</span>
           </div>
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={14} className="text-gray-300" />
         </Link>
-      </div>
 
-      <div className="bg-white border-t border-b border-gray-100">
+        {/* Divider */}
+        <div className="border-t border-gray-100 my-2" />
+
         <button
           onClick={handleLogout}
-          className="w-full p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 text-red-500"
+          className="w-full px-4 py-3.5 flex items-center rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <LogOut size={20} />
-            <span>로그아웃</span>
+          <div className="flex items-center gap-3 text-red-400">
+            <LogOut size={18} />
+            <span className="text-sm">로그아웃</span>
           </div>
         </button>
+
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-gray-400"
+          className="w-full px-4 py-3.5 flex items-center rounded-xl hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <UserX size={20} />
+          <div className="flex items-center gap-3 text-gray-300">
+            <UserX size={18} />
             <span className="text-sm">회원 탈퇴</span>
           </div>
         </button>
       </div>
 
-      <div className="p-6 text-center text-xs text-gray-400">
-        <p>PawDex v1.0.0</p>
-        <p className="mt-1">문의: help@pawdex.com</p>
+      <div className="py-8 text-center text-xs text-gray-300">
+        PawDex v1.0.0
       </div>
 
       {/* Modals */}
