@@ -44,7 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ensureProfile = async (authUser: User) => {
     const metadata = authUser.user_metadata;
-    const avatarUrl = metadata?.avatar_url || metadata?.picture || metadata?.profile_image || null;
+    let avatarUrl = metadata?.avatar_url || metadata?.picture || metadata?.profile_image || null;
+    // Fix Kakao HTTP URLs → HTTPS (mixed content blocked on mobile)
+    if (avatarUrl && avatarUrl.startsWith('http://')) {
+      avatarUrl = avatarUrl.replace('http://', 'https://');
+    }
     const nickname =
       metadata?.full_name ||
       metadata?.name ||
@@ -53,19 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       '사용자';
 
     // First try insert (new user)
-    const { error } = await supabase.from('profiles').upsert({
+    await supabase.from('profiles').upsert({
       id: authUser.id,
       email: authUser.email ?? '',
       nickname,
       avatar_url: avatarUrl,
     }, { onConflict: 'id', ignoreDuplicates: true });
 
-    // If user already exists, update avatar_url if it's currently null
-    if (!error && avatarUrl) {
+    // Always update avatar_url if we have one (handles Kakao HTTP→HTTPS fix too)
+    if (avatarUrl) {
       await supabase.from('profiles')
         .update({ avatar_url: avatarUrl })
-        .eq('id', authUser.id)
-        .is('avatar_url', null);
+        .eq('id', authUser.id);
     }
   };
 
