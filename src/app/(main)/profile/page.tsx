@@ -710,12 +710,14 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="max-w-sm mx-auto px-4 pt-8 pb-6">
         <div className="flex flex-col items-center">
-          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-3">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-3 overflow-hidden">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt="프로필"
                 className="w-full h-full rounded-full object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
               />
             ) : (
               <User size={28} />

@@ -44,17 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ensureProfile = async (authUser: User) => {
     const metadata = authUser.user_metadata;
-    await supabase.from('profiles').upsert({
+    const avatarUrl = metadata?.avatar_url || metadata?.picture || metadata?.profile_image || null;
+    const nickname =
+      metadata?.full_name ||
+      metadata?.name ||
+      metadata?.nickname ||
+      authUser.email?.split('@')[0] ||
+      '사용자';
+
+    // First try insert (new user)
+    const { error } = await supabase.from('profiles').upsert({
       id: authUser.id,
       email: authUser.email ?? '',
-      nickname:
-        metadata?.full_name ||
-        metadata?.name ||
-        metadata?.nickname ||
-        authUser.email?.split('@')[0] ||
-        '사용자',
-      avatar_url: metadata?.avatar_url || metadata?.picture || null,
+      nickname,
+      avatar_url: avatarUrl,
     }, { onConflict: 'id', ignoreDuplicates: true });
+
+    // If user already exists, update avatar_url if it's currently null
+    if (!error && avatarUrl) {
+      await supabase.from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', authUser.id)
+        .is('avatar_url', null);
+    }
   };
 
   useEffect(() => {
