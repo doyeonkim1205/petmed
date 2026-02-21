@@ -289,7 +289,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [language, setLanguage] = useState('ko');
-  const [medAlarmTime, setMedAlarmTime] = useState('09:00');
   const [autoLogin, setAutoLogin] = useState(true);
   const [highContrast, setHighContrast] = useState(true);
   const [defaultPetId, setDefaultPetId] = useState<string>('');
@@ -300,7 +299,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
       setLanguage(localStorage.getItem('language') || 'ko');
-      setMedAlarmTime(localStorage.getItem('medAlarmTime') || '09:00');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(localStorage.getItem('highContrast') !== 'false');
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
@@ -344,11 +342,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     document.documentElement.style.fontSize = `${size}px`;
   };
 
-  const handleMedAlarmTime = (time: string) => {
-    setMedAlarmTime(time);
-    localStorage.setItem('medAlarmTime', time);
-  };
-
   const handleAutoLogin = (enabled: boolean) => {
     setAutoLogin(enabled);
     localStorage.setItem('autoLogin', String(enabled));
@@ -367,16 +360,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     { value: '14', label: '작게' },
     { value: '16', label: '보통' },
     { value: '18', label: '크게' },
-  ];
-
-  const alarmTimes = [
-    { value: '07:00', label: '오전 7시' },
-    { value: '08:00', label: '오전 8시' },
-    { value: '09:00', label: '오전 9시' },
-    { value: '10:00', label: '오전 10시' },
-    { value: '12:00', label: '낮 12시' },
-    { value: '18:00', label: '오후 6시' },
-    { value: '21:00', label: '오후 9시' },
   ];
 
   return (
@@ -446,21 +429,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
               </div>
             </div>
           )}
-
-          {/* Medication Alarm Time */}
-          <div>
-            <SectionHeader icon={Clock} iconColor="text-gray-400" label="투약 알림 시간" />
-            <p className="text-[11px] text-gray-400 mb-2">매일 투약 확인 알림을 보낼 시간</p>
-            <select
-              value={medAlarmTime}
-              onChange={(e) => handleMedAlarmTime(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-gray-200 text-xs text-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              {alarmTimes.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Auto Login */}
           <div>

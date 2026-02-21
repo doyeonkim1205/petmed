@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -10,6 +10,18 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile } from '@/services/fileUpload';
+
+const frequencyOptions = [
+  { value: '1일 1회', times: 1 },
+  { value: '1일 2회', times: 2 },
+  { value: '1일 3회', times: 3 },
+];
+
+const defaultAlarmTimes: Record<number, string[]> = {
+  1: ['09:00'],
+  2: ['09:00', '21:00'],
+  3: ['08:00', '14:00', '21:00'],
+};
 
 interface MedicationInput {
   id?: string;
@@ -19,6 +31,8 @@ interface MedicationInput {
   end_date: string;
   frequency: string;
   color: string;
+  alarm_enabled: boolean;
+  alarm_times: string[];
   isNew?: boolean;
 }
 
@@ -76,15 +90,21 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       if (record.medications) {
         setMedications(
-          record.medications.map((m) => ({
-            id: m.id,
-            name: m.name,
-            dosage: m.dosage || '',
-            start_date: m.start_date,
-            end_date: m.end_date || '',
-            frequency: m.frequency,
-            color: m.color || '#3B82F6',
-          }))
+          record.medications.map((m: any) => {
+            const opt = frequencyOptions.find(f => f.value === m.frequency);
+            const times = m.alarm_times || (opt ? defaultAlarmTimes[opt.times] : ['09:00']);
+            return {
+              id: m.id,
+              name: m.name,
+              dosage: m.dosage || '',
+              start_date: m.start_date,
+              end_date: m.end_date || '',
+              frequency: m.frequency,
+              color: m.color || '#3B82F6',
+              alarm_enabled: m.alarm_enabled !== false,
+              alarm_times: times,
+            };
+          })
         );
       }
 
@@ -102,12 +122,31 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
     setMedications(medications.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+  };
+
+  const updateMedFrequency = (index: number, freq: string) => {
+    const opt = frequencyOptions.find(f => f.value === freq);
+    const times = opt ? defaultAlarmTimes[opt.times] : ['09:00'];
+    setMedications(medications.map((m, i) => (i === index ? { ...m, frequency: freq, alarm_times: times } : m)));
+  };
+
+  const updateMedAlarmTime = (medIndex: number, timeIndex: number, value: string) => {
+    setMedications(medications.map((m, i) => {
+      if (i !== medIndex) return m;
+      const newTimes = [...m.alarm_times];
+      newTimes[timeIndex] = value;
+      return { ...m, alarm_times: newTimes };
+    }));
+  };
+
+  const toggleMedAlarm = (index: number) => {
+    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: !m.alarm_enabled } : m)));
   };
 
   const removeMedication = (index: number) => {
@@ -438,21 +477,66 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 placeholder="약 이름"
                 value={med.name}
                 onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               />
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  placeholder="용량"
-                  value={med.dosage}
-                  onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                />
-                <input
-                  placeholder="빈도"
-                  value={med.frequency}
-                  onChange={(e) => updateMedicationField(i, 'frequency', e.target.value)}
-                                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                />
+              <input
+                placeholder="용량 (예: 1정)"
+                value={med.dosage}
+                onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+              />
+              {/* Frequency selector */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
+                <div className="flex gap-1.5">
+                  {frequencyOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateMedFrequency(i, opt.value)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        med.frequency === opt.value
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white border border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {opt.value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Alarm times */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-gray-400">알림 시간</label>
+                  <button
+                    type="button"
+                    onClick={() => toggleMedAlarm(i)}
+                    className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
+                      med.alarm_enabled
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
+                    {med.alarm_enabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                {med.alarm_enabled && (
+                  <div className="flex gap-1.5">
+                    {med.alarm_times.map((time, ti) => (
+                      <div key={ti} className="flex-1">
+                        <p className="text-[10px] text-gray-300 mb-0.5">{ti + 1}회차</p>
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
+                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -461,7 +545,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="date"
                     value={med.start_date}
                     onChange={(e) => updateMedicationField(i, 'start_date', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                   />
                 </div>
                 <div>
@@ -470,7 +554,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="date"
                     value={med.end_date}
                     onChange={(e) => updateMedicationField(i, 'end_date', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                   />
                 </div>
               </div>
