@@ -12,36 +12,43 @@ export interface ArticleSummary {
 /**
  * PubMed esearch — 검색어로 PMID 목록 조회
  *
- * 검색 전략 (3단계 폴백) — 질병명이 제목/초록에 직접 등장하는 논문 우선:
- * 1. 엄격: 질병명이 제목에 등장 + 동물종 + 최근 10년
- * 2. 중간: 질병명이 제목/초록에 등장 + 동물종
- * 3. 완화: 자유 텍스트 검색 + 동물종
+ * 검색 전략:
+ * - MeSH 동물 필터 사용 ("Cats"[Mesh] / "Dogs"[Mesh]) — 정확한 종 분류
+ * - 질병명에서 feline/canine 접두어 자동 제거 (MeSH가 종을 필터링하므로 불필요)
+ * - 3단계 폴백: Title → Title/Abstract → 자유 텍스트
  */
 export async function searchPubMed(
   query: string,
   petType: 'cat' | 'dog' = 'cat',
   maxResults = 5,
 ): Promise<string[]> {
-  const petFilter = petType === 'cat'
+  // MeSH 동물 필터 — PubMed가 "고양이/강아지 연구"로 분류한 논문만 (인간 논문 제외)
+  const meshPetFilter = petType === 'cat' ? '"Cats"[Mesh]' : '"Dogs"[Mesh]';
+  // 폴백용 자유 텍스트 필터 (MeSH 인덱싱 안 된 최신 논문용)
+  const textPetFilter = petType === 'cat'
     ? '(cat OR cats OR feline OR kitten)'
     : '(dog OR dogs OR canine OR puppy)';
 
-  // 최근 10년 필터
+  // 질병명에서 feline/canine 접두어 제거 (MeSH가 종을 필터링하므로 불필요, 오히려 결과 줄임)
+  const cleanQuery = query
+    .replace(/^(feline|canine)\s+/i, '')
+    .trim();
+
   const currentYear = new Date().getFullYear();
   const dateFilter = `("${currentYear - 10}"[PDAT]:"${currentYear}"[PDAT])`;
 
-  // 1단계: 질병명이 논문 제목에 직접 등장 + 동물종 + 최근 10년
-  const strictQuery = `(${query}[Title]) AND ${petFilter} AND ${dateFilter}`;
+  // 1단계: 질병명이 제목에 등장 + MeSH 동물종 + 최근 10년
+  const strictQuery = `(${cleanQuery}[Title]) AND ${meshPetFilter} AND ${dateFilter}`;
   let ids = await esearch(strictQuery, maxResults);
   if (ids.length > 0) return ids;
 
-  // 2단계: 질병명이 제목 또는 초록에 등장 + 동물종
-  const mediumQuery = `(${query}[Title/Abstract]) AND ${petFilter}`;
+  // 2단계: 질병명이 제목/초록에 등장 + MeSH 동물종
+  const mediumQuery = `(${cleanQuery}[Title/Abstract]) AND ${meshPetFilter}`;
   ids = await esearch(mediumQuery, maxResults);
   if (ids.length > 0) return ids;
 
-  // 3단계: 자유 텍스트 검색 + 동물종 (희귀 질병 등 폴백)
-  const broadQuery = `(${query}) AND ${petFilter}`;
+  // 3단계: 자유 텍스트 + 텍스트 동물 필터 (MeSH 미인덱싱 논문 폴백)
+  const broadQuery = `(${cleanQuery}) AND ${textPetFilter}`;
   ids = await esearch(broadQuery, maxResults);
 
   return ids;

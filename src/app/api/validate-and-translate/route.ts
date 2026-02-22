@@ -34,24 +34,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(REJECT);
     }
 
-    // 동물종 접두어 (feline/canine) — diseaseMap 매치에 자동 추가
-    const petPrefix = pet === 'cat' ? 'feline' : 'canine';
-    function withPetPrefix(englishQuery: string): string {
-      const lower = englishQuery.toLowerCase();
-      if (lower.startsWith('feline') || lower.startsWith('canine')) return englishQuery;
-      return `${petPrefix} ${englishQuery}`;
-    }
-
-    // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환 (동물종 접두어 추가)
+    // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환
+    //    feline/canine 접두어 불필요 — PubMed 검색에서 MeSH 동물 필터 사용
     if (diseaseMap[trimmed]) {
-      return NextResponse.json({ valid: true, englishQuery: withPetPrefix(diseaseMap[trimmed]) });
+      return NextResponse.json({ valid: true, englishQuery: diseaseMap[trimmed] });
     }
 
     // 2) diseaseMap 부분 매치 — 입력이 키를 포함하는 경우만 (가장 긴 키부터)
     const sortedKeys = Object.keys(diseaseMap).sort((a, b) => b.length - a.length);
     for (const key of sortedKeys) {
       if (trimmed.includes(key)) {
-        return NextResponse.json({ valid: true, englishQuery: withPetPrefix(diseaseMap[key]) });
+        return NextResponse.json({ valid: true, englishQuery: diseaseMap[key] });
       }
     }
 
@@ -79,11 +72,11 @@ export async function POST(request: NextRequest) {
 현재 검색 대상 동물: ${petLabel}
 
 사용자 입력이 ${petLabel}의 질병, 증상, 건강 문제, 수의학 용어인지 판단하고,
-유효하면 ${petLabel}에 특화된 PubMed MeSH(Medical Subject Headings) 표준 용어로 번역해.
+유효하면 PubMed MeSH(Medical Subject Headings) 표준 용어로 번역해.
 
 반드시 JSON으로만 응답:
 - 유효: {"valid": true, "englishQuery": "MeSH 표준 영문 용어"}
-- 무효: {"valid": false, "reason": "한국어 거부 사유"}
+- 무효: {"valid": false}
 
 valid: true 기준 (허용):
 - 동물 질병명, 증상, 의학/수의학 용어, 건강 관련 키워드
@@ -97,12 +90,12 @@ valid: false 기준 (차단):
 확실히 동물 건강/의학 관련일 때만 valid: true. 애매하면 false.
 
 englishQuery 번역 규칙:
-- 반드시 ${petLabel}에 가장 흔한/관련성 높은 질병명으로 번역
-  예시: 고양이+심장병→"Feline Hypertrophic Cardiomyopathy", 강아지+심장병→"Canine Heart Disease"
-  예시: 고양이+감기→"Feline Upper Respiratory Infection", 강아지+감기→"Kennel Cough"
+- ${petLabel}에서 가장 흔한/관련성 높은 정확한 질병명으로 번역
+  예시: 고양이+심장병→"Hypertrophic Cardiomyopathy", 강아지+심장병→"Mitral Valve Disease"
+  예시: 고양이+감기→"Upper Respiratory Infection", 강아지+감기→"Kennel Cough"
 - PubMed MeSH에 등재된 공식 용어 사용
-- 포괄적 용어보다 ${petLabel} 특화된 구체적 용어 우선
-- ${pet === 'cat' ? 'feline' : 'canine'} 접두어를 적극 활용
+- feline/canine 접두어 붙이지 마 (PubMed 검색에서 자동으로 동물종 필터링함)
+- 포괄적 용어보다 ${petLabel}에서 흔한 구체적 질병명 우선
 - 약어보다 정식 명칭 우선`,
           },
           {
