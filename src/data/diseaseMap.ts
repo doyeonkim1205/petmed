@@ -55,7 +55,7 @@ export const diseaseMap: Record<string, string> = {
   '치주질환': 'periodontal disease',
   '치주염': 'periodontitis',
   '치은염': 'gingivitis',
-  '구내염': 'stomatitis',
+  // '구내염' — GPT가 petType에 따라 특화 (cat: feline chronic gingivostomatitis)
 
   // 호흡기
   '기관 허탈': 'tracheal collapse',
@@ -90,7 +90,7 @@ export const diseaseMap: Record<string, string> = {
   'FIP': 'feline infectious peritonitis',
   '범백혈구감소증': 'feline panleukopenia',
   '고양이 허피스': 'feline herpesvirus',
-  '허피스 바이러스': 'feline herpesvirus',
+  // '허피스 바이러스' — GPT가 petType에 따라 feline/canine herpesvirus 구분
   '칼리시 바이러스': 'feline calicivirus',
   '고양이 감기': 'feline upper respiratory infection',
 
@@ -99,9 +99,9 @@ export const diseaseMap: Record<string, string> = {
   '파보 바이러스': 'canine parvovirus',
   '켄넬코프': 'kennel cough',
   '디스템퍼': 'canine distemper',
-  '홍역': 'canine distemper',
-  '코로나 바이러스': 'canine coronavirus',
-  '코로나 장염': 'canine coronavirus enteritis',
+  // '홍역' — GPT가 petType에 따라 특화 (dog: canine distemper)
+  // '코로나 바이러스' — GPT가 petType에 따라 feline/canine coronavirus 구분
+  // '코로나 장염' — GPT가 petType에 따라 특화
 };
 
 // 번역 결과 캐시 — localStorage 기반으로 새로고침 후에도 유지
