@@ -176,7 +176,7 @@ export default function RecordsPage() {
       {petCount === 0 ? (
         <div className="flex flex-col items-center px-6 py-16">
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-            <Dog size={28} className="text-blue-400" />
+            {newPet.type === 'cat' ? <Cat size={28} className="text-blue-400" /> : <Dog size={28} className="text-blue-400" />}
           </div>
           <h2 className="text-lg font-bold text-gray-800 mb-1">반려동물을 등록해주세요</h2>
           <p className="text-sm text-gray-400 text-center mb-8">
