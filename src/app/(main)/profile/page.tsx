@@ -739,7 +739,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Bookmark size={18} className="text-blue-400" />
-            <span className="text-sm">저장한 분석</span>
+            <span className="text-sm">내 보관함</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>

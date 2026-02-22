@@ -256,7 +256,7 @@ function SearchContent() {
                       <Crown size={16} className="text-purple-500" />
                       <p className="text-sm font-bold text-gray-700">프리미엄으로 업그레이드</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">월 50회 검색 + AI 분석 전체 열람 + 분석 저장</p>
+                    <p className="text-xs text-gray-500 mb-3">월 50회 검색 + AI 분석 전체 열람 + 보관하기</p>
                     <button className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium">
                       월 ₩3,900 구독하기
                     </button>
@@ -284,7 +284,7 @@ function SearchContent() {
                       }`}
                     >
                       <Bookmark size={12} />
-                      {saved ? '저장됨' : saving ? '저장 중...' : '분석 저장'}
+                      {saved ? '보관됨' : saving ? '보관 중...' : '보관하기'}
                     </button>
                   </div>
                 )}
@@ -295,7 +295,7 @@ function SearchContent() {
                       <p className="text-xs font-bold text-gray-600">프리미엄 구독 시</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 분석 전체 열람 · 주의사항/성분 확인 · 분석 저장 · 월 50회 검색
+                      AI 분석 전체 열람 · 주의사항/성분 확인 · 보관하기 · 월 50회 검색
                     </p>
                   </div>
                 )}

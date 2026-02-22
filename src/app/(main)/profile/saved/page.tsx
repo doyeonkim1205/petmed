@@ -64,15 +64,15 @@ export default function SavedAnalysesPage() {
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">저장한 분석</h1>
+        <h1 className="text-sm font-semibold text-gray-700">내 보관함</h1>
       </header>
 
       <div className="p-4 space-y-3">
         {analyses.length === 0 ? (
           <div className="text-center py-20">
             <FileText size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm text-gray-400">저장된 분석이 없습니다.</p>
-            <p className="text-xs text-gray-300 mt-1">검색 결과에서 분석을 저장해보세요.</p>
+            <p className="text-sm text-gray-400">보관함이 비어있습니다.</p>
+            <p className="text-xs text-gray-300 mt-1">검색 결과에서 보관하기를 눌러보세요.</p>
           </div>
         ) : (
           analyses.map((item) => (
