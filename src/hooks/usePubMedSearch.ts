@@ -90,7 +90,17 @@ export function usePubMedSearch(
     setArticles([]);
     setLimitReached(false);
 
-    // Step 0: Rate limit check
+    // Step 1: 검증 + 번역을 먼저 수행 (무효한 검색어는 횟수 차감하지 않음)
+    setStep('validating');
+    const result = await validateAndTranslate(diseaseName, petType);
+    if (!result.valid || !result.englishQuery) {
+      setError(result.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
+      setLoading(false);
+      setStep('done');
+      return;
+    }
+
+    // Step 0: 검증 통과 후 횟수 차감
     const usage = await checkAndLogSearch(diseaseName, petType);
     if (!usage.allowed) {
       setError(usage.reason || '검색 횟수를 초과했습니다.');
@@ -101,16 +111,6 @@ export function usePubMedSearch(
       return;
     }
     setPlan(usage.plan);
-
-    // Step 1: 검증 + 번역 (하나의 API 호출, 동물종 포함)
-    setStep('validating');
-    const result = await validateAndTranslate(diseaseName, petType);
-    if (!result.valid || !result.englishQuery) {
-      setError(result.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
-      setLoading(false);
-      setStep('done');
-      return;
-    }
 
     try {
       // Step 2: PubMed 검색 — 10편 가져와서 AI가 관련 논문 5편 선별
