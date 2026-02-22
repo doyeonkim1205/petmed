@@ -717,18 +717,6 @@ export default function ProfilePage() {
 
       {/* Menu List */}
       <div className="max-w-sm mx-auto px-4 space-y-1">
-        {/* Saved Analyses (premium) */}
-        <Link
-          href="/profile/saved"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Bookmark size={18} className="text-blue-400" />
-            <span className="text-sm">내가 본 논문</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
         {/* Pet Management */}
         <button
           onClick={() => setShowPetModal(true)}
@@ -740,6 +728,18 @@ export default function ProfilePage() {
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </button>
+
+        {/* Saved Analyses */}
+        <Link
+          href="/profile/saved"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <Bookmark size={18} className="text-blue-400" />
+            <span className="text-sm">내가 본 논문</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
 
         <button
           onClick={() => setShowNotificationModal(true)}
