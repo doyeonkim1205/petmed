@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { diseaseMap } from '@/data/diseaseMap';
+import { checkBannedWords } from '@/data/bannedWords';
 import { verifyAuth } from '@/lib/apiAuth';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -7,6 +8,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const REJECT = {
   valid: false,
   reason: '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요. (예: 구토, 슬개골 탈구, 피부염)',
+};
+
+const BANNED = {
+  valid: false,
+  reason: '부적절한 검색어입니다. 반려동물 건강과 관련된 검색어를 입력해주세요.',
 };
 
 /**
@@ -25,6 +31,11 @@ export async function POST(request: NextRequest) {
     }
 
     const trimmed = query.trim();
+
+    // 0) 금지어 체크 (OpenAI 호출 전, 비용 0원)
+    if (checkBannedWords(trimmed)) {
+      return NextResponse.json(BANNED);
+    }
 
     // 이미 영문이면 검증만 필요
     const isEnglish = /^[A-Za-z\s\-]+$/.test(trimmed);

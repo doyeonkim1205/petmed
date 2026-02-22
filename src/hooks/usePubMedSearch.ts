@@ -18,6 +18,30 @@ export interface UsePubMedSearchResult {
   analysis: AiAnalysisResult | null;
   analysisLoading: boolean;
   step: SearchStep;
+  limitReached?: boolean;
+  plan?: string;
+}
+
+/**
+ * Rate limit check — returns { allowed, reason?, plan? }
+ */
+async function checkAndLogSearch(query: string, petType: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+  plan?: string;
+}> {
+  try {
+    const { authFetch } = await import('@/lib/authFetch');
+    const res = await authFetch('/api/search-usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, petType }),
+    });
+    if (!res.ok) return { allowed: true }; // fail-open: allow search if rate-limit service is down
+    return await res.json();
+  } catch {
+    return { allowed: true };
+  }
 }
 
 /**
@@ -53,6 +77,8 @@ export function usePubMedSearch(
   const [analysis, setAnalysis] = useState<AiAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [step, setStep] = useState<SearchStep>('idle');
+  const [limitReached, setLimitReached] = useState(false);
+  const [plan, setPlan] = useState<string | undefined>();
 
   const fetchArticles = useCallback(async () => {
     if (!diseaseName) return;
@@ -61,6 +87,19 @@ export function usePubMedSearch(
     setError(null);
     setAnalysis(null);
     setArticles([]);
+    setLimitReached(false);
+
+    // Step 0: Rate limit check
+    const usage = await checkAndLogSearch(diseaseName, petType);
+    if (!usage.allowed) {
+      setError(usage.reason || '검색 횟수를 초과했습니다.');
+      setLimitReached(true);
+      setPlan(usage.plan);
+      setLoading(false);
+      setStep('done');
+      return;
+    }
+    setPlan(usage.plan);
 
     // Step 1: 검증 + 번역 (하나의 API 호출)
     setStep('validating');
@@ -133,5 +172,7 @@ export function usePubMedSearch(
     analysis,
     analysisLoading,
     step,
+    limitReached,
+    plan,
   };
 }

@@ -20,11 +20,32 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Types for database tables
+export type UserPlan = 'free' | 'premium';
+
 export interface Profile {
   id: string;
   email: string;
   nickname: string;
   avatar_url?: string;
+  plan: UserPlan;
+  created_at: string;
+}
+
+export interface SearchLog {
+  id: string;
+  user_id: string;
+  query: string;
+  pet_type: string;
+  created_at: string;
+}
+
+export interface SavedAnalysis {
+  id: string;
+  user_id: string;
+  query: string;
+  pet_type: string;
+  articles: any[];
+  analysis: any;
   created_at: string;
 }
 

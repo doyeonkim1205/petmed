@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
-  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart,
+  X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Trash, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -703,11 +703,32 @@ export default function ProfilePage() {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
+          {profile?.plan === 'premium' ? (
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">
+              <Crown size={10} /> Premium
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full">
+              Free
+            </span>
+          )}
         </div>
       </div>
 
       {/* Menu List */}
       <div className="max-w-sm mx-auto px-4 space-y-1">
+        {/* Saved Analyses (premium) */}
+        <Link
+          href="/profile/saved"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <Bookmark size={18} className="text-blue-400" />
+            <span className="text-sm">내가 본 논문</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
+
         {/* Pet Management */}
         <button
           onClick={() => setShowPetModal(true)}
