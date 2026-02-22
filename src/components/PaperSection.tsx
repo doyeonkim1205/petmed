@@ -9,6 +9,7 @@ interface PaperSectionProps {
   pubmed: UsePubMedSearchResult;
   diseaseName: string;
   diseaseSummary: string;
+  headerAction?: React.ReactNode;
 }
 
 function SkeletonLoader() {
@@ -93,6 +94,7 @@ export function PaperSection({
   pubmed,
   diseaseName,
   diseaseSummary,
+  headerAction,
 }: PaperSectionProps) {
   const { articles, loading, error, retry, analysis, analysisLoading } = pubmed;
 
@@ -100,10 +102,13 @@ export function PaperSection({
 
   return (
     <section>
-      <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
-        <FileText size={14} className="text-blue-500" />
-        논문 요약
-      </h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+          <FileText size={14} className="text-blue-500" />
+          논문 요약
+        </h3>
+        {headerAction}
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         {loading && !error && articles.length === 0 && <SkeletonLoader />}

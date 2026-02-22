@@ -43,7 +43,7 @@ function SearchContent() {
   );
   const [searchKey, setSearchKey] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(cached?.saved || false);
   const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
@@ -91,13 +91,13 @@ function SearchContent() {
     if (pubmed.step === 'done' && searchTerm && pubmed.articles.length > 0) {
       try {
         sessionStorage.setItem('searchCache', JSON.stringify({
-          query, petType, searchTerm, mockResult,
+          query, petType, searchTerm, mockResult, saved,
           articles: pubmed.articles,
           analysis: pubmed.analysis,
         }));
       } catch {}
     }
-  }, [pubmed.step, pubmed.articles, pubmed.analysis, query, petType, searchTerm, mockResult]);
+  }, [pubmed.step, pubmed.articles, pubmed.analysis, query, petType, searchTerm, mockResult, saved]);
 
   useEffect(() => {
     if (initialQuery) {
@@ -165,7 +165,18 @@ function SearchContent() {
           analysis: displayPubmed.analysis,
         }),
       });
-      if (res.ok) setSaved(true);
+      if (res.ok) {
+        setSaved(true);
+        // 캐시에도 saved 상태 반영
+        try {
+          const raw = sessionStorage.getItem('searchCache');
+          if (raw) {
+            const c = JSON.parse(raw);
+            c.saved = true;
+            sessionStorage.setItem('searchCache', JSON.stringify(c));
+          }
+        } catch {}
+      }
     } catch {} finally {
       setSaving(false);
     }
@@ -301,23 +312,6 @@ function SearchContent() {
               </div>
             ) : (
               <>
-                {/* Save button (premium) or promo banner (free) */}
-                {hasResults && isPremium && (
-                  <div className="flex items-center justify-end">
-                    <button
-                      onClick={handleSaveAnalysis}
-                      disabled={saving || saved}
-                      className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-colors ${
-                        saved
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      <Bookmark size={12} />
-                      {saved ? '보관됨' : saving ? '보관 중...' : '보관하기'}
-                    </button>
-                  </div>
-                )}
                 {hasResults && !isPremium && (
                   <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -334,6 +328,20 @@ function SearchContent() {
                   pubmed={displayPubmed}
                   diseaseName={searchTerm || ''}
                   diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
+                  headerAction={hasResults && isPremium ? (
+                    <button
+                      onClick={handleSaveAnalysis}
+                      disabled={saving || saved}
+                      className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                        saved
+                          ? 'bg-green-50 text-green-600'
+                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      }`}
+                    >
+                      <Bookmark size={11} />
+                      {saved ? '보관됨' : saving ? '보관 중...' : '보관하기'}
+                    </button>
+                  ) : undefined}
                 />
 
                 {/* AI Analysis sections — blur for free users */}

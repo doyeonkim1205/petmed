@@ -10,11 +10,6 @@ const REJECT = {
   reason: '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.',
 };
 
-const BANNED = {
-  valid: false,
-  reason: '부적절한 검색어입니다. 반려동물 건강과 관련된 검색어를 입력해주세요.',
-};
-
 /**
  * 검색어 검증 + 영문 번역을 하나의 OpenAI 호출로 처리
  * - diseaseMap에 있으면 OpenAI 호출 없이 즉시 반환
@@ -36,22 +31,27 @@ export async function POST(request: NextRequest) {
 
     // 0) 금지어 체크 (OpenAI 호출 전, 비용 0원)
     if (checkBannedWords(trimmed)) {
-      return NextResponse.json(BANNED);
+      return NextResponse.json(REJECT);
     }
 
-    // 이미 영문이면 검증만 필요
-    const isEnglish = /^[A-Za-z\s\-]+$/.test(trimmed);
+    // 동물종 접두어 (feline/canine) — diseaseMap 매치에 자동 추가
+    const petPrefix = pet === 'cat' ? 'feline' : 'canine';
+    function withPetPrefix(englishQuery: string): string {
+      const lower = englishQuery.toLowerCase();
+      if (lower.startsWith('feline') || lower.startsWith('canine')) return englishQuery;
+      return `${petPrefix} ${englishQuery}`;
+    }
 
-    // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환
+    // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환 (동물종 접두어 추가)
     if (diseaseMap[trimmed]) {
-      return NextResponse.json({ valid: true, englishQuery: diseaseMap[trimmed] });
+      return NextResponse.json({ valid: true, englishQuery: withPetPrefix(diseaseMap[trimmed]) });
     }
 
     // 2) diseaseMap 부분 매치 — 입력이 키를 포함하는 경우만 (가장 긴 키부터)
     const sortedKeys = Object.keys(diseaseMap).sort((a, b) => b.length - a.length);
     for (const key of sortedKeys) {
       if (trimmed.includes(key)) {
-        return NextResponse.json({ valid: true, englishQuery: diseaseMap[key] });
+        return NextResponse.json({ valid: true, englishQuery: withPetPrefix(diseaseMap[key]) });
       }
     }
 
