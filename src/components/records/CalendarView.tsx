@@ -253,19 +253,6 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                   }}
                 />
               )}
-              {/* Hospitalization bar bottom accent */}
-              {hospInfo && (
-                <div
-                  className="absolute bottom-0 left-0 right-0 h-[3px]"
-                  style={{
-                    backgroundColor: isSelected ? 'white' : hospInfo.color,
-                    borderTopLeftRadius: hospInfo.roundLeft ? '2px' : '0',
-                    borderTopRightRadius: hospInfo.roundRight ? '2px' : '0',
-                    borderBottomLeftRadius: hospInfo.roundLeft ? '2px' : '0',
-                    borderBottomRightRadius: hospInfo.roundRight ? '2px' : '0',
-                  }}
-                />
-              )}
               <span
                 className={`relative z-10 text-sm leading-none ${
                   isSelected

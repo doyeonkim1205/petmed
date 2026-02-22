@@ -113,21 +113,30 @@ export default function RecordAddPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { router.push('/login'); return; }
-    if (!petId) { setError('반려동물을 선택해주세요.'); return; }
-    if (!title.trim()) { setError('제목을 입력해주세요.'); return; }
+    const showError = (msg: string) => {
+      setError(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    if (!petId) { showError('반려동물을 선택해주세요.'); return; }
+    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목';
+    if (!title.trim()) { showError(`${titleLabel}을 입력해주세요.`); return; }
     if (dischargeDate && dischargeDate < visitDate) {
-      setError('퇴원일은 입원일 이후여야 합니다.'); return;
+      showError('퇴원일은 입원일 이후여야 합니다.'); return;
     }
     if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-      setError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+      showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+    }
+    const emptyNameMed = medications.find(m => !m.name.trim());
+    if (emptyNameMed) {
+      showError('약 이름을 입력해주세요.'); return;
     }
     const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
     if (noEndMed) {
-      setError(`투약 종료일을 선택해주세요. (${noEndMed.name || '약 이름 없음'})`); return;
+      showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
     }
     const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
     if (badMed) {
-      setError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name || '약 이름 없음'})`); return;
+      showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
     }
 
     setSaving(true);
@@ -203,7 +212,7 @@ export default function RecordAddPage() {
         <h1 className="text-sm font-semibold text-gray-700">기록 추가</h1>
         <button
           onClick={handleSubmit}
-          disabled={saving || !title.trim() || !petId}
+          disabled={saving}
           className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
         >
           {saving ? '저장 중...' : '저장'}
