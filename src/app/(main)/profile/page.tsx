@@ -617,14 +617,19 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleLogout = () => {
-    // Clear auth localStorage FIRST (synchronous, guaranteed)
+    // Clear auth + app data from localStorage
     try {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') && key.includes('auth')) {
           localStorage.removeItem(key);
         }
       });
+      // 검색 기록 + 앱 캐시 초기화
+      localStorage.removeItem('recentSearches');
+      localStorage.removeItem('pawdex_translation_cache');
     } catch {}
+    // Clear session storage (검색 결과 캐시)
+    try { sessionStorage.clear(); } catch {}
     // Full page reload — AuthContext.init() will find no session → show login
     window.location.href = '/';
   };

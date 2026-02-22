@@ -43,7 +43,7 @@ function SearchContent() {
   const [searchKey, setSearchKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [remainingCount, setRemainingCount] = useState<number | null>(null);
+  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
 
@@ -57,7 +57,7 @@ function SearchContent() {
     retry: () => { setCachedPubmed(null); },
   } : pubmed;
 
-  // Fetch remaining count on mount
+  // Fetch usage info on mount and after search
   useEffect(() => {
     const fetchUsage = async () => {
       try {
@@ -65,7 +65,7 @@ function SearchContent() {
         const res = await authFetch('/api/search-usage');
         if (res.ok) {
           const data = await res.json();
-          setRemainingCount(data.remaining);
+          setUsageInfo({ used: data.used, limit: data.limit, plan: data.plan });
         }
       } catch {}
     };
@@ -190,13 +190,17 @@ function SearchContent() {
             </button>
           </div>
         </form>
-        {/* Remaining count badge */}
-        {remainingCount !== null && (
+        {/* Usage count badge */}
+        {usageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
               isPremium ? 'bg-purple-50 text-purple-500' : 'bg-gray-50 text-gray-400'
             }`}>
-              {isPremium ? `이번 달 ${remainingCount}회 남음` : `오늘 ${remainingCount}회 남음`}
+              {isPremium ? (
+                <><Crown size={10} /> Premium {usageInfo.used}/{usageInfo.limit}</>
+              ) : (
+                <>Free {usageInfo.used}/{usageInfo.limit}</>
+              )}
             </span>
           </div>
         )}
@@ -265,28 +269,32 @@ function SearchContent() {
               </div>
             ) : (
               <>
-                {/* Save button + Premium badge (for premium users with results) */}
-                {hasResults && (
-                  <div className="flex items-center justify-between">
-                    {isPremium && (
-                      <span className="flex items-center gap-1 text-[10px] text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full">
-                        <Sparkles size={10} /> Premium
-                      </span>
-                    )}
-                    {isPremium && (
-                      <button
-                        onClick={handleSaveAnalysis}
-                        disabled={saving || saved}
-                        className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-colors ${
-                          saved
-                            ? 'bg-green-50 text-green-600'
-                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                        }`}
-                      >
-                        <Bookmark size={12} />
-                        {saved ? '저장됨' : saving ? '저장 중...' : '논문 저장'}
-                      </button>
-                    )}
+                {/* Save button (premium) or promo banner (free) */}
+                {hasResults && isPremium && (
+                  <div className="flex items-center justify-end">
+                    <button
+                      onClick={handleSaveAnalysis}
+                      disabled={saving || saved}
+                      className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-colors ${
+                        saved
+                          ? 'bg-green-50 text-green-600'
+                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      }`}
+                    >
+                      <Bookmark size={12} />
+                      {saved ? '저장됨' : saving ? '저장 중...' : '논문 저장'}
+                    </button>
+                  </div>
+                )}
+                {hasResults && !isPremium && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Crown size={13} className="text-purple-500" />
+                      <p className="text-xs font-bold text-gray-600">프리미엄 구독 시</p>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      AI 분석 전체 열람 · 주의사항/성분 확인 · 논문 저장 · 월 50회 검색
+                    </p>
                   </div>
                 )}
 

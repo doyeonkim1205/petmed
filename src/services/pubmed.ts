@@ -39,19 +39,18 @@ export async function searchPubMed(
   const strictQuery = `(${query}) AND ${petFilter} AND ${vetFilter} AND ${dateFilter} AND ${qualityFilter}`;
   let ids = await esearch(strictQuery, maxResults);
 
-  // 2단계: 중간 검색 — 연도/논문타입 제한 해제
-  if (ids.length < maxResults) {
-    const mediumQuery = `(${query}) AND ${petFilter} AND ${vetFilter}`;
-    const mediumIds = await esearch(mediumQuery, maxResults);
-    ids = deduplicateMerge(ids, mediumIds, maxResults);
-  }
+  // 1단계에서 결과가 있으면 그대로 사용 (관련성 높은 결과 우선)
+  if (ids.length > 0) return ids;
 
-  // 3단계: 완화 검색 — 수의학 제한도 해제
-  if (ids.length < maxResults) {
-    const broadQuery = `(${query}) AND ${petFilter}`;
-    const broadIds = await esearch(broadQuery, maxResults);
-    ids = deduplicateMerge(ids, broadIds, maxResults);
-  }
+  // 2단계: 중간 검색 — 연도/논문타입 제한 해제 (1단계 결과 0건일 때만)
+  const mediumQuery = `(${query}) AND ${petFilter} AND ${vetFilter}`;
+  ids = await esearch(mediumQuery, maxResults);
+
+  if (ids.length > 0) return ids;
+
+  // 3단계: 완화 검색 — 수의학 제한도 해제 (2단계도 0건일 때만)
+  const broadQuery = `(${query}) AND ${petFilter}`;
+  ids = await esearch(broadQuery, maxResults);
 
   return ids;
 }
