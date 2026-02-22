@@ -32,18 +32,3 @@ export async function analyzePapers(
   return await res.json();
 }
 
-// Document analysis types
-export interface DocumentAnalysisResult {
-  hospital_name: string | null;
-  visit_date: string | null;
-  diagnosis: string | null;
-  treatments: string[];
-  medications: {
-    name: string;
-    dosage: string | null;
-    frequency: string | null;
-    duration: string | null;
-  }[];
-  cost: number | null;
-  summary: string;
-}

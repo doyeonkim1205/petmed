@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Sparkles, Loader2, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { FileUploader } from '@/components/records/FileUploader';
-import { FileAnalysisResult } from '@/components/records/FileAnalysisResult';
 import { ColorPicker } from '@/components/records/ColorPicker';
-import { DocumentAnalysisResult } from '@/services/openai';
 import { uploadFile, saveFileRecord } from '@/services/fileUpload';
 
 const recordTypes = [
@@ -62,8 +60,6 @@ export default function RecordAddPage() {
   const [dischargeDate, setDischargeDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
-  const [analysisResult, setAnalysisResult] = useState<DocumentAnalysisResult | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -79,59 +75,6 @@ export default function RecordAddPage() {
         if (petList.length > 0) setPetId(petList[0].id);
       });
   }, [user]);
-
-  const handleAnalyze = async () => {
-    if (files.length === 0) return;
-    setAnalyzing(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', files[0]);
-
-      const { authFetch } = await import('@/lib/authFetch');
-      const res = await authFetch('/api/analyze-document', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('AI 분석 실패');
-
-      const result: DocumentAnalysisResult = await res.json();
-      setAnalysisResult(result);
-    } catch (err) {
-      setError('AI 분석 중 오류가 발생했습니다. 직접 입력해주세요.');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const applyAnalysis = (result: DocumentAnalysisResult) => {
-    if (result.hospital_name) setHospitalName(result.hospital_name);
-    if (result.visit_date) setVisitDate(result.visit_date);
-    if (result.cost != null) setCost(String(result.cost));
-    if (result.diagnosis) setTitle(result.diagnosis);
-    if (result.summary) setDescription(result.summary);
-    if (result.medications.length > 0) {
-      setMedications(
-        result.medications.map((m) => {
-          const freq = m.frequency || '1일 1회';
-          const opt = frequencyOptions.find(f => f.value === freq);
-          const times = opt ? defaultAlarmTimes[opt.times] : ['09:00'];
-          return {
-            name: m.name,
-            dosage: m.dosage || '',
-            start_date: visitDate,
-            end_date: '',
-            frequency: freq,
-            color: '#3B82F6',
-            alarm_enabled: true,
-            alarm_times: times,
-          };
-        })
-      );
-    }
-  };
 
   const addMedicationRow = () => {
     setMedications([
@@ -199,7 +142,6 @@ export default function RecordAddPage() {
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        ai_summary: analysisResult?.summary || undefined,
         color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : recordColor,
         discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
@@ -217,7 +159,6 @@ export default function RecordAddPage() {
             file_path: path,
             file_type: file.type,
             file_size: file.size,
-            ai_analysis: analysisResult ? JSON.stringify(analysisResult) : undefined,
           });
         } catch (err) {
           console.error('File upload error:', err);
@@ -318,23 +259,6 @@ export default function RecordAddPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium">첨부 파일</label>
           <FileUploader files={files} onFilesChange={setFiles} maxFiles={3} />
-          {files.length > 0 && (recordType === 'visit' || recordType === 'hospitalization') && !analysisResult && (
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={analyzing}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-[#fff] rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-            >
-              {analyzing ? (
-                <><Loader2 size={16} className="animate-spin" /> AI 분석 중...</>
-              ) : (
-                <><Sparkles size={16} /> AI 분석하기</>
-              )}
-            </button>
-          )}
-          {analysisResult && (
-            <FileAnalysisResult result={analysisResult} onApply={applyAnalysis} />
-          )}
         </div>
 
         {/* Title */}
