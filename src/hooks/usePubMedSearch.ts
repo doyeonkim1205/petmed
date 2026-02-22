@@ -48,7 +48,7 @@ async function checkAndLogSearch(query: string, petType: string): Promise<{
 /**
  * 검증 + 번역을 하나의 API 호출로 처리
  */
-async function validateAndTranslate(query: string): Promise<{
+async function validateAndTranslate(query: string, petType: 'cat' | 'dog'): Promise<{
   valid: boolean;
   reason?: string;
   englishQuery?: string;
@@ -58,7 +58,7 @@ async function validateAndTranslate(query: string): Promise<{
     const res = await authFetch('/api/validate-and-translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, petType }),
     });
     if (!res.ok) return { valid: false, reason: '검색어 검증에 실패했습니다.' };
     return await res.json();
@@ -102,9 +102,9 @@ export function usePubMedSearch(
     }
     setPlan(usage.plan);
 
-    // Step 1: 검증 + 번역 (하나의 API 호출)
+    // Step 1: 검증 + 번역 (하나의 API 호출, 동물종 포함)
     setStep('validating');
-    const result = await validateAndTranslate(diseaseName);
+    const result = await validateAndTranslate(diseaseName, petType);
     if (!result.valid || !result.englishQuery) {
       setError(result.reason || '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.');
       setLoading(false);

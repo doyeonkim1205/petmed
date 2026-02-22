@@ -617,15 +617,13 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleLogout = () => {
-    // Clear auth + app data from localStorage
+    // Clear auth data from localStorage (검색 기록은 사용자별로 유지)
     try {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') && key.includes('auth')) {
           localStorage.removeItem(key);
         }
       });
-      // 검색 기록 + 앱 캐시 초기화
-      localStorage.removeItem('recentSearches');
       localStorage.removeItem('pawdex_translation_cache');
     } catch {}
     // Clear session storage (검색 결과 캐시)
@@ -741,7 +739,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Bookmark size={18} className="text-blue-400" />
-            <span className="text-sm">내가 본 논문</span>
+            <span className="text-sm">저장한 분석</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>

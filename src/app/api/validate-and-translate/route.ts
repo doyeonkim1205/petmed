@@ -25,12 +25,14 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
 
-    const { query } = await request.json();
+    const { query, petType } = await request.json();
     if (!query || query.trim().length < 1) {
       return NextResponse.json(REJECT);
     }
 
     const trimmed = query.trim();
+    const pet = petType === 'dog' ? 'dog' : 'cat';
+    const petLabel = pet === 'dog' ? '강아지' : '고양이';
 
     // 0) 금지어 체크 (OpenAI 호출 전, 비용 0원)
     if (checkBannedWords(trimmed)) {
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4) OpenAI로 검증 + 번역을 한 번에 처리
+    // 4) OpenAI로 검증 + 번역을 한 번에 처리 (동물 종 포함)
     if (!OPENAI_API_KEY) {
       return NextResponse.json(REJECT);
     }
@@ -74,9 +76,10 @@ export async function POST(request: NextRequest) {
           {
             role: 'system',
             content: `너는 수의학 전문 검색 필터 겸 PubMed MeSH 용어 번역가야.
+현재 검색 대상 동물: ${petLabel}
 
-사용자 입력이 강아지/고양이의 질병, 증상, 건강 문제, 수의학 용어인지 판단하고,
-유효하면 PubMed MeSH(Medical Subject Headings) 표준 용어로 번역해.
+사용자 입력이 ${petLabel}의 질병, 증상, 건강 문제, 수의학 용어인지 판단하고,
+유효하면 ${petLabel}에 특화된 PubMed MeSH(Medical Subject Headings) 표준 용어로 번역해.
 
 반드시 JSON으로만 응답:
 - 유효: {"valid": true, "englishQuery": "MeSH 표준 영문 용어"}
@@ -94,10 +97,13 @@ valid: false 기준 (차단):
 확실히 동물 건강/의학 관련일 때만 valid: true. 애매하면 false.
 
 englishQuery 번역 규칙:
-- 반드시 PubMed MeSH(Medical Subject Headings)에 등재된 공식 용어로 번역
-- 일반 영단어가 아닌 정확한 의학 용어 사용 (예: 구토→"Vomiting", 피부염→"Dermatitis", 슬개골탈구→"Patellar Luxation")
-- 약어보다 정식 명칭 우선 (예: CKD→"Chronic Kidney Disease")
-- 수의학 특화 질병은 동물명 포함 (예: 고양이전염성복막염→"Feline Infectious Peritonitis")`,
+- 반드시 ${petLabel}에 가장 흔한/관련성 높은 질병명으로 번역
+  예시: 고양이+심장병→"Feline Hypertrophic Cardiomyopathy", 강아지+심장병→"Canine Heart Disease"
+  예시: 고양이+감기→"Feline Upper Respiratory Infection", 강아지+감기→"Kennel Cough"
+- PubMed MeSH에 등재된 공식 용어 사용
+- 포괄적 용어보다 ${petLabel} 특화된 구체적 용어 우선
+- ${pet === 'cat' ? 'feline' : 'canine'} 접두어를 적극 활용
+- 약어보다 정식 명칭 우선`,
           },
           {
             role: 'user',

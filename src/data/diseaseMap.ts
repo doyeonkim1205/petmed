@@ -60,16 +60,16 @@ export const diseaseMap: Record<string, string> = {
   // 호흡기
   '기관 허탈': 'tracheal collapse',
   '기침': 'cough',
-  '천식': 'asthma',
+  // '천식' — GPT가 petType에 따라 feline asthma vs canine 특화 용어로 번역
   '상부 호흡기 감염': 'upper respiratory infection',
 
   // 심혈관
   '심장사상충': 'heartworm disease',
-  '심장병': 'heart disease',
+  // '심장병' — GPT가 petType에 따라 feline/canine 특화 용어로 번역
 
   // 간
-  '간질환': 'liver disease',
   '지방간': 'hepatic lipidosis',
+  // '간질환' — GPT가 petType에 따라 특화 용어로 번역
 
   // 신경
   '간질': 'epilepsy',

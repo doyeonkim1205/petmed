@@ -21,8 +21,9 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const isPremium = profile?.plan === 'premium';
+  const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches';
 
   const [cached] = useState(() => {
     if (initialQuery) return null;
@@ -74,14 +75,15 @@ function SearchContent() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('recentSearches');
+      const saved = localStorage.getItem(storageKey);
       if (saved) setRecentSearches(JSON.parse(saved));
+      else setRecentSearches([]);
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   const saveHistory = (searches: string[]) => {
     setRecentSearches(searches);
-    localStorage.setItem('recentSearches', JSON.stringify(searches));
+    localStorage.setItem(storageKey, JSON.stringify(searches));
   };
 
   useEffect(() => {
@@ -101,14 +103,14 @@ function SearchContent() {
       const found = mockDiseases.find(d => d.name.includes(initialQuery));
       setMockResult(found || null);
       try {
-        const saved = localStorage.getItem('recentSearches');
+        const saved = localStorage.getItem(storageKey);
         const existing: string[] = saved ? JSON.parse(saved) : [];
         const updated = [initialQuery, ...existing.filter(s => s !== initialQuery)].slice(0, 10);
-        localStorage.setItem('recentSearches', JSON.stringify(updated));
+        localStorage.setItem(storageKey, JSON.stringify(updated));
         setRecentSearches(updated);
       } catch {}
     }
-  }, [initialQuery]);
+  }, [initialQuery, storageKey]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,7 +256,7 @@ function SearchContent() {
                       <Crown size={16} className="text-purple-500" />
                       <p className="text-sm font-bold text-gray-700">프리미엄으로 업그레이드</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">월 50회 검색 + AI 분석 전체 열람 + 논문 저장</p>
+                    <p className="text-xs text-gray-500 mb-3">월 50회 검색 + AI 분석 전체 열람 + 분석 저장</p>
                     <button className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium">
                       월 ₩3,900 구독하기
                     </button>
@@ -282,7 +284,7 @@ function SearchContent() {
                       }`}
                     >
                       <Bookmark size={12} />
-                      {saved ? '저장됨' : saving ? '저장 중...' : '논문 저장'}
+                      {saved ? '저장됨' : saving ? '저장 중...' : '분석 저장'}
                     </button>
                   </div>
                 )}
@@ -293,7 +295,7 @@ function SearchContent() {
                       <p className="text-xs font-bold text-gray-600">프리미엄 구독 시</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 분석 전체 열람 · 주의사항/성분 확인 · 논문 저장 · 월 50회 검색
+                      AI 분석 전체 열람 · 주의사항/성분 확인 · 분석 저장 · 월 50회 검색
                     </p>
                   </div>
                 )}

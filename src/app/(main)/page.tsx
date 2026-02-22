@@ -13,6 +13,9 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
 
+  // 사용자별 최근 검색어 localStorage 키
+  const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches';
+
   // Fetch pets to set initial petType
   useEffect(() => {
     if (!user) return;
@@ -27,13 +30,14 @@ export default function HomePage() {
     fetchPets();
   }, [user]);
 
-  // Load recent searches
+  // Load recent searches (사용자별)
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('recentSearches');
+      const saved = localStorage.getItem(storageKey);
       if (saved) setRecentSearches(JSON.parse(saved).slice(0, 5));
+      else setRecentSearches([]);
     } catch {}
-  }, []);
+  }, [storageKey]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +47,10 @@ export default function HomePage() {
 
   const saveAndNavigate = (term: string) => {
     try {
-      const saved = localStorage.getItem('recentSearches');
+      const saved = localStorage.getItem(storageKey);
       const existing: string[] = saved ? JSON.parse(saved) : [];
       const updated = [term, ...existing.filter(s => s !== term)].slice(0, 10);
-      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      localStorage.setItem(storageKey, JSON.stringify(updated));
       setRecentSearches(updated.slice(0, 5));
     } catch {}
     router.push(`/search?q=${encodeURIComponent(term)}&pet=${petType}`);
@@ -54,10 +58,10 @@ export default function HomePage() {
 
   const removeRecentSearch = (term: string) => {
     try {
-      const saved = localStorage.getItem('recentSearches');
+      const saved = localStorage.getItem(storageKey);
       const existing: string[] = saved ? JSON.parse(saved) : [];
       const updated = existing.filter(s => s !== term);
-      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      localStorage.setItem(storageKey, JSON.stringify(updated));
       setRecentSearches(updated.slice(0, 5));
     } catch {}
   };
