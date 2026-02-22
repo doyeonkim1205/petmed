@@ -3,11 +3,23 @@
 import { useState, useEffect } from 'react';
 import { Pill, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
-import { Medication, MedicationCheck } from '@/lib/supabase';
+import { MedicationCheck } from '@/lib/supabase';
 
 interface MedicationCheckListProps {
   petId?: string;
   date?: string;
+}
+
+const DOSE_LABELS: Record<number, string[]> = {
+  1: ['복용'],
+  2: ['아침', '저녁'],
+  3: ['아침', '점심', '저녁'],
+};
+
+function parseDoseCount(frequency: string): number {
+  if (frequency.includes('3회')) return 3;
+  if (frequency.includes('2회')) return 2;
+  return 1;
 }
 
 export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
@@ -41,13 +53,13 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
     }
   };
 
-  const handleToggle = async (medicationId: string) => {
+  const handleToggle = async (medicationId: string, doseNumber: number) => {
     const isChecked = checks.some(
-      (c) => c.medication_id === medicationId && c.checked
+      (c) => c.medication_id === medicationId && c.dose_number === doseNumber && c.checked
     );
 
     try {
-      await toggleCheck(medicationId, today, !isChecked);
+      await toggleCheck(medicationId, today, !isChecked, doseNumber);
       const newChecks = await getChecksForDate(today);
       setChecks(newChecks);
     } catch (error) {
@@ -65,9 +77,9 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
 
   if (medications.length === 0) return null;
 
-  const checkedCount = medications.filter((med) =>
-    checks.some((c) => c.medication_id === med.id && c.checked)
-  ).length;
+  // Total dose slots and checked count
+  const totalDoses = medications.reduce((sum, med) => sum + parseDoseCount(med.frequency), 0);
+  const checkedCount = checks.filter((c) => c.checked).length;
 
   return (
     <div className="px-4 py-3">
@@ -83,45 +95,74 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
           </h4>
         </div>
         <span className="text-xs text-gray-400">
-          {checkedCount}/{medications.length} 완료
+          {checkedCount}/{totalDoses} 완료
         </span>
       </div>
 
       <div className="space-y-2">
         {medications.map((med) => {
-          const isChecked = checks.some(
-            (c) => c.medication_id === med.id && c.checked
-          );
+          const doseCount = parseDoseCount(med.frequency);
+          const labels = DOSE_LABELS[doseCount] || DOSE_LABELS[1];
+          const petName = med.health_records?.pets?.name;
+
           return (
-            <button
-              key={med.id}
-              onClick={() => handleToggle(med.id)}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
-                isChecked
-                  ? 'bg-green-50 border border-green-200'
-                  : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
-              }`}
-            >
-              <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  isChecked
-                    ? 'bg-green-500 border-green-500 text-[#fff]'
-                    : 'border-gray-300'
-                }`}
-              >
-                {isChecked && <Check size={14} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                  {med.name}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {med.dosage && `${med.dosage} `}
-                  {med.frequency}
-                  {med.health_records?.pets?.name && ` - ${med.health_records.pets.name}`}
-                </p>
-              </div>
-            </button>
+            <div key={med.id} className="space-y-1.5">
+              {/* Medication name header (only if multi-dose) */}
+              {doseCount > 1 && (
+                <div className="flex items-center gap-2 px-1">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: med.color || '#3B82F6' }} />
+                  <span className="text-xs font-medium text-gray-500">
+                    {med.name}
+                    {med.dosage && ` ${med.dosage}`}
+                    {petName && ` - ${petName}`}
+                  </span>
+                </div>
+              )}
+              {labels.map((label, doseIdx) => {
+                const isChecked = checks.some(
+                  (c) => c.medication_id === med.id && c.dose_number === doseIdx && c.checked
+                );
+                return (
+                  <button
+                    key={`${med.id}-${doseIdx}`}
+                    onClick={() => handleToggle(med.id, doseIdx)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
+                      isChecked
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isChecked
+                          ? 'bg-green-500 border-green-500 text-[#fff]'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      {isChecked && <Check size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {doseCount === 1 ? (
+                        <>
+                          <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                            {med.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {med.dosage && `${med.dosage} `}
+                            {med.frequency}
+                            {petName && ` - ${petName}`}
+                          </p>
+                        </>
+                      ) : (
+                        <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                          {label}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </div>

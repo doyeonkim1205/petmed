@@ -43,6 +43,7 @@ export default function MapPage() {
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
 
   // 1. Load Kakao Maps SDK
   useEffect(() => {
@@ -112,10 +113,14 @@ export default function MapPage() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => createMap(pos.coords.latitude, pos.coords.longitude),
-        () => createMap(DEFAULT_LAT, DEFAULT_LNG),
-        { timeout: 5000, enableHighAccuracy: false }
+        () => {
+          setLocationFailed(true);
+          createMap(DEFAULT_LAT, DEFAULT_LNG);
+        },
+        { timeout: 10000, enableHighAccuracy: true }
       );
     } else {
+      setLocationFailed(true);
       createMap(DEFAULT_LAT, DEFAULT_LNG);
     }
   }, []);
@@ -278,6 +283,7 @@ export default function MapPage() {
   // Recenter
   const handleRecenter = () => {
     if (!navigator.geolocation || !mapInstance.current) return;
+    setLocationFailed(false);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -286,8 +292,10 @@ export default function MapPage() {
         mapInstance.current.setLevel(5);
         searchNearby(latitude, longitude);
       },
-      () => {},
-      { timeout: 5000 }
+      () => {
+        setLocationFailed(true);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
@@ -382,8 +390,26 @@ export default function MapPage() {
         })}
       </div>
 
+      {/* Location failed notice */}
+      {locationFailed && mapReady && (
+        <div className="absolute top-28 left-3 right-3 z-10">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <span className="text-orange-500 text-xs">📍</span>
+            <p className="text-xs text-orange-600 flex-1">
+              현재 위치를 가져올 수 없어 기본 위치로 표시됩니다. 위치 권한을 허용해주세요.
+            </p>
+            <button
+              onClick={() => setLocationFailed(false)}
+              className="text-orange-400 hover:text-orange-600 flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* "이 지역 검색" 버튼 */}
-      {showResearch && (
+      {showResearch && !locationFailed && (
         <div className="absolute top-28 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={handleResearchArea}

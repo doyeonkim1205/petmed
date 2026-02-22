@@ -17,11 +17,12 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 export function CalendarView({ records, onDateSelect, selectedDate }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
 
-  // Build dot map, appointment dates, and medication map
-  const { dotMap, appointmentDates, medicationMap } = useMemo(() => {
+  // Build dot map, appointment dates, medication map, and hospitalization range map
+  const { dotMap, appointmentDates, medicationMap, hospMap } = useMemo(() => {
     const dots: Record<string, string[]> = {};
     const appointments = new Map<string, string>(); // dateKey → color
     const medMap: Record<string, { name: string; dosage?: string; frequency: string; color: string }[]> = {};
+    const hosp: Record<string, { color: string; roundLeft: boolean; roundRight: boolean }> = {};
 
     const addDot = (dateKey: string, color: string) => {
       if (!dots[dateKey]) dots[dateKey] = [];
@@ -36,22 +37,43 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
     };
 
     for (const record of records) {
-      // Record visit_date dot
+      // Record visit_date dot (non-hospitalization only; hospitalization uses bar)
       const visitKey = record.visit_date.split('T')[0];
       const recordColor = record.color || '#3B82F6';
-      addDot(visitKey, recordColor);
+
+      if (record.record_type === 'hospitalization') {
+        // Build hospitalization range bar
+        const startDate = new Date(visitKey);
+        const endDate = record.discharge_date
+          ? new Date(record.discharge_date.split('T')[0])
+          : new Date(); // 입원 중이면 오늘까지
+        const barColor = recordColor;
+
+        let d = new Date(startDate);
+        while (d <= endDate) {
+          const dateKey = format(d, 'yyyy-MM-dd');
+          const isStart = isSameDay(d, startDate);
+          const isEnd = isSameDay(d, endDate);
+          const dayOfWeek = d.getDay();
+          const isRowStart = dayOfWeek === 0;
+          const isRowEnd = dayOfWeek === 6;
+
+          hosp[dateKey] = {
+            color: barColor,
+            roundLeft: isStart || isRowStart,
+            roundRight: isEnd || isRowEnd,
+          };
+          d = addDays(d, 1);
+        }
+      } else {
+        addDot(visitKey, recordColor);
+      }
 
       // Next appointment date with its own color
       if (record.next_appointment_date) {
         const apptKey = record.next_appointment_date.split('T')[0];
         const apptColor = record.next_appointment_color || '#8B5CF6';
         appointments.set(apptKey, apptColor);
-      }
-
-      // Discharge date dot
-      if (record.discharge_date) {
-        const dischargeKey = record.discharge_date.split('T')[0];
-        addDot(dischargeKey, '#10B981');
       }
 
       // Medications: spread across date range
@@ -74,7 +96,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
       }
     }
 
-    return { dotMap: dots, appointmentDates: appointments, medicationMap: medMap };
+    return { dotMap: dots, appointmentDates: appointments, medicationMap: medMap, hospMap: hosp };
   }, [records]);
 
   // Build record map for selected date details
@@ -199,14 +221,17 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
           const isCurrentMonth = isSameMonth(d, currentMonth);
           const isTodayDate = isToday(d);
           const dayOfWeek = d.getDay();
+          const hospInfo = hospMap[dateKey];
 
           return (
             <button
               key={dateKey}
               onClick={() => onDateSelect(d)}
-              className={`relative flex flex-col items-center justify-center h-11 rounded-xl transition-all ${
+              className={`relative flex flex-col items-center justify-center h-11 transition-all ${
+                hospInfo ? '' : 'rounded-xl'
+              } ${
                 isSelected
-                  ? 'bg-blue-600 text-[#fff]'
+                  ? hospInfo ? 'text-[#fff]' : 'bg-blue-600 text-[#fff]'
                   : isTodayDate
                   ? 'bg-blue-50 text-blue-600'
                   : isCurrentMonth
@@ -215,8 +240,34 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               }`}
               style={isAppointment && !isSelected ? { outline: `2px dashed ${appointmentColor}`, outlineOffset: '-2px', borderRadius: '12px' } : undefined}
             >
+              {/* Hospitalization bar */}
+              {hospInfo && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundColor: isSelected ? '#2563EB' : `${hospInfo.color}20`,
+                    borderTopLeftRadius: hospInfo.roundLeft ? '8px' : '0',
+                    borderBottomLeftRadius: hospInfo.roundLeft ? '8px' : '0',
+                    borderTopRightRadius: hospInfo.roundRight ? '8px' : '0',
+                    borderBottomRightRadius: hospInfo.roundRight ? '8px' : '0',
+                  }}
+                />
+              )}
+              {/* Hospitalization bar bottom accent */}
+              {hospInfo && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-[3px]"
+                  style={{
+                    backgroundColor: isSelected ? 'white' : hospInfo.color,
+                    borderTopLeftRadius: hospInfo.roundLeft ? '2px' : '0',
+                    borderTopRightRadius: hospInfo.roundRight ? '2px' : '0',
+                    borderBottomLeftRadius: hospInfo.roundLeft ? '2px' : '0',
+                    borderBottomRightRadius: hospInfo.roundRight ? '2px' : '0',
+                  }}
+                />
+              )}
               <span
-                className={`text-sm leading-none ${
+                className={`relative z-10 text-sm leading-none ${
                   isSelected
                     ? 'font-bold'
                     : isTodayDate
@@ -234,7 +285,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               </span>
               {/* Multi-color dots */}
               {dots.length > 0 && (
-                <div className="absolute bottom-0.5 flex gap-[2px]">
+                <div className="absolute bottom-0.5 flex gap-[2px] z-10">
                   {dots.slice(0, 4).map((color, i) => (
                     <span
                       key={i}

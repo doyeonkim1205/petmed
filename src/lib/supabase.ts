@@ -104,6 +104,7 @@ export interface MedicationCheck {
   check_date: string;
   checked: boolean;
   checked_at?: string;
+  dose_number: number;
 }
 
 export interface RecordFile {

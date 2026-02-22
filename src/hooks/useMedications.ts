@@ -123,7 +123,7 @@ export function useMedications() {
     return data || [];
   }, [user]);
 
-  const toggleCheck = async (medicationId: string, date: string, checked: boolean) => {
+  const toggleCheck = async (medicationId: string, date: string, checked: boolean, doseNumber: number = 0) => {
     if (!user) throw new Error('로그인이 필요합니다');
 
     if (checked) {
@@ -135,7 +135,8 @@ export function useMedications() {
           check_date: date,
           checked: true,
           checked_at: new Date().toISOString(),
-        }, { onConflict: 'medication_id,check_date' });
+          dose_number: doseNumber,
+        }, { onConflict: 'medication_id,check_date,dose_number' });
 
       if (error) throw error;
     } else {
@@ -144,6 +145,7 @@ export function useMedications() {
         .delete()
         .eq('medication_id', medicationId)
         .eq('check_date', date)
+        .eq('dose_number', doseNumber)
         .eq('user_id', user.id);
 
       if (error) throw error;
