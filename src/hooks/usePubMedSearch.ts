@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   searchPubMed,
   fetchArticleSummaries,
+  fetchAbstract,
   ArticleSummary,
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult } from '@/services/openai';
@@ -123,24 +124,43 @@ export function usePubMedSearch(
         return;
       }
 
-      // Step 3: 논문 정보 가져오기
+      // Step 3: 논문 정보 + 초록 가져오기
       setStep('fetching');
       const summaries = await fetchArticleSummaries(pmids);
-      setArticles(summaries);
+
+      // 초록을 병렬로 가져오기 (AI 분석 정확도 향상)
+      const abstracts = await Promise.all(
+        summaries.map(async (s) => {
+          try {
+            return await fetchAbstract(s.pmid);
+          } catch {
+            return '';
+          }
+        })
+      );
+
+      // 초록 정보를 summaries에 합침
+      const enrichedSummaries = summaries.map((s, i) => ({
+        ...s,
+        abstract: abstracts[i] || undefined,
+      }));
+
+      setArticles(enrichedSummaries);
       setLoading(false);
 
-      // Step 4: AI 분석 (백그라운드)
+      // Step 4: AI 분석 (백그라운드) — 초록 포함
       setStep('analyzing');
       setAnalysisLoading(true);
       try {
         const aiResult = await analyzePapers(
           diseaseName,
           petType,
-          summaries.map((s) => ({
+          enrichedSummaries.map((s) => ({
             pmid: s.pmid,
             title: s.title,
             journal: s.journal,
             pubDate: s.pubDate,
+            abstract: s.abstract,
           })),
         );
         setAnalysis(aiResult);

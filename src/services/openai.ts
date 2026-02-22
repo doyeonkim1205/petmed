@@ -15,7 +15,7 @@ export interface AiAnalysisResult {
 export async function analyzePapers(
   diseaseName: string,
   petType: 'cat' | 'dog',
-  papers: { pmid: string; title: string; journal: string; pubDate: string }[],
+  papers: { pmid: string; title: string; journal: string; pubDate: string; abstract?: string }[],
 ): Promise<AiAnalysisResult> {
   const { authFetch } = await import('@/lib/authFetch');
   const res = await authFetch('/api/analyze-papers', {
