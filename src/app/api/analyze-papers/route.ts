@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
 규칙:
 - titles: 각 논문의 영문 제목을 자연스러운 한국어로 번역. 논문 수와 동일한 개수.
-- summaries: ${hasAbstracts ? '초록 내용을 기반으로' : '논문 제목을 기반으로'} 각 논문을 ${petLabel} 보호자가 이해할 수 있게 한국어 2-3문장으로 요약. 논문 수와 동일한 개수. ${hasAbstracts ? '초록의 구체적 수치, 결과, 결론을 포함.' : ''} relevant=false인 논문은 요약 첫 줄에 "⚠️ 이 논문은 ${diseaseName}를 직접적으로 다루지 않습니다."를 붙여.
+- summaries: ${hasAbstracts ? '초록 내용을 기반으로' : '논문 제목을 기반으로'} 각 논문을 ${petLabel} 보호자가 이해할 수 있게 한국어 2-3문장으로 요약. 논문 수와 동일한 개수. ${hasAbstracts ? '초록의 구체적 수치, 결과, 결론을 포함.' : ''}
 - precautions: relevant=true 논문들을 종합하여 ${petLabel}의 "${diseaseName}"에 대한 주의사항/대처방법 최대 5개. 여러 논문 공통 내용 우선. 구체적이고 실용적인 조언.
 - ingredients: relevant=true 논문에서 언급된 도움되는 성분/영양소/치료물질 최대 5개. "성분명 (한국어 설명)" 형식.
 - 논문 초록/제목에 직접적 근거 없는 내용은 절대 포함 금지. 추측이나 일반 상식으로 채우지 마.`,

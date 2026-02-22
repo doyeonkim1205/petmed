@@ -113,9 +113,9 @@ export function usePubMedSearch(
     }
 
     try {
-      // Step 2: PubMed 검색
+      // Step 2: PubMed 검색 — 10편 가져와서 AI가 관련 논문 5편 선별
       setStep('searching');
-      const pmids = await searchPubMed(result.englishQuery, petType, 5);
+      const pmids = await searchPubMed(result.englishQuery, petType, 10);
 
       if (pmids.length === 0) {
         setArticles([]);
@@ -145,10 +145,7 @@ export function usePubMedSearch(
         abstract: abstracts[i] || undefined,
       }));
 
-      setArticles(enrichedSummaries);
-      setLoading(false);
-
-      // Step 4: AI 분석 (백그라운드) — 초록 포함
+      // Step 4: AI 분석 — 10편 분석 후 관련 논문만 필터링
       setStep('analyzing');
       setAnalysisLoading(true);
       try {
@@ -163,10 +160,36 @@ export function usePubMedSearch(
             abstract: s.abstract,
           })),
         );
-        setAnalysis(aiResult);
+
+        // 관련 논문만 필터링 (최대 5편)
+        const relevantIndices = aiResult.relevant
+          .map((r, i) => (r ? i : -1))
+          .filter((i) => i >= 0)
+          .slice(0, 5);
+
+        if (relevantIndices.length >= 2) {
+          // 관련 논문이 2편 이상이면 관련 논문만 표시
+          const filteredArticles = relevantIndices.map((i) => enrichedSummaries[i]);
+          const filteredAnalysis: AiAnalysisResult = {
+            titles: relevantIndices.map((i) => aiResult.titles[i]),
+            summaries: relevantIndices.map((i) => aiResult.summaries[i]),
+            relevant: relevantIndices.map(() => true),
+            precautions: aiResult.precautions,
+            ingredients: aiResult.ingredients,
+          };
+          setArticles(filteredArticles);
+          setAnalysis(filteredAnalysis);
+        } else {
+          // 관련 논문이 1편 이하면 전체 표시 (검색 결과가 적은 경우)
+          setArticles(enrichedSummaries.slice(0, 5));
+          setAnalysis(aiResult);
+        }
       } catch (aiErr) {
         console.error('[AI 분석 실패]', aiErr);
+        // AI 실패 시 원본 5편 그대로 표시
+        setArticles(enrichedSummaries.slice(0, 5));
       } finally {
+        setLoading(false);
         setAnalysisLoading(false);
         setStep('done');
       }
