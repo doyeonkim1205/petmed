@@ -12,10 +12,10 @@ export interface ArticleSummary {
 /**
  * PubMed esearch — 검색어로 PMID 목록 조회
  *
- * 검색 전략 (3단계 폴백):
- * 1. 엄격 검색: 질병 + 동물종 + 수의학 + 최근 10년 + 리뷰/임상시험 우선
- * 2. 중간 검색: 질병 + 동물종 + 수의학 (연도/논문타입 제한 없음)
- * 3. 완화 검색: 질병 + 동물종 (수의학 제한도 해제)
+ * 검색 전략 (3단계 폴백) — 질병명이 제목/초록에 직접 등장하는 논문 우선:
+ * 1. 엄격: 질병명이 제목에 등장 + 동물종 + 최근 10년
+ * 2. 중간: 질병명이 제목/초록에 등장 + 동물종
+ * 3. 완화: 자유 텍스트 검색 + 동물종
  */
 export async function searchPubMed(
   query: string,
@@ -26,29 +26,21 @@ export async function searchPubMed(
     ? '(cat OR cats OR feline OR kitten)'
     : '(dog OR dogs OR canine OR puppy)';
 
-  const vetFilter = '(veterinary OR "animal model" OR "companion animal")';
-
-  // 최근 10년 필터 (정확한 PubMed 날짜 구문)
+  // 최근 10년 필터
   const currentYear = new Date().getFullYear();
   const dateFilter = `("${currentYear - 10}"[PDAT]:"${currentYear}"[PDAT])`;
 
-  // 고품질 논문 타입 필터
-  const qualityFilter = '(Review[pt] OR Meta-Analysis[pt] OR Systematic Review[pt] OR Clinical Trial[pt] OR Randomized Controlled Trial[pt])';
-
-  // 1단계: 엄격 검색 — 질병 + 동물종 + 수의학 + 최근 10년 + 논문타입
-  const strictQuery = `(${query}) AND ${petFilter} AND ${vetFilter} AND ${dateFilter} AND ${qualityFilter}`;
+  // 1단계: 질병명이 논문 제목에 직접 등장 + 동물종 + 최근 10년
+  const strictQuery = `(${query}[Title]) AND ${petFilter} AND ${dateFilter}`;
   let ids = await esearch(strictQuery, maxResults);
-
-  // 1단계에서 결과가 있으면 그대로 사용 (관련성 높은 결과 우선)
   if (ids.length > 0) return ids;
 
-  // 2단계: 중간 검색 — 연도/논문타입 제한 해제 (1단계 결과 0건일 때만)
-  const mediumQuery = `(${query}) AND ${petFilter} AND ${vetFilter}`;
+  // 2단계: 질병명이 제목 또는 초록에 등장 + 동물종
+  const mediumQuery = `(${query}[Title/Abstract]) AND ${petFilter}`;
   ids = await esearch(mediumQuery, maxResults);
-
   if (ids.length > 0) return ids;
 
-  // 3단계: 완화 검색 — 수의학 제한도 해제 (2단계도 0건일 때만)
+  // 3단계: 자유 텍스트 검색 + 동물종 (희귀 질병 등 폴백)
   const broadQuery = `(${query}) AND ${petFilter}`;
   ids = await esearch(broadQuery, maxResults);
 

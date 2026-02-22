@@ -58,19 +58,25 @@ export async function POST(request: NextRequest) {
             content: `너는 수의학 논문 분석 전문가야. 사용자가 제공하는 PubMed 논문 정보${hasAbstracts ? '(초록 포함)' : ''}를 바탕으로 반드시 아래 JSON 형식으로만 응답해.
 
 {
-  "titles": ["논문1 제목 한국어 번역", "논문2 제목 한국어 번역", ...],
-  "summaries": ["논문1 요약", "논문2 요약", ...],
-  "precautions": ["주의사항1", "주의사항2", ...],
-  "ingredients": ["성분1", "성분2", ...]
+  "titles": ["논문1 제목 한국어 번역", ...],
+  "summaries": ["논문1 요약", ...],
+  "relevant": [true, false, ...],
+  "precautions": ["주의사항1", ...],
+  "ingredients": ["성분1", ...]
 }
 
+★ 관련성 판단 (가장 중요):
+- relevant: 각 논문이 "${diseaseName}"을 직접적으로 다루는 논문인지 true/false 배열.
+  - true: 논문의 주제 자체가 "${diseaseName}"의 진단, 치료, 예후, 관리에 관한 것
+  - false: "${diseaseName}"을 단순 언급만 하거나, 간접적으로 관련되거나, 다른 주제의 논문
+- precautions와 ingredients는 relevant=true인 논문에서만 추출해. relevant=false 논문의 내용은 무시해.
+
 규칙:
-- titles: 각 논문의 영문 제목을 자연스러운 한국어로 번역. 반드시 논문 수와 동일한 개수로 작성.
-- summaries: ${hasAbstracts ? '초록 내용을 기반으로' : '논문 제목을 기반으로'} 각 논문을 ${petLabel} 보호자가 이해할 수 있게 한국어 2-3문장으로 개별 요약. 반드시 논문 수와 동일한 개수로 작성. ${hasAbstracts ? '초록에 언급된 구체적인 수치, 결과, 결론을 포함하여 정확하게 요약해.' : ''}
-- precautions: 모든 논문을 종합하여 ${petLabel}의 "${diseaseName}"에 대한 가장 신뢰할 수 있는 주의사항과 대처방법을 최대 5개 추출. 여러 논문에서 공통으로 언급되는 내용 우선. 각 항목은 구체적이고 실용적인 조언이어야 함.
-- ingredients: 논문들에서 언급된 도움이 되는 성분, 영양소, 치료 물질을 최대 5개 추출. "성분명 (한국어 설명)" 형식.
-- 논문 초록이나 제목에 직접적 근거가 없는 내용은 절대 포함하지 마. 추측하거나 일반 상식으로 채우지 마.
-- "${diseaseName}"와 직접 관련 없는 논문이 포함된 경우, 해당 논문의 summary에 "이 논문은 ${diseaseName}와 직접적 관련이 적습니다"라고 명시해.`,
+- titles: 각 논문의 영문 제목을 자연스러운 한국어로 번역. 논문 수와 동일한 개수.
+- summaries: ${hasAbstracts ? '초록 내용을 기반으로' : '논문 제목을 기반으로'} 각 논문을 ${petLabel} 보호자가 이해할 수 있게 한국어 2-3문장으로 요약. 논문 수와 동일한 개수. ${hasAbstracts ? '초록의 구체적 수치, 결과, 결론을 포함.' : ''} relevant=false인 논문은 요약 첫 줄에 "⚠️ 이 논문은 ${diseaseName}를 직접적으로 다루지 않습니다."를 붙여.
+- precautions: relevant=true 논문들을 종합하여 ${petLabel}의 "${diseaseName}"에 대한 주의사항/대처방법 최대 5개. 여러 논문 공통 내용 우선. 구체적이고 실용적인 조언.
+- ingredients: relevant=true 논문에서 언급된 도움되는 성분/영양소/치료물질 최대 5개. "성분명 (한국어 설명)" 형식.
+- 논문 초록/제목에 직접적 근거 없는 내용은 절대 포함 금지. 추측이나 일반 상식으로 채우지 마.`,
           },
           {
             role: 'user',
@@ -95,6 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       titles: parsed.titles ?? [],
       summaries: parsed.summaries ?? [],
+      relevant: parsed.relevant ?? [],
       precautions: (parsed.precautions ?? []).slice(0, 5),
       ingredients: (parsed.ingredients ?? []).slice(0, 5),
     });

@@ -31,10 +31,11 @@ function AccordionItem({ article, index, analysis, analysisLoading }: {
   analysis: UsePubMedSearchResult['analysis'];
   analysisLoading: boolean;
 }) {
-  const [isOpen, setIsOpen] = React.useState(index === 0);
+  const isRelevant = analysis?.relevant?.[index] !== false;
+  const [isOpen, setIsOpen] = React.useState(index === 0 && isRelevant);
 
   return (
-    <div className="border-b border-gray-50 last:border-b-0">
+    <div className={`border-b border-gray-50 last:border-b-0 ${!isRelevant && !analysisLoading ? 'opacity-50' : ''}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-start gap-2 py-3 text-left"

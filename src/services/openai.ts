@@ -3,6 +3,8 @@ export interface AiAnalysisResult {
   titles: string[];
   /** 논문별 한국어 요약 (각 1-2문장) */
   summaries: string[];
+  /** 논문별 관련성 (true=직접 관련, false=간접/무관) */
+  relevant: boolean[];
   /** 주의사항 & 대처방법 (최대 5개) */
   precautions: string[];
   /** 도움되는 성분 (최대 5개) */
