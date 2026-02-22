@@ -2,19 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search as SearchIcon, X } from 'lucide-react';
+import { Search as SearchIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Pet } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function HomePage() {
   const [query, setQuery] = useState('');
   const [petType, setPetType] = useState<'cat' | 'dog'>('dog');
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const router = useRouter();
   const { user } = useAuth();
-
-  // 사용자별 최근 검색어 localStorage 키 (비로그인 시 null → 검색어 안 보임)
-  const storageKey = user ? `recentSearches_${user.id}` : null;
 
   // Fetch pets to set initial petType
   useEffect(() => {
@@ -30,45 +26,12 @@ export default function HomePage() {
     fetchPets();
   }, [user]);
 
-  // Load recent searches (사용자별, 비로그인 시 안 보임)
-  useEffect(() => {
-    if (!storageKey) { setRecentSearches([]); return; }
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) setRecentSearches(JSON.parse(saved).slice(0, 5));
-      else setRecentSearches([]);
-    } catch {}
-  }, [storageKey]);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    saveAndNavigate(query.trim());
+    router.push(`/search?q=${encodeURIComponent(query.trim())}&pet=${petType}`);
   };
 
-  const saveAndNavigate = (term: string) => {
-    if (storageKey) {
-      try {
-        const saved = localStorage.getItem(storageKey);
-        const existing: string[] = saved ? JSON.parse(saved) : [];
-        const updated = [term, ...existing.filter(s => s !== term)].slice(0, 10);
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        setRecentSearches(updated.slice(0, 5));
-      } catch {}
-    }
-    router.push(`/search?q=${encodeURIComponent(term)}&pet=${petType}`);
-  };
-
-  const removeRecentSearch = (term: string) => {
-    if (!storageKey) return;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      const existing: string[] = saved ? JSON.parse(saved) : [];
-      const updated = existing.filter(s => s !== term);
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      setRecentSearches(updated.slice(0, 5));
-    } catch {}
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
@@ -104,32 +67,6 @@ export default function HomePage() {
         </div>
       </form>
 
-      {/* Recent Searches */}
-      {recentSearches.length > 0 && (
-        <div className="mt-4 w-full max-w-sm">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 justify-center flex-wrap">
-            {recentSearches.map((term) => (
-              <div
-                key={term}
-                className="flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200 pl-3 pr-1.5 py-1 text-xs text-gray-500 flex-shrink-0"
-              >
-                <button
-                  onClick={() => saveAndNavigate(term)}
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  {term}
-                </button>
-                <button
-                  onClick={() => removeRecentSearch(term)}
-                  className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
