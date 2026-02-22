@@ -13,8 +13,8 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  // 사용자별 최근 검색어 localStorage 키
-  const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches';
+  // 사용자별 최근 검색어 localStorage 키 (비로그인 시 null → 검색어 안 보임)
+  const storageKey = user ? `recentSearches_${user.id}` : null;
 
   // Fetch pets to set initial petType
   useEffect(() => {
@@ -30,8 +30,9 @@ export default function HomePage() {
     fetchPets();
   }, [user]);
 
-  // Load recent searches (사용자별)
+  // Load recent searches (사용자별, 비로그인 시 안 보임)
   useEffect(() => {
+    if (!storageKey) { setRecentSearches([]); return; }
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) setRecentSearches(JSON.parse(saved).slice(0, 5));
@@ -46,17 +47,20 @@ export default function HomePage() {
   };
 
   const saveAndNavigate = (term: string) => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      const existing: string[] = saved ? JSON.parse(saved) : [];
-      const updated = [term, ...existing.filter(s => s !== term)].slice(0, 10);
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      setRecentSearches(updated.slice(0, 5));
-    } catch {}
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        const existing: string[] = saved ? JSON.parse(saved) : [];
+        const updated = [term, ...existing.filter(s => s !== term)].slice(0, 10);
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+        setRecentSearches(updated.slice(0, 5));
+      } catch {}
+    }
     router.push(`/search?q=${encodeURIComponent(term)}&pet=${petType}`);
   };
 
   const removeRecentSearch = (term: string) => {
+    if (!storageKey) return;
     try {
       const saved = localStorage.getItem(storageKey);
       const existing: string[] = saved ? JSON.parse(saved) : [];

@@ -7,7 +7,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const REJECT = {
   valid: false,
-  reason: '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요. (예: 구토, 슬개골 탈구, 피부염)',
+  reason: '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.',
 };
 
 const BANNED = {

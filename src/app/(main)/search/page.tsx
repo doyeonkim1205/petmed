@@ -23,7 +23,7 @@ function SearchContent() {
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const { user, profile } = useAuth();
   const isPremium = profile?.plan === 'premium';
-  const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches';
+  const storageKey = user ? `recentSearches_${user.id}` : null;
 
   const [cached] = useState(() => {
     if (initialQuery) return null;
@@ -74,6 +74,7 @@ function SearchContent() {
   }, [pubmed.step]);
 
   useEffect(() => {
+    if (!storageKey) { setRecentSearches([]); return; }
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) setRecentSearches(JSON.parse(saved));
@@ -83,7 +84,7 @@ function SearchContent() {
 
   const saveHistory = (searches: string[]) => {
     setRecentSearches(searches);
-    localStorage.setItem(storageKey, JSON.stringify(searches));
+    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(searches));
   };
 
   useEffect(() => {
@@ -102,19 +103,28 @@ function SearchContent() {
     if (initialQuery) {
       const found = mockDiseases.find(d => d.name.includes(initialQuery));
       setMockResult(found || null);
-      try {
-        const saved = localStorage.getItem(storageKey);
-        const existing: string[] = saved ? JSON.parse(saved) : [];
-        const updated = [initialQuery, ...existing.filter(s => s !== initialQuery)].slice(0, 10);
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        setRecentSearches(updated);
-      } catch {}
+      if (storageKey) {
+        try {
+          const saved = localStorage.getItem(storageKey);
+          const existing: string[] = saved ? JSON.parse(saved) : [];
+          const updated = [initialQuery, ...existing.filter(s => s !== initialQuery)].slice(0, 10);
+          localStorage.setItem(storageKey, JSON.stringify(updated));
+          setRecentSearches(updated);
+        } catch {}
+      }
     }
   }, [initialQuery, storageKey]);
+
+  const [loginRequired, setLoginRequired] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    if (!user) {
+      setLoginRequired(true);
+      return;
+    }
+    setLoginRequired(false);
     const q = query.trim();
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
     saveHistory(updated);
@@ -210,10 +220,29 @@ function SearchContent() {
 
       {/* Content Area */}
       <div className="flex-1 px-4 pb-4">
-        {!hasSearched ? (
+        {/* Login required message */}
+        {loginRequired && (
+          <div className="max-w-sm mx-auto mt-6 text-center py-10">
+            <Lock size={32} className="mx-auto mb-3 text-gray-300" />
+            <p className="text-sm text-gray-600 font-medium mb-1">로그인 후 이용할 수 있습니다</p>
+            <p className="text-xs text-gray-400 mb-4">AI 논문 검색은 로그인이 필요합니다</p>
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
+            >
+              로그인하기
+            </button>
+          </div>
+        )}
+        {!hasSearched && !loginRequired ? (
           <div className="max-w-sm mx-auto mt-6">
-            <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>
-            {recentSearches.length === 0 ? (
+            {user && <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>}
+            {!user ? (
+              <div className="text-center mt-10 text-gray-400">
+                <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
+                <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
+              </div>
+            ) : recentSearches.length === 0 ? (
               <p className="text-sm text-gray-400">검색기록이 없습니다.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -229,12 +258,14 @@ function SearchContent() {
                 ))}
               </div>
             )}
-            <div className="mt-10 text-center text-gray-400">
-              <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
-              <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
-            </div>
+            {user && (
+              <div className="mt-10 text-center text-gray-400">
+                <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
+                <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
+              </div>
+            )}
           </div>
-        ) : (
+        ) : !loginRequired ? (
           <div className="max-w-sm mx-auto space-y-5">
             {displayPubmed.step !== 'idle' && displayPubmed.step !== 'done' && (
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50">
@@ -266,8 +297,7 @@ function SearchContent() {
             ) : displayPubmed.error && displayPubmed.step === 'done' ? (
               <div className="text-center py-12">
                 <AlertTriangle size={32} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm text-gray-500 mb-1">{displayPubmed.error}</p>
-                <p className="text-xs text-gray-300">예: 구토, 슬개골 탈구, 피부염, 기침, 설사</p>
+                <p className="text-sm text-gray-500">{displayPubmed.error}</p>
               </div>
             ) : (
               <>
@@ -385,7 +415,7 @@ function SearchContent() {
               </>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
