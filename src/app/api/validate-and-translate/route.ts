@@ -130,10 +130,7 @@ englishQuery 번역 규칙:
       });
     }
 
-    return NextResponse.json({
-      valid: false,
-      reason: parsed.reason || REJECT.reason,
-    });
+    return NextResponse.json(REJECT);
   } catch {
     return NextResponse.json(REJECT);
   }
