@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Clock } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -58,6 +58,7 @@ function SearchContent() {
     error: null,
     retry: () => { setCachedPubmed(null); },
     diseaseDescription: cachedPubmed.diseaseDescription || null,
+    isCached: false,
   } : pubmed;
 
   // Fetch usage info on mount and after search
@@ -292,6 +293,16 @@ function SearchContent() {
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50">
                 <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
                 <p className="text-xs text-gray-500">{stepMessages[displayPubmed.step]}</p>
+              </div>
+            )}
+
+            {/* Cached result indicator */}
+            {displayPubmed.isCached && hasResults && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                <Clock size={13} className="text-gray-400 flex-shrink-0" />
+                <p className="text-[11px] text-gray-400">
+                  이전에 분석된 결과예요. 24시간마다 최신 논문으로 업데이트됩니다.
+                </p>
               </div>
             )}
 

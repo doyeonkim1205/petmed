@@ -23,6 +23,7 @@ export interface UsePubMedSearchResult {
   limitReached?: boolean;
   plan?: string;
   diseaseDescription: DiseaseDescription | null;
+  isCached: boolean;
 }
 
 /**
@@ -140,6 +141,7 @@ export function usePubMedSearch(
   const [limitReached, setLimitReached] = useState(false);
   const [plan, setPlan] = useState<string | undefined>();
   const [diseaseDescription, setDiseaseDescription] = useState<DiseaseDescription | null>(null);
+  const [isCached, setIsCached] = useState(false);
 
   const fetchArticles = useCallback(async () => {
     if (!diseaseName) return;
@@ -150,6 +152,7 @@ export function usePubMedSearch(
     setArticles([]);
     setLimitReached(false);
     setDiseaseDescription(null);
+    setIsCached(false);
 
     // Step 1: 검증 + 번역을 먼저 수행 (무효한 검색어는 횟수 차감하지 않음)
     setStep('validating');
@@ -161,18 +164,7 @@ export function usePubMedSearch(
       return;
     }
 
-    // Step 1.5: 캐시 확인 (24시간 이내 동일 검색어)
-    const cached = await checkCache(diseaseName, petType);
-    if (cached && cached.articles && cached.articles.length > 0) {
-      setArticles(cached.articles as ArticleSummary[]);
-      setAnalysis(cached.analysis as AiAnalysisResult | null);
-      setDiseaseDescription(cached.disease_description as DiseaseDescription | null);
-      setLoading(false);
-      setStep('done');
-      return;
-    }
-
-    // Step 0: 검증 통과 후 횟수 차감 (캐시 히트 시 차감하지 않음)
+    // Step 2: 검증 통과 후 횟수 차감 (캐시 여부와 무관하게 항상 차감)
     const usage = await checkAndLogSearch(diseaseName, petType);
     if (!usage.allowed) {
       setError(usage.reason || '검색 횟수를 초과했습니다.');
@@ -183,6 +175,18 @@ export function usePubMedSearch(
       return;
     }
     setPlan(usage.plan);
+
+    // Step 3: 캐시 확인 (24시간 이내 동일 검색어 → 즉시 반환)
+    const cached = await checkCache(diseaseName, petType);
+    if (cached && cached.articles && cached.articles.length > 0) {
+      setArticles(cached.articles as ArticleSummary[]);
+      setAnalysis(cached.analysis as AiAnalysisResult | null);
+      setDiseaseDescription(cached.disease_description as DiseaseDescription | null);
+      setIsCached(true);
+      setLoading(false);
+      setStep('done');
+      return;
+    }
 
     // 질병 설명을 병렬로 가져오기 (논문 검색과 동시 실행)
     const descriptionPromise = fetchDiseaseDescription(diseaseName, petType).catch(() => null);
@@ -307,5 +311,6 @@ export function usePubMedSearch(
     limitReached,
     plan,
     diseaseDescription,
+    isCached,
   };
 }
