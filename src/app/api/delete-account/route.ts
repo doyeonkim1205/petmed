@@ -78,6 +78,15 @@ export async function POST(request: Request) {
 
     // Delete user data in order (foreign key safe)
     const userId = user.id;
+
+    // Cancel active subscriptions before deleting
+    await adminClient.from('subscriptions')
+      .update({ status: 'canceled', canceled_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    await adminClient.from('payment_history').delete().eq('user_id', userId);
+    await adminClient.from('subscriptions').delete().eq('user_id', userId);
     await adminClient.from('medication_checks').delete().eq('user_id', userId);
     await adminClient.from('medications').delete().eq('user_id', userId);
     await adminClient.from('record_files').delete().eq('user_id', userId);

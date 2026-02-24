@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Types for database tables
-export type UserPlan = 'free' | 'premium';
+export type UserPlan = 'free' | 'basic' | 'premium';
 
 export interface Profile {
   id: string;
@@ -117,5 +117,30 @@ export interface RecordFile {
   file_type: string;
   file_size: number;
   ai_analysis?: string;
+  created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  plan: UserPlan;
+  status: 'active' | 'canceled' | 'expired';
+  toss_customer_key?: string;
+  toss_billing_key?: string;
+  period_start: string;
+  period_end: string;
+  canceled_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentHistory {
+  id: string;
+  user_id: string;
+  toss_payment_key: string;
+  toss_order_id: string;
+  amount: number;
+  status: 'done' | 'canceled' | 'refunded';
+  receipt_url?: string;
   created_at: string;
 }

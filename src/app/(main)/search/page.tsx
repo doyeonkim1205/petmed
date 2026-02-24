@@ -23,6 +23,7 @@ function SearchContent() {
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const { user, profile } = useAuth();
+  const isPaid = profile?.plan === 'basic' || profile?.plan === 'premium';
   const isPremium = profile?.plan === 'premium';
   const storageKey = user ? `recentSearches_${user.id}` : null;
 
@@ -161,7 +162,7 @@ function SearchContent() {
   };
 
   const handleSaveAnalysis = async () => {
-    if (!isPremium || saving || saved) return;
+    if (!isPaid || saving || saved) return;
     setSaving(true);
     try {
       const { authFetch } = await import('@/lib/authFetch');
@@ -194,7 +195,7 @@ function SearchContent() {
   const hasSearched = searchTerm !== null;
   const hasResults = displayPubmed.articles.length > 0 && displayPubmed.step === 'done';
   const desc = displayPubmed.diseaseDescription;
-  const showBottomBar = hasResults && isPremium;
+  const showBottomBar = hasResults && isPaid;
 
   return (
     <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
@@ -228,10 +229,12 @@ function SearchContent() {
         {usageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
             <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPremium ? 'bg-purple-50 text-purple-500' : 'bg-gray-50 text-gray-400'
+              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
             }`}>
               {isPremium ? (
                 <><Crown size={10} /> Premium {usageInfo.used}/{usageInfo.limit}</>
+              ) : isPaid ? (
+                <><Sparkles size={10} /> Basic {usageInfo.used}/{usageInfo.limit}</>
               ) : (
                 <>Free {usageInfo.used}/{usageInfo.limit}</>
               )}
@@ -346,15 +349,18 @@ function SearchContent() {
                   <Lock size={24} className="text-gray-400" />
                 </div>
                 <p className="text-sm text-gray-600 font-medium mb-1">{displayPubmed.error}</p>
-                {!isPremium && (
+                {!isPaid && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
-                      <p className="text-sm font-bold text-gray-700">프리미엄으로 업그레이드</p>
+                      <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">월 50회 검색 + AI 분석 전체 열람 + 보관하기</p>
-                    <button className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium">
-                      월 ₩3,900 구독하기
+                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 + AI 분석 전체 열람 + 보관하기</p>
+                    <button
+                      onClick={() => window.location.href = '/pricing'}
+                      className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                    >
+                      요금제 보기
                     </button>
                   </div>
                 )}
@@ -366,14 +372,14 @@ function SearchContent() {
               </div>
             ) : (
               <>
-                {hasResults && !isPremium && (
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                {hasResults && !isPaid && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/pricing'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">프리미엄 구독 시</p>
+                      <p className="text-xs font-bold text-gray-600">구독하고 모든 기능 이용하기</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 분석 전체 열람 · 주의사항/성분 확인 · 보관하기 · 월 50회 검색
+                      AI 분석 전체 열람 · 주의사항/성분 확인 · 보관하기 · 더 많은 검색
                     </p>
                   </div>
                 )}
@@ -386,13 +392,16 @@ function SearchContent() {
 
                 {/* AI Analysis sections — blur for free users */}
                 <div className="relative">
-                  {!isPremium && hasResults && (
+                  {!isPaid && hasResults && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
                       <Lock size={28} className="text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-600 mb-1">AI 분석은 프리미엄 전용</p>
+                      <p className="text-sm font-medium text-gray-600 mb-1">AI 분석은 유료 플랜 전용</p>
                       <p className="text-xs text-gray-400 mb-3">주의사항, 성분 분석을 확인하세요</p>
-                      <button className="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium">
-                        프리미엄 구독하기
+                      <button
+                        onClick={() => window.location.href = '/pricing'}
+                        className="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
+                      >
+                        요금제 보기
                       </button>
                     </div>
                   )}

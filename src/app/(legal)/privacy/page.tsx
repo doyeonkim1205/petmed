@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">개인정보처리방침</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 20일</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 24일</p>
 
       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
         PawDex(이하 &quot;서비스&quot;)는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.
@@ -24,6 +24,7 @@ export default function PrivacyPage() {
       <Section title="2. 수집하는 개인정보 항목">
         <p><strong>필수 항목:</strong> 이메일 주소, 비밀번호(해시 처리), 닉네임</p>
         <p><strong>선택 항목:</strong> 프로필 사진, 반려동물 정보(이름, 종류, 품종, 생년월일), 건강 기록(증상, 진료 내용, 투약 정보)</p>
+        <p><strong>결제 정보:</strong> 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리)</p>
         <p><strong>자동 수집 항목:</strong> 서비스 이용 기록, 접속 로그, 기기 정보</p>
         <p><strong>소셜 로그인 시:</strong> Google 또는 카카오 계정의 이메일 주소, 프로필 사진(선택)</p>
       </Section>
@@ -71,6 +72,11 @@ export default function PrivacyPage() {
               <td className="py-2">AI 기반 논문 분석 및 건강 정보 요약</td>
               <td className="py-2">미국</td>
             </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">토스페이먼츠(주)</td>
+              <td className="py-2">결제 처리 및 정산</td>
+              <td className="py-2">대한민국</td>
+            </tr>
           </tbody>
         </table>
       </Section>
@@ -91,13 +97,23 @@ export default function PrivacyPage() {
           <li>삭제 요구</li>
           <li>처리정지 요구</li>
         </ul>
-        <p>권리 행사는 앱 내 프로필 설정 또는 이메일(help@pawdex.com)을 통해 가능합니다.</p>
+        <p>권리 행사는 앱 내 프로필 설정 또는 이메일(<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>)을 통해 가능합니다.</p>
       </Section>
 
-      <Section title="8. 개인정보 보호책임자">
+      <Section title="8. 개인정보 침해사고 대응">
+        <p>서비스는 개인정보 침해사고 발생 시 다음과 같이 대응합니다.</p>
         <ul>
-          <li>담당자: PawDex 개인정보보호 담당</li>
-          <li>이메일: help@pawdex.com</li>
+          <li><strong>24시간 이내:</strong> 침해사고 탐지 및 차단 조치</li>
+          <li><strong>72시간 이내:</strong> 해당 이용자에게 침해 사실, 유출 항목, 대응 조치를 통지</li>
+          <li>개인정보보호위원회 및 한국인터넷진흥원(KISA)에 지체 없이 신고</li>
+          <li>피해 최소화를 위한 비밀번호 변경 권고 및 추가 보안 조치 시행</li>
+        </ul>
+      </Section>
+
+      <Section title="9. 개인정보 보호책임자">
+        <ul>
+          <li>담당자: 김도연 (디와이랩스 대표)</li>
+          <li>이메일: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
         </ul>
         <p>개인정보 침해에 대한 신고·상담은 아래 기관에 문의하실 수 있습니다.</p>
         <ul>
@@ -106,7 +122,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="9. 개인정보의 안전성 확보 조치">
+      <Section title="10. 개인정보의 안전성 확보 조치">
         <p>서비스는 개인정보의 안전성 확보를 위해 다음 조치를 취하고 있습니다.</p>
         <ul>
           <li>모든 데이터 전송 시 HTTPS(TLS) 암호화 적용</li>
@@ -117,7 +133,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="10. 개인정보처리방침의 변경">
+      <Section title="11. 개인정보처리방침의 변경">
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
     </article>

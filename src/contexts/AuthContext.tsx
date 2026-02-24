@@ -16,6 +16,7 @@ interface AuthContextType {
   signInWithKakao: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -251,6 +252,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.signOut({ scope: 'global' }).catch(() => {});
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    const freshProfile = await fetchProfile(user.id);
+    setProfile(freshProfile);
+  };
+
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
@@ -277,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user, profile, session, loading,
-        signUp, signIn, signInWithGoogle, signInWithKakao, signOut, updateProfile,
+        signUp, signIn, signInWithGoogle, signInWithKakao, signOut, updateProfile, refreshProfile,
       }}
     >
       {children}

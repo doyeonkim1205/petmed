@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getPlanConfig } from '@/lib/plans';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST: Save an analysis (premium only)
+ * POST: Save an analysis (basic + premium)
  */
 export async function POST(request: NextRequest) {
   const auth = await verifyAuth(request);
@@ -43,11 +44,29 @@ export async function POST(request: NextRequest) {
     .eq('id', userId)
     .single();
 
-  if (profile?.plan !== 'premium') {
+  const plan = profile?.plan || 'free';
+  const config = getPlanConfig(plan);
+
+  if (config.maxSavedAnalyses === 0 && plan === 'free') {
     return NextResponse.json(
-      { error: '프리미엄 구독자만 논문을 저장할 수 있습니다.' },
+      { error: '유료 구독자만 논문을 저장할 수 있습니다.' },
       { status: 403 },
     );
+  }
+
+  // Check limit for basic plan
+  if (config.maxSavedAnalyses > 0) {
+    const { count } = await supabaseAdmin
+      .from('saved_analyses')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if ((count || 0) >= config.maxSavedAnalyses) {
+      return NextResponse.json(
+        { error: `저장 한도(${config.maxSavedAnalyses}개)에 도달했습니다. 업그레이드하여 더 많은 분석을 저장하세요.` },
+        { status: 403 },
+      );
+    }
   }
 
   const { query, petType, articles, analysis } = await request.json();

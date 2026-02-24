@@ -8,6 +8,7 @@ import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Trash, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
+  CreditCard, MapPin, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -710,6 +711,10 @@ export default function ProfilePage() {
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">
               <Crown size={10} /> Premium
             </span>
+          ) : profile?.plan === 'basic' ? (
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+              <Heart size={10} /> Basic
+            </span>
           ) : (
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full">
               Free
@@ -770,6 +775,20 @@ export default function ProfilePage() {
         <div className="border-t border-gray-100 my-2" />
 
         <Link
+          href="/pricing"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <CreditCard size={18} className="text-blue-400" />
+            <span className="text-sm">요금제 관리</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100 my-2" />
+
+        <Link
           href="/terms"
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
@@ -787,6 +806,39 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 text-gray-600">
             <Shield size={18} className="text-gray-400" />
             <span className="text-sm">개인정보처리방침</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
+
+        <Link
+          href="/refund"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <CreditCard size={18} className="text-gray-400" />
+            <span className="text-sm">환불 정책</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
+
+        <Link
+          href="/location-terms"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <MapPin size={18} className="text-gray-400" />
+            <span className="text-sm">위치기반서비스 이용약관</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
+
+        <Link
+          href="/business"
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <Building2 size={18} className="text-gray-400" />
+            <span className="text-sm">사업자 정보</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
@@ -815,8 +867,13 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="py-8 text-center text-xs text-gray-300">
-        PawDex v1.0.0
+      <div className="py-8 px-6 text-center space-y-1">
+        <p className="text-xs text-gray-300">PawDex v1.0.0</p>
+        <div className="text-[10px] text-gray-300 leading-relaxed">
+          <p>디와이랩스(DYLabs) | 대표: 김도연</p>
+          <p>사업자등록번호: 769-77-00552</p>
+          <p>dylabs.pawdex@gmail.com</p>
+        </div>
       </div>
 
       {/* Modals */}

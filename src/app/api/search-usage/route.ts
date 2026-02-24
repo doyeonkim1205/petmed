@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getPlanConfig } from '@/lib/plans';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
-
-const FREE_DAILY_LIMIT = 3;
-const PREMIUM_MONTHLY_LIMIT = 50;
 
 /**
  * GET: Check remaining search count for the user
@@ -18,7 +16,6 @@ export async function GET(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
-  // Get user plan
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('plan')
@@ -26,48 +23,27 @@ export async function GET(request: NextRequest) {
     .single();
 
   const plan = profile?.plan || 'free';
-  const isPremium = plan === 'premium';
+  const config = getPlanConfig(plan);
+  const dailyLimit = config.searchPerDay;
 
-  if (isPremium) {
-    // Count this month's searches
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+  // Count today's searches
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
 
-    const { count } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', startOfMonth.toISOString());
+  const { count } = await supabaseAdmin
+    .from('search_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', startOfDay.toISOString());
 
-    const used = count || 0;
-    return NextResponse.json({
-      plan,
-      limit: PREMIUM_MONTHLY_LIMIT,
-      used,
-      remaining: Math.max(0, PREMIUM_MONTHLY_LIMIT - used),
-      period: 'month',
-    });
-  } else {
-    // Count today's searches
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const { count } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', startOfDay.toISOString());
-
-    const used = count || 0;
-    return NextResponse.json({
-      plan,
-      limit: FREE_DAILY_LIMIT,
-      used,
-      remaining: Math.max(0, FREE_DAILY_LIMIT - used),
-      period: 'day',
-    });
-  }
+  const used = count || 0;
+  return NextResponse.json({
+    plan,
+    limit: dailyLimit,
+    used,
+    remaining: Math.max(0, dailyLimit - used),
+    period: 'day',
+  });
 }
 
 /**
@@ -80,7 +56,6 @@ export async function POST(request: NextRequest) {
 
   const { query, petType } = await request.json();
 
-  // Get user plan
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('plan')
@@ -88,44 +63,25 @@ export async function POST(request: NextRequest) {
     .single();
 
   const plan = profile?.plan || 'free';
-  const isPremium = plan === 'premium';
+  const config = getPlanConfig(plan);
+  const dailyLimit = config.searchPerDay;
 
-  // Check limit
-  if (isPremium) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+  // Count today's searches
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
 
-    const { count } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', startOfMonth.toISOString());
+  const { count } = await supabaseAdmin
+    .from('search_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', startOfDay.toISOString());
 
-    if ((count || 0) >= PREMIUM_MONTHLY_LIMIT) {
-      return NextResponse.json({
-        allowed: false,
-        reason: `이번 달 검색 횟수(${PREMIUM_MONTHLY_LIMIT}회)를 모두 사용했습니다.`,
-        plan,
-      });
-    }
-  } else {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const { count } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', startOfDay.toISOString());
-
-    if ((count || 0) >= FREE_DAILY_LIMIT) {
-      return NextResponse.json({
-        allowed: false,
-        reason: `오늘의 무료 검색 횟수(${FREE_DAILY_LIMIT}회)를 모두 사용했습니다.`,
-        plan,
-      });
-    }
+  if ((count || 0) >= dailyLimit) {
+    return NextResponse.json({
+      allowed: false,
+      reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'free' ? ' 업그레이드하여 더 많은 검색을 이용하세요.' : ''}`,
+      plan,
+    });
   }
 
   // Log the search
