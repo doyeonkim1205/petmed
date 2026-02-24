@@ -91,7 +91,9 @@ export default function RecordAddPage() {
     } else {
       setTitle(''); setDescription(''); setHospitalName(''); setCost('');
       setSymptomTime(''); setDischargeDate(''); setNextAppointmentDate('');
-      setNextAppointmentColor('#8B5CF6'); setRecordColor('#3B82F6'); setMedications([]);
+      setNextAppointmentColor('#8B5CF6');
+      setRecordColor(newType === 'symptom' ? '#F97316' : newType === 'hospitalization' ? '#10B981' : '#3B82F6');
+      setMedications([]);
     }
     setRecordType(newType);
   };
