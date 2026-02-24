@@ -39,7 +39,7 @@ function makeCacheKey(query: string, petType: string): string {
 async function checkCache(query: string, petType: string) {
   try {
     const key = makeCacheKey(query, petType);
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('search_cache')
       .select('articles, analysis, disease_description')

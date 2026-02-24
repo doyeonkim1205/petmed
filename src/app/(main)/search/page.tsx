@@ -301,7 +301,7 @@ function SearchContent() {
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                 <Clock size={13} className="text-gray-400 flex-shrink-0" />
                 <p className="text-[11px] text-gray-400">
-                  이전에 분석된 결과예요. 24시간이 지나면 새로운 논문으로 다시 분석돼요.
+                  이전에 분석된 결과예요. 48시간 후 검색 시 새롭게 분석해드려요.
                 </p>
               </div>
             )}
