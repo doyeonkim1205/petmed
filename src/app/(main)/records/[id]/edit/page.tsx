@@ -297,15 +297,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
         {/* ── 기본 정보 섹션 ── */}
-        <div className="flex items-center gap-2 py-2 bg-gray-100 -mx-4 px-4">
+        <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
           <ClipboardList size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-500">기본 정보</h3>
+          <h3 className="text-sm font-semibold text-blue-700">기본 정보</h3>
         </div>
 
         <div className="space-y-2">
@@ -379,9 +379,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {/* ── 진료 정보 섹션 (진료/입퇴원만) ── */}
         {(recordType === 'visit' || recordType === 'hospitalization') && (
           <>
-            <div className="flex items-center gap-2 mt-1 py-2 bg-gray-100 -mx-4 px-4">
+            <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Stethoscope size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-500">진료 정보</h3>
+              <h3 className="text-sm font-semibold text-blue-700">진료 정보</h3>
             </div>
 
             {/* Description (진료는 진료정보에) */}
@@ -463,9 +463,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {/* ── 투약 정보 섹션 ── */}
         {(recordType === 'visit' || recordType === 'hospitalization') && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 mt-1 py-2 bg-gray-100 -mx-4 px-4">
+            <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Pill size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-500">투약 정보</h3>
+              <h3 className="text-sm font-semibold text-blue-700">투약 정보</h3>
               <button
                 type="button"
                 onClick={addMedicationRow}
@@ -525,7 +525,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
                         med.alarm_enabled
                           ? 'bg-blue-50 text-blue-600'
-                          : 'bg-gray-100 text-gray-400'
+                          : 'bg-blue-50 text-gray-400'
                       }`}
                     >
                       {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
@@ -580,9 +580,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         )}
 
         {/* ── 첨부파일 섹션 ── */}
-        <div className="flex items-center gap-2 mt-1 py-2 bg-gray-100 -mx-4 px-4">
+        <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
           <Paperclip size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-500">첨부파일</h3>
+          <h3 className="text-sm font-semibold text-blue-700">첨부파일</h3>
         </div>
 
         <div className="space-y-3">
