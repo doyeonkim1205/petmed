@@ -8,6 +8,7 @@ import {
   ArticleSummary,
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult, fetchDiseaseDescription, DiseaseDescription } from '@/services/openai';
+import { supabase } from '@/lib/supabase';
 
 export type SearchStep = 'idle' | 'validating' | 'searching' | 'fetching' | 'analyzing' | 'done';
 
@@ -22,6 +23,63 @@ export interface UsePubMedSearchResult {
   limitReached?: boolean;
   plan?: string;
   diseaseDescription: DiseaseDescription | null;
+}
+
+/**
+ * 캐시 키 생성: query + petType 조합
+ */
+function makeCacheKey(query: string, petType: string): string {
+  return `${query.trim().toLowerCase()}:${petType}`;
+}
+
+/**
+ * 캐시 조회 (24시간 이내)
+ */
+async function checkCache(query: string, petType: string) {
+  try {
+    const key = makeCacheKey(query, petType);
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from('search_cache')
+      .select('articles, analysis, disease_description')
+      .eq('cache_key', key)
+      .gt('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 캐시 저장 (upsert)
+ */
+async function saveCache(
+  query: string,
+  petType: string,
+  articles: ArticleSummary[],
+  analysis: AiAnalysisResult | null,
+  diseaseDescription: DiseaseDescription | null,
+) {
+  try {
+    const key = makeCacheKey(query, petType);
+    await supabase.from('search_cache').upsert(
+      {
+        cache_key: key,
+        query,
+        pet_type: petType,
+        articles,
+        analysis,
+        disease_description: diseaseDescription,
+        created_at: new Date().toISOString(),
+      },
+      { onConflict: 'cache_key' },
+    );
+  } catch (e) {
+    console.error('[캐시 저장 실패]', e);
+  }
 }
 
 /**
@@ -103,7 +161,18 @@ export function usePubMedSearch(
       return;
     }
 
-    // Step 0: 검증 통과 후 횟수 차감
+    // Step 1.5: 캐시 확인 (24시간 이내 동일 검색어)
+    const cached = await checkCache(diseaseName, petType);
+    if (cached && cached.articles && cached.articles.length > 0) {
+      setArticles(cached.articles as ArticleSummary[]);
+      setAnalysis(cached.analysis as AiAnalysisResult | null);
+      setDiseaseDescription(cached.disease_description as DiseaseDescription | null);
+      setLoading(false);
+      setStep('done');
+      return;
+    }
+
+    // Step 0: 검증 통과 후 횟수 차감 (캐시 히트 시 차감하지 않음)
     const usage = await checkAndLogSearch(diseaseName, petType);
     if (!usage.allowed) {
       setError(usage.reason || '검색 횟수를 초과했습니다.');
@@ -158,7 +227,7 @@ export function usePubMedSearch(
       const desc = await descriptionPromise;
       if (desc) setDiseaseDescription(desc);
 
-      // Step 4: AI 분석 — 10편 분석 후 관련 논문만 필터링
+      // Step 4: AI 분석 — 2-batch 병렬 분석 (서버에서 자동 처리)
       setStep('analyzing');
       setAnalysisLoading(true);
       try {
@@ -180,23 +249,30 @@ export function usePubMedSearch(
           .filter((i) => i >= 0)
           .slice(0, 5);
 
+        let finalArticles: ArticleSummary[];
+        let finalAnalysis: AiAnalysisResult;
+
         if (relevantIndices.length >= 2) {
           // 관련 논문이 2편 이상이면 관련 논문만 표시
-          const filteredArticles = relevantIndices.map((i) => enrichedSummaries[i]);
-          const filteredAnalysis: AiAnalysisResult = {
+          finalArticles = relevantIndices.map((i) => enrichedSummaries[i]);
+          finalAnalysis = {
             titles: relevantIndices.map((i) => aiResult.titles[i]),
             summaries: relevantIndices.map((i) => aiResult.summaries[i]),
             relevant: relevantIndices.map(() => true),
             precautions: aiResult.precautions,
             ingredients: aiResult.ingredients,
           };
-          setArticles(filteredArticles);
-          setAnalysis(filteredAnalysis);
         } else {
           // 관련 논문이 1편 이하면 전체 표시 (검색 결과가 적은 경우)
-          setArticles(enrichedSummaries.slice(0, 5));
-          setAnalysis(aiResult);
+          finalArticles = enrichedSummaries.slice(0, 5);
+          finalAnalysis = aiResult;
         }
+
+        setArticles(finalArticles);
+        setAnalysis(finalAnalysis);
+
+        // 캐시에 저장 (백그라운드, 에러 무시)
+        saveCache(diseaseName, petType, finalArticles, finalAnalysis, desc);
       } catch (aiErr) {
         console.error('[AI 분석 실패]', aiErr);
         // AI 실패 시 원본 5편 그대로 표시
