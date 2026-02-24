@@ -65,6 +65,37 @@ export default function RecordAddPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // 유형 전환 시 입력값 캐시 (돌아왔을 때 복원)
+  const typeDataCache = useRef<Partial<Record<RecordType, {
+    title: string; description: string; hospitalName: string; cost: string;
+    symptomTime: string; dischargeDate: string; nextAppointmentDate: string;
+    nextAppointmentColor: string; recordColor: string; medications: MedicationInput[];
+  }>>>({});
+
+  const handleTypeChange = (newType: RecordType) => {
+    if (newType === recordType) return;
+    // 현재 유형 데이터 저장
+    typeDataCache.current[recordType] = {
+      title, description, hospitalName, cost, symptomTime,
+      dischargeDate, nextAppointmentDate, nextAppointmentColor, recordColor, medications,
+    };
+    // 새 유형의 캐시된 데이터 복원 또는 초기화
+    const cached = typeDataCache.current[newType];
+    if (cached) {
+      setTitle(cached.title); setDescription(cached.description);
+      setHospitalName(cached.hospitalName); setCost(cached.cost);
+      setSymptomTime(cached.symptomTime); setDischargeDate(cached.dischargeDate);
+      setNextAppointmentDate(cached.nextAppointmentDate);
+      setNextAppointmentColor(cached.nextAppointmentColor);
+      setRecordColor(cached.recordColor); setMedications(cached.medications);
+    } else {
+      setTitle(''); setDescription(''); setHospitalName(''); setCost('');
+      setSymptomTime(''); setDischargeDate(''); setNextAppointmentDate('');
+      setNextAppointmentColor('#8B5CF6'); setRecordColor('#3B82F6'); setMedications([]);
+    }
+    setRecordType(newType);
+  };
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -223,9 +254,9 @@ export default function RecordAddPage() {
         )}
 
         {/* ── 기본 정보 섹션 ── */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-5 pb-2 border-b border-gray-200">
           <ClipboardList size={16} className="text-gray-400" />
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">기본 정보</h3>
+          <h3 className="text-sm font-semibold text-gray-500">기본 정보</h3>
         </div>
 
         {/* Record Type Selection */}
@@ -238,7 +269,7 @@ export default function RecordAddPage() {
                 <button
                   key={type.id}
                   type="button"
-                  onClick={() => setRecordType(type.id)}
+                  onClick={() => handleTypeChange(type.id)}
                   className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
@@ -310,26 +341,43 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* Description */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">
-            설명 <span className="text-gray-400 font-normal">(선택)</span>
-          </label>
-          <textarea
-            placeholder="상세 내용을 입력하세요"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
-          />
-        </div>
+        {/* Description (증상/입퇴원은 기본정보에) */}
+        {recordType !== 'visit' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              설명 <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <textarea
+              placeholder="상세 내용을 입력하세요"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+            />
+          </div>
+        )}
 
         {/* ── 진료 정보 섹션 (진료/입퇴원만) ── */}
         {showHospitalFields && (
           <>
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-5 pb-2 border-b border-gray-200">
               <Stethoscope size={16} className="text-gray-400" />
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">진료 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-500">진료 정보</h3>
             </div>
+
+            {/* Description (진료는 진료정보에) */}
+            {recordType === 'visit' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  설명 <span className="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <textarea
+                  placeholder="상세 내용을 입력하세요"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -371,6 +419,9 @@ export default function RecordAddPage() {
               </div>
             )}
 
+            {/* Record Color */}
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+
             {/* Next Appointment Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -383,21 +434,20 @@ export default function RecordAddPage() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
               {nextAppointmentDate && (
-                <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+                <div className="ml-3 pl-3 border-l-2 border-purple-200">
+                  <ColorPicker label="예약일 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+                </div>
               )}
             </div>
-
-            {/* Record Color */}
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
           </>
         )}
 
         {/* ── 투약 정보 섹션 (진료/입퇴원만) ── */}
         {showHospitalFields && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-5 pb-2 border-b border-gray-200">
               <Pill size={16} className="text-gray-400" />
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">투약 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-500">투약 정보</h3>
               <button
                 type="button"
                 onClick={addMedicationRow}
@@ -512,9 +562,9 @@ export default function RecordAddPage() {
         )}
 
         {/* ── 첨부파일 섹션 ── */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-5 pb-2 border-b border-gray-200">
           <Paperclip size={16} className="text-gray-400" />
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">첨부파일</h3>
+          <h3 className="text-sm font-semibold text-gray-500">첨부파일</h3>
         </div>
 
         <div className="space-y-2">
