@@ -84,7 +84,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setHospitalName(record.hospital_name || '');
       setVisitDate(record.visit_date.split('T')[0]);
       setCost(record.cost ? String(record.cost) : '');
-      setRecordColor(record.color || 'none');
+      setRecordColor(record.color || '#3B82F6');
       setRecordType(record.record_type);
       setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
       setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
@@ -206,7 +206,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        color: recordColor === 'none' ? null : recordColor,
+        color: recordColor,
         discharge_date: dischargeDate || null,
         next_appointment_date: nextAppointmentDate || null,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
@@ -346,7 +346,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {(recordType === 'visit' || recordType === 'hospitalization') && (
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} allowNone />
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
 

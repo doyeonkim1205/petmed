@@ -185,7 +185,7 @@ export default function RecordAddPage() {
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : (recordColor === 'none' ? undefined : recordColor),
+        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : recordColor,
         discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
@@ -325,7 +325,7 @@ export default function RecordAddPage() {
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {showHospitalFields && (
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} allowNone />
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
 
