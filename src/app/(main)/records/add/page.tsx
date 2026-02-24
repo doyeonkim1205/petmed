@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +45,7 @@ export default function RecordAddPage() {
   const { user } = useAuth();
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
+  const medEndRef = useRef<HTMLDivElement>(null);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
@@ -53,6 +54,7 @@ export default function RecordAddPage() {
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [visitDate, setVisitDate] = useState(new Date().toISOString().split('T')[0]);
+  const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
@@ -81,6 +83,7 @@ export default function RecordAddPage() {
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', alarm_enabled: true, alarm_times: ['09:00'] },
     ]);
+    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
   };
 
   const updateMedication = (index: number, field: keyof MedicationInput, value: string) => {
@@ -110,8 +113,8 @@ export default function RecordAddPage() {
     setMedications(medications.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) { router.push('/login'); return; }
     const showError = (msg: string) => {
       setError(msg);
@@ -155,6 +158,7 @@ export default function RecordAddPage() {
         discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
+        symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
       });
 
       // Upload files
@@ -204,19 +208,13 @@ export default function RecordAddPage() {
   const showHospitalFields = recordType === 'visit' || recordType === 'hospitalization';
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pb-20">
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 추가</h1>
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
-        >
-          {saving ? '저장 중...' : '저장'}
-        </button>
+        <div className="w-10" />
       </header>
 
       <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5">
@@ -267,7 +265,12 @@ export default function RecordAddPage() {
         {/* File Upload */}
         <div className="space-y-2">
           <label className="text-sm font-medium">첨부 파일</label>
-          <FileUploader files={files} onFilesChange={setFiles} maxFiles={3} />
+          <FileUploader
+            files={files}
+            onFilesChange={setFiles}
+            maxFiles={3}
+            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+          />
         </div>
 
         {/* Title */}
@@ -296,6 +299,21 @@ export default function RecordAddPage() {
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
+
+        {/* Symptom Time (optional, symptom only) */}
+        {recordType === 'symptom' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <input
+              type="time"
+              value={symptomTime}
+              onChange={(e) => setSymptomTime(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
+        )}
 
         {/* Discharge Date (hospitalization only) */}
         {recordType === 'hospitalization' && (
@@ -482,9 +500,22 @@ export default function RecordAddPage() {
                 />
               </div>
             ))}
+            <div ref={medEndRef} />
           </div>
         )}
       </form>
+
+      {/* Bottom Save Button */}
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-10">
+        <button
+          type="button"
+          onClick={() => handleSubmit()}
+          disabled={saving}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-colors"
+        >
+          {saving ? '저장 중...' : '저장'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const { user } = useAuth();
   const { getRecord, updateRecord } = useHealthRecords();
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
+  const medEndRef = useRef<HTMLDivElement>(null);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [petId, setPetId] = useState('');
@@ -49,6 +50,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [visitDate, setVisitDate] = useState('');
+  const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
@@ -87,6 +89,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
       setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
       setNextAppointmentColor(record.next_appointment_color || '#8B5CF6');
+      setSymptomTime(record.symptom_time || '');
 
       if (record.medications) {
         setMedications(
@@ -124,6 +127,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
+    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
@@ -163,8 +167,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const activeFileCount = existingFiles.length + newFiles.length;
   const maxNewFiles = 3 - existingFiles.length;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
     const showError = (msg: string) => {
       setError(msg);
@@ -206,6 +210,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         discharge_date: dischargeDate || null,
         next_appointment_date: nextAppointmentDate || null,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
+        symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
       } as any);
 
       // Delete removed files
@@ -283,19 +288,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pb-20">
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 수정</h1>
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 text-[#fff] px-4 py-2 rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
-        >
-          {saving ? '저장 중...' : '저장'}
-        </button>
+        <div className="w-10" />
       </header>
 
       <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-5">
@@ -319,7 +318,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">제목</label>
+          <label className="text-sm font-medium">
+            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목'}
+          </label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -329,7 +330,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">날짜</label>
+          <label className="text-sm font-medium">
+            {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '날짜'}
+          </label>
           <input
             type="date"
             value={visitDate}
@@ -337,6 +340,21 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
+
+        {/* Symptom Time (optional, symptom only) */}
+        {recordType === 'symptom' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <input
+              type="time"
+              value={symptomTime}
+              onChange={(e) => setSymptomTime(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
+        )}
 
         {recordType === 'hospitalization' && (
           <div className="space-y-2">
@@ -436,6 +454,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               files={newFiles}
               onFilesChange={setNewFiles}
               maxFiles={maxNewFiles}
+              placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             />
           )}
           {activeFileCount >= 3 && (
@@ -574,8 +593,21 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               />
             </div>
           ))}
+          <div ref={medEndRef} />
         </div>
       </form>
+
+      {/* Bottom Save Button */}
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-10">
+        <button
+          type="button"
+          onClick={() => handleSubmit()}
+          disabled={saving}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-colors"
+        >
+          {saving ? '저장 중...' : '저장'}
+        </button>
+      </div>
     </div>
   );
 }

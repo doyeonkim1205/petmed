@@ -86,6 +86,7 @@ export function useHealthRecords(petId?: string) {
     discharge_date?: string;
     next_appointment_date?: string;
     next_appointment_color?: string;
+    symptom_time?: string;
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');
 

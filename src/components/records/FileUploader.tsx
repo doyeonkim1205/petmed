@@ -7,9 +7,10 @@ interface FileUploaderProps {
   files: File[];
   onFilesChange: (files: File[]) => void;
   maxFiles?: number;
+  placeholder?: string;
 }
 
-export function FileUploader({ files, onFilesChange, maxFiles = 3 }: FileUploaderProps) {
+export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '파일을 첨부하세요' }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,7 +56,7 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3 }: FileUploade
       >
         <Upload className="mx-auto mb-2 text-gray-400" size={24} />
         <p className="text-sm text-gray-600">
-          진료 서류를 첨부하세요
+          {placeholder}
         </p>
         <p className="text-xs text-gray-400 mt-1">
           JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)

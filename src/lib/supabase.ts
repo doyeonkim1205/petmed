@@ -77,6 +77,7 @@ export interface HealthRecord {
   discharge_date?: string;
   next_appointment_date?: string;
   next_appointment_color?: string;
+  symptom_time?: string;
   created_at: string;
   updated_at: string;
   pets?: Pet;

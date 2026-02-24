@@ -35,7 +35,7 @@ function SearchContent() {
 
   const [query, setQuery] = useState(cached?.query || initialQuery);
   const [petType, setPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
-  const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || initialQuery || null);
+  const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || null);
   const [mockResult, setMockResult] = useState<Disease | null>(cached?.mockResult || null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [cachedPubmed, setCachedPubmed] = useState<{ articles: any[]; analysis: any } | null>(
@@ -101,6 +101,12 @@ function SearchContent() {
 
   useEffect(() => {
     if (initialQuery) {
+      if (!user) {
+        setLoginRequired(true);
+        return;
+      }
+      setLoginRequired(false);
+      setSearchTerm(initialQuery);
       const found = mockDiseases.find(d => d.name.includes(initialQuery));
       setMockResult(found || null);
       if (storageKey) {
@@ -113,7 +119,7 @@ function SearchContent() {
         } catch {}
       }
     }
-  }, [initialQuery, storageKey]);
+  }, [initialQuery, user, storageKey]);
 
   const [loginRequired, setLoginRequired] = useState(false);
 
