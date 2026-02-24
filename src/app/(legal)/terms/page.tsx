@@ -117,7 +117,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제13조 (유료 서비스 및 결제)">
+      <Section title="제12조 (유료 서비스 및 결제)">
         <ol>
           <li>서비스는 무료(Free), 베이직(Basic), 프리미엄(Premium)의 3단계 요금제를 제공하며, 각 요금제의 이용 범위 및 요금은 서비스 내 요금제 페이지에 게시합니다.</li>
           <li>유료 서비스의 결제는 토스페이먼츠(주)가 제공하는 결제 시스템을 통해 처리됩니다.</li>
@@ -127,7 +127,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제14조 (청약철회 및 환불)">
+      <Section title="제13조 (청약철회 및 환불)">
         <ol>
           <li>회원은 결제일로부터 7일 이내에 청약을 철회할 수 있으며, 유료 서비스를 이용하지 않은 경우 전액 환불이 가능합니다.</li>
           <li>유료 서비스 이용 후 환불을 요청하는 경우, 이용 기간에 따라 일할 계산하여 잔여 금액을 환불합니다.</li>
@@ -137,7 +137,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제15조 (구독 해지)">
+      <Section title="제14조 (구독 해지)">
         <ol>
           <li>회원은 서비스 내 프로필 설정에서 언제든지 구독을 해지할 수 있습니다.</li>
           <li>구독 해지 시 현재 결제 주기의 만료일까지 유료 기능을 계속 이용할 수 있습니다.</li>
@@ -146,7 +146,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <Section title="제16조 (분쟁 해결)">
+      <Section title="제15조 (분쟁 해결)">
         <ol>
           <li>서비스와 이용자 간에 발생한 분쟁에 관한 소송은 대한민국 법률에 따릅니다.</li>
           <li>서비스와 이용자 간에 분쟁이 발생한 경우, 양 당사자는 분쟁의 해결을 위해 성실히 협의합니다.</li>
