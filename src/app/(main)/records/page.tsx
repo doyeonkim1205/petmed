@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat } from 'lucide-react';
+import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -93,6 +93,24 @@ export default function RecordsPage() {
   const filteredRecords = recordFilter === 'all'
     ? records
     : records.filter(r => r.record_type === recordFilter);
+
+  const monthlyStats = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    let total = 0;
+    let count = 0;
+    for (const r of records) {
+      if (r.cost && r.cost > 0) {
+        const d = new Date(r.visit_date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          total += r.cost;
+          count++;
+        }
+      }
+    }
+    return { total, count };
+  }, [records]);
 
   if (authLoading) {
     return (
@@ -269,13 +287,37 @@ export default function RecordsPage() {
               <p className="text-gray-400 text-sm">해당 유형의 기록이 없습니다.</p>
             </div>
           ) : (
-            filteredRecords.map((record) => (
-              <RecordCard
-                key={record.id}
-                record={record}
-                onClick={() => router.push(`/records/${record.id}`)}
-              />
-            ))
+            <>
+              {monthlyStats.total > 0 && (
+                <button
+                  onClick={() => router.push('/records/stats')}
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 mb-1"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Wallet size={16} className="text-blue-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs text-blue-500 font-medium">이번 달 의료비</p>
+                      <p className="text-base font-bold text-gray-800">
+                        {new Intl.NumberFormat('ko-KR').format(monthlyStats.total)}원
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-blue-400">
+                    <span>{monthlyStats.count}건의 기록</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </button>
+              )}
+              {filteredRecords.map((record) => (
+                <RecordCard
+                  key={record.id}
+                  record={record}
+                  onClick={() => router.push(`/records/${record.id}`)}
+                />
+              ))}
+            </>
           )}
         </div>
       ) : (
