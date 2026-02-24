@@ -25,12 +25,20 @@ function PaymentContent() {
       return;
     }
 
-    const loadWidget = async () => {
+    // Small delay to ensure DOM elements are mounted
+    const timer = setTimeout(async () => {
       try {
         const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
         const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
         if (!clientKey) {
           setError('결제 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.');
+          setLoading(false);
+          return;
+        }
+
+        // Verify DOM elements exist
+        if (!document.getElementById('payment-method') || !document.getElementById('agreement')) {
+          setError('결제 영역을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
           setLoading(false);
           return;
         }
@@ -41,22 +49,21 @@ function PaymentContent() {
         const amount = PLANS[plan].price;
         await widgets.setAmount({ currency: 'KRW', value: amount });
 
-        await Promise.all([
-          widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
-          widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' }),
-        ]);
+        await widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' });
+        await widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' });
 
         // Store widgets reference for checkout
         (window as any).__tossWidgets = widgets;
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Toss widget load error:', err);
-        setError('결제 위젯을 불러오는데 실패했습니다.');
+        const msg = err?.message || String(err);
+        setError(`결제 위젯을 불러오는데 실패했습니다. (${msg})`);
         setLoading(false);
       }
-    };
+    }, 100);
 
-    loadWidget();
+    return () => clearTimeout(timer);
   }, [user, plan, authLoading, router]);
 
   const handleCheckout = async () => {

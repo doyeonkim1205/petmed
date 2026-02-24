@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Crown, Star, Sparkles } from 'lucide-react';
+import { Check, Crown, Star, Sparkles, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PLANS, PlanType } from '@/lib/plans';
 
@@ -30,13 +30,13 @@ const planStyles: Record<PlanType, { badge: string; border: string; button: stri
 };
 
 const features = [
-  { label: '건강 기록장', key: 'maxRecords' as const, format: (v: number) => v === 0 ? '무제한' : `${v}개` },
-  { label: '논문 검색', key: 'searchPerDay' as const, format: (v: number) => `${v}회/일` },
-  { label: 'AI 분석', key: 'aiAnalysis' as const, format: (v: string) => v === 'blur' ? '블러(미리보기)' : '상세 분석' },
-  { label: '논문 저장', key: 'maxSavedAnalyses' as const, format: (v: number) => v === 0 ? '무제한' : `${v}개` },
-  { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number) => v === 0 ? '전체+차트' : v === 1 ? '이번 달' : `${v}개월` },
-  { label: '반려동물', key: 'maxPets' as const, format: (v: number) => v === 0 ? '무제한' : `${v}마리` },
-  { label: '첨부파일', key: 'attachmentsPerRecord' as const, format: (v: number) => `기록당 ${v}개` },
+  { label: '건강 기록장', key: 'maxRecords' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}개` },
+  { label: '논문 검색', key: 'searchPerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
+  { label: 'AI 분석', key: 'aiAnalysis' as const, format: (v: string, plan: PlanType) => v === 'blur' ? '블러(미리보기)' : '상세 분석' },
+  { label: '논문 저장', key: 'maxSavedAnalyses' as const, format: (v: number, plan: PlanType) => plan === 'free' ? '불가' : v === 0 ? '무제한' : `${v}개` },
+  { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number, plan: PlanType) => v === 0 ? '전체+차트' : v === 1 ? '이번 달' : `${v}개월` },
+  { label: '반려동물', key: 'maxPets' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}마리` },
+  { label: '첨부파일', key: 'attachmentsPerRecord' as const, format: (v: number, plan: PlanType) => `기록당 ${v}개` },
 ];
 
 export default function PricingPage() {
@@ -107,12 +107,16 @@ export default function PricingPage() {
               <ul className="space-y-2 mb-4">
                 {features.map((feat) => {
                   const value = plan[feat.key];
-                  const isZeroFree = planKey === 'free' && feat.key === 'maxSavedAnalyses';
+                  const isUnavailable = planKey === 'free' && feat.key === 'maxSavedAnalyses';
                   return (
                     <li key={feat.key} className="flex items-center gap-2 text-sm">
-                      <Check size={14} className={isZeroFree ? 'text-gray-300' : 'text-green-500'} />
-                      <span className={`${isZeroFree ? 'text-gray-400 line-through' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {feat.label}: {typeof feat.format === 'function' ? (feat.format as (v: any) => string)(value) : value}
+                      {isUnavailable ? (
+                        <X size={14} className="text-gray-300" />
+                      ) : (
+                        <Check size={14} className="text-green-500" />
+                      )}
+                      <span className={`${isUnavailable ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                        {feat.label}: {(feat.format as (v: any, p: PlanType) => string)(value, planKey)}
                       </span>
                     </li>
                   );
@@ -153,11 +157,15 @@ export default function PricingPage() {
             {features.map((feat) => (
               <tr key={feat.key} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="py-2.5 text-xs text-gray-500">{feat.label}</td>
-                {planOrder.map((p) => (
-                  <td key={p} className="py-2.5 text-center text-xs text-gray-700 dark:text-gray-300">
-                    {(feat.format as (v: any) => string)(PLANS[p][feat.key])}
-                  </td>
-                ))}
+                {planOrder.map((p) => {
+                  const text = (feat.format as (v: any, plan: PlanType) => string)(PLANS[p][feat.key], p);
+                  const isUnavailable = p === 'free' && feat.key === 'maxSavedAnalyses';
+                  return (
+                    <td key={p} className={`py-2.5 text-center text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {text}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
