@@ -84,7 +84,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setHospitalName(record.hospital_name || '');
       setVisitDate(record.visit_date.split('T')[0]);
       setCost(record.cost ? String(record.cost) : '');
-      setRecordColor(record.color || '#3B82F6');
+      setRecordColor(record.color || 'none');
       setRecordType(record.record_type);
       setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
       setNextAppointmentDate(record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '');
@@ -206,7 +206,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        color: recordColor,
+        color: recordColor === 'none' ? null : recordColor,
         discharge_date: dischargeDate || null,
         next_appointment_date: nextAppointmentDate || null,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,

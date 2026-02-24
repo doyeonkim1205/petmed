@@ -39,9 +39,9 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
     for (const record of records) {
       // Record visit_date dot (non-hospitalization only; hospitalization uses bar)
       const visitKey = record.visit_date.split('T')[0];
-      const recordColor = record.color || '#3B82F6';
+      const recordColor = record.color && record.color !== 'none' ? record.color : '';
 
-      if (record.record_type === 'hospitalization') {
+      if (record.record_type === 'hospitalization' && recordColor) {
         // Build hospitalization range bar
         const startDate = new Date(visitKey);
         const endDate = record.discharge_date
@@ -65,7 +65,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
           };
           d = addDays(d, 1);
         }
-      } else {
+      } else if (recordColor) {
         addDot(visitKey, recordColor);
       }
 

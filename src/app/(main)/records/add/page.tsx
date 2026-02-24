@@ -185,7 +185,7 @@ export default function RecordAddPage() {
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : recordColor,
+        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : (recordColor === 'none' ? undefined : recordColor),
         discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
