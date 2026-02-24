@@ -92,7 +92,7 @@ export default function RecordAddPage() {
       setTitle(''); setDescription(''); setHospitalName(''); setCost('');
       setSymptomTime(''); setDischargeDate(''); setNextAppointmentDate('');
       setNextAppointmentColor('#8B5CF6');
-      setRecordColor(newType === 'symptom' ? '#F97316' : newType === 'hospitalization' ? '#10B981' : '#3B82F6');
+      setRecordColor(newType === 'symptom' ? '#F97316' : newType === 'hospitalization' ? '#22C55E' : '#3B82F6');
       setMedications([]);
     }
     setRecordType(newType);
@@ -187,7 +187,7 @@ export default function RecordAddPage() {
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
         cost: cost ? Number(cost) : undefined,
-        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#10B981' : recordColor,
+        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
         discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
