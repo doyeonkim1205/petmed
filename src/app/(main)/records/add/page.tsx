@@ -325,7 +325,7 @@ export default function RecordAddPage() {
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {showHospitalFields && (
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} allowNone />
           )}
         </div>
 
@@ -344,8 +344,24 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* Description (증상/입퇴원은 기본정보에) */}
-        {recordType !== 'visit' && (
+        {/* Discharge Date (입퇴원: 입원일 바로 아래) */}
+        {recordType === 'hospitalization' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <input
+              type="date"
+              value={dischargeDate}
+              onChange={(e) => setDischargeDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+          </div>
+        )}
+
+        {/* Description (증상만 기본정보에) */}
+        {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
               설명 <span className="text-gray-400 font-normal">(선택)</span>
@@ -367,20 +383,18 @@ export default function RecordAddPage() {
               <h3 className="text-sm font-semibold text-gray-800">진료 정보</h3>
             </div>
 
-            {/* Description (진료는 진료정보에) */}
-            {recordType === 'visit' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  설명 <span className="text-gray-400 font-normal">(선택)</span>
-                </label>
-                <textarea
-                  placeholder="상세 내용을 입력하세요"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
-                />
-              </div>
-            )}
+            {/* Description (진료/입퇴원 → 진료정보에) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                설명 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <textarea
+                placeholder="상세 내용을 입력하세요"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+              />
+            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -405,22 +419,6 @@ export default function RecordAddPage() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
-
-            {/* Discharge Date (hospitalization only) */}
-            {recordType === 'hospitalization' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
-                </label>
-                <input
-                  type="date"
-                  value={dischargeDate}
-                  onChange={(e) => setDischargeDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-                <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
-              </div>
-            )}
 
             {/* Next Appointment Date */}
             <div className="space-y-2">

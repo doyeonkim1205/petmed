@@ -90,14 +90,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
-        <div className="flex items-center gap-1">
-          <button onClick={() => router.push(`/records/${record!.id}/edit`)} className="p-2 text-gray-500">
-            <Edit2 className="w-5 h-5" />
-          </button>
-          <button onClick={handleDelete} className="p-2 -mr-2 text-gray-400 hover:text-red-500 transition-colors">
-            <Trash2 className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="w-10" />
       </header>
 
       <div className="p-4 max-w-sm mx-auto w-full">
@@ -115,6 +108,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                   <PetIcon size={14} /> {record.pets.name}
                 </span>
               )}
+              <div className="flex items-center gap-0.5 ml-auto">
+                <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors">
+                  <Edit2 size={16} />
+                </button>
+                <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">{formatDate(record.visit_date)}</p>
           </div>
