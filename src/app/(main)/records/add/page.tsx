@@ -256,7 +256,7 @@ export default function RecordAddPage() {
         {/* ── 기본 정보 섹션 ── */}
         <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
           <ClipboardList size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-blue-700">기본 정보</h3>
+          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
         </div>
 
         {/* Record Type Selection */}
@@ -324,6 +324,9 @@ export default function RecordAddPage() {
             onChange={(e) => setVisitDate(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
+          {showHospitalFields && (
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+          )}
         </div>
 
         {/* Symptom Time (optional, symptom only) */}
@@ -361,7 +364,7 @@ export default function RecordAddPage() {
           <>
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Stethoscope size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-blue-700">진료 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-800">진료 정보</h3>
             </div>
 
             {/* Description (진료는 진료정보에) */}
@@ -419,9 +422,6 @@ export default function RecordAddPage() {
               </div>
             )}
 
-            {/* Record Color */}
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
-
             {/* Next Appointment Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -447,7 +447,7 @@ export default function RecordAddPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Pill size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-blue-700">투약 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-800">투약 정보</h3>
               <button
                 type="button"
                 onClick={addMedicationRow}
@@ -564,7 +564,7 @@ export default function RecordAddPage() {
         {/* ── 첨부파일 섹션 ── */}
         <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
           <Paperclip size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-blue-700">첨부파일</h3>
+          <h3 className="text-sm font-semibold text-gray-800">첨부파일</h3>
         </div>
 
         <div className="space-y-2">

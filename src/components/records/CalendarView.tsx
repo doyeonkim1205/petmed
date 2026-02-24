@@ -158,7 +158,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
   const typeLabel = {
     symptom: '증상',
     visit: '진료',
-    hospitalization: '입퇴원',
+    hospitalization: '입원',
     manual: '기록',
   };
 
@@ -355,15 +355,18 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               <Calendar size={12} /> 예약
             </p>
             <div className="space-y-1.5">
-              {dayAppointments.map((record) => (
-                <div key={record.id} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
-                  <Calendar size={14} className="text-purple-500" />
+              {dayAppointments.map((record) => {
+                const apptColor = record.next_appointment_color || '#8B5CF6';
+                return (
+                <div key={record.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: apptColor + '18' }}>
+                  <Calendar size={14} style={{ color: apptColor }} />
                   <span className="text-sm font-medium text-gray-800">{record.title}</span>
                   {record.hospital_name && (
                     <span className="text-xs text-gray-400">{record.hospital_name}</span>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

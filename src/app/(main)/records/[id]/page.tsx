@@ -90,9 +90,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
-        <button onClick={() => router.push(`/records/${record!.id}/edit`)} className="p-2 -mr-2 text-gray-500">
-          <Edit2 className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => router.push(`/records/${record!.id}/edit`)} className="p-2 text-gray-500">
+            <Edit2 className="w-5 h-5" />
+          </button>
+          <button onClick={handleDelete} className="p-2 -mr-2 text-gray-400 hover:text-red-500 transition-colors">
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       <div className="p-4 max-w-sm mx-auto w-full">
@@ -257,16 +262,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      {/* Delete button at bottom */}
-      <div className="p-4 max-w-sm mx-auto w-full mt-4 mb-8">
-        <button
-          onClick={handleDelete}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-red-400 hover:text-red-600 transition-colors"
-        >
-          <Trash2 size={14} />
-          이 기록 삭제하기
-        </button>
-      </div>
     </div>
   );
 }
