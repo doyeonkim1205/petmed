@@ -109,10 +109,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </span>
               )}
               <div className="flex items-center gap-0.5 ml-auto">
-                <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors">
+                <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-blue-500 hover:text-blue-700 transition-colors">
                   <Edit2 size={16} />
                 </button>
-                <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                <button onClick={handleDelete} className="p-1.5 text-red-400 hover:text-red-600 transition-colors">
                   <Trash2 size={16} />
                 </button>
               </div>
