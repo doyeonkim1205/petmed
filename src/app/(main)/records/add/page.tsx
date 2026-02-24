@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, ClipboardList, Pill, Paperclip } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -222,6 +222,12 @@ export default function RecordAddPage() {
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
+        {/* ── 기본 정보 섹션 ── */}
+        <div className="flex items-center gap-2 pt-2">
+          <ClipboardList size={16} className="text-gray-400" />
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">기본 정보</h3>
+        </div>
+
         {/* Record Type Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">기록 유형</label>
@@ -260,17 +266,6 @@ export default function RecordAddPage() {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* File Upload */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">첨부 파일</label>
-          <FileUploader
-            files={files}
-            onFilesChange={setFiles}
-            maxFiles={3}
-            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-          />
         </div>
 
         {/* Title */}
@@ -315,28 +310,11 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* Discharge Date (hospitalization only) */}
-        {recordType === 'hospitalization' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">퇴원일</label>
-            <input
-              type="date"
-              value={dischargeDate}
-              onChange={(e) => setDischargeDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
-          </div>
-        )}
-
-        {/* Record Color */}
-        {(recordType === 'visit' || recordType === 'hospitalization') && (
-          <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
-        )}
-
         {/* Description */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">설명</label>
+          <label className="text-sm font-medium">
+            설명 <span className="text-gray-400 font-normal">(선택)</span>
+          </label>
           <textarea
             placeholder="상세 내용을 입력하세요"
             value={description}
@@ -345,11 +323,18 @@ export default function RecordAddPage() {
           />
         </div>
 
-        {/* Hospital fields */}
+        {/* ── 진료 정보 섹션 (진료/입퇴원만) ── */}
         {showHospitalFields && (
           <>
+            <div className="flex items-center gap-2 pt-2">
+              <Stethoscope size={16} className="text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">진료 정보</h3>
+            </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">병원명</label>
+              <label className="text-sm font-medium">
+                병원명 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
               <input
                 placeholder="병원명을 입력하세요"
                 value={hospitalName}
@@ -358,7 +343,9 @@ export default function RecordAddPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">비용 (원)</label>
+              <label className="text-sm font-medium">
+                비용 (원) <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
               <input
                 type="number"
                 placeholder="0"
@@ -367,34 +354,54 @@ export default function RecordAddPage() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
+
+            {/* Discharge Date (hospitalization only) */}
+            {recordType === 'hospitalization' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <input
+                  type="date"
+                  value={dischargeDate}
+                  onChange={(e) => setDischargeDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+              </div>
+            )}
+
+            {/* Next Appointment Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                다음 예약일 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                type="date"
+                value={nextAppointmentDate}
+                onChange={(e) => setNextAppointmentDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+              {nextAppointmentDate && (
+                <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+              )}
+            </div>
+
+            {/* Record Color */}
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
           </>
         )}
 
-        {/* Next Appointment Date */}
-        {(recordType === 'visit' || recordType === 'hospitalization') && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">다음 예약일</label>
-            <input
-              type="date"
-              value={nextAppointmentDate}
-              onChange={(e) => setNextAppointmentDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-            {nextAppointmentDate && (
-              <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
-            )}
-          </div>
-        )}
-
-        {/* Medications */}
-        {(recordType === 'visit' || recordType === 'hospitalization') && (
+        {/* ── 투약 정보 섹션 (진료/입퇴원만) ── */}
+        {showHospitalFields && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">투약 정보</label>
+            <div className="flex items-center gap-2 pt-2">
+              <Pill size={16} className="text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">투약 정보</h3>
               <button
                 type="button"
                 onClick={addMedicationRow}
-                className="flex items-center gap-1 text-sm text-blue-600 font-medium"
+                className="flex items-center gap-1 text-sm text-blue-600 font-medium ml-auto"
               >
                 <Plus size={16} /> 약 추가
               </button>
@@ -503,6 +510,21 @@ export default function RecordAddPage() {
             <div ref={medEndRef} />
           </div>
         )}
+
+        {/* ── 첨부파일 섹션 ── */}
+        <div className="flex items-center gap-2 pt-2">
+          <Paperclip size={16} className="text-gray-400" />
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">첨부파일</h3>
+        </div>
+
+        <div className="space-y-2">
+          <FileUploader
+            files={files}
+            onFilesChange={setFiles}
+            maxFiles={3}
+            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+          />
+        </div>
       </form>
 
       {/* Bottom Save Button */}

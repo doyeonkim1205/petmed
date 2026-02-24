@@ -66,14 +66,10 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
             {record.medications && record.medications.length > 0 && (
               <span className="flex items-center gap-1">
                 <Pill size={12} />
-                {record.medications.map((med, i) => (
-                  <span
-                    key={i}
-                    className="w-2 h-2 rounded-full inline-block"
-                    style={{ backgroundColor: med.color || '#3B82F6' }}
-                    title={med.name}
-                  />
-                ))}
+                <span>
+                  {record.medications.slice(0, 2).map(m => m.name).join(' · ')}
+                  {record.medications.length > 2 && ` 외 ${record.medications.length - 2}개`}
+                </span>
               </span>
             )}
             {record.record_files && record.record_files.length > 0 && (

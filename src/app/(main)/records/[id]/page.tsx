@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
@@ -22,7 +22,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   const [record, setRecord] = useState<HealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -91,27 +90,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
-        <div className="relative">
-          <button onClick={() => setShowMenu(!showMenu)} className="p-2 -mr-2 text-gray-500">
-            <MoreVertical className="w-5 h-5" />
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 top-10 bg-white border border-gray-100 rounded-xl shadow-md py-1 min-w-32 z-20">
-              <button
-                onClick={() => { setShowMenu(false); router.push(`/records/${record.id}/edit`); }}
-                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-600"
-              >
-                <Edit2 size={14} /> 수정하기
-              </button>
-              <button
-                onClick={() => { setShowMenu(false); handleDelete(); }}
-                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2 text-sm text-red-500"
-              >
-                <Trash2 size={14} /> 삭제하기
-              </button>
-            </div>
-          )}
-        </div>
+        <button onClick={() => router.push(`/records/${record!.id}/edit`)} className="p-2 -mr-2 text-gray-500">
+          <Edit2 className="w-5 h-5" />
+        </button>
       </header>
 
       <div className="p-4 max-w-sm mx-auto w-full">
@@ -275,6 +256,17 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      {/* Delete button at bottom */}
+      <div className="p-4 max-w-sm mx-auto w-full mt-4 mb-8">
+        <button
+          onClick={handleDelete}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-red-400 hover:text-red-600 transition-colors"
+        >
+          <Trash2 size={14} />
+          이 기록 삭제하기
+        </button>
+      </div>
     </div>
   );
 }

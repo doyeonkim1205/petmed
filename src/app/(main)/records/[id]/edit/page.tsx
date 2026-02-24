@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Bell, BellOff, ClipboardList, Stethoscope, Pill } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -302,6 +302,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
+        {/* ── 기본 정보 섹션 ── */}
+        <div className="flex items-center gap-2 pt-2">
+          <ClipboardList size={16} className="text-gray-400" />
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">기본 정보</h3>
+        </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
           <select
@@ -331,7 +337,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '날짜'}
+            {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
           </label>
           <input
             type="date"
@@ -356,21 +362,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {recordType === 'hospitalization' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">퇴원일</label>
-            <input
-              type="date"
-              value={dischargeDate}
-              onChange={(e) => setDischargeDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
-          </div>
-        )}
-
         <div className="space-y-2">
-          <label className="text-sm font-medium">설명</label>
+          <label className="text-sm font-medium">
+            설명 <span className="text-gray-400 font-normal">(선택)</span>
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -378,31 +373,200 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">병원명</label>
-          <input
-            value={hospitalName}
-            onChange={(e) => setHospitalName(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
+        {/* ── 진료 정보 섹션 (진료/입퇴원만) ── */}
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
+          <>
+            <div className="flex items-center gap-2 pt-2">
+              <Stethoscope size={16} className="text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">진료 정보</h3>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                병원명 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                value={hospitalName}
+                onChange={(e) => setHospitalName(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                비용 (원) <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Discharge Date (hospitalization only) */}
+            {recordType === 'hospitalization' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
+                </label>
+                <input
+                  type="date"
+                  value={dischargeDate}
+                  onChange={(e) => setDischargeDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+              </div>
+            )}
+
+            {/* Next Appointment Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                다음 예약일 <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                type="date"
+                value={nextAppointmentDate}
+                onChange={(e) => setNextAppointmentDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+              {nextAppointmentDate && (
+                <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+              )}
+            </div>
+
+            {/* Record Color */}
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
+          </>
+        )}
+
+        {/* ── 투약 정보 섹션 ── */}
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <Pill size={16} className="text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">투약 정보</h3>
+              <button
+                type="button"
+                onClick={addMedicationRow}
+                className="flex items-center gap-1 text-sm text-blue-600 font-medium ml-auto"
+              >
+                <Plus size={16} /> 약 추가
+              </button>
+            </div>
+            {medications.map((med, i) => (
+              <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2 relative">
+                <button
+                  type="button"
+                  onClick={() => removeMedication(i)}
+                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500"
+                >
+                  <X size={16} />
+                </button>
+                <input
+                  placeholder="약 이름"
+                  value={med.name}
+                  onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                />
+                <input
+                  placeholder="용량 (예: 1정)"
+                  value={med.dosage}
+                  onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                />
+                {/* Frequency selector */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
+                  <div className="flex gap-1.5">
+                    {frequencyOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => updateMedFrequency(i, opt.value)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          med.frequency === opt.value
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {opt.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Alarm times */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-gray-400">알림 시간</label>
+                    <button
+                      type="button"
+                      onClick={() => toggleMedAlarm(i)}
+                      className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
+                        med.alarm_enabled
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
+                      {med.alarm_enabled ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  {med.alarm_enabled && (
+                    <div className="flex gap-1.5">
+                      {med.alarm_times.map((time, ti) => (
+                        <div key={ti} className="flex-1">
+                          <p className="text-[10px] text-gray-300 mb-0.5">{ti + 1}회차</p>
+                          <input
+                            type="time"
+                            value={time}
+                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-400">시작일</label>
+                    <input
+                      type="date"
+                      value={med.start_date}
+                      onChange={(e) => updateMedicationField(i, 'start_date', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">종료일</label>
+                    <input
+                      type="date"
+                      value={med.end_date}
+                      onChange={(e) => updateMedicationField(i, 'end_date', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    />
+                  </div>
+                </div>
+                <ColorPicker
+                  label="캘린더 색상"
+                  value={med.color}
+                  onChange={(c) => updateMedicationField(i, 'color', c)}
+                />
+              </div>
+            ))}
+            <div ref={medEndRef} />
+          </div>
+        )}
+
+        {/* ── 첨부파일 섹션 ── */}
+        <div className="flex items-center gap-2 pt-2">
+          <Paperclip size={16} className="text-gray-400" />
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">첨부파일</h3>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">비용 (원)</label>
-          <input
-            type="number"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-        </div>
-
-        {/* Attached Files */}
         <div className="space-y-3">
-          <label className="text-sm font-medium flex items-center gap-1.5">
-            <Paperclip size={16} /> 첨부 파일
-          </label>
-
           {/* Existing files */}
           {existingFiles.length > 0 && (
             <div className="space-y-2">
@@ -460,140 +624,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           {activeFileCount >= 3 && (
             <p className="text-xs text-gray-400 text-center">최대 3개 파일까지 첨부 가능합니다.</p>
           )}
-        </div>
-
-        {/* Record Color */}
-        <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor} />
-
-        {/* Next Appointment Date */}
-        {recordType === 'visit' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">다음 예약일</label>
-            <input
-              type="date"
-              value={nextAppointmentDate}
-              onChange={(e) => setNextAppointmentDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-            {nextAppointmentDate && (
-              <ColorPicker label="예약일 캘린더 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
-            )}
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">투약 정보</label>
-            <button
-              type="button"
-              onClick={addMedicationRow}
-              className="flex items-center gap-1 text-sm text-blue-600 font-medium"
-            >
-              <Plus size={16} /> 약 추가
-            </button>
-          </div>
-          {medications.map((med, i) => (
-            <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2 relative">
-              <button
-                type="button"
-                onClick={() => removeMedication(i)}
-                className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500"
-              >
-                <X size={16} />
-              </button>
-              <input
-                placeholder="약 이름"
-                value={med.name}
-                onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-              />
-              <input
-                placeholder="용량 (예: 1정)"
-                value={med.dosage}
-                onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-              />
-              {/* Frequency selector */}
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
-                <div className="flex gap-1.5">
-                  {frequencyOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updateMedFrequency(i, opt.value)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        med.frequency === opt.value
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-gray-200 text-gray-500'
-                      }`}
-                    >
-                      {opt.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Alarm times */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs text-gray-400">알림 시간</label>
-                  <button
-                    type="button"
-                    onClick={() => toggleMedAlarm(i)}
-                    className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
-                      med.alarm_enabled
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'bg-gray-100 text-gray-400'
-                    }`}
-                  >
-                    {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
-                    {med.alarm_enabled ? 'ON' : 'OFF'}
-                  </button>
-                </div>
-                {med.alarm_enabled && (
-                  <div className="flex gap-1.5">
-                    {med.alarm_times.map((time, ti) => (
-                      <div key={ti} className="flex-1">
-                        <p className="text-[10px] text-gray-300 mb-0.5">{ti + 1}회차</p>
-                        <input
-                          type="time"
-                          value={time}
-                          onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-gray-400">시작일</label>
-                  <input
-                    type="date"
-                    value={med.start_date}
-                    onChange={(e) => updateMedicationField(i, 'start_date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400">종료일</label>
-                  <input
-                    type="date"
-                    value={med.end_date}
-                    onChange={(e) => updateMedicationField(i, 'end_date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                  />
-                </div>
-              </div>
-              <ColorPicker
-                label="캘린더 색상"
-                value={med.color}
-                onChange={(c) => updateMedicationField(i, 'color', c)}
-              />
-            </div>
-          ))}
-          <div ref={medEndRef} />
         </div>
       </form>
 
