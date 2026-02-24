@@ -103,7 +103,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               start_date: m.start_date,
               end_date: m.end_date || '',
               frequency: m.frequency,
-              color: m.color || '#3B82F6',
+              color: m.color || '#EC4899',
               alarm_enabled: m.alarm_enabled !== false,
               alarm_times: times,
             };
@@ -125,7 +125,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#3B82F6', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
     setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
   };

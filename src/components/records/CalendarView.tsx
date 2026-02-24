@@ -79,7 +79,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
       // Medications: spread across date range
       if (record.medications) {
         for (const med of record.medications) {
-          const medColor = med.color || '#3B82F6';
+          const medColor = med.color || '#EC4899';
           const start = new Date(med.start_date);
           const end = med.end_date ? new Date(med.end_date) : addDays(start, 90);
           const maxEnd = addDays(start, 365); // safety limit
