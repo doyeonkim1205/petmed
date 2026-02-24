@@ -34,7 +34,7 @@ const features = [
   { label: '논문 검색', key: 'searchPerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
   { label: 'AI 분석', key: 'aiAnalysis' as const, format: (v: string, plan: PlanType) => v === 'blur' ? '블러(미리보기)' : '상세 분석' },
   { label: '논문 저장', key: 'maxSavedAnalyses' as const, format: (v: number, plan: PlanType) => plan === 'free' ? '불가' : v === 0 ? '무제한' : `${v}개` },
-  { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number, plan: PlanType) => v === 0 ? '전체+차트' : v === 1 ? '이번 달' : `${v}개월` },
+  { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number, plan: PlanType) => v === 1 ? '이번 달' : v === 12 ? '1년' : `${v}개월` },
   { label: '반려동물', key: 'maxPets' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}마리` },
   { label: '첨부파일', key: 'attachmentsPerRecord' as const, format: (v: number, plan: PlanType) => `기록당 ${v}개` },
 ];

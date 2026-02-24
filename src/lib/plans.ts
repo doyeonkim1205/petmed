@@ -8,7 +8,7 @@ export interface PlanConfig {
   searchPerDay: number;
   aiAnalysis: 'blur' | 'full';
   maxSavedAnalyses: number;
-  costStatsMonths: number; // 0 = unlimited
+  costStatsMonths: number;
   maxPets: number; // 0 = unlimited
   attachmentsPerRecord: number;
 }
@@ -46,7 +46,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     searchPerDay: 30,
     aiAnalysis: 'full',
     maxSavedAnalyses: 0, // unlimited
-    costStatsMonths: 0, // unlimited
+    costStatsMonths: 12,
     maxPets: 0, // unlimited
     attachmentsPerRecord: 5,
   },

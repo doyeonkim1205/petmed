@@ -2,17 +2,19 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
+import { useAuth } from '@/contexts/AuthContext';
+import { getPlanConfig } from '@/lib/plans';
 
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
 
-const periodOptions: { id: Period; label: string }[] = [
-  { id: 'month', label: '이번 달' },
-  { id: '3month', label: '3개월' },
-  { id: '6month', label: '6개월' },
-  { id: 'year', label: '1년' },
-  { id: 'custom', label: '직접 선택' },
+const allPeriodOptions: { id: Period; label: string; months: number }[] = [
+  { id: 'month', label: '이번 달', months: 1 },
+  { id: '3month', label: '3개월', months: 3 },
+  { id: '6month', label: '6개월', months: 6 },
+  { id: 'year', label: '1년', months: 12 },
+  { id: 'custom', label: '직접 선택', months: 12 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
@@ -50,6 +52,13 @@ function formatCost(cost: number): string {
 
 export default function StatsPage() {
   const router = useRouter();
+  const { profile } = useAuth();
+  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const maxMonths = planConfig.costStatsMonths;
+
+  const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
+  const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
+
   const [period, setPeriod] = useState<Period>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -128,24 +137,38 @@ export default function StatsPage() {
               {p.label}
             </button>
           ))}
+          {lockedOptions.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => router.push('/pricing')}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1"
+            >
+              <Lock size={10} />
+              {p.label}
+            </button>
+          ))}
         </div>
 
         {/* Custom date inputs */}
         {period === 'custom' && (
-          <div className="flex gap-2 items-center">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-gray-400 text-sm">~</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div>
+            <div className="flex gap-2 items-center">
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                min={(() => { const d = new Date(); d.setMonth(d.getMonth() - maxMonths); return d.toISOString().split('T')[0]; })()}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-gray-400 text-sm">~</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">최대 {maxMonths === 12 ? '1년' : `${maxMonths}개월`}까지 조회 가능</p>
           </div>
         )}
 
