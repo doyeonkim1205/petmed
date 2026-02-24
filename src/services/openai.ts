@@ -14,6 +14,28 @@ export interface AiAnalysisResult {
 /**
  * PubMed 논문 분석 — 서버 API 경유 (모바일 호환 + API 키 보호)
  */
+export interface DiseaseDescription {
+  name_ko: string;
+  name_en: string;
+  description: string;
+  symptoms: string[];
+  when_to_visit: string;
+}
+
+export async function fetchDiseaseDescription(
+  diseaseName: string,
+  petType: 'cat' | 'dog',
+): Promise<DiseaseDescription> {
+  const { authFetch } = await import('@/lib/authFetch');
+  const res = await authFetch('/api/disease-description', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ diseaseName, petType }),
+  });
+  if (!res.ok) throw new Error('질병 설명 생성 실패');
+  return await res.json();
+}
+
 export async function analyzePapers(
   diseaseName: string,
   petType: 'cat' | 'dog',

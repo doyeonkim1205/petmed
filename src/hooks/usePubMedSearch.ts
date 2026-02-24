@@ -7,7 +7,7 @@ import {
   fetchAbstract,
   ArticleSummary,
 } from '@/services/pubmed';
-import { analyzePapers, AiAnalysisResult } from '@/services/openai';
+import { analyzePapers, AiAnalysisResult, fetchDiseaseDescription, DiseaseDescription } from '@/services/openai';
 
 export type SearchStep = 'idle' | 'validating' | 'searching' | 'fetching' | 'analyzing' | 'done';
 
@@ -21,6 +21,7 @@ export interface UsePubMedSearchResult {
   step: SearchStep;
   limitReached?: boolean;
   plan?: string;
+  diseaseDescription: DiseaseDescription | null;
 }
 
 /**
@@ -80,6 +81,7 @@ export function usePubMedSearch(
   const [step, setStep] = useState<SearchStep>('idle');
   const [limitReached, setLimitReached] = useState(false);
   const [plan, setPlan] = useState<string | undefined>();
+  const [diseaseDescription, setDiseaseDescription] = useState<DiseaseDescription | null>(null);
 
   const fetchArticles = useCallback(async () => {
     if (!diseaseName) return;
@@ -89,6 +91,7 @@ export function usePubMedSearch(
     setAnalysis(null);
     setArticles([]);
     setLimitReached(false);
+    setDiseaseDescription(null);
 
     // Step 1: 검증 + 번역을 먼저 수행 (무효한 검색어는 횟수 차감하지 않음)
     setStep('validating');
@@ -112,6 +115,9 @@ export function usePubMedSearch(
     }
     setPlan(usage.plan);
 
+    // 질병 설명을 병렬로 가져오기 (논문 검색과 동시 실행)
+    const descriptionPromise = fetchDiseaseDescription(diseaseName, petType).catch(() => null);
+
     try {
       // Step 2: PubMed 검색 — 10편 가져와서 AI가 관련 논문 5편 선별
       setStep('searching');
@@ -119,6 +125,9 @@ export function usePubMedSearch(
 
       if (pmids.length === 0) {
         setArticles([]);
+        // 논문이 없어도 질병 설명은 표시
+        const desc = await descriptionPromise;
+        if (desc) setDiseaseDescription(desc);
         setLoading(false);
         setStep('done');
         return;
@@ -144,6 +153,10 @@ export function usePubMedSearch(
         ...s,
         abstract: abstracts[i] || undefined,
       }));
+
+      // 질병 설명이 완료되었으면 먼저 세팅 (로딩 중에 보여줌)
+      const desc = await descriptionPromise;
+      if (desc) setDiseaseDescription(desc);
 
       // Step 4: AI 분석 — 10편 분석 후 관련 논문만 필터링
       setStep('analyzing');
@@ -217,5 +230,6 @@ export function usePubMedSearch(
     step,
     limitReached,
     plan,
+    diseaseDescription,
   };
 }

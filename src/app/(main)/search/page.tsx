@@ -2,11 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { DiseaseDescription } from '@/services/openai';
 
 const stepMessages: Record<SearchStep, string> = {
   idle: '',
@@ -38,8 +39,8 @@ function SearchContent() {
   const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || null);
   const [mockResult, setMockResult] = useState<Disease | null>(cached?.mockResult || null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [cachedPubmed, setCachedPubmed] = useState<{ articles: any[]; analysis: any } | null>(
-    cached ? { articles: cached.articles, analysis: cached.analysis } : null
+  const [cachedPubmed, setCachedPubmed] = useState<{ articles: any[]; analysis: any; diseaseDescription?: DiseaseDescription | null } | null>(
+    cached ? { articles: cached.articles, analysis: cached.analysis, diseaseDescription: cached.diseaseDescription } : null
   );
   const [searchKey, setSearchKey] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -56,6 +57,7 @@ function SearchContent() {
     step: 'done' as SearchStep,
     error: null,
     retry: () => { setCachedPubmed(null); },
+    diseaseDescription: cachedPubmed.diseaseDescription || null,
   } : pubmed;
 
   // Fetch usage info on mount and after search
@@ -94,10 +96,11 @@ function SearchContent() {
           query, petType, searchTerm, mockResult, saved,
           articles: pubmed.articles,
           analysis: pubmed.analysis,
+          diseaseDescription: pubmed.diseaseDescription,
         }));
       } catch {}
     }
-  }, [pubmed.step, pubmed.articles, pubmed.analysis, query, petType, searchTerm, mockResult, saved]);
+  }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, query, petType, searchTerm, mockResult, saved]);
 
   useEffect(() => {
     if (initialQuery) {
@@ -173,7 +176,6 @@ function SearchContent() {
       });
       if (res.ok) {
         setSaved(true);
-        // 캐시에도 saved 상태 반영
         try {
           const raw = sessionStorage.getItem('searchCache');
           if (raw) {
@@ -190,6 +192,8 @@ function SearchContent() {
 
   const hasSearched = searchTerm !== null;
   const hasResults = displayPubmed.articles.length > 0 && displayPubmed.step === 'done';
+  const desc = displayPubmed.diseaseDescription;
+  const showBottomBar = hasResults && isPremium;
 
   return (
     <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
@@ -236,7 +240,7 @@ function SearchContent() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 px-4 pb-4">
+      <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>
         {/* Login required message */}
         {loginRequired && (
           <div className="max-w-sm mx-auto mt-6 text-center py-10">
@@ -291,6 +295,39 @@ function SearchContent() {
               </div>
             )}
 
+            {/* Disease Description Card (#3) */}
+            {desc && (
+              <div className="bg-blue-50 rounded-xl p-4 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <Info size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800">
+                      {desc.name_ko}
+                      {desc.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({desc.name_en})</span>}
+                    </h3>
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{desc.description}</p>
+                  </div>
+                </div>
+                {desc.symptoms.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pl-6">
+                    {desc.symptoms.map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-white text-blue-600 rounded-full text-[11px] font-medium">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {desc.when_to_visit && (
+                  <p className="text-[11px] text-orange-600 pl-6">
+                    {desc.when_to_visit}
+                  </p>
+                )}
+                <span className="inline-block text-[10px] bg-blue-100 text-blue-500 px-2 py-0.5 rounded-full ml-6">
+                  AI 생성
+                </span>
+              </div>
+            )}
+
             {/* Rate limit reached */}
             {displayPubmed.limitReached ? (
               <div className="text-center py-10">
@@ -334,20 +371,6 @@ function SearchContent() {
                   pubmed={displayPubmed}
                   diseaseName={searchTerm || ''}
                   diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
-                  headerAction={hasResults && isPremium ? (
-                    <button
-                      onClick={handleSaveAnalysis}
-                      disabled={saving || saved}
-                      className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
-                        saved
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      <Bookmark size={11} />
-                      {saved ? '보관됨' : saving ? '보관 중...' : '보관하기'}
-                    </button>
-                  ) : undefined}
                 />
 
                 {/* AI Analysis sections — blur for free users */}
@@ -431,6 +454,24 @@ function SearchContent() {
           </div>
         ) : null}
       </div>
+
+      {/* Bottom Sticky Bookmark Bar (#9) */}
+      {showBottomBar && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-30">
+          <button
+            onClick={handleSaveAnalysis}
+            disabled={saving || saved}
+            className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+              saved
+                ? 'bg-green-50 text-green-600 border border-green-200'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            <Bookmark size={16} />
+            {saved ? '보관 완료' : saving ? '보관 중...' : '이 분석 보관하기'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
