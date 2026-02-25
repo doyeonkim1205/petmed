@@ -15,7 +15,11 @@ function isInAppBrowser(): boolean {
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
-  const { signInWithGoogle, signInWithKakao } = useAuth();
+  const [showEmail, setShowEmail] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -114,6 +118,47 @@ export default function LoginPage() {
             </svg>
             카카오로 로그인
           </button>
+
+          {/* Email login (for Toss review) */}
+          {!showEmail ? (
+            <button
+              onClick={() => setShowEmail(true)}
+              className="w-full text-center text-xs text-gray-400 mt-2"
+            >
+              이메일로 로그인
+            </button>
+          ) : (
+            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+              <input
+                type="email"
+                placeholder="이메일"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-11 px-4 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                placeholder="비밀번호"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-11 px-4 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={async () => {
+                  setEmailLoading(true);
+                  setError('');
+                  const { error } = await signIn(email, password);
+                  if (error) setError(error.message);
+                  else router.push('/');
+                  setEmailLoading(false);
+                }}
+                disabled={emailLoading || !email || !password}
+                className="w-full h-11 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {emailLoading ? '로그인 중...' : '로그인'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
