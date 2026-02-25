@@ -872,7 +872,7 @@ export default function ProfilePage() {
         <div className="text-[10px] text-gray-300 leading-relaxed">
           <p>디와이랩스(DYLabs) | 대표: 김도연</p>
           <p>사업자등록번호: 769-77-00552</p>
-          <p>dylabs.pawdex@gmail.com</p>
+          <p>010-8306-9687 | dylabs.pawdex@gmail.com</p>
         </div>
       </div>
 
