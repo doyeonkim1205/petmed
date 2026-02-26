@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight } from 'lucide-react';
+import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -49,7 +49,10 @@ export default function RecordsPage() {
   const [savingPet, setSavingPet] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { records, loading, error, fetchRecords } = useHealthRecords(selectedPetId || undefined);
+  const { records, loading, error, fetchRecords, deleteRecords } = useHealthRecords(selectedPetId || undefined);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const handleAddPet = async () => {
     if (!user || !newPet.name.trim()) return;
@@ -93,6 +96,43 @@ export default function RecordsPage() {
   const filteredRecords = recordFilter === 'all'
     ? records
     : records.filter(r => r.record_type === recordFilter);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredRecords.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredRecords.map(r => r.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`${selectedIds.size}개의 기록을 삭제하시겠습니까?`)) return;
+    setDeleting(true);
+    try {
+      await deleteRecords(Array.from(selectedIds));
+      exitSelectMode();
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const monthlyStats = useMemo(() => {
     const now = new Date();
@@ -173,21 +213,60 @@ export default function RecordsPage() {
           })}
         </div>
         {activeTab === 'records' && (
-          <div className="flex gap-1.5 px-4 py-2 overflow-x-auto max-w-sm mx-auto">
-            {filterOptions.map((f) => (
+          selectMode ? (
+            <div className="flex items-center justify-between px-4 py-2 max-w-sm mx-auto">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleSelectAll}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    filteredRecords.length > 0 && selectedIds.size === filteredRecords.length
+                      ? 'border-blue-600 bg-blue-600'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  {filteredRecords.length > 0 && selectedIds.size === filteredRecords.length && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+                <span className="text-sm text-gray-600">
+                  {selectedIds.size > 0 ? `${selectedIds.size}개 선택됨` : '전체 선택'}
+                </span>
+              </div>
               <button
-                key={f.id}
-                onClick={() => handleFilterChange(f.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  recordFilter === f.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
+                onClick={exitSelectMode}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
               >
-                {f.label}
+                <X size={14} />
+                취소
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-4 py-2 overflow-x-auto max-w-sm mx-auto">
+              {filterOptions.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => handleFilterChange(f.id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    recordFilter === f.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+              {filteredRecords.length > 0 && (
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="flex-shrink-0 ml-auto px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                >
+                  선택
+                </button>
+              )}
+            </div>
+          )
         )}
       </div>
 
@@ -315,6 +394,9 @@ export default function RecordsPage() {
                   key={record.id}
                   record={record}
                   onClick={() => router.push(`/records/${record.id}`)}
+                  selectMode={selectMode}
+                  selected={selectedIds.has(record.id)}
+                  onSelect={toggleSelect}
                 />
               ))}
             </>
@@ -334,13 +416,24 @@ export default function RecordsPage() {
       )}
 
       {petCount !== 0 && (
-        <button
-          onClick={() => router.push('/records/add')}
-          className="fixed bottom-20 right-4 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
-          style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
-        >
-          <Plus size={24} />
-        </button>
+        selectMode && selectedIds.size > 0 ? (
+          <button
+            onClick={handleBulkDelete}
+            disabled={deleting}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 h-12 px-6 bg-red-500 text-[#fff] rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-red-600 active:scale-95 transition-all z-40 disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            <span className="font-medium text-sm">{deleting ? '삭제 중...' : `${selectedIds.size}개 삭제`}</span>
+          </button>
+        ) : !selectMode && (
+          <button
+            onClick={() => router.push('/records/add')}
+            className="fixed bottom-20 right-4 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+            style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
+          >
+            <Plus size={24} />
+          </button>
+        )
       )}
     </div>
   );

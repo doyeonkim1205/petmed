@@ -127,6 +127,20 @@ export function useHealthRecords(petId?: string) {
     await fetchRecords();
   };
 
+  const deleteRecords = async (ids: string[]) => {
+    if (!user) throw new Error('로그인이 필요합니다');
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('health_records')
+      .delete()
+      .in('id', ids)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+    await fetchRecords();
+  };
+
   const getRecord = async (id: string) => {
     if (!user) throw new Error('로그인이 필요합니다');
 
@@ -146,5 +160,5 @@ export function useHealthRecords(petId?: string) {
     return data as HealthRecord;
   };
 
-  return { records, loading, error, fetchRecords, createRecord, updateRecord, deleteRecord, getRecord };
+  return { records, loading, error, fetchRecords, createRecord, updateRecord, deleteRecord, deleteRecords, getRecord };
 }

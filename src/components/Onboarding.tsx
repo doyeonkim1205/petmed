@@ -181,9 +181,10 @@ const slides = [
   },
 ];
 
-export default function Onboarding({ onComplete }: { onComplete: () => void }) {
+export default function Onboarding({ onComplete }: { onComplete: (neverShow: boolean) => void }) {
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [neverShow, setNeverShow] = useState(false);
   const touchStartX = useRef(0);
 
   const goNext = useCallback(() => {
@@ -191,7 +192,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       setDirection(1);
       setPage((p) => p + 1);
     } else {
-      onComplete();
+      onComplete(neverShow);
     }
   }, [page, onComplete]);
 
@@ -230,11 +231,11 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Skip button */}
+      {/* Skip button - does not save, onboarding will show again */}
       {page < slides.length - 1 && (
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 left-4 z-10">
           <button
-            onClick={onComplete}
+            onClick={() => onComplete(false)}
             className="px-4 py-2 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             건너뛰기
@@ -316,6 +317,19 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           ))}
         </div>
 
+        {/* "다시 보지 않기" checkbox on last slide */}
+        {page === slides.length - 1 && (
+          <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={neverShow}
+              onChange={(e) => setNeverShow(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-500 dark:text-gray-400">다시 보지 않기</span>
+          </label>
+        )}
+
         {/* CTA Button */}
         <motion.button
           onClick={goNext}
@@ -344,8 +358,10 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setChecked(true);
   }, []);
 
-  const handleComplete = () => {
-    localStorage.setItem('pawdex_onboarded', 'true');
+  const handleComplete = (neverShow: boolean) => {
+    if (neverShow) {
+      localStorage.setItem('pawdex_onboarded', 'true');
+    }
     setShowOnboarding(false);
   };
 

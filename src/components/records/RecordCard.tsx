@@ -6,6 +6,9 @@ import { Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Calenda
 interface RecordCardProps {
   record: HealthRecord;
   onClick: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 const typeConfig = {
@@ -15,7 +18,7 @@ const typeConfig = {
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600' },
 };
 
-export function RecordCard({ record, onClick }: RecordCardProps) {
+export function RecordCard({ record, onClick, selectMode, selected, onSelect }: RecordCardProps) {
   const config = typeConfig[record.record_type] || typeConfig.manual;
   const Icon = config.icon;
 
@@ -31,12 +34,39 @@ export function RecordCard({ record, onClick }: RecordCardProps) {
     return new Intl.NumberFormat('ko-KR').format(cost) + '원';
   };
 
+  const handleClick = () => {
+    if (selectMode && onSelect) {
+      onSelect(record.id);
+    } else {
+      onClick();
+    }
+  };
+
   return (
     <div
-      onClick={onClick}
-      className="rounded-xl p-4 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+      onClick={handleClick}
+      className={`rounded-xl p-4 border cursor-pointer transition-colors ${
+        selectMode && selected
+          ? 'border-blue-400 bg-blue-50'
+          : 'border-gray-100 hover:bg-gray-50'
+      }`}
     >
       <div className="flex items-start gap-3">
+        {selectMode && (
+          <div className="flex items-center justify-center flex-shrink-0 pt-1">
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                selected ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+              }`}
+            >
+              {selected && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+          </div>
+        )}
         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${config.color}`}>
           <Icon size={16} />
         </div>
