@@ -497,7 +497,8 @@ export default function RecordAddPage() {
                     ))}
                   </div>
                 </div>
-                {/* Alarm times */}
+                {/* Alarm times - 웹앱에서는 숨김 (향후 네이티브 앱용으로 유지) */}
+                {false && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-gray-400">알림 시간</label>
@@ -530,6 +531,7 @@ export default function RecordAddPage() {
                     </div>
                   )}
                 </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-400">시작일</label>
