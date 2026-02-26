@@ -194,7 +194,7 @@ export default function Onboarding({ onComplete }: { onComplete: (neverShow: boo
     } else {
       onComplete(neverShow);
     }
-  }, [page, onComplete]);
+  }, [page, onComplete, neverShow]);
 
   const goPrev = useCallback(() => {
     if (page > 0) {
