@@ -7,7 +7,7 @@ import { PLANS, PlanType } from '@/lib/plans';
 import { Loader2, CreditCard, ArrowLeft } from 'lucide-react';
 import Script from 'next/script';
 
-const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_Z1aOwX7K8mjPg65gpkeQ3yQxzvNP';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
