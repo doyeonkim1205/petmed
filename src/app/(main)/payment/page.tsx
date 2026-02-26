@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PLANS, PlanType } from '@/lib/plans';
 import { Loader2, CreditCard, ArrowLeft } from 'lucide-react';
+import { loadPaymentWidget, PaymentWidgetInstance } from '@tosspayments/payment-widget-sdk';
+
+const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
@@ -13,6 +16,7 @@ function PaymentContent() {
   const plan = searchParams.get('plan') as PlanType;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const paymentWidgetRef = useRef<PaymentWidgetInstance | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -25,35 +29,16 @@ function PaymentContent() {
       return;
     }
 
-    // Small delay to ensure DOM elements are mounted
-    const timer = setTimeout(async () => {
+    const initWidget = async () => {
       try {
-        const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
-        const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-        if (!clientKey) {
-          setError('결제 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.');
-          setLoading(false);
-          return;
-        }
-
-        // Verify DOM elements exist
-        if (!document.getElementById('payment-method') || !document.getElementById('agreement')) {
-          setError('결제 영역을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-          setLoading(false);
-          return;
-        }
-
-        const tossPayments = await loadTossPayments(clientKey);
-        const widgets = tossPayments.widgets({ customerKey: user.id });
+        const paymentWidget = await loadPaymentWidget(CLIENT_KEY, user.id);
 
         const amount = PLANS[plan].price;
-        await widgets.setAmount({ currency: 'KRW', value: amount });
 
-        await widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' });
-        await widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' });
+        paymentWidget.renderPaymentMethods('#payment-method', amount);
+        paymentWidget.renderAgreement('#agreement');
 
-        // Store widgets reference for checkout
-        (window as any).__tossWidgets = widgets;
+        paymentWidgetRef.current = paymentWidget;
         setLoading(false);
       } catch (err: any) {
         console.error('Toss widget load error:', err);
@@ -61,26 +46,29 @@ function PaymentContent() {
         setError(`결제 위젯을 불러오는데 실패했습니다. (${msg})`);
         setLoading(false);
       }
-    }, 100);
+    };
 
+    // Small delay for DOM mount
+    const timer = setTimeout(initWidget, 100);
     return () => clearTimeout(timer);
   }, [user, plan, authLoading, router]);
 
   const handleCheckout = async () => {
-    const widgets = (window as any).__tossWidgets;
-    if (!widgets || !user) return;
+    const paymentWidget = paymentWidgetRef.current;
+    if (!paymentWidget || !user) return;
 
-    const orderId = `pawdex_${user.id}_${plan}_${Date.now()}`;
+    const orderId = `pawdex_${user.id.slice(0, 8)}_${plan}_${Date.now()}`;
 
     try {
-      await widgets.requestPayment({
+      await paymentWidget.requestPayment({
         orderId,
         orderName: `PawDex ${PLANS[plan].name} 구독`,
         successUrl: `${window.location.origin}/payment/success`,
         failUrl: `${window.location.origin}/payment/fail`,
+        customerEmail: user.email || undefined,
       });
-    } catch (err) {
-      // User canceled or error
+    } catch (err: any) {
+      if (err?.code === 'USER_CANCEL') return;
       console.error('Payment request error:', err);
     }
   };
