@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PLANS, PlanType } from '@/lib/plans';
 import { Loader2, CreditCard, ArrowLeft } from 'lucide-react';
-import { loadPaymentWidget } from '@tosspayments/payment-widget-sdk';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 
 const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
 
@@ -14,12 +14,13 @@ function PaymentContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const plan = searchParams.get('plan') as PlanType;
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const paymentWidgetRef = useRef<any>(null);
+  const widgetsRef = useRef<any>(null);
   const initRef = useRef(false);
 
+  // 1단계: 결제위젯 초기화
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -33,43 +34,54 @@ function PaymentContent() {
     if (initRef.current) return;
     initRef.current = true;
 
-    const initWidget = async () => {
+    async function fetchPaymentWidgets() {
       try {
-        const customerKey = user.id;
-        const paymentWidget = await loadPaymentWidget(CLIENT_KEY, customerKey);
+        const tossPayments = await loadTossPayments(CLIENT_KEY);
+        const widgets = tossPayments.widgets({
+          customerKey: user!.id,
+        });
+
+        widgetsRef.current = widgets;
+
+        // 결제 금액 설정
         const amount = PLANS[plan].price;
+        await widgets.setAmount({
+          currency: 'KRW',
+          value: amount,
+        });
 
-        await paymentWidget.renderPaymentMethods(
-          '#payment-method',
-          { value: amount },
-          { variantKey: 'DEFAULT' }
-        );
-        await paymentWidget.renderAgreement(
-          '#agreement',
-          { variantKey: 'AGREEMENT' }
-        );
+        // 결제 UI + 이용약관 UI 동시 렌더링
+        await Promise.all([
+          widgets.renderPaymentMethods({
+            selector: '#payment-method',
+            variantKey: 'DEFAULT',
+          }),
+          widgets.renderAgreement({
+            selector: '#agreement',
+            variantKey: 'AGREEMENT',
+          }),
+        ]);
 
-        paymentWidgetRef.current = paymentWidget;
-        setLoading(false);
+        setReady(true);
       } catch (err: unknown) {
         console.error('Toss widget init error:', err);
         const msg = err instanceof Error ? err.message : String(err);
         setError(`결제 위젯을 불러오는데 실패했습니다. (${msg})`);
-        setLoading(false);
       }
-    };
+    }
 
-    initWidget();
+    fetchPaymentWidgets();
   }, [user, plan, authLoading, router]);
 
+  // 결제하기 버튼 핸들러
   const handleCheckout = async () => {
-    const paymentWidget = paymentWidgetRef.current;
-    if (!paymentWidget || !user) return;
+    const widgets = widgetsRef.current;
+    if (!widgets || !user) return;
 
     const orderId = `pawdex_${user.id.slice(0, 8)}_${plan}_${Date.now()}`;
 
     try {
-      await paymentWidget.requestPayment({
+      await widgets.requestPayment({
         orderId,
         orderName: `PawDex ${PLANS[plan].name} 구독`,
         successUrl: `${window.location.origin}/payment/success`,
@@ -124,17 +136,19 @@ function PaymentContent() {
         </div>
       ) : (
         <>
-          {loading && (
+          {!ready && (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="animate-spin text-blue-500 mr-2" size={20} />
               <span className="text-sm text-gray-500">결제 위젯 로딩 중...</span>
             </div>
           )}
 
+          {/* 결제 UI */}
           <div id="payment-method" className="mb-4" />
+          {/* 이용약관 UI */}
           <div id="agreement" className="mb-6" />
 
-          {!loading && (
+          {ready && (
             <button
               onClick={handleCheckout}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
