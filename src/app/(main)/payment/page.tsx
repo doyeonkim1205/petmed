@@ -1,26 +1,22 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PLANS, PlanType } from '@/lib/plans';
-import { Loader2, CreditCard, ArrowLeft } from 'lucide-react';
+import { Loader2, CreditCard, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 
-const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_Z1aOwX7K8mjPg65gpkeQ3yQxzvNP';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const plan = searchParams.get('plan') as PlanType;
-  const [ready, setReady] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const widgetsRef = useRef<any>(null);
-  const initRef = useRef(false);
 
-  // 1단계: 결제위젯 초기화
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -31,67 +27,45 @@ function PaymentContent() {
       router.push('/pricing');
       return;
     }
-    if (initRef.current) return;
-    initRef.current = true;
-
-    async function fetchPaymentWidgets() {
-      try {
-        const tossPayments = await loadTossPayments(CLIENT_KEY);
-        const widgets = tossPayments.widgets({
-          customerKey: user!.id,
-        });
-
-        widgetsRef.current = widgets;
-
-        // 결제 금액 설정
-        const amount = PLANS[plan].price;
-        await widgets.setAmount({
-          currency: 'KRW',
-          value: amount,
-        });
-
-        // 결제 UI + 이용약관 UI 동시 렌더링
-        await Promise.all([
-          widgets.renderPaymentMethods({
-            selector: '#payment-method',
-            variantKey: 'DEFAULT',
-          }),
-          widgets.renderAgreement({
-            selector: '#agreement',
-            variantKey: 'AGREEMENT',
-          }),
-        ]);
-
-        setReady(true);
-      } catch (err: unknown) {
-        console.error('Toss widget init error:', err);
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(`결제 위젯을 불러오는데 실패했습니다. (${msg})`);
-      }
-    }
-
-    fetchPaymentWidgets();
   }, [user, plan, authLoading, router]);
 
-  // 결제하기 버튼 핸들러
   const handleCheckout = async () => {
-    const widgets = widgetsRef.current;
-    if (!widgets || !user) return;
-
-    const orderId = `pawdex_${user.id.slice(0, 8)}_${plan}_${Date.now()}`;
+    if (!user || !plan || paying) return;
+    setPaying(true);
+    setError(null);
 
     try {
-      await widgets.requestPayment({
+      const tossPayments = await loadTossPayments(CLIENT_KEY);
+      const payment = tossPayments.payment({ customerKey: user.id });
+
+      const orderId = `pawdex_${user.id.slice(0, 8)}_${plan}_${Date.now()}`;
+      const amount = PLANS[plan].price;
+
+      await payment.requestPayment({
+        method: 'CARD',
+        amount: { currency: 'KRW', value: amount },
         orderId,
         orderName: `PawDex ${PLANS[plan].name} 구독`,
         successUrl: `${window.location.origin}/payment/success`,
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || undefined,
+        card: {
+          useEscrow: false,
+          flowMode: 'DEFAULT',
+          useCardPoint: false,
+          useAppCardOnly: false,
+        },
       });
     } catch (err: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((err as any)?.code === 'USER_CANCEL') return;
+      if ((err as any)?.code === 'USER_CANCEL') {
+        setPaying(false);
+        return;
+      }
       console.error('Payment request error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`결제 요청에 실패했습니다. (${msg})`);
+      setPaying(false);
     }
   };
 
@@ -113,51 +87,61 @@ function PaymentContent() {
 
       {planConfig && (
         <div className="bg-gray-50 rounded-2xl p-5 mb-6">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <CreditCard size={18} className="text-blue-500" />
-            <h2 className="text-base font-bold text-gray-800">결제 정보</h2>
+            <h2 className="text-base font-bold text-gray-800">주문 정보</h2>
           </div>
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>PawDex {planConfig.name} 구독</span>
-            <span className="font-bold">₩{planConfig.price.toLocaleString()}/월</span>
-          </div>
-        </div>
-      )}
-
-      {error ? (
-        <div className="text-center py-10">
-          <p className="text-sm text-red-500 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/pricing')}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
-          >
-            요금제 페이지로 이동
-          </button>
-        </div>
-      ) : (
-        <>
-          {!ready && (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="animate-spin text-blue-500 mr-2" size={20} />
-              <span className="text-sm text-gray-500">결제 위젯 로딩 중...</span>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">상품</span>
+              <span className="text-gray-800 font-medium">PawDex {planConfig.name} 구독</span>
             </div>
-          )}
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">결제 금액</span>
+              <span className="text-gray-800 font-bold">₩{planConfig.price.toLocaleString()}/월</span>
+            </div>
+          </div>
 
-          {/* 결제 UI */}
-          <div id="payment-method" className="mb-4" />
-          {/* 이용약관 UI */}
-          <div id="agreement" className="mb-6" />
-
-          {ready && (
-            <button
-              onClick={handleCheckout}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
-            >
-              {planConfig ? `₩${planConfig.price.toLocaleString()} 결제하기` : '결제하기'}
-            </button>
-          )}
-        </>
+          <div className="mt-4 pt-3 border-t border-gray-200 space-y-1.5">
+            {[
+              `건강기록 ${planConfig.maxRecords === Infinity ? '무제한' : planConfig.maxRecords + '개'}`,
+              `논문 검색 ${planConfig.searchPerDay}회/일`,
+              `AI 분석 ${planConfig.aiAnalysis === 'full' ? '상세' : '미리보기'}`,
+              `반려동물 ${planConfig.maxPets === Infinity ? '무제한' : planConfig.maxPets + '마리'}`,
+            ].map((feature) => (
+              <div key={feature} className="flex items-center gap-1.5 text-xs text-gray-500">
+                <CheckCircle2 size={12} className="text-green-500 flex-shrink-0" />
+                {feature}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
+
+      {error && (
+        <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
+      <button
+        onClick={handleCheckout}
+        disabled={paying || !planConfig}
+        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+      >
+        {paying ? (
+          <>
+            <Loader2 className="animate-spin" size={16} />
+            결제 진행 중...
+          </>
+        ) : (
+          planConfig ? `₩${planConfig.price.toLocaleString()} 결제하기` : '결제하기'
+        )}
+      </button>
+
+      <p className="text-[11px] text-gray-400 text-center mt-3">
+        결제하기 버튼을 누르면 토스페이먼츠 결제창이 열립니다.
+      </p>
     </div>
   );
 }
