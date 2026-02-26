@@ -144,3 +144,13 @@ export interface PaymentHistory {
   receipt_url?: string;
   created_at: string;
 }
+
+export interface ActivityLog {
+  id: string;
+  user_id: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+}

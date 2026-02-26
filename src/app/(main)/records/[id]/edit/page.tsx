@@ -216,9 +216,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       // Delete removed files
       for (const fileId of deletedFileIds) {
         try {
-          const file = (await supabase.from('record_files').select('file_path').eq('id', fileId).single()).data;
+          const file = (await supabase.from('record_files').select('file_path').eq('id', fileId).eq('user_id', user.id).single()).data;
           if (file) await deleteFile(file.file_path);
-          await supabase.from('record_files').delete().eq('id', fileId);
+          await supabase.from('record_files').delete().eq('id', fileId).eq('user_id', user.id);
         } catch (err) {
           console.error('File delete error:', err);
         }

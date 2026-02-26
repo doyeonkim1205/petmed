@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const { query, petType } = await request.json();
-    if (!query || query.trim().length < 1) {
+    if (!query || query.trim().length < 1 || query.length > 200) {
       return NextResponse.json(REJECT);
     }
 

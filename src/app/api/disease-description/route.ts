@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { diseaseName, petType } = await request.json();
-    if (!diseaseName) {
+    if (!diseaseName || diseaseName.length > 200) {
       return NextResponse.json({ error: 'Missing diseaseName' }, { status: 400 });
     }
 

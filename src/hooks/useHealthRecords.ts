@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, HealthRecord } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -97,6 +98,7 @@ export function useHealthRecords(petId?: string) {
       .single();
 
     if (error) throw error;
+    logActivity(user.id, 'record.create', { resourceType: 'health_record', resourceId: data.id });
     await fetchRecords();
     return data;
   };
@@ -124,6 +126,7 @@ export function useHealthRecords(petId?: string) {
       .eq('user_id', user.id);
 
     if (error) throw error;
+    logActivity(user.id, 'record.delete', { resourceType: 'health_record', resourceId: id });
     await fetchRecords();
   };
 
@@ -138,6 +141,7 @@ export function useHealthRecords(petId?: string) {
       .eq('user_id', user.id);
 
     if (error) throw error;
+    logActivity(user.id, 'record.bulk_delete', { resourceType: 'health_record', details: { count: ids.length } });
     await fetchRecords();
   };
 

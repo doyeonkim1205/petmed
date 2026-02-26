@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     .limit(50);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('saved-analyses GET error:', error.message);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json(data || []);
@@ -84,7 +85,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('saved-analyses POST error:', error.message);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -106,7 +108,8 @@ export async function DELETE(request: NextRequest) {
     .eq('user_id', auth.user!.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('saved-analyses DELETE error:', error.message);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

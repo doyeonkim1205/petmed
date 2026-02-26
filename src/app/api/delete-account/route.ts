@@ -18,9 +18,10 @@ async function unlinkKakao(kakaoUserId: string) {
 
 async function revokeGoogle(providerToken: string | undefined) {
   if (!providerToken) return;
-  await fetch(`https://oauth2.googleapis.com/revoke?token=${providerToken}`, {
+  await fetch('https://oauth2.googleapis.com/revoke', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `token=${providerToken}`,
   });
 }
 
@@ -79,6 +80,13 @@ export async function POST(request: Request) {
     // Delete user data in order (foreign key safe)
     const userId = user.id;
 
+    // Log account deletion before deleting data
+    await adminClient.from('activity_logs').insert({
+      user_id: userId,
+      action: 'auth.delete_account',
+      details: { provider },
+    }).then(() => {});
+
     // Cancel active subscriptions before deleting
     await adminClient.from('subscriptions')
       .update({ status: 'canceled', canceled_at: new Date().toISOString() })
@@ -92,6 +100,7 @@ export async function POST(request: Request) {
     await adminClient.from('record_files').delete().eq('user_id', userId);
     await adminClient.from('health_records').delete().eq('user_id', userId);
     await adminClient.from('pets').delete().eq('user_id', userId);
+    await adminClient.from('activity_logs').delete().eq('user_id', userId);
     await adminClient.from('profiles').delete().eq('id', userId);
 
     // Delete the auth user

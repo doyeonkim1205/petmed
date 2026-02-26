@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import { cleanupOldCache } from '@/lib/cacheCleanup';
+import { logActivity } from '@/lib/activityLog';
 
 interface AuthContextType {
   user: User | null;
@@ -155,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!mounted) return;
           if (isSignIn) {
             try { await ensureProfile(authUser); } catch {}
+            const provider = authUser.app_metadata?.provider || 'unknown';
+            logActivity(authUser.id, 'auth.login', { details: { method: provider } });
           }
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
@@ -192,8 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      if (data.user) logActivity(data.user.id, 'auth.login', { details: { method: 'email' } });
       return { error: null };
     } catch (error) {
       return { error: error as Error };
@@ -234,6 +238,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Log before clearing state
+    if (user) logActivity(user.id, 'auth.logout');
+
     // 1) Clear React state immediately
     setUser(null);
     setProfile(null);

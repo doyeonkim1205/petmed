@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     const { diseaseName, petType, papers } = await request.json();
 
-    if (!diseaseName || !papers || papers.length === 0) {
+    if (!diseaseName || diseaseName.length > 200 || !papers || papers.length === 0 || papers.length > 20) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

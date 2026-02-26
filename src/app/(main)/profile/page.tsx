@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
+import { logActivity } from '@/lib/activityLog';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -118,13 +119,14 @@ function PetModal({
   const handleAdd = async () => {
     if (!newPet.name.trim()) return;
     setSaving(true);
-    await supabase.from('pets').insert({
+    const { data } = await supabase.from('pets').insert({
       user_id: userId,
       name: newPet.name.trim(),
       type: newPet.type,
       breed: newPet.breed.trim() || null,
       birth_date: newPet.birth_date || null,
-    });
+    }).select('id').single();
+    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
     setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
     setShowAddForm(false);
     setSaving(false);
@@ -132,7 +134,8 @@ function PetModal({
   };
 
   const handleDelete = async (petId: string) => {
-    await supabase.from('pets').delete().eq('id', petId);
+    await supabase.from('pets').delete().eq('id', petId).eq('user_id', userId);
+    logActivity(userId, 'pet.delete', { resourceType: 'pet', resourceId: petId });
     fetchPets();
   };
 
