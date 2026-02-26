@@ -45,8 +45,15 @@ function PaymentContent() {
         const paymentWidget = PaymentWidget(CLIENT_KEY, customerKey);
         const amount = PLANS[plan].price;
 
-        paymentWidget.renderPaymentMethods('#payment-method', amount);
-        paymentWidget.renderAgreement('#agreement');
+        paymentWidget.renderPaymentMethods(
+          '#payment-method',
+          { value: amount },
+          { variantKey: 'DEFAULT' }
+        );
+        paymentWidget.renderAgreement(
+          '#agreement',
+          { variantKey: 'AGREEMENT' }
+        );
 
         paymentWidgetRef.current = paymentWidget;
         setLoading(false);
