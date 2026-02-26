@@ -872,6 +872,8 @@ export default function ProfilePage() {
         <div className="text-[10px] text-gray-300 leading-relaxed">
           <p>디와이랩스(DYLabs) | 대표: 김도연</p>
           <p>사업자등록번호: 769-77-00552</p>
+          <p>통신판매업신고번호: 2026-화성동탄-1654</p>
+          <p>경기도 화성시 동탄순환대로 26길 81</p>
           <p>010-8306-9687 | dylabs.pawdex@gmail.com</p>
         </div>
       </div>

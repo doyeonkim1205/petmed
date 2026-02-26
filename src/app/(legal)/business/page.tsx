@@ -7,7 +7,8 @@ export default function BusinessPage() {
         <InfoRow label="상호명" value="디와이랩스(DYLabs)" />
         <InfoRow label="대표자" value="김도연" />
         <InfoRow label="사업자등록번호" value="769-77-00552" />
-        <InfoRow label="주소" value="경기도 화성시 동탄구 동탄순환대로26길 81" />
+        <InfoRow label="통신판매업신고번호" value="2026-화성동탄-1654" />
+        <InfoRow label="주소" value="경기도 화성시 동탄순환대로 26길 81" />
         <InfoRow label="이메일" value="dylabs.pawdex@gmail.com" href="mailto:dylabs.pawdex@gmail.com" />
         <InfoRow label="전화번호" value="010-8306-9687" href="tel:010-8306-9687" />
       </div>
