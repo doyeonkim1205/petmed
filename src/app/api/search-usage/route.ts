@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
 
   const plan = profile?.plan || 'free';
   const config = getPlanConfig(plan);
-  const dailyLimit = config.searchPerDay;
+  const isApp = request.headers.get('x-platform') === 'app';
+  const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
 
   // Count today's searches
   const startOfDay = new Date();
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest) {
 
   const plan = profile?.plan || 'free';
   const config = getPlanConfig(plan);
-  const dailyLimit = config.searchPerDay;
+  const isApp = request.headers.get('x-platform') === 'app';
+  const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
 
   // Count today's searches
   const startOfDay = new Date();
