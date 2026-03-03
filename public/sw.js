@@ -1,40 +1,83 @@
-// PawDex Service Worker — network-first strategy
-// Minimal SW to satisfy PWA installability requirements
+// PawDex Service Worker v2
+const CACHE_NAME = 'pawdex-v2';
+const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png'];
 
-const CACHE_NAME = 'pawdex-v1';
-
+// Install: precache essential resources
 self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+  );
   self.skipWaiting();
 });
 
+// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
-      Promise.all(
-        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      )
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
     )
   );
   self.clients.claim();
 });
 
+// Fetch strategy
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip non-http(s) requests
   if (!event.request.url.startsWith('http')) return;
 
+  const url = new URL(event.request.url);
+
+  // API: network only
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Navigation: network first, fallback to offline page
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  // Static assets: network first + cache fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful responses for static assets only
-        if (response.ok && event.request.url.match(/\.(js|css|png|jpg|svg|woff2?)$/)) {
+        if (response.ok && url.pathname.match(/\.(js|css|png|jpg|svg|woff2?|ico)$/)) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+});
+
+// Push notification
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'PawDex';
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    data: { url: data.url || '/' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
