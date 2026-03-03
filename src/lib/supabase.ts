@@ -22,12 +22,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Types for database tables
 export type UserPlan = 'free' | 'basic' | 'premium';
 
+export type UserRole = 'user' | 'admin';
+
 export interface Profile {
   id: string;
   email: string;
   nickname: string;
   avatar_url?: string;
   plan: UserPlan;
+  role: UserRole;
   created_at: string;
 }
 
