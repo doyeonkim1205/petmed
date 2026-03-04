@@ -752,8 +752,8 @@ export default function ProfilePage() {
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
 
-        {/* 알림 설정 - 웹앱에서는 숨김 (향후 네이티브 앱용으로 유지) */}
-        {false && (
+        {/* 알림 설정 - PWA 설치 시에만 표시 */}
+        {typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches && (
         <button
           onClick={() => setShowNotificationModal(true)}
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"

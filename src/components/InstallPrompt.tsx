@@ -37,7 +37,7 @@ export function InstallPrompt() {
       <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-4 flex items-center gap-3">
         <div className="flex-1">
           <p className="font-medium text-sm">PawDex 앱 설치</p>
-          <p className="text-xs text-gray-500">홈 화면에 추가하여 더 빠르게 이용하세요</p>
+          <p className="text-xs text-gray-500">설치하면 무료 검색 3회 → 5회로 확대!</p>
         </div>
         <button
           onClick={handleInstall}
