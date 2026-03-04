@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   if (dailyLimit > 0 && (count || 0) >= dailyLimit) {
     return NextResponse.json({
       allowed: false,
-      reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'premium' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 검색을 이용하세요.'}`,
+      reason: `🔍 오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'premium' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 검색을 이용하세요.'}`,
       plan,
     });
   }
