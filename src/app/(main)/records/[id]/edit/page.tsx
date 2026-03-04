@@ -10,6 +10,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile } from '@/services/fileUpload';
+import { getPlanConfig } from '@/lib/plans';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -39,7 +40,7 @@ interface MedicationInput {
 export default function RecordEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { getRecord, updateRecord } = useHealthRecords();
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
@@ -164,8 +165,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setExistingFiles(existingFiles.filter((f) => f.id !== fileId));
   };
 
+  const maxAttachments = getPlanConfig(profile?.plan || 'free').attachmentsPerRecord;
   const activeFileCount = existingFiles.length + newFiles.length;
-  const maxNewFiles = 3 - existingFiles.length;
+  const maxNewFiles = maxAttachments - existingFiles.length;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -630,7 +632,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           )}
 
           {/* New file upload */}
-          {activeFileCount < 3 && (
+          {activeFileCount < maxAttachments && (
             <FileUploader
               files={newFiles}
               onFilesChange={setNewFiles}
@@ -638,8 +640,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             />
           )}
-          {activeFileCount >= 3 && (
-            <p className="text-xs text-gray-400 text-center">최대 3개 파일까지 첨부 가능합니다.</p>
+          {activeFileCount >= maxAttachments && (
+            <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다.</p>
           )}
         </div>
       </form>
