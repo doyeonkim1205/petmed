@@ -129,7 +129,7 @@ function PetModal({
     const config = getPlanConfig(profile?.plan || 'free');
     if (config.maxPets > 0 && pets.length >= config.maxPets) {
       const plan = profile?.plan || 'free';
-      const suffix = plan === 'premium' ? '기존 반려동물을 삭제하면 새로 추가할 수 있습니다.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
+      const suffix = plan === 'premium' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
       alert(`반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
       return;
     }
