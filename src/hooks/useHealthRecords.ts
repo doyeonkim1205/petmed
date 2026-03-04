@@ -105,7 +105,9 @@ export function useHealthRecords(petId?: string) {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       if ((count || 0) >= config.maxRecords) {
-        throw new Error(`기록 한도(${config.maxRecords}개)에 도달했습니다. 업그레이드하여 더 많은 기록을 추가하세요.`);
+        const plan = profile?.plan || 'free';
+        const suffix = plan === 'premium' ? ' 기존 기록을 삭제하면 새로 추가할 수 있습니다.' : ' 업그레이드하여 더 많은 기록을 추가하세요.';
+        throw new Error(`기록 한도(${config.maxRecords}개)에 도달했습니다.${suffix}`);
       }
     }
 
