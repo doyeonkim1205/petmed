@@ -233,7 +233,7 @@ export default function RecordAddPage() {
       router.push('/records');
     } catch (err) {
       console.error('Error creating record:', err);
-      setError('기록 저장에 실패했습니다.');
+      setError(err instanceof Error ? err.message : '기록 저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
