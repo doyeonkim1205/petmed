@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, HealthRecord } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
+import { getPlanConfig } from '@/lib/plans';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -90,6 +91,23 @@ export function useHealthRecords(petId?: string) {
     symptom_time?: string;
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');
+
+    // Check record limit based on plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single();
+    const config = getPlanConfig(profile?.plan || 'free');
+    if (config.maxRecords > 0) {
+      const { count } = await supabase
+        .from('health_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if ((count || 0) >= config.maxRecords) {
+        throw new Error(`기록 한도(${config.maxRecords}개)에 도달했습니다. 업그레이드하여 더 많은 기록을 추가하세요.`);
+      }
+    }
 
     const { data, error } = await supabase
       .from('health_records')

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { logActivity } from '@/lib/activityLog';
+import { getPlanConfig } from '@/lib/plans';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -118,6 +119,19 @@ function PetModal({
 
   const handleAdd = async () => {
     if (!newPet.name.trim()) return;
+
+    // Check pet limit based on plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', userId)
+      .single();
+    const config = getPlanConfig(profile?.plan || 'free');
+    if (config.maxPets > 0 && pets.length >= config.maxPets) {
+      alert(`반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. 업그레이드하여 더 많은 반려동물을 등록하세요.`);
+      return;
+    }
+
     setSaving(true);
     const { data } = await supabase.from('pets').insert({
       user_id: userId,

@@ -38,11 +38,13 @@ export async function GET(request: NextRequest) {
     .gte('created_at', startOfDay.toISOString());
 
   const used = count || 0;
+  const unlimited = dailyLimit === 0;
   return NextResponse.json({
     plan,
     limit: dailyLimit,
     used,
-    remaining: Math.max(0, dailyLimit - used),
+    remaining: unlimited ? 999 : Math.max(0, dailyLimit - used),
+    unlimited,
     period: 'day',
   });
 }
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
     .eq('user_id', userId)
     .gte('created_at', startOfDay.toISOString());
 
-  if ((count || 0) >= dailyLimit) {
+  if (dailyLimit > 0 && (count || 0) >= dailyLimit) {
     return NextResponse.json({
       allowed: false,
       reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'free' ? ' 업그레이드하여 더 많은 검색을 이용하세요.' : ''}`,

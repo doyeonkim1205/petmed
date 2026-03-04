@@ -18,24 +18,24 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     name: 'Free',
     nameKo: '무료',
     price: 0,
-    maxRecords: 5,
+    maxRecords: 15,
     searchPerDay: 3,
     aiAnalysis: 'blur',
     maxSavedAnalyses: 0,
     costStatsMonths: 1,
-    maxPets: 1,
+    maxPets: 3,
     attachmentsPerRecord: 1,
   },
   basic: {
     name: 'Basic',
     nameKo: '베이직',
     price: 2900,
-    maxRecords: 15,
-    searchPerDay: 10,
+    maxRecords: 0, // unlimited
+    searchPerDay: 15,
     aiAnalysis: 'full',
-    maxSavedAnalyses: 10,
-    costStatsMonths: 3,
-    maxPets: 3,
+    maxSavedAnalyses: 0, // unlimited
+    costStatsMonths: 6,
+    maxPets: 0, // unlimited
     attachmentsPerRecord: 3,
   },
   premium: {
@@ -43,7 +43,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     nameKo: '프리미엄',
     price: 4900,
     maxRecords: 0, // unlimited
-    searchPerDay: 30,
+    searchPerDay: 0, // unlimited
     aiAnalysis: 'full',
     maxSavedAnalyses: 0, // unlimited
     costStatsMonths: 12,
