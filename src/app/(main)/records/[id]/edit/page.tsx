@@ -328,22 +328,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </select>
         </div>
 
-        {/* Weight */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">
-            체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            placeholder="예: 3.5"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-        </div>
-
         <div className="space-y-2">
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목'}
@@ -355,6 +339,24 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
+
+        {/* Weight (증상 기록: 증상명 아래) */}
+        {recordType === 'symptom' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              placeholder="예: 3.5"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium">
@@ -433,6 +435,22 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+              />
+            </div>
+
+            {/* Weight (진료/입퇴원: 설명 아래) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                placeholder="예: 3.5"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
 
