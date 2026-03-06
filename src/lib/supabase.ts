@@ -81,6 +81,7 @@ export interface HealthRecord {
   next_appointment_date?: string;
   next_appointment_color?: string;
   symptom_time?: string;
+  weight?: number;
   created_at: string;
   updated_at: string;
   pets?: Pet;

@@ -53,6 +53,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [visitDate, setVisitDate] = useState('');
   const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
+  const [weight, setWeight] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
@@ -85,6 +86,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setHospitalName(record.hospital_name || '');
       setVisitDate(record.visit_date.split('T')[0]);
       setCost(record.cost ? String(record.cost) : '');
+      setWeight(record.weight ? String(record.weight) : '');
       setRecordColor(record.color || '#3B82F6');
       setRecordType(record.record_type);
       setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
@@ -213,6 +215,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         next_appointment_date: nextAppointmentDate || null,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
         symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
+        weight: weight ? Number(weight) : null,
       } as any);
 
       // Delete removed files
@@ -323,6 +326,22 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Weight */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            placeholder="예: 3.5"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          />
         </div>
 
         <div className="space-y-2">

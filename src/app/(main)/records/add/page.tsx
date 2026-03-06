@@ -57,6 +57,7 @@ export default function RecordAddPage() {
   const [visitDate, setVisitDate] = useState(new Date().toISOString().split('T')[0]);
   const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
+  const [weight, setWeight] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
@@ -193,6 +194,7 @@ export default function RecordAddPage() {
         next_appointment_date: nextAppointmentDate || undefined,
         next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
         symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
+        weight: weight ? Number(weight) : undefined,
       });
 
       // Upload files
@@ -300,6 +302,22 @@ export default function RecordAddPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Weight */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            placeholder="예: 3.5"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          />
         </div>
 
         {/* Title */}

@@ -140,6 +140,12 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
             </div>
           )}
+          {record.weight != null && record.weight > 0 && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">체중</span>
+              <span className="text-sm font-medium">{record.weight}kg</span>
+            </div>
+          )}
           {record.discharge_date && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">퇴원일</span>
