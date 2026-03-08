@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangle, Pill, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { SavedAnalysis } from '@/lib/supabase';
+import { SavedAnalysis, SavedPaper } from '@/lib/supabase';
 import { getPubMedUrl } from '@/services/pubmed';
 
 export default function SavedAnalysesPage() {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export default function SavedAnalysesPage() {
     fetchSaved();
   }, [user]);
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteAnalysis = async (id: string) => {
     try {
       const { authFetch } = await import('@/lib/authFetch');
       const res = await authFetch('/api/saved-analyses', {
@@ -41,6 +41,26 @@ export default function SavedAnalysesPage() {
       });
       if (res.ok) {
         setAnalyses(prev => prev.filter(a => a.id !== id));
+      }
+    } catch {}
+  };
+
+  const handleDeletePaper = async (paperId: string, analysisId: string) => {
+    try {
+      const { authFetch } = await import('@/lib/authFetch');
+      const res = await authFetch('/api/saved-papers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: paperId }),
+      });
+      if (res.ok) {
+        setAnalyses(prev => prev.map(a => {
+          if (a.id !== analysisId) return a;
+          return {
+            ...a,
+            saved_papers: (a.saved_papers || []).filter(p => p.id !== paperId),
+          };
+        }));
       }
     } catch {}
   };
@@ -75,102 +95,178 @@ export default function SavedAnalysesPage() {
             <p className="text-xs text-gray-300 mt-1">검색 결과에서 보관하기를 눌러보세요.</p>
           </div>
         ) : (
-          analyses.map((item) => (
-            <div key={item.id} className="rounded-xl border border-gray-100 overflow-hidden">
-              {/* Header */}
-              <button
-                onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                className="w-full p-4 text-left"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{item.query}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <Clock size={10} />
-                        {formatDate(item.created_at)}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full">
-                        {item.pet_type === 'dog' ? '강아지' : '고양이'}
-                      </span>
-                      <span className="text-[10px] text-gray-300">
-                        논문 {item.articles?.length || 0}편
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                    className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </button>
+          analyses.map((item) => {
+            const isExpanded = expandedId === item.id;
+            const papers = item.saved_papers || [];
+            // Fallback: legacy data may have articles in the old format
+            const legacyArticles = item.articles?.length > 0 ? item.articles : [];
+            const hasPapers = papers.length > 0 || legacyArticles.length > 0;
 
-              {/* Expanded content */}
-              {expandedId === item.id && (
-                <div className="border-t border-gray-50 px-4 pb-4">
-                  {/* Papers */}
-                  {item.articles?.map((article: any, idx: number) => (
-                    <div key={article.pmid || idx} className="py-3 border-b border-gray-50 last:border-b-0">
-                      <p className="text-sm font-medium text-gray-700">
-                        {item.analysis?.titles?.[idx] || article.title}
-                      </p>
-                      {item.analysis?.titles?.[idx] && (
-                        <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">{article.title}</p>
-                      )}
-                      {item.analysis?.summaries?.[idx] && (
-                        <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                          {item.analysis.summaries[idx]}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        {article.journal} · {article.pubDate}
-                      </p>
-                      <a
-                        href={getPubMedUrl(article.pmid)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500"
-                      >
-                        <ExternalLink size={10} />
-                        원문 보기
-                      </a>
-                    </div>
-                  ))}
-
-                  {/* Precautions */}
-                  {item.analysis?.precautions?.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-400 mb-1.5">주의사항</p>
-                      <ul className="space-y-1">
-                        {item.analysis.precautions.map((p: string, i: number) => (
-                          <li key={i} className="flex gap-1.5 text-xs text-gray-600">
-                            <span className="text-orange-300 mt-0.5">●</span>
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Ingredients */}
-                  {item.analysis?.ingredients?.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-400 mb-1.5">도움되는 성분</p>
-                      <div className="flex flex-wrap gap-1">
-                        {item.analysis.ingredients.map((ing: string, i: number) => (
-                          <span key={i} className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-medium">
-                            {ing}
+            return (
+              <div key={item.id} className="rounded-xl border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  className="w-full p-4 text-left"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800">{item.query}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <Clock size={10} />
+                          {formatDate(item.created_at)}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full">
+                          {item.pet_type === 'dog' ? '강아지' : '고양이'}
+                        </span>
+                        {hasPapers && (
+                          <span className="text-[10px] text-gray-300">
+                            논문 {papers.length || legacyArticles.length}편
                           </span>
-                        ))}
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteAnalysis(item.id); }}
+                        className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      {isExpanded ? <ChevronUp size={14} className="text-gray-300" /> : <ChevronDown size={14} className="text-gray-300" />}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div className="border-t border-gray-50 px-4 pb-4">
+                    {/* Precautions */}
+                    {item.analysis?.precautions?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
+                          <AlertTriangle size={12} className="text-orange-400" />
+                          주의사항 & 대처방법
+                        </p>
+                        <ul className="space-y-1">
+                          {item.analysis.precautions.map((p: string, i: number) => (
+                            <li key={i} className="flex gap-1.5 text-xs text-gray-600">
+                              <span className="text-orange-300 mt-0.5">●</span>
+                              {p}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Ingredients */}
+                    {item.analysis?.ingredients?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
+                          <Pill size={12} className="text-purple-400" />
+                          도움되는 성분
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {item.analysis.ingredients.map((ing: string, i: number) => (
+                            <span key={i} className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-medium">
+                              {ing}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Saved Papers (new format) */}
+                    {papers.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
+                          <FileText size={12} className="text-blue-400" />
+                          저장된 논문 ({papers.length}편)
+                        </p>
+                        <div className="space-y-2">
+                          {papers.map((paper) => (
+                            <div key={paper.id} className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-700">
+                                    {paper.title_ko || paper.title}
+                                  </p>
+                                  {paper.title_ko && (
+                                    <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">{paper.title}</p>
+                                  )}
+                                  {paper.summary && (
+                                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{paper.summary}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <p className="text-[10px] text-gray-400">
+                                      {paper.journal} · {paper.pub_date}
+                                    </p>
+                                    <a
+                                      href={getPubMedUrl(paper.pmid)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-blue-500"
+                                    >
+                                      <ExternalLink size={10} />
+                                      원문
+                                    </a>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => handleDeletePaper(paper.id, item.id)}
+                                  className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Legacy articles (old format — backward compat) */}
+                    {papers.length === 0 && legacyArticles.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
+                          <FileText size={12} className="text-blue-400" />
+                          논문 ({legacyArticles.length}편)
+                        </p>
+                        {legacyArticles.map((article: any, idx: number) => (
+                          <div key={article.pmid || idx} className="py-3 border-b border-gray-50 last:border-b-0">
+                            <p className="text-sm font-medium text-gray-700">
+                              {item.analysis?.titles?.[idx] || article.title}
+                            </p>
+                            {item.analysis?.titles?.[idx] && (
+                              <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">{article.title}</p>
+                            )}
+                            {item.analysis?.summaries?.[idx] && (
+                              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                                {item.analysis.summaries[idx]}
+                              </p>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              {article.journal} · {article.pubDate}
+                            </p>
+                            <a
+                              href={getPubMedUrl(article.pmid)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500"
+                            >
+                              <ExternalLink size={10} />
+                              원문 보기
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

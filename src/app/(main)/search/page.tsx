@@ -47,6 +47,9 @@ function SearchContent() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(cached?.saved || false);
   const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
+  const [showPaperModal, setShowPaperModal] = useState(false);
+  const [selectedPapers, setSelectedPapers] = useState<Set<number>>(new Set());
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
 
@@ -161,23 +164,58 @@ function SearchContent() {
     setSearchKey(k => k + 1);
   };
 
+  const handleOpenSaveModal = () => {
+    if (!isPaid || saving || saved) return;
+    // Pre-select all papers
+    const allIndices = new Set(displayPubmed.articles.map((_, i) => i));
+    setSelectedPapers(allIndices);
+    setSaveWarning(null);
+    setShowPaperModal(true);
+  };
+
+  const togglePaper = (idx: number) => {
+    setSelectedPapers(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   const handleSaveAnalysis = async () => {
     if (!isPaid || saving || saved) return;
     setSaving(true);
+    setShowPaperModal(false);
     try {
       const { authFetch } = await import('@/lib/authFetch');
+
+      // Build selected papers array
+      const papers = Array.from(selectedPapers).map(idx => {
+        const article = displayPubmed.articles[idx];
+        return {
+          pmid: article.pmid,
+          title: article.title,
+          titleKo: displayPubmed.analysis?.titles?.[idx] || null,
+          summary: displayPubmed.analysis?.summaries?.[idx] || null,
+          journal: article.journal,
+          pubDate: article.pubDate,
+        };
+      });
+
       const res = await authFetch('/api/saved-analyses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: searchTerm,
           petType,
-          articles: displayPubmed.articles,
           analysis: displayPubmed.analysis,
+          selectedPapers: papers,
         }),
       });
       if (res.ok) {
+        const result = await res.json();
         setSaved(true);
+        if (result.warning) setSaveWarning(result.warning);
         try {
           const raw = sessionStorage.getItem('searchCache');
           if (raw) {
@@ -475,11 +513,14 @@ function SearchContent() {
         ) : null}
       </div>
 
-      {/* Bottom Sticky Bookmark Bar (#9) */}
+      {/* Bottom Sticky Bookmark Bar */}
       {showBottomBar && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-30">
+          {saveWarning && (
+            <p className="text-xs text-orange-500 mb-2 text-center">{saveWarning}</p>
+          )}
           <button
-            onClick={handleSaveAnalysis}
+            onClick={handleOpenSaveModal}
             disabled={saving || saved}
             className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
               saved
@@ -490,6 +531,65 @@ function SearchContent() {
             <Bookmark size={16} />
             {saved ? '보관 완료' : saving ? '보관 중...' : '이 분석 보관하기'}
           </button>
+        </div>
+      )}
+
+      {/* Paper Selection Modal */}
+      {showPaperModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowPaperModal(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-2xl p-5 pb-8 max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-800">보관할 논문 선택</h3>
+              <button onClick={() => setShowPaperModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              주의사항 · 대처방법 · 도움되는 성분은 자동 저장됩니다.
+              <br />논문은 선택한 것만 저장되며, 저장 한도에 포함됩니다.
+            </p>
+
+            <div className="space-y-2 mb-4">
+              {displayPubmed.articles.map((article, idx) => (
+                <label
+                  key={article.pmid || idx}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    selectedPapers.has(idx) ? 'border-blue-300 bg-blue-50/50' : 'border-gray-100 bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPapers.has(idx)}
+                    onChange={() => togglePaper(idx)}
+                    className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700 leading-snug">
+                      {displayPubmed.analysis?.titles?.[idx] || article.title}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-1 truncate">
+                      {article.journal} · {article.pubDate}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedPapers(new Set())}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                선택 해제
+              </button>
+              <button
+                onClick={handleSaveAnalysis}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              >
+                저장하기 ({selectedPapers.size}편)
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -50,6 +50,23 @@ export interface SavedAnalysis {
   articles: any[];
   analysis: any;
   created_at: string;
+  saved_papers?: SavedPaper[];
+}
+
+export interface SavedPaper {
+  id: string;
+  user_id: string;
+  analysis_id: string;
+  query: string;
+  pet_type: string;
+  pmid: string;
+  title: string;
+  title_ko?: string;
+  summary?: string;
+  journal?: string;
+  pub_date?: string;
+  abstract?: string;
+  created_at: string;
 }
 
 export interface Pet {
