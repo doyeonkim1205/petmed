@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileText, ExternalLink, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
+import { FileText, ExternalLink, RefreshCw, AlertCircle, ChevronDown, Bookmark } from 'lucide-react';
 import { getPubMedUrl } from '@/services/pubmed';
 import { UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 
@@ -10,6 +10,9 @@ interface PaperSectionProps {
   diseaseName: string;
   diseaseSummary: string;
   headerAction?: React.ReactNode;
+  bookmarkedPapers?: Set<number>;
+  onToggleBookmark?: (idx: number) => void;
+  showBookmarks?: boolean;
 }
 
 function SkeletonLoader() {
@@ -25,40 +28,56 @@ function SkeletonLoader() {
   );
 }
 
-function AccordionItem({ article, index, analysis, analysisLoading }: {
+function AccordionItem({ article, index, analysis, analysisLoading, isBookmarked, onToggleBookmark, showBookmark }: {
   article: { pmid: string; title: string; authors: string[]; journal: string; pubDate: string };
   index: number;
   analysis: UsePubMedSearchResult['analysis'];
   analysisLoading: boolean;
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
+  showBookmark?: boolean;
 }) {
   const [isOpen, setIsOpen] = React.useState(index === 0);
 
   return (
     <div className="border-b border-gray-50 last:border-b-0">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-start gap-2 py-3 text-left"
-      >
-        <div className="flex-1 pr-2">
-          <p className="text-sm font-medium text-gray-800 leading-snug">
-            {analysis?.titles?.[index] || article.title}
-          </p>
-          {analysis?.titles?.[index] && (
-            <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">
-              {article.title}
+      <div className="flex items-start gap-1 py-3">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-start gap-2 text-left min-w-0"
+        >
+          <div className="flex-1 pr-1">
+            <p className="text-sm font-medium text-gray-800 leading-snug">
+              {analysis?.titles?.[index] || article.title}
             </p>
-          )}
-          <p className="text-xs text-gray-400 mt-1">
-            {article.authors.slice(0, 3).join(', ')}
-            {article.authors.length > 3 && ' et al.'}
-            {' · '}
-            {article.journal}
-            {' · '}
-            {article.pubDate}
-          </p>
-        </div>
-        <ChevronDown size={14} className={`mt-1 text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+            {analysis?.titles?.[index] && (
+              <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">
+                {article.title}
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              {article.authors.slice(0, 3).join(', ')}
+              {article.authors.length > 3 && ' et al.'}
+              {' · '}
+              {article.journal}
+              {' · '}
+              {article.pubDate}
+            </p>
+          </div>
+          <ChevronDown size={14} className={`mt-1 text-gray-300 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {showBookmark && onToggleBookmark && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleBookmark(); }}
+            className="p-1.5 flex-shrink-0 -mr-1 transition-colors"
+          >
+            <Bookmark
+              size={16}
+              className={isBookmarked ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}
+            />
+          </button>
+        )}
+      </div>
       {isOpen && (
         <div className="pb-3 pl-1">
           {analysis?.summaries?.[index] ? (
@@ -95,6 +114,9 @@ export function PaperSection({
   diseaseName,
   diseaseSummary,
   headerAction,
+  bookmarkedPapers,
+  onToggleBookmark,
+  showBookmarks,
 }: PaperSectionProps) {
   const { articles, loading, error, retry, analysis, analysisLoading } = pubmed;
 
@@ -136,6 +158,9 @@ export function PaperSection({
                 index={idx}
                 analysis={analysis}
                 analysisLoading={analysisLoading}
+                isBookmarked={bookmarkedPapers?.has(idx)}
+                onToggleBookmark={onToggleBookmark ? () => onToggleBookmark(idx) : undefined}
+                showBookmark={showBookmarks}
               />
             ))}
           </div>

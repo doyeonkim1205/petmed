@@ -47,8 +47,7 @@ function SearchContent() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(cached?.saved || false);
   const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
-  const [showPaperModal, setShowPaperModal] = useState(false);
-  const [selectedPapers, setSelectedPapers] = useState<Set<number>>(new Set());
+  const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
@@ -64,6 +63,13 @@ function SearchContent() {
     diseaseDescription: cachedPubmed.diseaseDescription || null,
     isCached: false,
   } : pubmed;
+
+  // Init bookmarks for cached results
+  useEffect(() => {
+    if (cachedPubmed && cachedPubmed.articles.length > 0 && bookmarkedPapers.size === 0) {
+      setBookmarkedPapers(new Set(cachedPubmed.articles.map((_, i) => i)));
+    }
+  }, [cachedPubmed]);
 
   // Fetch usage info on mount and after search
   useEffect(() => {
@@ -93,6 +99,13 @@ function SearchContent() {
     setRecentSearches(searches);
     if (storageKey) localStorage.setItem(storageKey, JSON.stringify(searches));
   };
+
+  // Auto-bookmark all papers when results arrive
+  useEffect(() => {
+    if (pubmed.step === 'done' && pubmed.articles.length > 0) {
+      setBookmarkedPapers(new Set(pubmed.articles.map((_, i) => i)));
+    }
+  }, [pubmed.step, pubmed.articles]);
 
   useEffect(() => {
     if (pubmed.step === 'done' && searchTerm && pubmed.articles.length > 0) {
@@ -164,17 +177,8 @@ function SearchContent() {
     setSearchKey(k => k + 1);
   };
 
-  const handleOpenSaveModal = () => {
-    if (!isPaid || saving || saved) return;
-    // Pre-select all papers
-    const allIndices = new Set(displayPubmed.articles.map((_, i) => i));
-    setSelectedPapers(allIndices);
-    setSaveWarning(null);
-    setShowPaperModal(true);
-  };
-
-  const togglePaper = (idx: number) => {
-    setSelectedPapers(prev => {
+  const toggleBookmark = (idx: number) => {
+    setBookmarkedPapers(prev => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
@@ -185,12 +189,11 @@ function SearchContent() {
   const handleSaveAnalysis = async () => {
     if (!isPaid || saving || saved) return;
     setSaving(true);
-    setShowPaperModal(false);
     try {
       const { authFetch } = await import('@/lib/authFetch');
 
-      // Build selected papers array
-      const papers = Array.from(selectedPapers).map(idx => {
+      // Build selected papers array from bookmarked papers
+      const papers = Array.from(bookmarkedPapers).map(idx => {
         const article = displayPubmed.articles[idx];
         return {
           pmid: article.pmid,
@@ -416,6 +419,9 @@ function SearchContent() {
                   pubmed={displayPubmed}
                   diseaseName={searchTerm || ''}
                   diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
+                  bookmarkedPapers={bookmarkedPapers}
+                  onToggleBookmark={toggleBookmark}
+                  showBookmarks={isPaid && !saved}
                 />
 
                 {/* AI Analysis sections — blur for free users */}
@@ -510,7 +516,7 @@ function SearchContent() {
             <p className="text-xs text-orange-500 mb-2 text-center">{saveWarning}</p>
           )}
           <button
-            onClick={handleOpenSaveModal}
+            onClick={handleSaveAnalysis}
             disabled={saving || saved}
             className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
               saved
@@ -519,77 +525,8 @@ function SearchContent() {
             }`}
           >
             <Bookmark size={16} />
-            {saved ? '보관 완료' : saving ? '보관 중...' : '이 분석 보관하기'}
+            {saved ? '보관 완료' : saving ? `보관하기 (${bookmarkedPapers.size}편)` : '이 분석 보관하기'}
           </button>
-        </div>
-      )}
-
-      {/* Paper Selection Modal */}
-      {showPaperModal && (
-        <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowPaperModal(false)}>
-          {/* Modal positioned at bottom */}
-          <div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-2xl"
-            style={{ maxHeight: '75vh' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header - fixed */}
-            <div className="px-5 pt-5 pb-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-gray-800">보관할 논문 선택</h3>
-                <button onClick={() => setShowPaperModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X size={18} />
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">
-                주의사항 · 대처방법 · 도움되는 성분은 자동 저장됩니다.
-                <br />논문은 선택한 것만 저장되며, 저장 한도에 포함됩니다.
-              </p>
-            </div>
-
-            {/* Scrollable paper list */}
-            <div className="overflow-y-auto px-5 space-y-2" style={{ maxHeight: 'calc(75vh - 200px)' }}>
-              {displayPubmed.articles.map((article, idx) => (
-                <label
-                  key={article.pmid || idx}
-                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    selectedPapers.has(idx) ? 'border-blue-300 bg-blue-50/50' : 'border-gray-100 bg-gray-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedPapers.has(idx)}
-                    onChange={() => togglePaper(idx)}
-                    className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-700 leading-snug">
-                      {displayPubmed.analysis?.titles?.[idx] || article.title}
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-1 truncate">
-                      {article.journal} · {article.pubDate}
-                    </p>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            {/* Footer buttons - fixed at bottom */}
-            <div className="flex gap-2 px-5 py-4 border-t border-gray-100">
-              <button
-                onClick={() => setSelectedPapers(new Set())}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                선택 해제
-              </button>
-              <button
-                onClick={handleSaveAnalysis}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-              >
-                저장하기 ({selectedPapers.size}편)
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
