@@ -537,19 +537,21 @@ function SearchContent() {
       {/* Paper Selection Modal */}
       {showPaperModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowPaperModal(false)}>
-          <div className="w-full max-w-md bg-white rounded-t-2xl p-5 pb-8 max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-800">보관할 논문 선택</h3>
-              <button onClick={() => setShowPaperModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
-                <X size={18} />
-              </button>
+          <div className="w-full max-w-md bg-white rounded-t-2xl max-h-[75vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 pb-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-gray-800">보관할 논문 선택</h3>
+                <button onClick={() => setShowPaperModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                주의사항 · 대처방법 · 도움되는 성분은 자동 저장됩니다.
+                <br />논문은 선택한 것만 저장되며, 저장 한도에 포함됩니다.
+              </p>
             </div>
-            <p className="text-xs text-gray-400 mb-3">
-              주의사항 · 대처방법 · 도움되는 성분은 자동 저장됩니다.
-              <br />논문은 선택한 것만 저장되며, 저장 한도에 포함됩니다.
-            </p>
 
-            <div className="space-y-2 mb-4">
+            <div className="flex-1 overflow-y-auto px-5 space-y-2">
               {displayPubmed.articles.map((article, idx) => (
                 <label
                   key={article.pmid || idx}
@@ -575,7 +577,7 @@ function SearchContent() {
               ))}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 p-5 pt-3 border-t border-gray-100">
               <button
                 onClick={() => setSelectedPapers(new Set())}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
