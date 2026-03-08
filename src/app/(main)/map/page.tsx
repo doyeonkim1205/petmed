@@ -32,7 +32,9 @@ export default function MapPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const myLocationMarkerRef = useRef<any>(null);
   const skipDragEnd = useRef(false);
+  const myLatLng = useRef<{ lat: number; lng: number } | null>(null);
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
@@ -44,6 +46,17 @@ export default function MapPage() {
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+
+  // Resize handler — fix map when devtools or keyboard opens
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapInstance.current) {
+        setTimeout(() => mapInstance.current?.relayout(), 100);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 1. Load Kakao Maps SDK
   useEffect(() => {
@@ -79,10 +92,31 @@ export default function MapPage() {
     document.head.appendChild(script);
   }, []);
 
+  const showMyLocationMarker = useCallback((map: any, lat: number, lng: number) => {
+    if (myLocationMarkerRef.current) {
+      myLocationMarkerRef.current.setMap(null);
+    }
+    const position = new window.kakao.maps.LatLng(lat, lng);
+    const content = `<div style="
+      width: 16px; height: 16px;
+      background: #3B82F6;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.3), 0 2px 4px rgba(0,0,0,0.2);
+    "></div>`;
+    const overlay = new window.kakao.maps.CustomOverlay({
+      content,
+      position,
+      map,
+      zIndex: 100,
+    });
+    myLocationMarkerRef.current = overlay;
+  }, []);
+
   const initMap = useCallback(() => {
     if (!mapContainerRef.current) return;
 
-    const createMap = (lat: number, lng: number) => {
+    const createMap = (lat: number, lng: number, isMyLocation: boolean) => {
       try {
         const container = mapContainerRef.current;
         if (!container) return;
@@ -93,6 +127,11 @@ export default function MapPage() {
         });
         mapInstance.current = map;
         setMapReady(true);
+
+        if (isMyLocation) {
+          myLatLng.current = { lat, lng };
+          showMyLocationMarker(map, lat, lng);
+        }
 
         window.kakao.maps.event.addListener(map, 'dragend', () => {
           if (skipDragEnd.current) {
@@ -112,16 +151,16 @@ export default function MapPage() {
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => createMap(pos.coords.latitude, pos.coords.longitude),
+        (pos) => createMap(pos.coords.latitude, pos.coords.longitude, true),
         () => {
           setLocationFailed(true);
-          createMap(DEFAULT_LAT, DEFAULT_LNG);
+          createMap(DEFAULT_LAT, DEFAULT_LNG, false);
         },
         { timeout: 10000, enableHighAccuracy: true }
       );
     } else {
       setLocationFailed(true);
-      createMap(DEFAULT_LAT, DEFAULT_LNG);
+      createMap(DEFAULT_LAT, DEFAULT_LNG, false);
     }
   }, []);
 
@@ -290,6 +329,8 @@ export default function MapPage() {
         const position = new window.kakao.maps.LatLng(latitude, longitude);
         mapInstance.current.setCenter(position);
         mapInstance.current.setLevel(5);
+        myLatLng.current = { lat: latitude, lng: longitude };
+        showMyLocationMarker(mapInstance.current, latitude, longitude);
         searchNearby(latitude, longitude);
       },
       () => {
@@ -461,12 +502,20 @@ export default function MapPage() {
               </a>
             )}
             <a
+              href={`https://map.kakao.com/link/to/${selectedPlace.place_name},${selectedPlace.y},${selectedPlace.x}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2.5 bg-yellow-400 text-gray-900 rounded-lg text-sm font-medium hover:bg-yellow-500 flex items-center justify-center gap-2"
+            >
+              <Navigation size={16} /> 길찾기
+            </a>
+            <a
               href={selectedPlace.place_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center justify-center gap-2"
             >
-              <Navigation size={16} /> 상세보기
+              <Search size={16} /> 상세
             </a>
           </div>
         </div>

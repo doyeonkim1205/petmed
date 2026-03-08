@@ -34,12 +34,12 @@ function makeCacheKey(query: string, petType: string): string {
 }
 
 /**
- * 캐시 조회 (24시간 이내)
+ * 캐시 조회 (30일 이내)
  */
 async function checkCache(query: string, petType: string) {
   try {
     const key = makeCacheKey(query, petType);
-    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('search_cache')
       .select('articles, analysis, disease_description')
