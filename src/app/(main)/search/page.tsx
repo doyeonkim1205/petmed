@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Clock } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -337,16 +337,6 @@ function SearchContent() {
               </div>
             )}
 
-            {/* Cached result indicator */}
-            {displayPubmed.isCached && hasResults && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                <Clock size={13} className="text-gray-400 flex-shrink-0" />
-                <p className="text-[11px] text-gray-400">
-                  이전에 분석된 결과예요. 48시간 후 검색 시 새롭게 분석해드려요.
-                </p>
-              </div>
-            )}
-
             {/* Disease Description Card (#3) */}
             {desc && (
               <div className="bg-blue-50 rounded-xl p-4 space-y-2.5">
@@ -536,10 +526,16 @@ function SearchContent() {
 
       {/* Paper Selection Modal */}
       {showPaperModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowPaperModal(false)}>
-          <div className="w-full max-w-md bg-white rounded-t-2xl max-h-[75vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-5 pb-3">
-              <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowPaperModal(false)}>
+          {/* Modal positioned at bottom */}
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-2xl"
+            style={{ maxHeight: '75vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header - fixed */}
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-gray-800">보관할 논문 선택</h3>
                 <button onClick={() => setShowPaperModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
                   <X size={18} />
@@ -551,7 +547,8 @@ function SearchContent() {
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 space-y-2">
+            {/* Scrollable paper list */}
+            <div className="overflow-y-auto px-5 space-y-2" style={{ maxHeight: 'calc(75vh - 200px)' }}>
               {displayPubmed.articles.map((article, idx) => (
                 <label
                   key={article.pmid || idx}
@@ -577,7 +574,8 @@ function SearchContent() {
               ))}
             </div>
 
-            <div className="flex gap-2 p-5 pt-3 border-t border-gray-100">
+            {/* Footer buttons - fixed at bottom */}
+            <div className="flex gap-2 px-5 py-4 border-t border-gray-100">
               <button
                 onClick={() => setSelectedPapers(new Set())}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
