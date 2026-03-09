@@ -131,7 +131,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
-    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
+    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
@@ -307,6 +307,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
+
+        {/* ── 기본 정보 섹션 ── */}
+        <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
+          <Stethoscope size={16} className="text-gray-400" />
+          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
+        </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
@@ -639,7 +645,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 const added = files.length > newFiles.length;
                 setNewFiles(files);
                 if (added) {
-                  setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
+                  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
                 }
               }}
               maxFiles={maxNewFiles}
