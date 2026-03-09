@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, ClipboardList, Pill, Paperclip } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -77,12 +77,10 @@ export default function RecordAddPage() {
 
   const handleTypeChange = (newType: RecordType) => {
     if (newType === recordType) return;
-    // 현재 유형 데이터 저장
     typeDataCache.current[recordType] = {
       title, description, hospitalName, cost, symptomTime,
       dischargeDate, nextAppointmentDate, nextAppointmentColor, recordColor, medications,
     };
-    // 새 유형의 캐시된 데이터 복원 또는 초기화
     const cached = typeDataCache.current[newType];
     if (cached) {
       setTitle(cached.title); setDescription(cached.description);
@@ -110,7 +108,8 @@ export default function RecordAddPage() {
       .then(({ data }) => {
         const petList = data || [];
         setPets(petList);
-        if (petList.length > 0) setPetId(petList[0].id);
+        // 1마리면 자동 선택, 2마리 이상이면 "선택해주세요"
+        if (petList.length === 1) setPetId(petList[0].id);
       });
   }, [user]);
 
@@ -119,7 +118,9 @@ export default function RecordAddPage() {
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'] },
     ]);
-    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    setTimeout(() => {
+      medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 200);
   };
 
   const updateMedication = (index: number, field: keyof MedicationInput, value: string) => {
@@ -157,8 +158,8 @@ export default function RecordAddPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
-    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목';
-    if (!title.trim()) { showError(`${titleLabel}을 입력해주세요.`); return; }
+    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
+    if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
     if (dischargeDate && dischargeDate < visitDate) {
       showError('퇴원일은 입원일 이후여야 합니다.'); return;
     }
@@ -198,7 +199,6 @@ export default function RecordAddPage() {
         weight: weight ? Number(weight) : undefined,
       });
 
-      // Upload files
       for (const file of files) {
         try {
           const { path } = await uploadFile(file, user.id, record.id);
@@ -215,7 +215,6 @@ export default function RecordAddPage() {
         }
       }
 
-      // Add medications
       for (const med of medications) {
         if (!med.name.trim()) continue;
         try {
@@ -259,12 +258,6 @@ export default function RecordAddPage() {
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
-        {/* ── 기본 정보 섹션 ── */}
-        <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
-          <ClipboardList size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
-        </div>
-
         {/* Record Type Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">기록 유형</label>
@@ -296,7 +289,7 @@ export default function RecordAddPage() {
             onChange={(e) => setPetId(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
           >
-            <option value="">선택해주세요</option>
+            {pets.length !== 1 && <option value="">선택해주세요</option>}
             {pets.map((pet) => (
               <option key={pet.id} value={pet.id}>
                 {pet.name} ({pet.type === 'dog' ? '강아지' : '고양이'})
@@ -308,10 +301,10 @@ export default function RecordAddPage() {
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목'}
+            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
           </label>
           <input
-            placeholder={recordType === 'symptom' ? '예: 구토, 설사' : recordType === 'hospitalization' ? '예: 슬개골 수술, 장염 치료' : '제목을 입력하세요'}
+            placeholder={recordType === 'symptom' ? '예: 구토, 설사' : recordType === 'hospitalization' ? '예: 슬개골 수술, 장염 치료' : '예: 건강검진, 예방접종'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
@@ -407,7 +400,6 @@ export default function RecordAddPage() {
               <h3 className="text-sm font-semibold text-gray-800">진료 정보</h3>
             </div>
 
-            {/* Description (진료/입퇴원 → 진료정보에) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 설명 <span className="text-gray-400 font-normal">(선택)</span>
@@ -420,7 +412,6 @@ export default function RecordAddPage() {
               />
             </div>
 
-            {/* Weight (진료/입퇴원: 설명 아래) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
@@ -460,7 +451,6 @@ export default function RecordAddPage() {
               />
             </div>
 
-            {/* Next Appointment Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 다음 예약일 <span className="text-gray-400 font-normal">(선택)</span>
@@ -508,7 +498,6 @@ export default function RecordAddPage() {
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
-                {/* Frequency selector */}
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
                   <div className="flex gap-1.5">
@@ -528,41 +517,6 @@ export default function RecordAddPage() {
                     ))}
                   </div>
                 </div>
-                {/* Alarm times - 웹앱에서는 숨김 (향후 네이티브 앱용으로 유지) */}
-                {false && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-gray-400">알림 시간</label>
-                    <button
-                      type="button"
-                      onClick={() => toggleMedAlarm(i)}
-                      className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
-                        med.alarm_enabled
-                          ? 'bg-blue-50 text-blue-600'
-                          : 'bg-blue-50 text-gray-400'
-                      }`}
-                    >
-                      {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
-                      {med.alarm_enabled ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                  {med.alarm_enabled && (
-                    <div className="flex gap-1.5">
-                      {med.alarm_times.map((time, ti) => (
-                        <div key={ti} className="flex-1">
-                          <p className="text-[10px] text-gray-300 mb-0.5">{ti + 1}회차</p>
-                          <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-400">시작일</label>
@@ -591,9 +545,10 @@ export default function RecordAddPage() {
                 <button
                   type="button"
                   onClick={() => removeMedication(i)}
-                  className="w-full py-2 mt-1 text-sm text-red-400 hover:text-red-600 font-medium transition-colors"
+                  className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
                 >
-                  이 약 삭제
+                  <Trash2 size={13} />
+                  삭제
                 </button>
               </div>
             ))}
@@ -611,9 +566,10 @@ export default function RecordAddPage() {
           <FileUploader
             files={files}
             onFilesChange={(newFiles) => {
+              const added = newFiles.length > files.length;
               setFiles(newFiles);
-              if (newFiles.length > files.length) {
-                setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+              if (added) {
+                setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
               }
             }}
             maxFiles={getPlanConfig(profile?.plan || 'free').attachmentsPerRecord}

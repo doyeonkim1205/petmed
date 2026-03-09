@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Bell, BellOff, ClipboardList, Stethoscope, Pill } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -131,7 +131,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
-    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
@@ -179,8 +179,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setError(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목';
-    if (!title.trim()) { showError(`${titleLabel}을 입력해주세요.`); return; }
+    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
+    if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
     if (dischargeDate && dischargeDate < visitDate) {
       showError('퇴원일은 입원일 이후여야 합니다.'); return;
     }
@@ -308,12 +308,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
-        {/* ── 기본 정보 섹션 ── */}
-        <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
-          <ClipboardList size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
-        </div>
-
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
           <select
@@ -331,7 +325,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '제목'}
+            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
           </label>
           <input
             value={title}
@@ -546,39 +540,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     ))}
                   </div>
                 </div>
-                {/* Alarm times */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-gray-400">알림 시간</label>
-                    <button
-                      type="button"
-                      onClick={() => toggleMedAlarm(i)}
-                      className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
-                        med.alarm_enabled
-                          ? 'bg-blue-50 text-blue-600'
-                          : 'bg-blue-50 text-gray-400'
-                      }`}
-                    >
-                      {med.alarm_enabled ? <Bell size={11} /> : <BellOff size={11} />}
-                      {med.alarm_enabled ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                  {med.alarm_enabled && (
-                    <div className="flex gap-1.5">
-                      {med.alarm_times.map((time, ti) => (
-                        <div key={ti} className="flex-1">
-                          <p className="text-[10px] text-gray-300 mb-0.5">{ti + 1}회차</p>
-                          <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                            className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-400">시작일</label>
@@ -607,9 +568,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 <button
                   type="button"
                   onClick={() => removeMedication(i)}
-                  className="w-full py-2 mt-1 text-sm text-red-400 hover:text-red-600 font-medium transition-colors"
+                  className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
                 >
-                  이 약 삭제
+                  <Trash2 size={13} />
+                  삭제
                 </button>
               </div>
             ))}
@@ -677,7 +639,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 const added = files.length > newFiles.length;
                 setNewFiles(files);
                 if (added) {
-                  setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+                  setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
                 }
               }}
               maxFiles={maxNewFiles}
