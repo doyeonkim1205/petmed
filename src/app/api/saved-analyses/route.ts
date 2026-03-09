@@ -160,6 +160,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const { logActivity } = await import('@/lib/activityLog');
+  logActivity(userId, 'analysis.save', { details: { query, petType, paperCount: savedPaperCount } });
+
   return NextResponse.json({ ...data, savedPaperCount });
 }
 
@@ -182,6 +185,9 @@ export async function DELETE(request: NextRequest) {
     console.error('saved-analyses DELETE error:', error.message);
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
+
+  const { logActivity } = await import('@/lib/activityLog');
+  logActivity(auth.user!.id, 'analysis.delete', { resourceId: id });
 
   return NextResponse.json({ success: true });
 }

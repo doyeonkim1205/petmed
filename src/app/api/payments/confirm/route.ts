@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
     // Update profile plan
     await supabaseAdmin.from('profiles').update({ plan }).eq('id', userId);
 
+    const { logActivity } = await import('@/lib/activityLog');
+    logActivity(userId, 'subscription.purchase', { details: { plan, amount } });
+
     return NextResponse.json({
       success: true,
       plan,

@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .eq('status', 'active');
 
+    const { logActivity } = await import('@/lib/activityLog');
+    logActivity(userId, 'subscription.cancel', { details: { plan: subscription.plan } });
+
     return NextResponse.json({
       success: true,
       message: `구독이 해지되었습니다. ${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지 이용 가능합니다.`,

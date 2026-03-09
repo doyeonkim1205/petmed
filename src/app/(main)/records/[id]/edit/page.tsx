@@ -11,6 +11,7 @@ import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile } from '@/services/fileUpload';
 import { getPlanConfig } from '@/lib/plans';
+import { logActivity } from '@/lib/activityLog';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -276,6 +277,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
+      logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
       router.replace(`/records/${id}`);
     } catch (err) {
       console.error('Error updating record:', err);

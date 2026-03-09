@@ -205,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('profiles')
           .insert({ id: data.user.id, email, nickname });
         if (profileError) throw profileError;
+        logActivity(data.user.id, 'auth.signup');
       }
 
       return { error: null };
@@ -310,6 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id);
 
       if (error) throw error;
+      logActivity(user.id, 'profile.update', { details: { fields: Object.keys(updates) } });
       const freshProfile = await fetchProfile(user.id);
       setProfile(freshProfile);
       return { error: null };

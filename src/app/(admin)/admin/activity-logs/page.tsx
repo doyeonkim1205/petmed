@@ -7,13 +7,21 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
 const actionLabels: Record<string, string> = {
+  'auth.signup': '회원가입',
   'auth.login': '로그인',
   'auth.logout': '로그아웃',
+  'profile.update': '프로필 수정',
   'pet.create': '반려동물 추가',
   'pet.delete': '반려동물 삭제',
   'record.create': '기록 추가',
+  'record.update': '기록 수정',
   'record.delete': '기록 삭제',
   'record.bulk_delete': '기록 일괄 삭제',
+  'analysis.save': '분석 보관',
+  'analysis.delete': '분석 삭제',
+  'paper.delete': '논문 삭제',
+  'subscription.purchase': '구독 결제',
+  'subscription.cancel': '구독 해지',
 };
 
 export default function ActivityLogsPage() {
