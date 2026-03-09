@@ -73,6 +73,7 @@ export default function RecordAddPage() {
     title: string; description: string; hospitalName: string; cost: string;
     symptomTime: string; dischargeDate: string; nextAppointmentDate: string;
     nextAppointmentColor: string; recordColor: string; medications: MedicationInput[];
+    files: File[];
   }>>>({});
 
   const handleTypeChange = (newType: RecordType) => {
@@ -80,6 +81,7 @@ export default function RecordAddPage() {
     typeDataCache.current[recordType] = {
       title, description, hospitalName, cost, symptomTime,
       dischargeDate, nextAppointmentDate, nextAppointmentColor, recordColor, medications,
+      files,
     };
     const cached = typeDataCache.current[newType];
     if (cached) {
@@ -89,12 +91,14 @@ export default function RecordAddPage() {
       setNextAppointmentDate(cached.nextAppointmentDate);
       setNextAppointmentColor(cached.nextAppointmentColor);
       setRecordColor(cached.recordColor); setMedications(cached.medications);
+      setFiles(cached.files);
     } else {
       setTitle(''); setDescription(''); setHospitalName(''); setCost('');
       setSymptomTime(''); setDischargeDate(''); setNextAppointmentDate('');
       setNextAppointmentColor('#8B5CF6');
       setRecordColor(newType === 'symptom' ? '#F97316' : newType === 'hospitalization' ? '#22C55E' : '#3B82F6');
       setMedications([]);
+      setFiles([]);
     }
     setRecordType(newType);
   };

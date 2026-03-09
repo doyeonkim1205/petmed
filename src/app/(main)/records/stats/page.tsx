@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig } from '@/lib/plans';
+import { supabase, Pet } from '@/lib/supabase';
 
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
 
@@ -52,7 +53,7 @@ function formatCost(cost: number): string {
 
 export default function StatsPage() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const planConfig = getPlanConfig(profile?.plan || 'free');
   const maxMonths = planConfig.costStatsMonths;
 
@@ -62,12 +63,24 @@ export default function StatsPage() {
   const [period, setPeriod] = useState<Period>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
 
-  const petId = typeof window !== 'undefined'
-    ? localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId') || undefined
-    : undefined;
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('pets')
+      .select('*')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data) {
+          setPets(data);
+          if (data.length === 1) setSelectedPetId(data[0].id);
+        }
+      });
+  }, [user]);
 
-  const { records, loading } = useHealthRecords(petId || undefined);
+  const { records, loading } = useHealthRecords(selectedPetId);
 
   const startDate = getStartDate(period, customStart);
   const endDate = getEndDate(period, customEnd);
@@ -148,6 +161,35 @@ export default function StatsPage() {
             </button>
           ))}
         </div>
+
+        {/* Pet filter */}
+        {pets.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto">
+            <button
+              onClick={() => setSelectedPetId(undefined)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                !selectedPetId
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              전체
+            </button>
+            {pets.map((pet) => (
+              <button
+                key={pet.id}
+                onClick={() => setSelectedPetId(pet.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  selectedPetId === pet.id
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {pet.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Custom date inputs */}
         {period === 'custom' && (
@@ -251,9 +293,16 @@ export default function StatsPage() {
                         })}
                       </p>
                       <p className="text-sm font-medium text-gray-800 truncate">{record.title}</p>
-                      {record.hospital_name && (
-                        <p className="text-xs text-gray-400 truncate">{record.hospital_name}</p>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {!selectedPetId && record.pets && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full flex-shrink-0">
+                            {record.pets.name}
+                          </span>
+                        )}
+                        {record.hospital_name && (
+                          <p className="text-xs text-gray-400 truncate">{record.hospital_name}</p>
+                        )}
+                      </div>
                     </div>
                     <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-3">
                       {formatCost(record.cost!)}
