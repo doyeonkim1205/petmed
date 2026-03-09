@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
  * Verify Supabase access token from Authorization header.
  * Optionally checks device session validity via X-Device-Id header.
  */
-export async function verifyAuth(request: Request) {
+export async function verifyAuth(request: Request, options?: { skipDeviceCheck?: boolean }) {
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return { user: null, error: NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 }) };
@@ -30,7 +30,7 @@ export async function verifyAuth(request: Request) {
 
   // Check device session if X-Device-Id header is present
   const deviceId = request.headers.get('x-device-id');
-  if (deviceId) {
+  if (deviceId && !options?.skipDeviceCheck) {
     const { data: session } = await supabaseAdmin
       .from('active_sessions')
       .select('id')

@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
  * POST: Register or heartbeat a device session
  */
 export async function POST(request: NextRequest) {
-  const auth = await verifyAuth(request);
+  const auth = await verifyAuth(request, { skipDeviceCheck: true });
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
  * DELETE: Remove a session on logout
  */
 export async function DELETE(request: NextRequest) {
-  const auth = await verifyAuth(request);
+  const auth = await verifyAuth(request, { skipDeviceCheck: true });
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
