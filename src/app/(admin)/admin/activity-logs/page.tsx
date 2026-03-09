@@ -6,6 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
+const actionLabels: Record<string, string> = {
+  'auth.login': '로그인',
+  'auth.logout': '로그아웃',
+  'pet.create': '반려동물 추가',
+  'pet.delete': '반려동물 삭제',
+  'record.create': '기록 추가',
+  'record.delete': '기록 삭제',
+  'record.bulk_delete': '기록 일괄 삭제',
+};
+
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -21,13 +31,13 @@ export default function ActivityLogsPage() {
     const params = new URLSearchParams({ page: String(page) });
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    if (userId) params.set('userId', userId);
+    if (userId.trim()) params.set('userId', userId.trim());
 
     const res = await authFetch(`/api/admin/activity-logs?${params}`);
     const data = await res.json();
-    setLogs(data.logs);
-    setTotal(data.total);
-    setTotalPages(data.totalPages);
+    setLogs(data.logs || []);
+    setTotal(data.total || 0);
+    setTotalPages(data.totalPages || 1);
     setLoading(false);
   }, [page, from, to, userId]);
 
@@ -55,10 +65,13 @@ export default function ActivityLogsPage() {
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded-lg text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">사용자 ID</label>
-              <input type="text" placeholder="UUID..." value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-48" />
+              <label className="text-xs text-gray-500 block mb-1">사용자</label>
+              <input type="text" placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
             </div>
-            <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">필터</button>
+            <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">검색</button>
+            {(from || to || userId) && (
+              <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -80,27 +93,29 @@ export default function ActivityLogsPage() {
                     <TableHead>시간</TableHead>
                     <TableHead>사용자</TableHead>
                     <TableHead>행동</TableHead>
-                    <TableHead>리소스</TableHead>
                     <TableHead>상세</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.map((log: any) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
                         {new Date(log.created_at).toLocaleString('ko-KR')}
                       </TableCell>
-                      <TableCell className="text-sm">{log.profiles?.email || log.user_id.slice(0, 8)}</TableCell>
-                      <TableCell className="text-sm font-medium">{log.action}</TableCell>
-                      <TableCell className="text-sm">{log.resource_type || '-'}</TableCell>
+                      <TableCell className="text-sm">
+                        {log.profiles?.email || log.user_id?.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {actionLabels[log.action] || log.action}
+                      </TableCell>
                       <TableCell className="text-sm text-gray-500 max-w-[200px] truncate">
-                        {log.details ? JSON.stringify(log.details) : '-'}
+                        {log.details ? Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ') : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
                   {logs.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-gray-400 py-8">로그가 없습니다.</TableCell>
+                      <TableCell colSpan={4} className="text-center text-gray-400 py-8">로그가 없습니다.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

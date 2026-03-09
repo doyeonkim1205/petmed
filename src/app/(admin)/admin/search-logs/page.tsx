@@ -21,13 +21,13 @@ export default function SearchLogsPage() {
     const params = new URLSearchParams({ page: String(page) });
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    if (userId) params.set('userId', userId);
+    if (userId.trim()) params.set('userId', userId.trim());
 
     const res = await authFetch(`/api/admin/search-logs?${params}`);
     const data = await res.json();
-    setLogs(data.logs);
-    setTotal(data.total);
-    setTotalPages(data.totalPages);
+    setLogs(data.logs || []);
+    setTotal(data.total || 0);
+    setTotalPages(data.totalPages || 1);
     setLoading(false);
   }, [page, from, to, userId]);
 
@@ -55,10 +55,13 @@ export default function SearchLogsPage() {
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded-lg text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">사용자 ID</label>
-              <input type="text" placeholder="UUID..." value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-48" />
+              <label className="text-xs text-gray-500 block mb-1">사용자</label>
+              <input type="text" placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
             </div>
-            <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">필터</button>
+            <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">검색</button>
+            {(from || to || userId) && (
+              <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -86,12 +89,18 @@ export default function SearchLogsPage() {
                 <TableBody>
                   {logs.map((log: any) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
                         {new Date(log.created_at).toLocaleString('ko-KR')}
                       </TableCell>
-                      <TableCell className="text-sm">{log.profiles?.email || log.user_id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-sm">
+                        {log.profiles?.email || log.user_id?.slice(0, 8)}
+                      </TableCell>
                       <TableCell className="text-sm font-medium">{log.query}</TableCell>
-                      <TableCell className="text-sm">{log.pet_type}</TableCell>
+                      <TableCell className="text-sm">
+                        <span className={`px-1.5 py-0.5 rounded text-xs ${log.pet_type === 'dog' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                          {log.pet_type === 'dog' ? '강아지' : '고양이'}
+                        </span>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {logs.length === 0 && (
