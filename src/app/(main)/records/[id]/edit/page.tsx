@@ -44,6 +44,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const { getRecord, updateRecord } = useHealthRecords();
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
+  const fileEndRef = useRef<HTMLDivElement>(null);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [petId, setPetId] = useState('');
@@ -130,7 +131,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
     ]);
-    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
@@ -512,14 +513,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               </button>
             </div>
             {medications.map((med, i) => (
-              <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2 relative">
-                <button
-                  type="button"
-                  onClick={() => removeMedication(i)}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500"
-                >
-                  <X size={16} />
-                </button>
+              <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
                   placeholder="약 이름"
                   value={med.name}
@@ -610,6 +604,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   value={med.color}
                   onChange={(c) => updateMedicationField(i, 'color', c)}
                 />
+                <button
+                  type="button"
+                  onClick={() => removeMedication(i)}
+                  className="w-full py-2 mt-1 text-sm text-red-400 hover:text-red-600 font-medium transition-colors"
+                >
+                  이 약 삭제
+                </button>
               </div>
             ))}
             <div ref={medEndRef} />
@@ -672,11 +673,18 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           {activeFileCount < maxAttachments && (
             <FileUploader
               files={newFiles}
-              onFilesChange={setNewFiles}
+              onFilesChange={(files) => {
+                const added = files.length > newFiles.length;
+                setNewFiles(files);
+                if (added) {
+                  setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+                }
+              }}
               maxFiles={maxNewFiles}
               placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             />
           )}
+          <div ref={fileEndRef} />
           {activeFileCount >= maxAttachments && (
             <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다.</p>
           )}

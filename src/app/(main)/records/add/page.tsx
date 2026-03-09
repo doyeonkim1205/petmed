@@ -47,6 +47,7 @@ export default function RecordAddPage() {
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
+  const fileEndRef = useRef<HTMLDivElement>(null);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
@@ -118,7 +119,7 @@ export default function RecordAddPage() {
       ...medications,
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'] },
     ]);
-    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+    setTimeout(() => medEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
   };
 
   const updateMedication = (index: number, field: keyof MedicationInput, value: string) => {
@@ -494,14 +495,7 @@ export default function RecordAddPage() {
               </button>
             </div>
             {medications.map((med, i) => (
-              <div key={i} className="p-3 bg-gray-50 rounded-xl space-y-2 relative">
-                <button
-                  type="button"
-                  onClick={() => removeMedication(i)}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500"
-                >
-                  <X size={16} />
-                </button>
+              <div key={i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
                   placeholder="약 이름"
                   value={med.name}
@@ -594,6 +588,13 @@ export default function RecordAddPage() {
                   value={med.color}
                   onChange={(c) => updateMedication(i, 'color', c)}
                 />
+                <button
+                  type="button"
+                  onClick={() => removeMedication(i)}
+                  className="w-full py-2 mt-1 text-sm text-red-400 hover:text-red-600 font-medium transition-colors"
+                >
+                  이 약 삭제
+                </button>
               </div>
             ))}
             <div ref={medEndRef} />
@@ -609,10 +610,16 @@ export default function RecordAddPage() {
         <div className="space-y-2">
           <FileUploader
             files={files}
-            onFilesChange={setFiles}
+            onFilesChange={(newFiles) => {
+              setFiles(newFiles);
+              if (newFiles.length > files.length) {
+                setTimeout(() => fileEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+              }
+            }}
             maxFiles={getPlanConfig(profile?.plan || 'free').attachmentsPerRecord}
             placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
           />
+          <div ref={fileEndRef} />
         </div>
       </form>
 
