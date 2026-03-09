@@ -37,6 +37,7 @@ const features = [
   { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number, plan: PlanType) => v === 1 ? '이번 달' : v === 12 ? '1년' : `${v}개월` },
   { label: '반려동물', key: 'maxPets' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}마리` },
   { label: '첨부파일', key: 'attachmentsPerRecord' as const, format: (v: number, plan: PlanType) => `기록당 ${v}개` },
+  { label: '동시 접속 기기', key: 'maxDevices' as const, format: (v: number, plan: PlanType) => `${v}대` },
 ];
 
 export default function PricingPage() {
