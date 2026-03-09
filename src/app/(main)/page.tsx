@@ -49,7 +49,7 @@ export default function HomePage() {
             onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
             className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors bg-blue-50 text-blue-600 text-xs font-medium"
           >
-            {petType === 'dog' ? '강아지' : '고양이'}
+            {petType === 'dog' ? '강아지' : '고양이'} ⇄
           </button>
           <input
             type="text"
