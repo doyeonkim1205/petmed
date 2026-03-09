@@ -120,6 +120,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(profileData);
             setLoading(false);
           }
+          // Register device session (heartbeat)
+          try {
+            const { getDeviceId } = await import('@/lib/deviceId');
+            const { authFetch } = await import('@/lib/authFetch');
+            await authFetch('/api/sessions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ device_id: getDeviceId() }),
+            });
+          } catch {}
         }
       } catch (err) {
         console.error('Auth init error:', err);
@@ -158,6 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try { await ensureProfile(authUser); } catch {}
             const provider = authUser.app_metadata?.provider || 'unknown';
             logActivity(authUser.id, 'auth.login', { details: { method: provider } });
+            // Register device session on sign-in
+            try {
+              const { getDeviceId } = await import('@/lib/deviceId');
+              const { authFetch } = await import('@/lib/authFetch');
+              await authFetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: getDeviceId() }),
+              });
+            } catch {}
           }
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
@@ -239,7 +259,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     // Log before clearing state
-    if (user) logActivity(user.id, 'auth.logout');
+    if (user) {
+      logActivity(user.id, 'auth.logout');
+      // Remove device session
+      try {
+        const { getDeviceId } = await import('@/lib/deviceId');
+        const { authFetch } = await import('@/lib/authFetch');
+        await authFetch('/api/sessions', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_id: getDeviceId() }),
+        });
+      } catch {}
+    }
 
     // 1) Clear React state immediately
     setUser(null);

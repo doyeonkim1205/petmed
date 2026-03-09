@@ -24,6 +24,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     setInApp(isInAppBrowser());
+    // Show session eviction message
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reason') === 'session_evicted') {
+      setError('다른 기기에서 로그인하여 현재 세션이 종료되었습니다.');
+    }
   }, []);
 
   const handleGoogleLogin = async () => {

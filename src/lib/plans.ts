@@ -11,6 +11,7 @@ export interface PlanConfig {
   costStatsMonths: number;
   maxPets: number; // 0 = unlimited
   attachmentsPerRecord: number;
+  maxDevices: number;
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -25,6 +26,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     costStatsMonths: 1,
     maxPets: 2,
     attachmentsPerRecord: 1,
+    maxDevices: 1,
   },
   basic: {
     name: 'Basic',
@@ -37,6 +39,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     costStatsMonths: 6,
     maxPets: 3,
     attachmentsPerRecord: 3,
+    maxDevices: 2,
   },
   premium: {
     name: 'Premium',
@@ -49,6 +52,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     costStatsMonths: 12,
     maxPets: 5,
     attachmentsPerRecord: 5,
+    maxDevices: 3,
   },
 };
 

@@ -1,8 +1,9 @@
 import { supabase } from './supabase';
+import { getDeviceId } from './deviceId';
 
 /**
- * fetch wrapper that automatically adds Supabase Authorization header.
- * Use this for all authenticated API route calls.
+ * fetch wrapper that automatically adds Supabase Authorization header
+ * and X-Device-Id header for session tracking.
  */
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -13,5 +14,24 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return fetch(url, { ...options, headers });
+  const deviceId = getDeviceId();
+  if (deviceId) {
+    headers.set('X-Device-Id', deviceId);
+  }
+
+  const response = await fetch(url, { ...options, headers });
+
+  // Handle session eviction
+  if (response.status === 403) {
+    try {
+      const clone = response.clone();
+      const data = await clone.json();
+      if (data.error === 'session_evicted') {
+        await supabase.auth.signOut({ scope: 'local' });
+        window.location.href = '/login?reason=session_evicted';
+      }
+    } catch {}
+  }
+
+  return response;
 }
