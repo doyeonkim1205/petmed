@@ -27,33 +27,35 @@ export async function POST(request: NextRequest) {
 
     const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
 
-    // Check refinement rate limit
-    if (isRefinement) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('plan')
-        .eq('id', userId)
-        .single();
-      const plan = profile?.plan || 'free';
-      const config = getPlanConfig(plan);
-      const dailyLimit = config.symptomRefinePerDay;
+    // Get user plan
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('plan')
+      .eq('id', userId)
+      .single();
+    const plan = profile?.plan || 'free';
+    const config = getPlanConfig(plan);
 
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-      const { count } = await supabaseAdmin
-        .from('activity_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('action', 'symptom.refine')
-        .gte('created_at', startOfDay.toISOString());
+    // Rate limit check
+    const action = isRefinement ? 'symptom.refine' : 'symptom.search';
+    const dailyLimit = isRefinement ? config.symptomRefinePerDay : config.symptomSearchPerDay;
 
-      if ((count || 0) >= dailyLimit) {
-        return NextResponse.json({
-          error: `오늘의 재분석 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'free' ? ' 업그레이드하여 더 많은 재분석을 이용하세요.' : ''}`,
-          limitReached: true,
-        }, { status: 429 });
-      }
+    const { count } = await supabaseAdmin
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', action)
+      .gte('created_at', startOfDay.toISOString());
+
+    if ((count || 0) >= dailyLimit) {
+      const label = isRefinement ? '재분석' : '증상 검색';
+      return NextResponse.json({
+        error: `오늘의 ${label} 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'free' ? ' 업그레이드하여 더 많은 기능을 이용하세요.' : ''}`,
+        limitReached: true,
+      }, { status: 429 });
     }
 
     const petLabel = petType === 'cat' ? '고양이' : '강아지';
@@ -141,9 +143,9 @@ export async function POST(request: NextRequest) {
       emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
     };
 
-    // Log activity
+    // Log activity (also serves as rate limit counter)
     const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, isRefinement ? 'symptom.refine' : 'symptom.search', {
+    logActivity(userId, action, {
       details: {
         symptoms,
         petType,

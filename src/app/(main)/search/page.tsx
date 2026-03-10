@@ -207,23 +207,6 @@ function SearchContent() {
     try {
       const { authFetch } = await import('@/lib/authFetch');
 
-      // Check rate limit (only for initial search, not refinement)
-      if (!isRefine) {
-        const usageRes = await authFetch('/api/search-usage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: `[증상] ${q}`, petType }),
-        });
-        if (usageRes.ok) {
-          const usageData = await usageRes.json();
-          if (!usageData.allowed) {
-            setSymptomError(usageData.reason || '검색 횟수를 초과했습니다.');
-            setSymptomLoading(false);
-            return;
-          }
-        }
-      }
-
       const res = await authFetch('/api/symptom-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,7 +219,11 @@ function SearchContent() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         if (res.status === 429 && errData.limitReached) {
-          setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
+          if (isRefine) {
+            setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
+          } else {
+            setSymptomError(errData.error || '증상 검색 횟수를 초과했습니다.');
+          }
         } else if (!isRefine) {
           setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
         }

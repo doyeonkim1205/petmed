@@ -32,6 +32,7 @@ const planStyles: Record<PlanType, { badge: string; border: string; button: stri
 const features = [
   { label: '건강 기록장', key: 'maxRecords' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}개` },
   { label: '논문 검색', key: 'searchPerDay' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}회/일` },
+  { label: '증상 검색', key: 'symptomSearchPerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
   { label: '증상 재분석', key: 'symptomRefinePerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
   { label: 'AI 분석', key: 'aiAnalysis' as const, format: (v: string, plan: PlanType) => v === 'blur' ? '블러(미리보기)' : '상세 분석' },
   { label: '논문 저장', key: 'maxSavedAnalyses' as const, format: (v: number, plan: PlanType) => plan === 'free' ? '불가' : v === 0 ? '무제한' : `${v}개` },
