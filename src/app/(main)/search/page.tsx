@@ -429,7 +429,7 @@ function SearchContent() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchMode === 'symptom' ? '증상을 입력하세요 (예: 구토, 식욕부진)' : '질병명을 검색하세요'}
+              placeholder={searchMode === 'symptom' ? '증상을 입력하세요' : '질병명을 검색하세요'}
               className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             />
             <button
@@ -459,15 +459,15 @@ function SearchContent() {
           </div>
         )}
         {searchMode === 'symptom' && symptomUsageInfo && (
-          <div className="max-w-sm mx-auto mt-2 flex justify-center gap-2">
-            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+          <div className="max-w-sm mx-auto mt-2 flex justify-center">
+            <span className={`flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
               isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
             }`}>
-              <Stethoscope size={10} /> 검색 {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}
-            </span>
-            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
-            }`}>
+              {isPremium ? <Crown size={10} /> : isPaid ? <Sparkles size={10} /> : null}
+              {isPremium ? 'Premium' : isPaid ? 'Basic' : 'Free'}
+              <span className="text-gray-300">|</span>
+              {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}
+              <span className="text-gray-300">·</span>
               재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}
             </span>
           </div>
@@ -723,7 +723,7 @@ function SearchContent() {
             {!user ? (
               <div className="text-center mt-10 text-gray-400">
                 <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
-                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 논문을 분석하여 요약해드립니다.'}</p>
+                {searchMode !== 'symptom' && <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>}
               </div>
             ) : recentSearches.length === 0 ? (
               <p className="text-sm text-gray-400">검색기록이 없습니다.</p>
@@ -744,7 +744,7 @@ function SearchContent() {
             {user && (
               <div className="mt-10 text-center text-gray-400">
                 <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
-                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
+                <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
               </div>
             )}
           </div>

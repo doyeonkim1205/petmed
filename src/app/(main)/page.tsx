@@ -86,7 +86,7 @@ export default function HomePage() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchMode === 'symptom' ? '증상을 입력하세요 (예: 구토, 식욕부진)' : '질병명을 검색하세요'}
+            placeholder={searchMode === 'symptom' ? '증상을 입력하세요' : '질병명을 검색하세요'}
             className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
           />
           <button
