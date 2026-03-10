@@ -9,7 +9,7 @@ import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
-import { uploadFile, saveFileRecord, deleteFile } from '@/services/fileUpload';
+import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
 import { getPlanConfig } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
 
@@ -205,6 +205,19 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setError('');
 
     try {
+      if (newFiles.length > 0) {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (token) {
+          const storage = await checkStorageLimit(token);
+          if (!storage.canUpload) {
+            showError(`저장 용량(${storage.limitMB}MB)을 초과했습니다. 기존 파일을 삭제하거나 플랜을 업그레이드하세요.`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
       await updateRecord(id, {
         pet_id: petId,
         title: title.trim(),

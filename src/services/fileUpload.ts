@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logActivity } from '@/lib/activityLog';
 
 const BUCKET_NAME = 'medical-files';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -89,15 +90,36 @@ export async function uploadFile(
     .from(BUCKET_NAME)
     .getPublicUrl(filePath);
 
+  logActivity(userId, 'file.upload', {
+    resourceType: 'record_file',
+    resourceId: recordId,
+    details: { fileName: file.name, fileSize: file.size, fileType: file.type },
+  });
+
   return { path: filePath, url: urlData.publicUrl };
 }
 
-export async function deleteFile(filePath: string): Promise<void> {
+export async function deleteFile(filePath: string, userId?: string): Promise<void> {
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .remove([filePath]);
 
   if (error) throw error;
+
+  if (userId) {
+    logActivity(userId, 'file.delete', {
+      resourceType: 'record_file',
+      details: { filePath },
+    });
+  }
+}
+
+export async function checkStorageLimit(token: string): Promise<{ canUpload: boolean; usedMB: number; limitMB: number }> {
+  const res = await fetch('/api/storage-usage', {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return { canUpload: true, usedMB: 0, limitMB: 0 };
+  return res.json();
 }
 
 export async function saveFileRecord(record: {

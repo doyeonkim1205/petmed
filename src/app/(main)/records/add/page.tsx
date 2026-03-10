@@ -10,7 +10,7 @@ import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
-import { uploadFile, saveFileRecord } from '@/services/fileUpload';
+import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700' },
@@ -187,6 +187,19 @@ export default function RecordAddPage() {
     setError('');
 
     try {
+      if (files.length > 0) {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (token) {
+          const storage = await checkStorageLimit(token);
+          if (!storage.canUpload) {
+            showError(`저장 용량(${storage.limitMB}MB)을 초과했습니다. 기존 파일을 삭제하거나 플랜을 업그레이드하세요.`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
       const record = await createRecord({
         pet_id: petId,
         record_type: recordType,

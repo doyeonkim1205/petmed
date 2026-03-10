@@ -24,6 +24,8 @@ const actionLabels: Record<string, string> = {
   'subscription.cancel': '구독 해지',
   'symptom.search': '증상 검색',
   'symptom.refine': '증상 재분석',
+  'file.upload': '파일 업로드',
+  'file.delete': '파일 삭제',
 };
 
 export default function ActivityLogsPage() {

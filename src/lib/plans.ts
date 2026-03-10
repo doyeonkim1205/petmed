@@ -14,6 +14,7 @@ export interface PlanConfig {
   maxPets: number; // 0 = unlimited
   attachmentsPerRecord: number;
   maxDevices: number;
+  maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -31,6 +32,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxPets: 2,
     attachmentsPerRecord: 1,
     maxDevices: 1,
+    maxStorageMB: 50,
   },
   basic: {
     name: 'Basic',
@@ -46,6 +48,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxPets: 3,
     attachmentsPerRecord: 3,
     maxDevices: 2,
+    maxStorageMB: 200,
   },
   premium: {
     name: 'Premium',
@@ -61,6 +64,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxPets: 5,
     attachmentsPerRecord: 5,
     maxDevices: 3,
+    maxStorageMB: 1000,
   },
 };
 
