@@ -11,12 +11,27 @@ export default function SearchLogsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const today = new Date().toISOString().split('T')[0];
   const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [to, setTo] = useState(today);
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [datesReady, setDatesReady] = useState(false);
+
+  useEffect(() => {
+    async function initDates() {
+      try {
+        const res = await authFetch('/api/admin/activity-logs/date-range');
+        const data = await res.json();
+        if (data.from) setFrom(data.from);
+      } catch {}
+      setDatesReady(true);
+    }
+    initDates();
+  }, []);
 
   const fetchLogs = useCallback(async () => {
+    if (!datesReady) return;
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
     if (from) params.set('from', from);
@@ -29,7 +44,7 @@ export default function SearchLogsPage() {
     setTotal(data.total || 0);
     setTotalPages(data.totalPages || 1);
     setLoading(false);
-  }, [page, from, to, userId]);
+  }, [page, from, to, userId, datesReady]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

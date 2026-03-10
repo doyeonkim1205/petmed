@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   let subQuery = supabase
     .from('subscriptions')
-    .select('*, profiles!inner(email, nickname)', { count: 'exact' });
+    .select('*', { count: 'exact' });
 
   if (status) {
     subQuery = subQuery.eq('status', status);
@@ -29,13 +29,25 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  let payQuery = supabase
+  const { data: payments, count: paymentCount } = await supabase
     .from('payment_history')
-    .select('*, profiles!inner(email, nickname)', { count: 'exact' });
-
-  const { data: payments, count: paymentCount } = await payQuery
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
+
+  // Attach profile info (FK points to auth.users, not profiles)
+  const allItems = [...(subscriptions || []), ...(payments || [])];
+  if (allItems.length > 0) {
+    const userIds = [...new Set(allItems.map((item: any) => item.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, email, nickname')
+      .in('id', userIds);
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    for (const item of allItems) {
+      (item as any).profiles = profileMap.get(item.user_id) || null;
+    }
+  }
 
   return NextResponse.json({
     subscriptions: subscriptions || [],
