@@ -85,6 +85,7 @@ function SearchContent() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(cached?.saved || false);
   const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
+  const [symptomUsageInfo, setSymptomUsageInfo] = useState<{ search: { used: number; limit: number }; refine: { used: number; limit: number }; plan: string } | null>(null);
   const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
@@ -130,6 +131,22 @@ function SearchContent() {
     };
     fetchUsage();
   }, [pubmed.step]);
+
+  // Fetch symptom usage info
+  useEffect(() => {
+    if (searchMode !== 'symptom') return;
+    const fetchSymptomUsage = async () => {
+      try {
+        const { authFetch } = await import('@/lib/authFetch');
+        const res = await authFetch('/api/symptom-usage');
+        if (res.ok) {
+          const data = await res.json();
+          setSymptomUsageInfo(data);
+        }
+      } catch {}
+    };
+    fetchSymptomUsage();
+  }, [searchMode, symptomResult, isRefining]);
 
   useEffect(() => {
     if (!storageKey) { setRecentSearches([]); return; }
@@ -426,7 +443,7 @@ function SearchContent() {
           </div>
         </form>
         {/* Usage count badge */}
-        {usageInfo && (
+        {searchMode === 'disease' && usageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
             <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
               isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
@@ -438,6 +455,20 @@ function SearchContent() {
               ) : (
                 <>Free {usageInfo.used}/{usageInfo.limit}</>
               )}
+            </span>
+          </div>
+        )}
+        {searchMode === 'symptom' && symptomUsageInfo && (
+          <div className="max-w-sm mx-auto mt-2 flex justify-center gap-2">
+            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+            }`}>
+              <Stethoscope size={10} /> 검색 {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}
+            </span>
+            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+            }`}>
+              재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}
             </span>
           </div>
         )}
@@ -642,17 +673,24 @@ function SearchContent() {
                       })}
                     </div>
                     {Object.values(followupAnswers).some(v => v.trim()) && (
-                      <button
-                        onClick={handleRefineAnalysis}
-                        disabled={isRefining}
-                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                      >
-                        {isRefining ? (
-                          <><Loader2 size={14} className="animate-spin" /> 재분석 중...</>
-                        ) : (
-                          <><Stethoscope size={14} /> 답변 반영하여 재분석</>
+                      <div className="space-y-1.5">
+                        <button
+                          onClick={handleRefineAnalysis}
+                          disabled={isRefining}
+                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {isRefining ? (
+                            <><Loader2 size={14} className="animate-spin" /> 재분석 중...</>
+                          ) : (
+                            <><Stethoscope size={14} /> 답변 반영하여 재분석</>
+                          )}
+                        </button>
+                        {symptomUsageInfo && (
+                          <p className="text-[10px] text-gray-400 text-center">
+                            오늘 재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}회 사용
+                          </p>
                         )}
-                      </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -684,8 +722,8 @@ function SearchContent() {
             {user && <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>}
             {!user ? (
               <div className="text-center mt-10 text-gray-400">
-                <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
-                <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
+                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
+                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 논문을 분석하여 요약해드립니다.'}</p>
               </div>
             ) : recentSearches.length === 0 ? (
               <p className="text-sm text-gray-400">검색기록이 없습니다.</p>
@@ -705,8 +743,8 @@ function SearchContent() {
             )}
             {user && (
               <div className="mt-10 text-center text-gray-400">
-                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 증상이나 질병명을 검색해보세요.'}</p>
-                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 논문을 분석하여 요약해드립니다.'}</p>
+                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
+                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
               </div>
             )}
           </div>
