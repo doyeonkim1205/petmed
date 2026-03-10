@@ -22,6 +22,7 @@ const actionLabels: Record<string, string> = {
   'paper.delete': '논문 삭제',
   'subscription.purchase': '구독 결제',
   'subscription.cancel': '구독 해지',
+  'symptom.search': '증상 검색',
 };
 
 export default function ActivityLogsPage() {

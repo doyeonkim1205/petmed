@@ -2,12 +2,31 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
+
+type SearchMode = 'disease' | 'symptom';
+
+interface SymptomDisease {
+  name_ko: string;
+  name_en: string;
+  likelihood: '높음' | '중간' | '낮음';
+  severity: '긴급' | '주의' | '관찰';
+  description: string;
+  matching_symptoms: string[];
+  additional_symptoms: string[];
+  action: string;
+}
+
+interface SymptomResult {
+  diseases: SymptomDisease[];
+  followup_questions: string[];
+  emergency_signs: string[];
+}
 
 const stepMessages: Record<SearchStep, string> = {
   idle: '',
@@ -18,10 +37,23 @@ const stepMessages: Record<SearchStep, string> = {
   done: '',
 };
 
+const severityConfig = {
+  '긴급': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', badge: 'bg-red-100 text-red-700' },
+  '주의': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  '관찰': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600', badge: 'bg-green-100 text-green-700' },
+};
+
+const likelihoodConfig = {
+  '높음': 'bg-red-100 text-red-600',
+  '중간': 'bg-yellow-100 text-yellow-700',
+  '낮음': 'bg-gray-100 text-gray-500',
+};
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
+  const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
   const { user, profile } = useAuth();
   const isPaid = profile?.plan === 'basic' || profile?.plan === 'premium';
   const isPremium = profile?.plan === 'premium';
@@ -49,8 +81,12 @@ function SearchContent() {
   const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; plan: string } | null>(null);
   const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
+  const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(null);
+  const [symptomLoading, setSymptomLoading] = useState(false);
+  const [symptomError, setSymptomError] = useState<string | null>(null);
 
-  const pubmed = usePubMedSearch(cachedPubmed ? null : searchTerm, petType, searchKey);
+  const pubmed = usePubMedSearch(cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null), petType, searchKey);
 
   const displayPubmed: UsePubMedSearchResult = cachedPubmed ? {
     articles: cachedPubmed.articles,
@@ -128,8 +164,6 @@ function SearchContent() {
       }
       setLoginRequired(false);
       setSearchTerm(initialQuery);
-      const found = mockDiseases.find(d => d.name.includes(initialQuery));
-      setMockResult(found || null);
       if (storageKey) {
         try {
           const saved = localStorage.getItem(storageKey);
@@ -139,10 +173,56 @@ function SearchContent() {
           setRecentSearches(updated);
         } catch {}
       }
+      if (initialMode === 'symptom') {
+        handleSymptomSearch(initialQuery);
+      } else {
+        const found = mockDiseases.find(d => d.name.includes(initialQuery));
+        setMockResult(found || null);
+      }
     }
   }, [initialQuery, user, storageKey]);
 
   const [loginRequired, setLoginRequired] = useState(false);
+
+  const handleSymptomSearch = async (q: string) => {
+    setSymptomLoading(true);
+    setSymptomError(null);
+    setSymptomResult(null);
+    try {
+      // Check rate limit first
+      const { authFetch } = await import('@/lib/authFetch');
+      const usageRes = await authFetch('/api/search-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `[증상] ${q}`, petType }),
+      });
+      if (usageRes.ok) {
+        const usageData = await usageRes.json();
+        if (!usageData.allowed) {
+          setSymptomError(usageData.reason || '검색 횟수를 초과했습니다.');
+          setSymptomLoading(false);
+          return;
+        }
+      }
+
+      const res = await authFetch('/api/symptom-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symptoms: q, petType }),
+      });
+      if (!res.ok) {
+        setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
+        setSymptomLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setSymptomResult(data);
+    } catch {
+      setSymptomError('증상 분석에 실패했습니다.');
+    } finally {
+      setSymptomLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +235,13 @@ function SearchContent() {
     const q = query.trim();
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
     saveHistory(updated);
+
+    if (searchMode === 'symptom') {
+      handleSymptomSearch(q);
+      setSearchTerm(q);
+      return;
+    }
+
     setCachedPubmed(null);
     setSaved(false);
     const found = mockDiseases.find(d => d.name.includes(query));
@@ -236,18 +323,48 @@ function SearchContent() {
   const hasSearched = searchTerm !== null;
   const hasResults = displayPubmed.articles.length > 0 && displayPubmed.step === 'done';
   const desc = displayPubmed.diseaseDescription;
-  const showBottomBar = hasResults && isPaid;
+  const showBottomBar = hasResults && isPaid && searchMode === 'disease';
 
   return (
     <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
       {/* Search Header */}
       <div className="bg-white px-4 pt-6 pb-4 sticky top-14 z-40">
+        {/* Mode Toggle */}
+        <div className="max-w-sm mx-auto mb-3 flex justify-center">
+          <div className="flex bg-gray-100 rounded-full p-0.5">
+            <button
+              type="button"
+              onClick={() => { setSearchMode('disease'); setSymptomResult(null); setSymptomError(null); }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
+              질병명
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSearchMode('symptom'); }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
+              증상으로 찾기
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSearch} className="max-w-sm mx-auto">
-          <div className="flex items-center rounded-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow px-1.5 py-1">
+          <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
+            searchMode === 'symptom' ? 'border-purple-200' : 'border-gray-200'
+          }`}>
             <button
               type="button"
               onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-              className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors bg-blue-50 text-blue-600 text-xs font-medium"
+              className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors text-xs font-medium ${
+                searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+              }`}
             >
               {petType === 'dog' ? '강아지' : '고양이'} ⇄
             </button>
@@ -255,12 +372,14 @@ function SearchContent() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="질병명을 검색하세요"
+              placeholder={searchMode === 'symptom' ? '증상을 입력하세요 (예: 구토, 식욕부진)' : '질병명을 검색하세요'}
               className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             />
             <button
               type="submit"
-              className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-blue-600 transition-colors"
+              className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                searchMode === 'symptom' ? 'text-gray-400 hover:text-purple-600' : 'text-gray-400 hover:text-blue-600'
+              }`}
             >
               <SearchIcon size={18} />
             </button>
@@ -300,7 +419,150 @@ function SearchContent() {
             </button>
           </div>
         )}
-        {!hasSearched && !loginRequired ? (
+        {/* Symptom Mode Results */}
+        {searchMode === 'symptom' && !loginRequired && (symptomLoading || symptomResult || symptomError) ? (
+          <div className="max-w-sm mx-auto space-y-4">
+            {symptomLoading && (
+              <div className="flex items-center gap-2.5 p-4 rounded-xl bg-purple-50">
+                <Loader2 size={16} className="animate-spin text-purple-500 flex-shrink-0" />
+                <p className="text-xs text-gray-600">AI가 증상을 분석하고 있습니다...</p>
+              </div>
+            )}
+
+            {symptomError && (
+              <div className="text-center py-10">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock size={24} className="text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-600 font-medium mb-1">{symptomError}</p>
+                {!isPaid && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                    <div className="flex items-center justify-center gap-1.5 mb-2">
+                      <Crown size={16} className="text-purple-500" />
+                      <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 + AI 분석 전체 열람</p>
+                    <button
+                      onClick={() => window.location.href = '/pricing'}
+                      className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                    >
+                      요금제 보기
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {symptomResult && (
+              <>
+                {/* Disease Cards */}
+                {symptomResult.diseases.map((disease, idx) => {
+                  const sev = severityConfig[disease.severity] || severityConfig['관찰'];
+                  const lik = likelihoodConfig[disease.likelihood] || likelihoodConfig['낮음'];
+                  return (
+                    <div key={idx} className={`rounded-xl border ${sev.border} ${sev.bg} p-4 space-y-3`}>
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-800">
+                            {disease.name_ko}
+                            {disease.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({disease.name_en})</span>}
+                          </h3>
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.badge}`}>
+                            {disease.severity}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${lik}`}>
+                            가능성 {disease.likelihood}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-gray-600 leading-relaxed">{disease.description}</p>
+
+                      {/* Matching symptoms */}
+                      {disease.matching_symptoms.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 mb-1">일치하는 증상</p>
+                          <div className="flex flex-wrap gap-1">
+                            {disease.matching_symptoms.map((s, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-white/80 text-gray-700 rounded-full text-[11px] font-medium border border-gray-200">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Additional symptoms to watch */}
+                      {disease.additional_symptoms.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-500 mb-1">추가로 관찰할 증상</p>
+                          <div className="flex flex-wrap gap-1">
+                            {disease.additional_symptoms.map((s, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-white/50 text-gray-500 rounded-full text-[11px] border border-dashed border-gray-300">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action */}
+                      <div className="flex items-start gap-2 bg-white/60 rounded-lg p-2.5">
+                        <ArrowRight size={14} className={`${sev.text} mt-0.5 flex-shrink-0`} />
+                        <p className="text-xs text-gray-700 font-medium">{disease.action}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Emergency Signs */}
+                {symptomResult.emergency_signs.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
+                      <ShieldAlert size={14} />
+                      이런 증상이면 즉시 병원으로
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {symptomResult.emergency_signs.map((sign, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
+                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
+                          {sign}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Follow-up Questions */}
+                {symptomResult.followup_questions.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-2">
+                      <HelpCircle size={14} />
+                      더 정확한 진단을 위해
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {symptomResult.followup_questions.map((q, i) => (
+                        <li key={i} className="text-xs text-gray-600 pl-4 relative">
+                          <span className="absolute left-0 text-blue-400">{i + 1}.</span>
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">
+                  AI 예측은 참고용이며, 정확한 진단은 수의사와 상담하세요.
+                </p>
+              </>
+            )}
+          </div>
+        ) : !hasSearched && !loginRequired ? (
           <div className="max-w-sm mx-auto mt-6">
             {user && <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>}
             {!user ? (
@@ -326,12 +588,12 @@ function SearchContent() {
             )}
             {user && (
               <div className="mt-10 text-center text-gray-400">
-                <p className="text-sm">반려동물의 증상이나 질병명을 검색해보세요.</p>
-                <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>
+                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 증상이나 질병명을 검색해보세요.'}</p>
+                <p className="text-xs mt-1">{searchMode === 'symptom' ? '예: 구토, 식욕부진, 무기력' : 'AI가 논문을 분석하여 요약해드립니다.'}</p>
               </div>
             )}
           </div>
-        ) : !loginRequired ? (
+        ) : !loginRequired && searchMode === 'disease' ? (
           <div className="max-w-sm mx-auto space-y-5">
             {displayPubmed.step !== 'idle' && displayPubmed.step !== 'done' && (
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50">
