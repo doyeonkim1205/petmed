@@ -73,6 +73,14 @@ function SearchContent() {
     } catch { return null; }
   });
 
+  const [cachedSymptom] = useState(() => {
+    if (initialQuery && initialMode === 'symptom') return null;
+    try {
+      const raw = sessionStorage.getItem('symptomCache');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+
   const [query, setQuery] = useState(cached?.query || initialQuery);
   const [petType, setPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
   const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || null);
@@ -89,9 +97,10 @@ function SearchContent() {
   const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
-  const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(null);
+  const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(cachedSymptom?.result || null);
   const [symptomLoading, setSymptomLoading] = useState(false);
   const [symptomError, setSymptomError] = useState<string | null>(null);
+  const [symptomQuery, setSymptomQuery] = useState<string | null>(cachedSymptom?.query || null);
   const [followupAnswers, setFollowupAnswers] = useState<Record<number, string>>({});
   const [isRefining, setIsRefining] = useState(false);
   const [refineLimit, setRefineLimit] = useState<string | null>(null);
@@ -182,6 +191,19 @@ function SearchContent() {
     }
   }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, query, petType, searchTerm, mockResult, saved]);
 
+  // Cache symptom results in sessionStorage
+  useEffect(() => {
+    if (symptomResult && symptomQuery) {
+      try {
+        sessionStorage.setItem('symptomCache', JSON.stringify({
+          query: symptomQuery,
+          petType,
+          result: symptomResult,
+        }));
+      } catch {}
+    }
+  }, [symptomResult, symptomQuery, petType]);
+
   useEffect(() => {
     if (initialQuery) {
       if (!user) {
@@ -200,6 +222,7 @@ function SearchContent() {
         } catch {}
       }
       if (initialMode === 'symptom') {
+        setSymptomQuery(initialQuery);
         handleSymptomSearch(initialQuery);
       } else {
         const found = mockDiseases.find(d => d.name.includes(initialQuery));
@@ -270,7 +293,7 @@ function SearchContent() {
   };
 
   const handleRefineAnalysis = () => {
-    if (!searchTerm || !symptomResult) return;
+    if (!symptomQuery || !symptomResult) return;
     const answers = Object.entries(followupAnswers)
       .filter(([, v]) => v.trim())
       .map(([idx, answer]) => ({
@@ -278,7 +301,7 @@ function SearchContent() {
         answer,
       }));
     if (answers.length === 0) return;
-    handleSymptomSearch(searchTerm, answers);
+    handleSymptomSearch(symptomQuery, answers);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -295,7 +318,7 @@ function SearchContent() {
 
     if (searchMode === 'symptom') {
       handleSymptomSearch(q);
-      setSearchTerm(q);
+      setSymptomQuery(q);
       return;
     }
 
@@ -377,7 +400,7 @@ function SearchContent() {
     }
   };
 
-  const hasSearched = searchTerm !== null;
+  const hasSearched = searchMode === 'disease' ? searchTerm !== null : (symptomQuery !== null);
   const hasResults = displayPubmed.articles.length > 0 && displayPubmed.step === 'done';
   const desc = displayPubmed.diseaseDescription;
   const showBottomBar = hasResults && isPaid && searchMode === 'disease';
@@ -391,7 +414,7 @@ function SearchContent() {
           <div className="flex bg-gray-100 rounded-full p-0.5">
             <button
               type="button"
-              onClick={() => { setSearchMode('disease'); setSymptomResult(null); setSymptomError(null); }}
+              onClick={() => { setSearchMode('disease'); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
               }`}
