@@ -76,12 +76,6 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   {
     title: '기능',
     features: [
-      {
-        label: '논문 보관',
-        key: 'save',
-        format: (p) => p === 'free' ? '-' : '가능',
-        unavailable: (p) => p === 'free',
-      },
       { label: '비용 통계', key: 'cost', format: (p) => PLANS[p].costStatsMonths === 1 ? '이번 달' : PLANS[p].costStatsMonths === 12 ? '1년' : `${PLANS[p].costStatsMonths}개월` },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
     ],
