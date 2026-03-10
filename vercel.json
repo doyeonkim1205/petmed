@@ -1,8 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/medication-reminder",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
+{}
