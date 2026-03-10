@@ -536,7 +536,7 @@ function SearchContent() {
                       <Crown size={16} className="text-purple-500" />
                       <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 + 분석 보관하기</p>
+                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 분석 보관 · 기록장 확장</p>
                     <button
                       onClick={() => window.location.href = '/pricing'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
@@ -827,7 +827,7 @@ function SearchContent() {
                       <Crown size={16} className="text-purple-500" />
                       <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 + 분석 보관하기</p>
+                    <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 분석 보관 · 기록장 확장</p>
                     <button
                       onClick={() => window.location.href = '/pricing'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
@@ -851,7 +851,7 @@ function SearchContent() {
                       <p className="text-xs font-bold text-gray-600">구독하고 더 많이 이용하기</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      분석 보관하기 · 더 많은 검색 · 건강 기록장 확장
+                      더 많은 검색 · 분석 보관 · 기록장 확장
                     </p>
                   </div>
                 )}
