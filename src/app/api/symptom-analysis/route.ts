@@ -58,6 +58,13 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
+    // Insert activity log BEFORE GPT call (synchronous) so rate limit count is accurate
+    await supabaseAdmin.from('activity_logs').insert({
+      user_id: userId,
+      action,
+      details: { symptoms, petType },
+    });
+
     const petLabel = petType === 'cat' ? '고양이' : '강아지';
 
     // Build follow-up context for refined analysis
@@ -142,16 +149,6 @@ export async function POST(request: NextRequest) {
       followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
       emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
     };
-
-    // Log activity (also serves as rate limit counter)
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, action, {
-      details: {
-        symptoms,
-        petType,
-        diseases: result.diseases.map((d: { name_ko: string }) => d.name_ko).join(', '),
-      },
-    });
 
     return NextResponse.json(result);
   } catch (error) {
