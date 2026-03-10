@@ -12,12 +12,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
-    const { symptoms, petType } = await request.json();
+    const { symptoms, petType, followupAnswers } = await request.json();
     if (!symptoms || symptoms.length > 500) {
       return NextResponse.json({ error: 'Missing or too long symptoms' }, { status: 400 });
     }
 
     const petLabel = petType === 'cat' ? '고양이' : '강아지';
+    const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
+
+    // Build follow-up context for refined analysis
+    let followupContext = '';
+    if (isRefinement) {
+      const answersText = followupAnswers
+        .map((a: { question: string; answer: string }) => `Q: ${a.question}\nA: ${a.answer}`)
+        .join('\n');
+      followupContext = `\n\n보호자가 추가 질문에 답변했습니다:\n${answersText}\n\n이 추가 정보를 반영하여 더 정확하게 분석해줘. 이전 분석을 완전히 대체하는 새로운 분석을 제공해.`;
+    }
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -58,11 +68,11 @@ export async function POST(request: NextRequest) {
 - 추측이 아닌 수의학적 근거에 기반
 - 전문 용어 사용 시 괄호 안에 쉬운 설명 추가
 - emergency_signs는 최대 3개
-- followup_questions는 최대 3개`,
+- followup_questions는 최대 3개${isRefinement ? '\n- 이전에 했던 질문과 다른 새로운 질문을 해줘' : ''}`,
           },
           {
             role: 'user',
-            content: `우리 ${petLabel}가 이런 증상을 보입니다: "${symptoms}"`,
+            content: `우리 ${petLabel}가 이런 증상을 보입니다: "${symptoms}"${followupContext}`,
           },
         ],
       }),

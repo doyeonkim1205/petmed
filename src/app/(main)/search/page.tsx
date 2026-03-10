@@ -85,6 +85,8 @@ function SearchContent() {
   const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(null);
   const [symptomLoading, setSymptomLoading] = useState(false);
   const [symptomError, setSymptomError] = useState<string | null>(null);
+  const [followupAnswers, setFollowupAnswers] = useState<Record<number, string>>({});
+  const [isRefining, setIsRefining] = useState(false);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null), petType, searchKey);
 
@@ -184,44 +186,70 @@ function SearchContent() {
 
   const [loginRequired, setLoginRequired] = useState(false);
 
-  const handleSymptomSearch = async (q: string) => {
-    setSymptomLoading(true);
-    setSymptomError(null);
-    setSymptomResult(null);
+  const handleSymptomSearch = async (q: string, answers?: { question: string; answer: string }[]) => {
+    const isRefine = !!answers;
+    if (isRefine) {
+      setIsRefining(true);
+    } else {
+      setSymptomLoading(true);
+      setSymptomError(null);
+      setSymptomResult(null);
+      setFollowupAnswers({});
+    }
     try {
-      // Check rate limit first
       const { authFetch } = await import('@/lib/authFetch');
-      const usageRes = await authFetch('/api/search-usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `[증상] ${q}`, petType }),
-      });
-      if (usageRes.ok) {
-        const usageData = await usageRes.json();
-        if (!usageData.allowed) {
-          setSymptomError(usageData.reason || '검색 횟수를 초과했습니다.');
-          setSymptomLoading(false);
-          return;
+
+      // Check rate limit (only for initial search, not refinement)
+      if (!isRefine) {
+        const usageRes = await authFetch('/api/search-usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: `[증상] ${q}`, petType }),
+        });
+        if (usageRes.ok) {
+          const usageData = await usageRes.json();
+          if (!usageData.allowed) {
+            setSymptomError(usageData.reason || '검색 횟수를 초과했습니다.');
+            setSymptomLoading(false);
+            return;
+          }
         }
       }
 
       const res = await authFetch('/api/symptom-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symptoms: q, petType }),
+        body: JSON.stringify({
+          symptoms: q,
+          petType,
+          ...(isRefine ? { followupAnswers: answers } : {}),
+        }),
       });
       if (!res.ok) {
-        setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
-        setSymptomLoading(false);
+        if (!isRefine) setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
         return;
       }
       const data = await res.json();
       setSymptomResult(data);
+      setFollowupAnswers({});
     } catch {
-      setSymptomError('증상 분석에 실패했습니다.');
+      if (!isRefine) setSymptomError('증상 분석에 실패했습니다.');
     } finally {
       setSymptomLoading(false);
+      setIsRefining(false);
     }
+  };
+
+  const handleRefineAnalysis = () => {
+    if (!searchTerm || !symptomResult) return;
+    const answers = Object.entries(followupAnswers)
+      .filter(([, v]) => v)
+      .map(([idx, answer]) => ({
+        question: symptomResult.followup_questions[Number(idx)],
+        answer,
+      }));
+    if (answers.length === 0) return;
+    handleSymptomSearch(searchTerm, answers);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -537,21 +565,49 @@ function SearchContent() {
                   </div>
                 )}
 
-                {/* Follow-up Questions */}
+                {/* Interactive Follow-up Questions */}
                 {symptomResult.followup_questions.length > 0 && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600 mb-2">
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                       <HelpCircle size={14} />
-                      더 정확한 진단을 위해
+                      추가 질문에 답하면 더 정확해져요
                     </h4>
-                    <ul className="space-y-1.5">
+                    <div className="space-y-3">
                       {symptomResult.followup_questions.map((q, i) => (
-                        <li key={i} className="text-xs text-gray-600 pl-4 relative">
-                          <span className="absolute left-0 text-blue-400">{i + 1}.</span>
-                          {q}
-                        </li>
+                        <div key={i} className="space-y-1.5">
+                          <p className="text-xs text-gray-700 font-medium">{i + 1}. {q}</p>
+                          <div className="flex gap-1.5">
+                            {['예', '아니오', '모르겠어요'].map((option) => (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() => setFollowupAnswers(prev => ({ ...prev, [i]: option }))}
+                                className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
+                                  followupAnswers[i] === option
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-white text-gray-500 border border-gray-200 hover:border-blue-300'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
+                    {Object.keys(followupAnswers).length > 0 && (
+                      <button
+                        onClick={handleRefineAnalysis}
+                        disabled={isRefining}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                      >
+                        {isRefining ? (
+                          <><Loader2 size={14} className="animate-spin" /> 재분석 중...</>
+                        ) : (
+                          <><Stethoscope size={14} /> 답변 반영하여 재분석</>
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
 
