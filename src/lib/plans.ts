@@ -26,7 +26,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     searchPerDay: 3,
     symptomSearchPerDay: 2,
     symptomRefinePerDay: 1,
-    aiAnalysis: 'blur',
+    aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 1,
     maxPets: 3,

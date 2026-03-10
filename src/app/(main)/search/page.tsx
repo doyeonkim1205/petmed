@@ -848,10 +848,10 @@ function SearchContent() {
                   <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/pricing'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">구독하고 모든 기능 이용하기</p>
+                      <p className="text-xs font-bold text-gray-600">구독하고 더 많이 이용하기</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 분석 전체 열람 · 주의사항/성분 확인 · 보관하기 · 더 많은 검색
+                      분석 보관하기 · 더 많은 검색 · 건강 기록장 확장
                     </p>
                   </div>
                 )}
@@ -865,22 +865,8 @@ function SearchContent() {
                   showBookmarks={isPaid && !saved}
                 />
 
-                {/* AI Analysis sections — blur for free users */}
-                <div className="relative">
-                  {!isPaid && hasResults && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
-                      <Lock size={28} className="text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-600 mb-1">AI 분석은 유료 플랜 전용</p>
-                      <p className="text-xs text-gray-400 mb-3">주의사항, 성분 분석을 확인하세요</p>
-                      <button
-                        onClick={() => window.location.href = '/pricing'}
-                        className="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
-                      >
-                        요금제 보기
-                      </button>
-                    </div>
-                  )}
-
+                {/* AI Analysis sections */}
+                <div>
                   <section>
                     <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
                       <AlertTriangle size={14} className="text-orange-400" />
