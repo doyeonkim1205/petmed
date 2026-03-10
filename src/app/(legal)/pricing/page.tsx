@@ -2,50 +2,115 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Crown, Star, Sparkles, X } from 'lucide-react';
+import { Check, Crown, Star, X, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PLANS, PlanType } from '@/lib/plans';
 
 const planOrder: PlanType[] = ['free', 'basic', 'premium'];
 
-const planStyles: Record<PlanType, { badge: string; border: string; button: string; icon: React.ReactNode }> = {
+const planMeta: Record<PlanType, {
+  tagline: string;
+  highlights: string[];
+  badge: string;
+  border: string;
+  button: string;
+  icon: React.ReactNode | null;
+  headerBg: string;
+}> = {
   free: {
+    tagline: '기본 기능을 무료로',
+    highlights: ['논문 검색 3회/일', '증상 검색 2회/일', '건강 기록 10개'],
     badge: 'bg-gray-100 text-gray-500',
     border: 'border-gray-200',
-    button: 'bg-gray-100 text-gray-500',
+    button: '',
     icon: null,
+    headerBg: 'bg-gray-50',
   },
   basic: {
+    tagline: '반려동물 건강관리의 시작',
+    highlights: ['논문 검색 10회/일', '증상 검색 5회/일', 'AI 상세 분석', '논문 저장 10개'],
     badge: 'bg-blue-50 text-blue-600',
-    border: 'border-blue-300 ring-1 ring-blue-100',
+    border: 'border-blue-200 ring-1 ring-blue-100',
     button: 'bg-blue-600 text-white hover:bg-blue-700',
-    icon: <Star size={16} />,
+    icon: <Star size={14} />,
+    headerBg: 'bg-blue-50',
   },
   premium: {
+    tagline: '모든 기능을 제한 없이',
+    highlights: ['논문 검색 15회/일', '증상 검색 10회/일', '건강 기록 100개', '첨부 5개 · 저장 1GB'],
     badge: 'bg-purple-50 text-purple-600',
-    border: 'border-purple-300 ring-1 ring-purple-100',
+    border: 'border-purple-200 ring-1 ring-purple-100',
     button: 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700',
-    icon: <Crown size={16} />,
+    icon: <Crown size={14} />,
+    headerBg: 'bg-purple-50',
   },
 };
 
-const features = [
-  { label: '건강 기록장', key: 'maxRecords' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}개` },
-  { label: '논문 검색', key: 'searchPerDay' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}회/일` },
-  { label: '증상 검색', key: 'symptomSearchPerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
-  { label: '증상 재분석', key: 'symptomRefinePerDay' as const, format: (v: number, plan: PlanType) => `${v}회/일` },
-  { label: 'AI 분석', key: 'aiAnalysis' as const, format: (v: string, plan: PlanType) => v === 'blur' ? '블러(미리보기)' : '상세 분석' },
-  { label: '논문 저장', key: 'maxSavedAnalyses' as const, format: (v: number, plan: PlanType) => plan === 'free' ? '불가' : v === 0 ? '무제한' : `${v}개` },
-  { label: '비용 통계', key: 'costStatsMonths' as const, format: (v: number, plan: PlanType) => v === 1 ? '이번 달' : v === 12 ? '1년' : `${v}개월` },
-  { label: '반려동물', key: 'maxPets' as const, format: (v: number, plan: PlanType) => v === 0 ? '무제한' : `${v}마리` },
-  { label: '첨부파일', key: 'attachmentsPerRecord' as const, format: (v: number, plan: PlanType) => `기록당 ${v}개` },
-  { label: '동시 접속 기기', key: 'maxDevices' as const, format: (v: number, plan: PlanType) => `${v}대` },
+interface FeatureRow {
+  label: string;
+  values: Record<PlanType, string>;
+  highlight?: PlanType[];
+}
+
+const comparisonRows: FeatureRow[] = [
+  {
+    label: '논문 검색',
+    values: { free: '3회/일', basic: '10회/일', premium: '15회/일' },
+    highlight: ['basic', 'premium'],
+  },
+  {
+    label: '증상 검색',
+    values: { free: '2회/일', basic: '5회/일', premium: '10회/일' },
+    highlight: ['basic', 'premium'],
+  },
+  {
+    label: '증상 재분석',
+    values: { free: '1회/일', basic: '3회/일', premium: '5회/일' },
+    highlight: ['basic', 'premium'],
+  },
+  {
+    label: 'AI 분석',
+    values: { free: '미리보기', basic: '상세 분석', premium: '상세 분석' },
+    highlight: ['basic', 'premium'],
+  },
+  {
+    label: '건강 기록',
+    values: { free: '10개', basic: '30개', premium: '100개' },
+    highlight: ['premium'],
+  },
+  {
+    label: '논문 저장',
+    values: { free: '-', basic: '10개', premium: '50개' },
+    highlight: ['basic', 'premium'],
+  },
+  {
+    label: '반려동물',
+    values: { free: '2마리', basic: '3마리', premium: '5마리' },
+  },
+  {
+    label: '첨부파일',
+    values: { free: '1개/기록', basic: '3개/기록', premium: '5개/기록' },
+  },
+  {
+    label: '저장 용량',
+    values: { free: '50MB', basic: '200MB', premium: '1GB' },
+    highlight: ['premium'],
+  },
+  {
+    label: '비용 통계',
+    values: { free: '이번 달', basic: '6개월', premium: '1년' },
+  },
+  {
+    label: '동시 접속',
+    values: { free: '1대', basic: '2대', premium: '3대' },
+  },
 ];
 
 export default function PricingPage() {
   const router = useRouter();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showTable, setShowTable] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -69,115 +134,134 @@ export default function PricingPage() {
   };
 
   return (
-    <article className="prose prose-sm dark:prose-invert max-w-none">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">요금제</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-        PawDex의 다양한 기능을 합리적인 가격으로 이용하세요.
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">요금제</h1>
+      <p className="text-sm text-gray-400 mb-6">
+        나에게 맞는 플랜을 선택하세요.
       </p>
 
-      {/* Plan Cards */}
-      <div className="space-y-4 mb-10">
+      {/* Plan Cards - Compact */}
+      <div className="space-y-3 mb-8">
         {planOrder.map((planKey) => {
           const plan = PLANS[planKey];
-          const style = planStyles[planKey];
+          const meta = planMeta[planKey];
           const isCurrent = currentPlan === planKey;
 
           return (
             <div
               key={planKey}
-              className={`rounded-2xl border p-5 ${style.border} ${isCurrent ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'}`}
+              className={`rounded-2xl border overflow-hidden ${meta.border} ${isCurrent ? 'ring-2 ring-offset-1' : ''}`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  {style.icon && <span className={style.badge + ' p-1 rounded-full'}>{style.icon}</span>}
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">{plan.name}</h3>
-                  {isCurrent && (
-                    <span className="text-[10px] px-2 py-0.5 bg-green-50 text-green-600 rounded-full font-medium">현재 플랜</span>
-                  )}
-                </div>
-                <div className="text-right">
-                  {plan.price === 0 ? (
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">무료</span>
-                  ) : (
+              {/* Header */}
+              <div className={`px-5 py-4 ${meta.headerBg}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {meta.icon && (
+                      <span className={`${meta.badge} p-1.5 rounded-full`}>{meta.icon}</span>
+                    )}
                     <div>
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">₩{plan.price.toLocaleString()}</span>
-                      <span className="text-xs text-gray-400">/월</span>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-gray-900">{plan.name}</h3>
+                        {isCurrent && (
+                          <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-semibold">
+                            현재
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">{meta.tagline}</p>
                     </div>
-                  )}
+                  </div>
+                  <div className="text-right">
+                    {plan.price === 0 ? (
+                      <span className="text-xl font-extrabold text-gray-900">무료</span>
+                    ) : (
+                      <div>
+                        <span className="text-xl font-extrabold text-gray-900">
+                          {plan.price.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-0.5">원/월</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <ul className="space-y-2 mb-4">
-                {features.map((feat) => {
-                  const value = plan[feat.key];
-                  const isUnavailable = planKey === 'free' && feat.key === 'maxSavedAnalyses';
-                  return (
-                    <li key={feat.key} className="flex items-center gap-2 text-sm">
-                      {isUnavailable ? (
-                        <X size={14} className="text-gray-300" />
-                      ) : (
-                        <Check size={14} className="text-green-500" />
-                      )}
-                      <span className={`${isUnavailable ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                        {feat.label}: {(feat.format as (v: any, p: PlanType) => string)(value, planKey)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* Highlights */}
+              <div className="px-5 py-3 bg-white">
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  {meta.highlights.map((h) => (
+                    <span key={h} className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <Check size={12} className="text-green-500 flex-shrink-0" />
+                      {h}
+                    </span>
+                  ))}
+                </div>
 
-              {planKey !== 'free' && !isCurrent && (
-                <button
-                  onClick={() => handleSubscribe(planKey)}
-                  className={`w-full py-2.5 rounded-full text-sm font-medium transition-colors ${style.button}`}
-                >
-                  {plan.name} 구독하기
-                </button>
-              )}
-              {isCurrent && planKey !== 'free' && (
-                <p className="text-center text-xs text-gray-400">현재 이용 중인 플랜입니다</p>
-              )}
+                {planKey !== 'free' && !isCurrent && (
+                  <button
+                    onClick={() => handleSubscribe(planKey)}
+                    className={`w-full mt-3 py-2.5 rounded-full text-sm font-semibold transition-colors ${meta.button}`}
+                  >
+                    {plan.name} 시작하기
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Comparison Table */}
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">기능 비교</h2>
-      <div className="overflow-x-auto -mx-6 px-6">
-        <table className="w-full text-sm border-collapse min-w-[400px]">
-          <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="text-left py-2 text-xs text-gray-400 font-medium">기능</th>
-              {planOrder.map((p) => (
-                <th key={p} className="text-center py-2 text-xs font-bold text-gray-700 dark:text-gray-200">
-                  {PLANS[p].name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {features.map((feat) => (
-              <tr key={feat.key} className="border-b border-gray-100 dark:border-gray-800">
-                <td className="py-2.5 text-xs text-gray-500">{feat.label}</td>
-                {planOrder.map((p) => {
-                  const text = (feat.format as (v: any, plan: PlanType) => string)(PLANS[p][feat.key], p);
-                  const isUnavailable = p === 'free' && feat.key === 'maxSavedAnalyses';
-                  return (
-                    <td key={p} className={`py-2.5 text-center text-xs ${isUnavailable ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                      {text}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Comparison Table Toggle */}
+      <button
+        onClick={() => setShowTable(!showTable)}
+        className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+      >
+        전체 기능 비교
+        <ChevronDown size={16} className={`transition-transform ${showTable ? 'rotate-180' : ''}`} />
+      </button>
 
-      <p className="text-xs text-gray-400 mt-6 text-center">
-        결제 관련 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>
+      {showTable && (
+        <div className="mt-2 mb-8 rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left py-3 px-4 text-gray-400 font-medium w-[30%]">기능</th>
+                {planOrder.map((p) => (
+                  <th key={p} className={`text-center py-3 px-2 font-bold ${
+                    p === 'premium' ? 'text-purple-600' : p === 'basic' ? 'text-blue-600' : 'text-gray-500'
+                  }`}>
+                    {PLANS[p].name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map((row, i) => (
+                <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                  <td className="py-2.5 px-4 text-gray-500 font-medium">{row.label}</td>
+                  {planOrder.map((p) => {
+                    const isHighlighted = row.highlight?.includes(p);
+                    const isUnavailable = row.values[p] === '-';
+                    return (
+                      <td key={p} className={`py-2.5 px-2 text-center ${
+                        isUnavailable ? 'text-gray-300' :
+                        isHighlighted ? 'text-gray-900 font-semibold' :
+                        'text-gray-500'
+                      }`}>
+                        {isUnavailable ? <X size={12} className="inline text-gray-300" /> : row.values[p]}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-[11px] text-gray-400 text-center pb-4">
+        결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>
       </p>
-    </article>
+    </div>
   );
 }
