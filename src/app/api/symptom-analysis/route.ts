@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getPlanConfig } from '@/lib/plans';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
+    const userId = auth.user!.id;
 
     if (!OPENAI_API_KEY) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
@@ -17,8 +25,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or too long symptoms' }, { status: 400 });
     }
 
-    const petLabel = petType === 'cat' ? '고양이' : '강아지';
     const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
+
+    // Check refinement rate limit
+    if (isRefinement) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('plan')
+        .eq('id', userId)
+        .single();
+      const plan = profile?.plan || 'free';
+      const config = getPlanConfig(plan);
+      const dailyLimit = config.symptomRefinePerDay;
+
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const { count } = await supabaseAdmin
+        .from('activity_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('action', 'symptom.refine')
+        .gte('created_at', startOfDay.toISOString());
+
+      if ((count || 0) >= dailyLimit) {
+        return NextResponse.json({
+          error: `오늘의 재분석 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan === 'free' ? ' 업그레이드하여 더 많은 재분석을 이용하세요.' : ''}`,
+          limitReached: true,
+        }, { status: 429 });
+      }
+    }
+
+    const petLabel = petType === 'cat' ? '고양이' : '강아지';
 
     // Build follow-up context for refined analysis
     let followupContext = '';
@@ -58,7 +96,13 @@ export async function POST(request: NextRequest) {
       "action": "보호자가 지금 해야 할 행동 (1-2문장)"
     }
   ],
-  "followup_questions": ["정확도를 높이기 위해 보호자에게 물어볼 추가 질문 2-3개"],
+  "followup_questions": [
+    {
+      "question": "질문 내용",
+      "type": "yes_no" | "select" | "text",
+      "options": ["선택지1", "선택지2"]
+    }
+  ],
   "emergency_signs": ["이런 증상이 동반되면 즉시 병원에 가야 합니다"]
 }
 
@@ -68,7 +112,12 @@ export async function POST(request: NextRequest) {
 - 추측이 아닌 수의학적 근거에 기반
 - 전문 용어 사용 시 괄호 안에 쉬운 설명 추가
 - emergency_signs는 최대 3개
-- followup_questions는 최대 3개${isRefinement ? '\n- 이전에 했던 질문과 다른 새로운 질문을 해줘' : ''}`,
+- followup_questions는 최대 3개
+- followup_questions의 type 설명:
+  - "yes_no": 예/아니오로 답할 수 있는 질문 (options 불필요)
+  - "select": 보기 중 선택하는 질문 (options에 2-5개 선택지 필수)
+  - "text": 자유 입력이 필요한 질문 (options 불필요)
+- 질문 유형은 질문 내용에 맞게 적절히 선택해${isRefinement ? '\n- 이전에 했던 질문과 다른 새로운 질문을 해줘' : ''}`,
           },
           {
             role: 'user',
@@ -94,8 +143,7 @@ export async function POST(request: NextRequest) {
 
     // Log activity
     const { logActivity } = await import('@/lib/activityLog');
-    const userId = auth.user!.id;
-    logActivity(userId, 'symptom.search', {
+    logActivity(userId, isRefinement ? 'symptom.refine' : 'symptom.search', {
       details: {
         symptoms,
         petType,

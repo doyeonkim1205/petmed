@@ -22,9 +22,15 @@ interface SymptomDisease {
   action: string;
 }
 
+interface FollowupQuestion {
+  question: string;
+  type: 'yes_no' | 'select' | 'text';
+  options?: string[];
+}
+
 interface SymptomResult {
   diseases: SymptomDisease[];
-  followup_questions: string[];
+  followup_questions: (string | FollowupQuestion)[];
   emergency_signs: string[];
 }
 
@@ -87,6 +93,7 @@ function SearchContent() {
   const [symptomError, setSymptomError] = useState<string | null>(null);
   const [followupAnswers, setFollowupAnswers] = useState<Record<number, string>>({});
   const [isRefining, setIsRefining] = useState(false);
+  const [refineLimit, setRefineLimit] = useState<string | null>(null);
 
   const pubmed = usePubMedSearch(cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null), petType, searchKey);
 
@@ -195,6 +202,7 @@ function SearchContent() {
       setSymptomError(null);
       setSymptomResult(null);
       setFollowupAnswers({});
+      setRefineLimit(null);
     }
     try {
       const { authFetch } = await import('@/lib/authFetch');
@@ -226,7 +234,12 @@ function SearchContent() {
         }),
       });
       if (!res.ok) {
-        if (!isRefine) setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
+        const errData = await res.json().catch(() => ({}));
+        if (res.status === 429 && errData.limitReached) {
+          setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
+        } else if (!isRefine) {
+          setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
+        }
         return;
       }
       const data = await res.json();
@@ -240,12 +253,24 @@ function SearchContent() {
     }
   };
 
+  const getQuestionText = (q: string | FollowupQuestion): string => {
+    return typeof q === 'string' ? q : q.question;
+  };
+
+  const getQuestionType = (q: string | FollowupQuestion): 'yes_no' | 'select' | 'text' => {
+    return typeof q === 'string' ? 'yes_no' : (q.type || 'yes_no');
+  };
+
+  const getQuestionOptions = (q: string | FollowupQuestion): string[] => {
+    return typeof q === 'string' ? [] : (q.options || []);
+  };
+
   const handleRefineAnalysis = () => {
     if (!searchTerm || !symptomResult) return;
     const answers = Object.entries(followupAnswers)
-      .filter(([, v]) => v)
+      .filter(([, v]) => v.trim())
       .map(([idx, answer]) => ({
-        question: symptomResult.followup_questions[Number(idx)],
+        question: getQuestionText(symptomResult.followup_questions[Number(idx)]),
         answer,
       }));
     if (answers.length === 0) return;
@@ -566,36 +591,70 @@ function SearchContent() {
                 )}
 
                 {/* Interactive Follow-up Questions */}
-                {symptomResult.followup_questions.length > 0 && (
+                {symptomResult.followup_questions.length > 0 && !refineLimit && (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                     <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                       <HelpCircle size={14} />
                       추가 질문에 답하면 더 정확해져요
                     </h4>
                     <div className="space-y-3">
-                      {symptomResult.followup_questions.map((q, i) => (
-                        <div key={i} className="space-y-1.5">
-                          <p className="text-xs text-gray-700 font-medium">{i + 1}. {q}</p>
-                          <div className="flex gap-1.5">
-                            {['예', '아니오', '모르겠어요'].map((option) => (
-                              <button
-                                key={option}
-                                type="button"
-                                onClick={() => setFollowupAnswers(prev => ({ ...prev, [i]: option }))}
-                                className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
-                                  followupAnswers[i] === option
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white text-gray-500 border border-gray-200 hover:border-blue-300'
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            ))}
+                      {symptomResult.followup_questions.map((q, i) => {
+                        const qType = getQuestionType(q);
+                        const qText = getQuestionText(q);
+                        const qOptions = getQuestionOptions(q);
+                        return (
+                          <div key={i} className="space-y-1.5">
+                            <p className="text-xs text-gray-700 font-medium">{i + 1}. {qText}</p>
+                            {qType === 'yes_no' && (
+                              <div className="flex gap-1.5">
+                                {['예', '아니오', '모르겠어요'].map((option) => (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setFollowupAnswers(prev => ({ ...prev, [i]: option }))}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
+                                      followupAnswers[i] === option
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-white text-gray-500 border border-gray-200 hover:border-blue-300'
+                                    }`}
+                                  >
+                                    {option}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {qType === 'select' && qOptions.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {qOptions.map((option) => (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setFollowupAnswers(prev => ({ ...prev, [i]: option }))}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
+                                      followupAnswers[i] === option
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-white text-gray-500 border border-gray-200 hover:border-blue-300'
+                                    }`}
+                                  >
+                                    {option}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {qType === 'text' && (
+                              <input
+                                type="text"
+                                value={followupAnswers[i] || ''}
+                                onChange={(e) => setFollowupAnswers(prev => ({ ...prev, [i]: e.target.value }))}
+                                placeholder="답변을 입력하세요"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 bg-white"
+                              />
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                    {Object.keys(followupAnswers).length > 0 && (
+                    {Object.values(followupAnswers).some(v => v.trim()) && (
                       <button
                         onClick={handleRefineAnalysis}
                         disabled={isRefining}
@@ -606,6 +665,21 @@ function SearchContent() {
                         ) : (
                           <><Stethoscope size={14} /> 답변 반영하여 재분석</>
                         )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Refine limit reached */}
+                {refineLimit && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                    <p className="text-xs text-gray-600 font-medium">{refineLimit}</p>
+                    {!isPaid && (
+                      <button
+                        onClick={() => window.location.href = '/pricing'}
+                        className="mt-2 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
+                      >
+                        요금제 보기
                       </button>
                     )}
                   </div>

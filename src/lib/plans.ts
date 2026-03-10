@@ -6,6 +6,7 @@ export interface PlanConfig {
   price: number;
   maxRecords: number;
   searchPerDay: number;
+  symptomRefinePerDay: number;
   aiAnalysis: 'blur' | 'full';
   maxSavedAnalyses: number;
   costStatsMonths: number;
@@ -21,6 +22,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     price: 0,
     maxRecords: 10,
     searchPerDay: 3,
+    symptomRefinePerDay: 2,
     aiAnalysis: 'blur',
     maxSavedAnalyses: 0,
     costStatsMonths: 1,
@@ -34,6 +36,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     price: 2900,
     maxRecords: 30,
     searchPerDay: 10,
+    symptomRefinePerDay: 5,
     aiAnalysis: 'full',
     maxSavedAnalyses: 10,
     costStatsMonths: 6,
@@ -47,6 +50,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     price: 4900,
     maxRecords: 100,
     searchPerDay: 20,
+    symptomRefinePerDay: 10,
     aiAnalysis: 'full',
     maxSavedAnalyses: 50,
     costStatsMonths: 12,

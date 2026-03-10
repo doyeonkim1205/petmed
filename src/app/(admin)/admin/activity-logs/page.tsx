@@ -23,6 +23,7 @@ const actionLabels: Record<string, string> = {
   'subscription.purchase': '구독 결제',
   'subscription.cancel': '구독 해지',
   'symptom.search': '증상 검색',
+  'symptom.refine': '증상 재분석',
 };
 
 export default function ActivityLogsPage() {
