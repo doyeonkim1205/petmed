@@ -61,14 +61,14 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   {
     title: '총 한도',
     features: [
-      { label: '건강 기록', key: 'records', format: (p) => `최대 ${PLANS[p].maxRecords}개` },
+      { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
       {
         label: '논문 저장',
         key: 'saved',
-        format: (p) => p === 'free' ? '-' : `최대 ${PLANS[p].maxSavedAnalyses}개`,
+        format: (p) => p === 'free' ? '-' : PLANS[p].maxSavedAnalyses === 0 ? '무제한' : `최대 ${PLANS[p].maxSavedAnalyses}개`,
         unavailable: (p) => p === 'free',
       },
-      { label: '반려동물', key: 'pets', format: (p) => `최대 ${PLANS[p].maxPets}마리` },
+      { label: '반려동물', key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? '무제한' : `최대 ${PLANS[p].maxPets}마리` },
       { label: '첨부파일', key: 'attach', format: (p) => `기록당 ${PLANS[p].attachmentsPerRecord}개` },
       { label: '저장 용량', key: 'storage', format: (p) => `총 ${PLANS[p].maxStorageMB >= 1000 ? `${PLANS[p].maxStorageMB / 1000}GB` : `${PLANS[p].maxStorageMB}MB`}` },
     ],

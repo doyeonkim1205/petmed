@@ -106,14 +106,19 @@ export async function POST(request: NextRequest) {
     const { getPlanConfig } = await import('@/lib/plans');
     const config = getPlanConfig(plan);
 
-    // Check paper limit
-    const { count: currentCount } = await supabaseAdmin
-      .from('saved_papers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+    // Check paper limit (0 = unlimited)
+    let papersToSave = selectedPapers;
+    let remaining = Infinity;
 
-    const remaining = config.maxSavedAnalyses - (currentCount || 0);
-    const papersToSave = selectedPapers.slice(0, Math.max(0, remaining));
+    if (config.maxSavedAnalyses > 0) {
+      const { count: currentCount } = await supabaseAdmin
+        .from('saved_papers')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      remaining = config.maxSavedAnalyses - (currentCount || 0);
+      papersToSave = selectedPapers.slice(0, Math.max(0, remaining));
+    }
 
     if (papersToSave.length > 0) {
       const rows = papersToSave.map((p: any) => ({
