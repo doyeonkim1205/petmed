@@ -37,6 +37,69 @@ export async function GET(request: Request) {
 
   const totalRevenue = (revenue || []).reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
 
+  // Heavy user monitoring: users with high record/pet/saved counts
+  const [
+    { data: recordCounts },
+    { data: petCounts },
+    { data: savedCounts },
+  ] = await Promise.all([
+    supabase.rpc('get_user_record_counts').then(r => r),
+    supabase.rpc('get_user_pet_counts').then(r => r),
+    supabase.rpc('get_user_saved_counts').then(r => r),
+  ]).catch(() => [{ data: null }, { data: null }, { data: null }]);
+
+  // Fallback: direct queries if RPCs don't exist
+  let heavyUsers: { email: string; nickname: string; plan: string; records: number; pets: number; savedPapers: number }[] = [];
+
+  const profileMap = new Map<string, { email: string; nickname: string; plan: string }>();
+  const { data: allProfiles } = await supabase.from('profiles').select('id, email, nickname, plan');
+  for (const p of allProfiles || []) {
+    profileMap.set(p.id, { email: p.email, nickname: p.nickname, plan: p.plan });
+  }
+
+  // Count records per user
+  const { data: records } = await supabase.from('health_records').select('user_id');
+  const recordMap = new Map<string, number>();
+  for (const r of records || []) {
+    recordMap.set(r.user_id, (recordMap.get(r.user_id) || 0) + 1);
+  }
+
+  // Count pets per user
+  const { data: pets } = await supabase.from('pets').select('user_id');
+  const petMap = new Map<string, number>();
+  for (const p of pets || []) {
+    petMap.set(p.user_id, (petMap.get(p.user_id) || 0) + 1);
+  }
+
+  // Count saved papers per user
+  const { data: saved } = await supabase.from('saved_papers').select('user_id');
+  const savedMap = new Map<string, number>();
+  for (const s of saved || []) {
+    savedMap.set(s.user_id, (savedMap.get(s.user_id) || 0) + 1);
+  }
+
+  // Build heavy users list (anyone with records >= 50, pets >= 5, or savedPapers >= 30)
+  const allUserIds = new Set([...recordMap.keys(), ...petMap.keys(), ...savedMap.keys()]);
+  for (const userId of allUserIds) {
+    const rc = recordMap.get(userId) || 0;
+    const pc = petMap.get(userId) || 0;
+    const sc = savedMap.get(userId) || 0;
+    if (rc >= 50 || pc >= 5 || sc >= 30) {
+      const profile = profileMap.get(userId);
+      if (profile) {
+        heavyUsers.push({
+          email: profile.email,
+          nickname: profile.nickname,
+          plan: profile.plan,
+          records: rc,
+          pets: pc,
+          savedPapers: sc,
+        });
+      }
+    }
+  }
+  heavyUsers.sort((a, b) => b.records - a.records);
+
   return NextResponse.json({
     totalUsers: totalUsers || 0,
     todaySearches: todaySearches || 0,
@@ -44,5 +107,11 @@ export async function GET(request: Request) {
     activeSubscribers: activeSubscribers || 0,
     todaySignups: todaySignups || 0,
     planDistribution: planDistribution || [],
+    heavyUsers,
+    usageSummary: {
+      totalRecords: records?.length || 0,
+      totalPets: pets?.length || 0,
+      totalSavedPapers: saved?.length || 0,
+    },
   });
 }

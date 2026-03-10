@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Search, CreditCard, UserCheck } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Users, Search, CreditCard, UserCheck, Database, AlertTriangle } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+
+interface HeavyUser {
+  email: string;
+  nickname: string;
+  plan: string;
+  records: number;
+  pets: number;
+  savedPapers: number;
+}
 
 interface DashboardStats {
   totalUsers: number;
@@ -12,6 +22,8 @@ interface DashboardStats {
   activeSubscribers: number;
   todaySignups: number;
   planDistribution: { plan: string; count: number }[];
+  heavyUsers: HeavyUser[];
+  usageSummary: { totalRecords: number; totalPets: number; totalSavedPapers: number };
 }
 
 export default function DashboardPage() {
@@ -66,7 +78,7 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-gray-500">오늘 가입자</CardTitle>
@@ -92,6 +104,78 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Data Usage Summary */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        {[
+          { label: '총 건강기록', value: stats.usageSummary.totalRecords, icon: Database },
+          { label: '총 반려동물', value: stats.usageSummary.totalPets, icon: Users },
+          { label: '총 저장논문', value: stats.usageSummary.totalSavedPapers, icon: Search },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.label}>
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Icon size={14} />
+                  {item.label}
+                </div>
+                <p className="text-xl font-bold">{item.value.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Heavy Users */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+            <AlertTriangle size={16} className={stats.heavyUsers.length > 0 ? 'text-orange-500' : 'text-gray-400'} />
+            헤비유저 모니터링 ({stats.heavyUsers.length}명)
+          </CardTitle>
+          <p className="text-xs text-gray-400 mt-1">기록 50개 이상 · 반려동물 5마리 이상 · 논문저장 30개 이상</p>
+        </CardHeader>
+        <CardContent>
+          {stats.heavyUsers.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">해당하는 사용자가 없습니다.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>사용자</TableHead>
+                  <TableHead>플랜</TableHead>
+                  <TableHead className="text-right">기록</TableHead>
+                  <TableHead className="text-right">반려동물</TableHead>
+                  <TableHead className="text-right">논문저장</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.heavyUsers.map((u) => (
+                  <TableRow key={u.email}>
+                    <TableCell className="text-sm">
+                      <div>{u.nickname || '-'}</div>
+                      <div className="text-xs text-gray-400">{u.email}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        u.plan === 'premium' ? 'bg-purple-100 text-purple-700' :
+                        u.plan === 'basic' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {u.plan}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-right font-medium">{u.records}</TableCell>
+                    <TableCell className="text-sm text-right font-medium">{u.pets}</TableCell>
+                    <TableCell className="text-sm text-right font-medium">{u.savedPapers}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
