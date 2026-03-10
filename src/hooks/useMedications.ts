@@ -16,6 +16,8 @@ export function useMedications() {
     end_date?: string;
     frequency: string;
     color?: string;
+    alarm_enabled?: boolean;
+    alarm_times?: string[];
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');
 
@@ -36,6 +38,8 @@ export function useMedications() {
     end_date?: string | null;
     frequency?: string;
     color?: string;
+    alarm_enabled?: boolean;
+    alarm_times?: string[];
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');
 

@@ -116,6 +116,8 @@ export interface Medication {
   end_date?: string;
   frequency: string;
   color?: string;
+  alarm_enabled?: boolean;
+  alarm_times?: string[];
   created_at: string;
 }
 

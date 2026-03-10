@@ -243,6 +243,8 @@ export default function RecordAddPage() {
             end_date: med.end_date || undefined,
             frequency: med.frequency,
             color: med.color,
+            alarm_enabled: med.alarm_enabled,
+            alarm_times: med.alarm_enabled ? med.alarm_times : [],
           });
         } catch (err) {
           console.error('Medication add error:', err);
