@@ -16,6 +16,13 @@ const DOSE_LABELS: Record<number, string[]> = {
   3: ['아침', '점심', '저녁'],
 };
 
+function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }): string[] {
+  const count = parseDoseCount(med.frequency);
+  const times = med.alarm_times;
+  if (times && times.length === count) return times;
+  return DOSE_LABELS[count] || DOSE_LABELS[1];
+}
+
 function parseDoseCount(frequency: string): number {
   if (frequency.includes('3회')) return 3;
   if (frequency.includes('2회')) return 2;
@@ -102,7 +109,7 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
       <div className="space-y-2">
         {medications.map((med) => {
           const doseCount = parseDoseCount(med.frequency);
-          const labels = DOSE_LABELS[doseCount] || DOSE_LABELS[1];
+          const labels = getDoseLabels(med);
           const petName = med.health_records?.pets?.name;
 
           return (
