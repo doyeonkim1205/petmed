@@ -10,17 +10,12 @@ interface MedicationCheckListProps {
   date?: string;
 }
 
-const DOSE_LABELS: Record<number, string[]> = {
-  1: ['복용'],
-  2: ['아침', '저녁'],
-  3: ['아침', '점심', '저녁'],
-};
-
 function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }): string[] {
   const count = parseDoseCount(med.frequency);
   const times = med.alarm_times;
   if (times && times.length === count) return times;
-  return DOSE_LABELS[count] || DOSE_LABELS[1];
+  if (count === 1) return ['복용'];
+  return Array.from({ length: count }, (_, i) => `${i + 1}회차`);
 }
 
 function parseDoseCount(frequency: string): number {
