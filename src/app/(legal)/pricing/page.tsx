@@ -2,9 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Crown, Star, X } from 'lucide-react';
+import { Check, Crown, Star, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PLANS, PlanType } from '@/lib/plans';
+
+interface SubscriptionInfo {
+  plan: string;
+  status: string;
+  period_end: string;
+  canceled_at: string | null;
+}
+
+interface RefundCheck {
+  refundable: boolean;
+  amount?: number;
+  remainingHours?: number;
+  reason?: string;
+}
 
 const planOrder: PlanType[] = ['free', 'basic', 'premium'];
 
@@ -86,18 +100,86 @@ export default function PricingPage() {
   const router = useRouter();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [refundCheck, setRefundCheck] = useState<RefundCheck | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false);
+
+  const fetchSubscription = async (token: string) => {
+    const res = await fetch('/api/subscription', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setCurrentPlan(data.plan || 'free');
+      setSubscription(data.subscription);
+      // Check refund eligibility if active subscription
+      if (data.subscription?.status === 'active') {
+        const refundRes = await fetch('/api/payments/refund-check', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (refundRes.ok) setRefundCheck(await refundRes.json());
+      }
+    }
+  };
 
   useEffect(() => {
     const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
         setIsLoggedIn(true);
-        const { data } = await supabase.from('profiles').select('plan').eq('id', user.id).single();
-        setCurrentPlan(data?.plan || 'free');
+        await fetchSubscription(session.access_token);
       }
     };
     check();
   }, []);
+
+  const handleCancel = async () => {
+    setCancelLoading(true);
+    setActionMessage('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('세션이 만료되었습니다.');
+      const res = await fetch('/api/payments/cancel', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMessage(data.message);
+      setShowCancelConfirm(false);
+      await fetchSubscription(session.access_token);
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : '해지에 실패했습니다.');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    setRefundLoading(true);
+    setActionMessage('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('세션이 만료되었습니다.');
+      const res = await fetch('/api/payments/refund', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMessage(data.message);
+      setShowRefundConfirm(false);
+      await fetchSubscription(session.access_token);
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : '환불에 실패했습니다.');
+    } finally {
+      setRefundLoading(false);
+    }
+  };
 
   const handleSubscribe = (plan: PlanType) => {
     if (!isLoggedIn) {
@@ -219,6 +301,114 @@ export default function PricingPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Subscription Management */}
+      {isLoggedIn && subscription && (subscription.status === 'active' || subscription.status === 'canceled') && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">구독 관리</h2>
+          <div className="rounded-xl border border-gray-200 p-5 space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">현재 플랜</span>
+              <span className="font-semibold text-gray-900">{PLANS[subscription.plan as PlanType]?.name || subscription.plan}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">상태</span>
+              <span className={`font-semibold ${subscription.status === 'active' ? 'text-green-600' : 'text-orange-500'}`}>
+                {subscription.status === 'active' ? '이용 중' : '해지됨'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">이용 기간</span>
+              <span className="text-gray-700">{new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지</span>
+            </div>
+
+            {actionMessage && (
+              <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">{actionMessage}</div>
+            )}
+
+            {subscription.status === 'active' && (
+              <div className="pt-2 space-y-2">
+                {/* Refund Button */}
+                {refundCheck?.refundable && (
+                  <>
+                    {!showRefundConfirm ? (
+                      <button
+                        onClick={() => setShowRefundConfirm(true)}
+                        className="w-full py-2.5 rounded-full text-sm font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        환불 요청 ({refundCheck.amount?.toLocaleString()}원)
+                      </button>
+                    ) : (
+                      <div className="p-4 bg-red-50 rounded-xl space-y-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-red-700">환불하시겠습니까?</p>
+                            <p className="text-xs text-red-500 mt-1">
+                              {refundCheck.amount?.toLocaleString()}원이 환불되며 즉시 무료 플랜으로 전환됩니다.
+                              남은 환불 가능 시간: {refundCheck.remainingHours}시간
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowRefundConfirm(false)}
+                            className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500"
+                          >취소</button>
+                          <button
+                            onClick={handleRefund}
+                            disabled={refundLoading}
+                            className="flex-1 py-2 rounded-full text-xs bg-red-500 text-white font-medium disabled:opacity-50"
+                          >{refundLoading ? '처리 중...' : '환불 확인'}</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Cancel Button */}
+                {!showCancelConfirm ? (
+                  <button
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="w-full py-2.5 rounded-full text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    구독 해지
+                  </button>
+                ) : (
+                  <div className="p-4 bg-orange-50 rounded-xl space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={16} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-700">구독을 해지하시겠습니까?</p>
+                        <p className="text-xs text-orange-500 mt-1">
+                          {new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowCancelConfirm(false)}
+                        className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500"
+                      >취소</button>
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelLoading}
+                        className="flex-1 py-2 rounded-full text-xs bg-orange-500 text-white font-medium disabled:opacity-50"
+                      >{cancelLoading ? '처리 중...' : '해지 확인'}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {subscription.status === 'canceled' && (
+              <p className="text-xs text-gray-400 pt-1">
+                {new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지 이용 가능합니다.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <p className="text-[11px] text-gray-400 text-center pb-4">
         결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>
