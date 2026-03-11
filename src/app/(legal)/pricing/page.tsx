@@ -107,6 +107,7 @@ export default function PricingPage() {
   const [actionMessage, setActionMessage] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const fetchSubscription = async (token: string) => {
     const res = await fetch('/api/subscription', {
@@ -145,7 +146,11 @@ export default function PricingPage() {
       if (!session) throw new Error('세션이 만료되었습니다.');
       const res = await fetch('/api/payments/cancel', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: cancelReason || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -385,9 +390,25 @@ export default function PricingPage() {
                         </p>
                       </div>
                     </div>
+                    <div>
+                      <p className="text-xs text-orange-600 mb-2">해지 사유를 알려주시면 서비스 개선에 참고하겠습니다. (선택)</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요', '기타'].map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => setCancelReason(cancelReason === r ? '' : r)}
+                            className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                              cancelReason === r
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-white border border-orange-200 text-orange-600'
+                            }`}
+                          >{r}</button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowCancelConfirm(false)}
+                        onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
                         className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500"
                       >취소</button>
                       <button

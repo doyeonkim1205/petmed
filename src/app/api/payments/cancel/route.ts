@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
   const userId = auth.user!.id;
 
   try {
+    const body = await request.json().catch(() => ({}));
+    const cancelReason = body.reason || '';
+
     // Get current subscription
     const { data: subscription } = await supabaseAdmin
       .from('subscriptions')
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     logActivity(userId, 'subscription.cancel', { details: { plan: subscription.plan } });
 
     const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
-    await logSubscriptionEvent(userId, 'cancel', subscription.plan, undefined, '사용자 해지 요청');
+    await logSubscriptionEvent(userId, 'cancel', subscription.plan, undefined, cancelReason || '사용자 해지 요청');
 
     return NextResponse.json({
       success: true,
