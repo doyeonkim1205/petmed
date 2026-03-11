@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -33,13 +33,11 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (inApp) {
-      // In-app browser: can't use Google OAuth, guide to external browser
-      try {
-        // Try to open in external browser (Android)
-        window.location.href = `intent://${window.location.host}${window.location.pathname}#Intent;scheme=https;end`;
-      } catch {
-        setError('Google 로그인은 외부 브라우저(Chrome, Safari)에서만 가능합니다. 주소를 복사하여 브라우저에서 열어주세요.');
-      }
+      // Silently open in external browser (Android intent, iOS Safari fallback)
+      const loginUrl = `${window.location.origin}/login`;
+      window.location.href = `intent://${window.location.host}/login#Intent;scheme=https;end`;
+      // Fallback for iOS or if intent fails
+      setTimeout(() => { window.open(loginUrl, '_system'); }, 500);
       return;
     }
     setError('');
@@ -51,12 +49,6 @@ export default function LoginPage() {
     setError('');
     const { error } = await signInWithKakao();
     if (error) setError(error.message);
-  };
-
-  const handleCopyUrl = () => {
-    navigator.clipboard?.writeText(window.location.origin + '/login').then(() => {
-      setError('URL이 복사되었습니다. 브라우저에 붙여넣기 해주세요.');
-    });
   };
 
   return (
@@ -77,25 +69,6 @@ export default function LoginPage() {
         {error && (
           <div className="w-full max-w-sm p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-6">
             {error}
-          </div>
-        )}
-
-        {/* In-app browser warning for Google */}
-        {inApp && (
-          <div className="w-full max-w-sm p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
-            <p className="text-sm font-medium text-orange-700 mb-2">
-              인앱 브라우저에서는 Google 로그인이 제한됩니다.
-            </p>
-            <p className="text-xs text-orange-600 mb-3">
-              Google 정책으로 인해 카카오톡, 인스타그램 등의 앱 내 브라우저에서는 Google 로그인을 사용할 수 없습니다.
-              외부 브라우저(Chrome, Safari)에서 열어주세요.
-            </p>
-            <button
-              onClick={handleCopyUrl}
-              className="w-full h-9 flex items-center justify-center gap-2 bg-white border border-orange-300 rounded-lg text-sm font-medium text-orange-700"
-            >
-              <ExternalLink size={14} /> URL 복사하기
-            </button>
           </div>
         )}
 
