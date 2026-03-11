@@ -78,9 +78,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
+  const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
   const isPaidUser = profile?.plan && profile.plan !== 'free';
-  const showAlarmUI = isPWA && isPaidUser;
+  const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
@@ -146,7 +147,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!showAlarmUI, alarm_times: ['09:00'], isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!canUseAlarm, alarm_times: ['09:00'], isNew: true },
     ]);
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
   };
@@ -602,39 +603,37 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   value={med.color}
                   onChange={(c) => updateMedicationField(i, 'color', c)}
                 />
-                {/* 투약 알림 - PWA + 유료 사용자만 */}
-                {showAlarmUI && (
-                  <div className="border-t border-gray-200 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleMedAlarm(i)}
-                      className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
-                        med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
-                      }`}
-                    >
-                      {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                      투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
-                    </button>
-                    {med.alarm_enabled && (
-                      <div className="space-y-1.5 mt-1">
-                        {med.alarm_times.map((time, ti) => (
-                          <div key={ti} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
-                            <select
-                              value={time}
-                              onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                            >
-                              {alarmTimeOptions.map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* 투약 알림 */}
+                <div className="border-t border-gray-200 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => canUseAlarm ? toggleMedAlarm(i) : setShowAlarmUpgrade(true)}
+                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                      canUseAlarm && med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
+                    }`}
+                  >
+                    {canUseAlarm && med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
+                    투약 알림 {canUseAlarm && med.alarm_enabled ? 'ON' : 'OFF'}
+                  </button>
+                  {canUseAlarm && med.alarm_enabled && (
+                    <div className="space-y-1.5 mt-1">
+                      {med.alarm_times.map((time, ti) => (
+                        <div key={ti} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
+                          <select
+                            value={time}
+                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
+                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            {alarmTimeOptions.map((t) => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => removeMedication(i)}
@@ -734,6 +733,38 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           {saving ? '저장 중...' : '저장'}
         </button>
       </div>
+
+      {/* 알림 기능 업그레이드 안내 팝업 */}
+      {showAlarmUpgrade && (
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell size={18} className="text-blue-500" />
+              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">
+              {!isPWA
+                ? '앱을 설치하고 유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'
+                : '유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAlarmUpgrade(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => { setShowAlarmUpgrade(false); router.push('/pricing'); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                요금제 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

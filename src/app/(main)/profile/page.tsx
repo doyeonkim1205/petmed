@@ -713,6 +713,9 @@ export default function ProfilePage() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
+  const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
+
+  const canUseAlarm = isPWA && profile?.plan && profile.plan !== 'free';
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
@@ -850,19 +853,17 @@ export default function ProfilePage() {
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
 
-        {/* 알림 설정 - PWA + 유료 사용자만 */}
-        {isPWA && profile?.plan && profile.plan !== 'free' && (
-          <button
-            onClick={() => setShowNotificationModal(true)}
-            className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-3 text-gray-600">
-              <Bell size={18} className="text-gray-400" />
-              <span className="text-sm">알림 설정</span>
-            </div>
-            <ChevronRight size={14} className="text-gray-300" />
-          </button>
-        )}
+        {/* 알림 설정 */}
+        <button
+          onClick={() => canUseAlarm ? setShowNotificationModal(true) : setShowAlarmUpgrade(true)}
+          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-gray-600">
+            <Bell size={18} className="text-gray-400" />
+            <span className="text-sm">알림 설정</span>
+          </div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </button>
 
         <button
           onClick={() => setShowSettingsModal(true)}
@@ -1007,6 +1008,38 @@ export default function ProfilePage() {
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
       />
+
+      {/* 알림 기능 업그레이드 안내 팝업 */}
+      {showAlarmUpgrade && (
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell size={18} className="text-blue-500" />
+              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">
+              {!isPWA
+                ? '앱을 설치하고 유료 플랜으로 업그레이드하면 알림을 받을 수 있습니다.'
+                : '유료 플랜으로 업그레이드하면 알림을 받을 수 있습니다.'}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAlarmUpgrade(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => { setShowAlarmUpgrade(false); router.push('/pricing'); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                요금제 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
