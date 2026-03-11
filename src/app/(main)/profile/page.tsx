@@ -268,21 +268,77 @@ function PetModal({
 
 // ─── Notification Settings Modal ───────────────────────────
 function NotificationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [recordEnabled, setRecordEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setPushEnabled(localStorage.getItem('notify_push') !== 'false');
-      setRecordEnabled(localStorage.getItem('notify_record') !== 'false');
+    if (!open) return;
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+    setPushSupported(supported);
+    if (supported) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          setPushEnabled(!!sub);
+        });
+      });
     }
   }, [open]);
 
   if (!open) return null;
 
-  const toggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
-    setter(value);
-    localStorage.setItem(key, String(value));
+  const handleTogglePush = async (enabled: boolean) => {
+    setPushLoading(true);
+    try {
+      if (enabled) {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          setPushLoading(false);
+          return;
+        }
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) { setPushLoading(false); return; }
+
+        const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+        const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
+        const json = sub.toJSON();
+
+        const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+        if (session) {
+          await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
+          });
+        }
+        setPushEnabled(true);
+      } else {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+          if (session) {
+            await fetch('/api/push/subscribe', {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: sub.endpoint }),
+            });
+          }
+          await sub.unsubscribe();
+        }
+        setPushEnabled(false);
+      }
+    } catch (err) {
+      console.error('Push toggle failed:', err);
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   return (
@@ -293,10 +349,26 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
         <div className="space-y-4">
-          <ToggleRow label="푸시 알림" desc="앱 알림을 받습니다" checked={pushEnabled}
-            onChange={v => toggle('notify_push', v, setPushEnabled)} />
-          <ToggleRow label="기록장 알림" desc="투약 일정, 기록 알림" checked={recordEnabled}
-            onChange={v => toggle('notify_record', v, setRecordEnabled)} />
+          {pushSupported ? (
+            <>
+              <ToggleRow
+                label="푸시 알림"
+                desc={pushLoading ? '설정 중...' : pushEnabled ? '투약, 예약일, 퇴원일 알림을 받습니다' : '알림이 꺼져 있습니다'}
+                checked={pushEnabled}
+                onChange={handleTogglePush}
+              />
+              {!pushEnabled && !pushLoading && (
+                <p className="text-[11px] text-gray-400 -mt-2 pl-1">
+                  알림을 켜면 투약 시간, 예약일, 퇴원일에 푸시 알림을 받을 수 있습니다.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-4">
+              이 브라우저에서는 푸시 알림을 지원하지 않습니다.<br />
+              PWA를 설치하면 알림을 받을 수 있습니다.
+            </p>
+          )}
         </div>
         <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
       </div>
@@ -768,8 +840,7 @@ export default function ProfilePage() {
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
 
-        {/* 알림 설정 - PWA 설치 시에만 표시 */}
-        {typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches && (
+        {/* 알림 설정 */}
         <button
           onClick={() => setShowNotificationModal(true)}
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
@@ -780,7 +851,6 @@ export default function ProfilePage() {
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </button>
-        )}
 
         <button
           onClick={() => setShowSettingsModal(true)}
