@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
 import { Search as SearchIcon, Stethoscope } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -101,11 +101,6 @@ export default function HomePage() {
         </div>
       </form>
 
-      <div className="absolute bottom-4 flex gap-2 text-[10px] text-gray-300">
-        <Link href="/privacy">개인정보처리방침</Link>
-        <span>·</span>
-        <Link href="/terms">이용약관</Link>
-      </div>
     </div>
   );
 }
