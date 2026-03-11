@@ -707,6 +707,11 @@ export default function ProfilePage() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
 
   const handleLogout = () => {
     // Clear auth data from localStorage (검색 기록은 사용자별로 유지)
@@ -840,17 +845,19 @@ export default function ProfilePage() {
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
 
-        {/* 알림 설정 */}
-        <button
-          onClick={() => setShowNotificationModal(true)}
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Bell size={18} className="text-gray-400" />
-            <span className="text-sm">알림 설정</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </button>
+        {/* 알림 설정 - PWA + 유료 사용자만 */}
+        {isPWA && profile?.plan && profile.plan !== 'free' && (
+          <button
+            onClick={() => setShowNotificationModal(true)}
+            className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3 text-gray-600">
+              <Bell size={18} className="text-gray-400" />
+              <span className="text-sm">알림 설정</span>
+            </div>
+            <ChevronRight size={14} className="text-gray-300" />
+          </button>
+        )}
 
         <button
           onClick={() => setShowSettingsModal(true)}

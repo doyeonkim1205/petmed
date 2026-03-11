@@ -77,6 +77,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [isPWA, setIsPWA] = useState(false);
+
+  const isPaidUser = profile?.plan && profile.plan !== 'free';
+  const showAlarmUI = isPWA && isPaidUser;
+
+  useEffect(() => {
+    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+  }, []);
 
   useEffect(() => {
     if (id && user) loadData();
@@ -594,37 +602,39 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   value={med.color}
                   onChange={(c) => updateMedicationField(i, 'color', c)}
                 />
-                {/* 투약 알림 */}
-                <div className="border-t border-gray-200 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleMedAlarm(i)}
-                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
-                      med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
-                    }`}
-                  >
-                    {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                    투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
-                  </button>
-                  {med.alarm_enabled && (
-                    <div className="space-y-1.5 mt-1">
-                      {med.alarm_times.map((time, ti) => (
-                        <div key={ti} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
-                          <select
-                            value={time}
-                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            {alarmTimeOptions.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* 투약 알림 - PWA + 유료 사용자만 */}
+                {showAlarmUI && (
+                  <div className="border-t border-gray-200 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleMedAlarm(i)}
+                      className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                        med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
+                      }`}
+                    >
+                      {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
+                      투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
+                    </button>
+                    {med.alarm_enabled && (
+                      <div className="space-y-1.5 mt-1">
+                        {med.alarm_times.map((time, ti) => (
+                          <div key={ti} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
+                            <select
+                              value={time}
+                              onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
+                              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                              {alarmTimeOptions.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => removeMedication(i)}

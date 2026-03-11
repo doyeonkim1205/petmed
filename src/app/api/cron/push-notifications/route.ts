@@ -33,6 +33,20 @@ export async function GET(request: NextRequest) {
   let totalSent = 0;
   let totalFailed = 0;
 
+  // Helper: check if user is on a paid plan
+  const paidUserCache = new Map<string, boolean>();
+  async function isPaidUser(userId: string): Promise<boolean> {
+    if (paidUserCache.has(userId)) return paidUserCache.get(userId)!;
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .select('plan')
+      .eq('id', userId)
+      .single();
+    const paid = !!data && data.plan !== 'free';
+    paidUserCache.set(userId, paid);
+    return paid;
+  }
+
   // 1. Medication alarms - check alarm_times for current hour
   const { data: medications } = await supabaseAdmin
     .from('medications')
@@ -62,8 +76,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Send medication notifications
+  // Send medication notifications (paid users only)
   for (const userId of medUserIds) {
+    if (!(await isPaidUser(userId))) continue;
     const names = medMessages.get(userId) || [];
     const result = await sendPushToUser(userId, {
       title: '💊 투약 알림',
@@ -87,6 +102,7 @@ export async function GET(request: NextRequest) {
       .eq('next_appointment_date', tomorrowKST);
 
     for (const appt of appointments || []) {
+      if (!(await isPaidUser(appt.user_id))) continue;
       const result = await sendPushToUser(appt.user_id, {
         title: '📅 예약일 알림',
         body: `내일 "${appt.title}" 예약이 있습니다.`,
@@ -103,6 +119,7 @@ export async function GET(request: NextRequest) {
       .eq('discharge_date', tomorrowKST);
 
     for (const d of discharges || []) {
+      if (!(await isPaidUser(d.user_id))) continue;
       const result = await sendPushToUser(d.user_id, {
         title: '🏥 퇴원일 알림',
         body: `내일 "${d.title}" 퇴원 예정입니다.`,
@@ -119,6 +136,7 @@ export async function GET(request: NextRequest) {
       .eq('next_appointment_date', todayKST);
 
     for (const appt of todayAppts || []) {
+      if (!(await isPaidUser(appt.user_id))) continue;
       const result = await sendPushToUser(appt.user_id, {
         title: '📅 오늘 예약',
         body: `오늘 "${appt.title}" 예약이 있습니다.`,
@@ -135,6 +153,7 @@ export async function GET(request: NextRequest) {
       .eq('discharge_date', todayKST);
 
     for (const d of todayDischarges || []) {
+      if (!(await isPaidUser(d.user_id))) continue;
       const result = await sendPushToUser(d.user_id, {
         title: '🏥 오늘 퇴원',
         body: `오늘 "${d.title}" 퇴원 예정입니다.`,
