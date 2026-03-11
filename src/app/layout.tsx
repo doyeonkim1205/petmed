@@ -51,11 +51,6 @@ export default function RootLayout({
           {children}
         </Providers>
         <ServiceWorkerRegister />
-        {/* Hidden links for Google OAuth branding verification crawler */}
-        <footer style={{ position: 'fixed', bottom: 0, left: 0, fontSize: '1px', opacity: 0.01, pointerEvents: 'none' }}>
-          <a href="/privacy">개인정보처리방침</a>
-          <a href="/terms">이용약관</a>
-        </footer>
       </body>
     </html>
   );
