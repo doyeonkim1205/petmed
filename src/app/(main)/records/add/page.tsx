@@ -30,6 +30,14 @@ const defaultAlarmTimes: Record<number, string[]> = {
   3: ['08:00', '14:00', '21:00'],
 };
 
+// 15분 단위 시간 옵션 생성 (00:00 ~ 23:45)
+const alarmTimeOptions: string[] = [];
+for (let h = 0; h < 24; h++) {
+  for (const m of [0, 15, 30, 45]) {
+    alarmTimeOptions.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+}
+
 interface MedicationInput {
   name: string;
   dosage: string;
@@ -584,12 +592,15 @@ export default function RecordAddPage() {
                       {med.alarm_times.map((time, ti) => (
                         <div key={ti} className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
-                          <input
-                            type="time"
+                          <select
                             value={time}
                             onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
                             className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          />
+                          >
+                            {alarmTimeOptions.map((t) => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
                         </div>
                       ))}
                     </div>
