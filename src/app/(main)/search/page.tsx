@@ -96,6 +96,7 @@ function SearchContent() {
   const [symptomUsageInfo, setSymptomUsageInfo] = useState<{ search: { used: number; limit: number }; refine: { used: number; limit: number }; plan: string } | null>(null);
   const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
   const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(cachedSymptom?.result || null);
   const [symptomLoading, setSymptomLoading] = useState(false);
@@ -943,7 +944,7 @@ function SearchContent() {
             <p className="text-xs text-orange-500 mb-2 text-center">{saveWarning}</p>
           )}
           <button
-            onClick={handleSaveAnalysis}
+            onClick={() => setShowSaveConfirm(true)}
             disabled={saving || saved}
             className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
               saved
@@ -952,8 +953,37 @@ function SearchContent() {
             }`}
           >
             <Bookmark size={16} />
-            {saved ? '보관 완료' : saving ? `보관하기 (${bookmarkedPapers.size}편)` : '이 분석 보관하기'}
+            {saved ? '보관 완료' : saving ? `보관 중...` : bookmarkedPapers.size > 0 ? `선택한 논문 보관하기 (${bookmarkedPapers.size}편)` : '이 분석 보관하기'}
           </button>
+        </div>
+      )}
+
+      {/* Save Confirmation Modal */}
+      {showSaveConfirm && (
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-gray-800 mb-2">보관 확인</h3>
+            <p className="text-sm text-gray-600 mb-1">
+              {bookmarkedPapers.size > 0
+                ? `선택한 논문 ${bookmarkedPapers.size}편과 분석 결과를 보관합니다.`
+                : '분석 결과를 보관합니다.'}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">보관한 내용은 마이페이지 &gt; 내 보관함에서 확인할 수 있습니다.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSaveConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowSaveConfirm(false); handleSaveAnalysis(); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                보관하기
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
