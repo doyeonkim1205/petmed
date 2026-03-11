@@ -35,8 +35,14 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
+  const { data: events, count: eventCount } = await supabase
+    .from('subscription_events')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
   // Attach profile info (FK points to auth.users, not profiles)
-  const allItems = [...(subscriptions || []), ...(payments || [])];
+  const allItems = [...(subscriptions || []), ...(payments || []), ...(events || [])];
   if (allItems.length > 0) {
     const userIds = [...new Set(allItems.map((item: any) => item.user_id))];
     const { data: profiles } = await supabase
@@ -49,11 +55,23 @@ export async function GET(request: Request) {
     }
   }
 
+  // Event stats
+  const { data: eventStats } = await supabase
+    .from('subscription_events')
+    .select('event_type');
+  const eventTypeCounts: Record<string, number> = {};
+  for (const e of eventStats || []) {
+    eventTypeCounts[e.event_type] = (eventTypeCounts[e.event_type] || 0) + 1;
+  }
+
   return NextResponse.json({
     subscriptions: subscriptions || [],
     subscriptionTotal: count || 0,
     payments: payments || [],
     paymentTotal: paymentCount || 0,
+    events: events || [],
+    eventTotal: eventCount || 0,
+    eventStats: eventTypeCounts,
     page,
     totalPages: Math.ceil((count || 0) / limit),
   });

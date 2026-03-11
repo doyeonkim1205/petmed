@@ -42,12 +42,14 @@ export async function GET(request: NextRequest) {
       .update({ plan: 'free' })
       .in('id', userIds);
 
-    // Log activity for each user
+    // Log activity and subscription events for each user
     const { logActivity } = await import('@/lib/activityLog');
+    const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
     for (const sub of expired) {
       logActivity(sub.user_id, 'subscription.expired', {
         details: { previousPlan: sub.plan },
       });
+      await logSubscriptionEvent(sub.user_id, 'expired', sub.plan, undefined, '구독 기간 만료');
     }
 
     return NextResponse.json({

@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
       details: { plan: subscription.plan, amount: payment.amount },
     });
 
+    const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
+    await logSubscriptionEvent(userId, 'refund', subscription.plan, payment.amount, '24시간 이내 환불 (미이용)');
+
     return NextResponse.json({
       success: true,
       message: '환불이 완료되었습니다. 결제 수단으로 환불 금액이 반영됩니다.',

@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
     const { logActivity } = await import('@/lib/activityLog');
     logActivity(userId, 'subscription.purchase', { details: { plan, amount } });
 
+    const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
+    await logSubscriptionEvent(userId, 'purchase', plan, amount, '신규 결제');
+
     return NextResponse.json({
       success: true,
       plan,

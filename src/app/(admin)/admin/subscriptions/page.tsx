@@ -8,6 +8,32 @@ import { authFetch } from '@/lib/authFetch';
 
 type Tab = '' | 'active' | 'canceled' | 'expired';
 
+function eventTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    purchase: '결제',
+    renew: '갱신',
+    cancel: '해지',
+    refund: '환불',
+    expired: '만료',
+    downgrade: '다운그레이드',
+    upgrade: '업그레이드',
+  };
+  return labels[type] || type;
+}
+
+function eventTypeBadge(type: string): string {
+  const badges: Record<string, string> = {
+    purchase: 'bg-green-100 text-green-700',
+    renew: 'bg-blue-100 text-blue-700',
+    cancel: 'bg-orange-100 text-orange-700',
+    refund: 'bg-red-100 text-red-700',
+    expired: 'bg-gray-100 text-gray-600',
+    downgrade: 'bg-yellow-100 text-yellow-700',
+    upgrade: 'bg-purple-100 text-purple-700',
+  };
+  return badges[type] || 'bg-gray-100 text-gray-600';
+}
+
 export default function SubscriptionsPage() {
   const [tab, setTab] = useState<Tab>('');
   const [page, setPage] = useState(1);
@@ -16,6 +42,9 @@ export default function SubscriptionsPage() {
     subscriptionTotal: number;
     payments: any[];
     paymentTotal: number;
+    events: any[];
+    eventTotal: number;
+    eventStats: Record<string, number>;
     totalPages: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +155,7 @@ export default function SubscriptionsPage() {
       </Card>
 
       {/* Payment History */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-sm text-gray-500">결제 이력 ({data?.paymentTotal || 0}건)</CardTitle>
         </CardHeader>
@@ -162,6 +191,64 @@ export default function SubscriptionsPage() {
               {(data?.payments || []).length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-gray-400 py-8">결제 이력이 없습니다.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Event Stats */}
+      {data?.eventStats && Object.keys(data.eventStats).length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {Object.entries(data.eventStats).map(([type, count]) => (
+            <Card key={type}>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-gray-400 mb-1">{eventTypeLabel(type)}</p>
+                <p className="text-2xl font-bold text-gray-900">{count}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Subscription Events Log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm text-gray-500">구독 이벤트 로그 ({data?.eventTotal || 0}건)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>이메일</TableHead>
+                <TableHead>이벤트</TableHead>
+                <TableHead>플랜</TableHead>
+                <TableHead>금액</TableHead>
+                <TableHead>사유</TableHead>
+                <TableHead>일시</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(data?.events || []).map((evt: any) => (
+                <TableRow key={evt.id}>
+                  <TableCell className="text-sm">{evt.profiles?.email || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${eventTypeBadge(evt.event_type)}`}>
+                      {eventTypeLabel(evt.event_type)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm capitalize">{evt.plan}</TableCell>
+                  <TableCell className="text-sm">{evt.amount ? `₩${evt.amount.toLocaleString()}` : '-'}</TableCell>
+                  <TableCell className="text-sm text-gray-500">{evt.reason || '-'}</TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {new Date(evt.created_at).toLocaleString('ko-KR')}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(data?.events || []).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-gray-400 py-8">이벤트 기록이 없습니다.</TableCell>
                 </TableRow>
               )}
             </TableBody>
