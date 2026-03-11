@@ -136,7 +136,7 @@ export default function RecordAddPage() {
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'] },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!showAlarmUI, alarm_times: ['09:00'] },
     ]);
     setTimeout(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });

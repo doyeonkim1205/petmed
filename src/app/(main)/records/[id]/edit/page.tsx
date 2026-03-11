@@ -146,7 +146,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const addMedicationRow = () => {
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: true, alarm_times: ['09:00'], isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!showAlarmUI, alarm_times: ['09:00'], isNew: true },
     ]);
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
   };

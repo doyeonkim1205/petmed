@@ -16,6 +16,17 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Only paid users can subscribe to push notifications
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user!.id)
+    .single();
+
+  if (!profile || profile.plan === 'free') {
+    return NextResponse.json({ error: '유료 플랜 사용자만 알림을 등록할 수 있습니다.' }, { status: 403 });
+  }
+
   const { error: dbError } = await supabase
     .from('push_subscriptions')
     .upsert(

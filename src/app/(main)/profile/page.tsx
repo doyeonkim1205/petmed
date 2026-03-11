@@ -311,11 +311,16 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 
         const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
         if (session) {
-          await fetch('/api/push/subscribe', {
+          const res = await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
           });
+          if (!res.ok) {
+            await sub.unsubscribe();
+            setPushLoading(false);
+            return;
+          }
         }
         setPushEnabled(true);
       } else {
