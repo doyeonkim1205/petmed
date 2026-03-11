@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
 import { Search as SearchIcon, Stethoscope } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -101,12 +101,6 @@ export default function HomePage() {
         </div>
       </form>
 
-      {/* Footer Links */}
-      <div className="absolute bottom-6 flex gap-3 text-xs text-gray-400">
-        <Link href="/privacy" className="hover:text-gray-600 transition-colors">개인정보처리방침</Link>
-        <span>·</span>
-        <Link href="/terms" className="hover:text-gray-600 transition-colors">이용약관</Link>
-      </div>
     </div>
   );
 }
