@@ -609,11 +609,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="button"
                     onClick={() => canUseAlarm ? toggleMedAlarm(i) : setShowAlarmUpgrade(true)}
                     className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
-                      canUseAlarm && med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
+                      med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
                     }`}
                   >
-                    {canUseAlarm && med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                    투약 알림 {canUseAlarm && med.alarm_enabled ? 'ON' : 'OFF'}
+                    {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
+                    투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
                   </button>
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
