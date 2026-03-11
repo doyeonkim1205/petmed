@@ -21,10 +21,14 @@ export async function GET(request: NextRequest) {
   );
 
   const now = new Date();
-  const currentHour = now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false }).padStart(2, '0');
-  const currentMinute = now.toLocaleString('en-US', { timeZone: 'Asia/Seoul', minute: '2-digit' }).padStart(2, '0');
-  const currentTime = `${currentHour}:${currentMinute}`;
-  const todayKST = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); // YYYY-MM-DD
+  const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const currentHour = String(kstDate.getUTCHours()).padStart(2, '0');
+  const currentMinute = kstDate.getUTCMinutes();
+  // Round to nearest 15-min window: 0-14 → "00", 15-29 → "15", 30-44 → "30", 45-59 → "45"
+  const windowStart = Math.floor(currentMinute / 15) * 15;
+  const windowEnd = windowStart + 14;
+  const currentTime = `${currentHour}:${String(currentMinute).padStart(2, '0')}`;
+  const todayKST = kstDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
   let totalSent = 0;
   let totalFailed = 0;
@@ -44,10 +48,10 @@ export async function GET(request: NextRequest) {
     const times = med.alarm_times as string[] | null;
     if (!times) continue;
 
-    // Match current hour (e.g., "09:00" matches when currentTime is "09:xx")
+    // Match within 15-min window (e.g., cron at 13:30 matches "13:30", "13:35", etc.)
     const hasMatch = times.some((t: string) => {
-      const [h] = t.split(':');
-      return h === currentHour;
+      const [h, m] = t.split(':').map(Number);
+      return String(h).padStart(2, '0') === currentHour && m >= windowStart && m <= windowEnd;
     });
 
     if (hasMatch) {
