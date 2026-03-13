@@ -712,7 +712,6 @@ export default function ProfilePage() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showLegalMenu, setShowLegalMenu] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
@@ -886,36 +885,17 @@ export default function ProfilePage() {
         {/* Divider */}
         <div className="border-t border-gray-100 my-2" />
 
-        {/* 약관 및 정책 토글 메뉴 */}
-        <button
-          onClick={() => setShowLegalMenu(!showLegalMenu)}
+        {/* 약관 및 정책 */}
+        <Link
+          href="/policies"
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
             <FileText size={18} className="text-gray-400" />
             <span className="text-sm">약관 및 정책</span>
           </div>
-          <ChevronRight size={14} className={`text-gray-300 transition-transform ${showLegalMenu ? 'rotate-90' : ''}`} />
-        </button>
-        {showLegalMenu && (
-          <div className="ml-8 space-y-0.5">
-            {[
-              { href: '/terms', label: '이용약관' },
-              { href: '/privacy', label: '개인정보처리방침' },
-              { href: '/refund', label: '환불 정책' },
-              { href: '/location-terms', label: '위치기반서비스 이용약관' },
-              { href: '/business', label: '사업자 정보' },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block px-4 py-2.5 text-sm text-gray-500 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        )}
+          <ChevronRight size={14} className="text-gray-300" />
+        </Link>
 
         {/* Divider */}
         <div className="border-t border-gray-100 my-2" />
