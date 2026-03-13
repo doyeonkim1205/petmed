@@ -1,4 +1,4 @@
-export type PlanType = 'free' | 'basic' | 'premium';
+export type PlanType = 'free' | 'plus';
 
 export interface PlanConfig {
   name: string;
@@ -34,26 +34,10 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxDevices: 1,
     maxStorageMB: 50,
   },
-  basic: {
-    name: 'Basic',
-    nameKo: '베이직',
-    price: 3900,
-    maxRecords: 100,
-    searchPerDay: 10,
-    symptomSearchPerDay: 5,
-    symptomRefinePerDay: 3,
-    aiAnalysis: 'full',
-    maxSavedAnalyses: 30,
-    costStatsMonths: 6,
-    maxPets: 5,
-    attachmentsPerRecord: 3,
-    maxDevices: 2,
-    maxStorageMB: 200,
-  },
-  premium: {
-    name: 'Premium',
-    nameKo: '프리미엄',
-    price: 5900,
+  plus: {
+    name: 'Plus',
+    nameKo: '플러스',
+    price: 4900,
     maxRecords: 0,
     searchPerDay: 15,
     symptomSearchPerDay: 10,

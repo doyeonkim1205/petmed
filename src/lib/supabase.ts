@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Types for database tables
-export type UserPlan = 'free' | 'basic' | 'premium';
+export type UserPlan = 'free' | 'plus';
 
 export type UserRole = 'user' | 'admin';
 

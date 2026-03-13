@@ -159,8 +159,7 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        u.plan === 'premium' ? 'bg-purple-100 text-purple-700' :
-                        u.plan === 'basic' ? 'bg-blue-100 text-blue-700' :
+                        u.plan === 'plus' ? 'bg-blue-100 text-blue-700' :
                         'bg-gray-100 text-gray-600'
                       }`}>
                         {u.plan}

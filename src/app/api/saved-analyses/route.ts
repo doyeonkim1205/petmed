@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (remaining <= 0) {
-      const suffix = plan === 'premium'
+      const suffix = plan !== 'free'
         ? '추가 용량이 필요하시면 문의해 주세요.'
         : '업그레이드하여 더 많은 논문을 저장하세요.';
       return NextResponse.json({

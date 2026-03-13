@@ -61,8 +61,7 @@ function SearchContent() {
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
   const { user, profile } = useAuth();
-  const isPaid = profile?.plan === 'basic' || profile?.plan === 'premium';
-  const isPremium = profile?.plan === 'premium';
+  const isPaid = profile?.plan !== 'free';
   const storageKey = user ? `recentSearches_${user.id}` : null;
 
   const [cached] = useState(() => {
@@ -470,12 +469,10 @@ function SearchContent() {
         {searchMode === 'disease' && usageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
             <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+              isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
             }`}>
-              {isPremium ? (
-                <><Crown size={10} /> Premium {usageInfo.used}/{usageInfo.limit}</>
-              ) : isPaid ? (
-                <><Sparkles size={10} /> Basic {usageInfo.used}/{usageInfo.limit}</>
+              {isPaid ? (
+                <><Sparkles size={10} /> Plus {usageInfo.used}/{usageInfo.limit}</>
               ) : (
                 <>Free {usageInfo.used}/{usageInfo.limit}</>
               )}
@@ -485,12 +482,10 @@ function SearchContent() {
         {searchMode === 'symptom' && symptomUsageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
             <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPremium ? 'bg-purple-50 text-purple-500' : isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+              isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
             }`}>
-              {isPremium ? (
-                <><Crown size={10} /> Premium {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
-              ) : isPaid ? (
-                <><Sparkles size={10} /> Basic {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
+              {isPaid ? (
+                <><Sparkles size={10} /> Plus {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
               ) : (
                 <>Free {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
               )}
