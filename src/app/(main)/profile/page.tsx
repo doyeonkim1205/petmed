@@ -712,6 +712,7 @@ export default function ProfilePage() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLegalMenu, setShowLegalMenu] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
@@ -763,20 +764,12 @@ export default function ProfilePage() {
         <p className="text-sm text-gray-400 text-center mb-8">
           PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
         </p>
-        <div className="flex gap-3 w-full max-w-xs">
-          <button
-            onClick={() => router.push('/register')}
-            className="flex-1 h-11 border border-gray-200 rounded-full font-medium text-sm text-gray-600 hover:border-gray-300 transition-colors"
-          >
-            회원가입
-          </button>
-          <button
-            onClick={() => router.push('/login')}
-            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
-          >
-            로그인
-          </button>
-        </div>
+        <button
+          onClick={() => router.push('/login')}
+          className="w-full max-w-xs h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
+        >
+          시작하기
+        </button>
       </div>
     );
   }
@@ -893,60 +886,36 @@ export default function ProfilePage() {
         {/* Divider */}
         <div className="border-t border-gray-100 my-2" />
 
-        <Link
-          href="/terms"
+        {/* 약관 및 정책 토글 메뉴 */}
+        <button
+          onClick={() => setShowLegalMenu(!showLegalMenu)}
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
             <FileText size={18} className="text-gray-400" />
-            <span className="text-sm">이용약관</span>
+            <span className="text-sm">약관 및 정책</span>
           </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/privacy"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Shield size={18} className="text-gray-400" />
-            <span className="text-sm">개인정보처리방침</span>
+          <ChevronRight size={14} className={`text-gray-300 transition-transform ${showLegalMenu ? 'rotate-90' : ''}`} />
+        </button>
+        {showLegalMenu && (
+          <div className="ml-8 space-y-0.5">
+            {[
+              { href: '/terms', label: '이용약관' },
+              { href: '/privacy', label: '개인정보처리방침' },
+              { href: '/refund', label: '환불 정책' },
+              { href: '/location-terms', label: '위치기반서비스 이용약관' },
+              { href: '/business', label: '사업자 정보' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block px-4 py-2.5 text-sm text-gray-500 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/refund"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <CreditCard size={18} className="text-gray-400" />
-            <span className="text-sm">환불 정책</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/location-terms"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <MapPin size={18} className="text-gray-400" />
-            <span className="text-sm">위치기반서비스 이용약관</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/business"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Building2 size={18} className="text-gray-400" />
-            <span className="text-sm">사업자 정보</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
+        )}
 
         {/* Divider */}
         <div className="border-t border-gray-100 my-2" />
