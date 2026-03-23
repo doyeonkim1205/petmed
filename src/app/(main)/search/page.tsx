@@ -8,6 +8,7 @@ import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/useP
 import { PaperSection } from '@/components/PaperSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
+import { getPlanConfig } from '@/lib/plans';
 
 type SearchMode = 'disease' | 'symptom';
 
@@ -62,6 +63,8 @@ function SearchContent() {
   const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
   const { user, profile } = useAuth();
   const isPaid = profile?.plan !== 'free';
+  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const maxSymptomLen = planConfig.maxSymptomLength;
   const storageKey = user ? `recentSearches_${user.id}` : null;
 
   const [cached] = useState(() => {
@@ -451,7 +454,11 @@ function SearchContent() {
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                if (searchMode === 'symptom' && e.target.value.length > maxSymptomLen) return;
+                setQuery(e.target.value);
+              }}
+              maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
               placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
               className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             />
@@ -465,6 +472,14 @@ function SearchContent() {
             </button>
           </div>
         </form>
+        {/* Symptom character count */}
+        {searchMode === 'symptom' && query.length > 0 && (
+          <div className="max-w-sm mx-auto mt-1 flex justify-end pr-2">
+            <span className={`text-[10px] ${query.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
+              {query.length}/{maxSymptomLen}자
+            </span>
+          </div>
+        )}
         {/* Usage count badge */}
         {searchMode === 'disease' && usageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">

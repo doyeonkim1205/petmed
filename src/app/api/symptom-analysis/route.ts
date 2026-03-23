@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { symptoms, petType, followupAnswers } = await request.json();
-    if (!symptoms || symptoms.length > 500) {
-      return NextResponse.json({ error: 'Missing or too long symptoms' }, { status: 400 });
+    if (!symptoms) {
+      return NextResponse.json({ error: 'Missing symptoms' }, { status: 400 });
     }
 
     const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
       .single();
     const plan = profile?.plan || 'free';
     const config = getPlanConfig(plan);
+
+    // Plan-based character limit
+    if (symptoms.length > config.maxSymptomLength) {
+      return NextResponse.json({
+        error: `증상 입력은 최대 ${config.maxSymptomLength}자까지 가능합니다.${plan === 'free' ? ' 업그레이드하면 500자까지 입력할 수 있어요.' : ''}`,
+      }, { status: 400 });
+    }
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);

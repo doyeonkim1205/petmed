@@ -15,6 +15,7 @@ export interface PlanConfig {
   attachmentsPerRecord: number;
   maxDevices: number;
   maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
+  maxSymptomLength: number; // 증상 입력 최대 글자 수
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -29,15 +30,16 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 1,
-    maxPets: 3,
+    maxPets: 2,
     attachmentsPerRecord: 1,
     maxDevices: 1,
     maxStorageMB: 50,
+    maxSymptomLength: 200,
   },
   plus: {
     name: 'Plus',
     nameKo: '플러스',
-    price: 4900,
+    price: 3900,
     maxRecords: 0,
     searchPerDay: 15,
     symptomSearchPerDay: 10,
@@ -49,6 +51,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     attachmentsPerRecord: 5,
     maxDevices: 3,
     maxStorageMB: 1000,
+    maxSymptomLength: 500,
   },
 };
 
