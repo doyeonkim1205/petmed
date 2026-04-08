@@ -89,6 +89,11 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   },
 ];
 
+type BillingPeriod = 'monthly' | 'yearly';
+
+const YEARLY_PRICE = 40000;
+const MONTHLY_PRICE = 3900;
+
 export default function PricingPage() {
   const router = useRouter();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
@@ -101,6 +106,7 @@ export default function PricingPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
   const fetchSubscription = async (token: string) => {
     const res = await fetch('/api/subscription', {
@@ -185,8 +191,7 @@ export default function PricingPage() {
       return;
     }
     if (plan === 'free') return;
-    // Default to monthly product. Annual product will be added later as a separate productId.
-    const productId = `${plan}_monthly`;
+    const productId = billingPeriod === 'yearly' ? `${plan}_yearly` : `${plan}_monthly`;
     router.push(`/payment?productId=${productId}`);
   };
 
@@ -197,12 +202,54 @@ export default function PricingPage() {
         나에게 맞는 플랜을 선택하세요.
       </p>
 
+      {/* Billing Period Toggle */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex bg-gray-100 rounded-full p-1">
+          <button
+            onClick={() => setBillingPeriod('monthly')}
+            className={`px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
+              billingPeriod === 'monthly'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500'
+            }`}
+          >
+            월간 결제
+          </button>
+          <button
+            onClick={() => setBillingPeriod('yearly')}
+            className={`px-5 py-2 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              billingPeriod === 'yearly'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500'
+            }`}
+          >
+            연간 결제
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">
+              -14%
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Plan Cards */}
       <div className="space-y-3 mb-8">
         {planOrder.map((planKey) => {
           const plan = PLANS[planKey];
           const meta = planMeta[planKey];
           const isCurrent = currentPlan === planKey;
+          const isYearly = billingPeriod === 'yearly';
+          const isPaidPlan = planKey !== 'free';
+
+          // For paid plans the displayed price depends on the billing period
+          // (monthly vs yearly). For free plan we always show 무료.
+          const displayMonthly = isPaidPlan
+            ? isYearly
+              ? Math.round(YEARLY_PRICE / 12)
+              : MONTHLY_PRICE
+            : 0;
+          const yearlySavings = isPaidPlan && isYearly
+            ? MONTHLY_PRICE * 12 - YEARLY_PRICE
+            : 0;
 
           return (
             <div
@@ -226,16 +273,28 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    {plan.price === 0 ? (
+                    {!isPaidPlan ? (
                       <span className="text-xl font-extrabold text-gray-900">무료</span>
                     ) : (
                       <div>
-                        <span className="text-xl font-extrabold text-gray-900">{plan.price.toLocaleString()}</span>
-                        <span className="text-xs text-gray-400 ml-0.5">원/월</span>
+                        <div>
+                          <span className="text-xl font-extrabold text-gray-900">{displayMonthly.toLocaleString()}</span>
+                          <span className="text-xs text-gray-400 ml-0.5">원/월</span>
+                        </div>
+                        {isYearly && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            연 {YEARLY_PRICE.toLocaleString()}원
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
+                {isPaidPlan && isYearly && yearlySavings > 0 && (
+                  <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                    연간 결제 시 {yearlySavings.toLocaleString()}원 할인
+                  </div>
+                )}
               </div>
 
               {planKey !== 'free' && !isCurrent && (
