@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, CreditCard, ArrowLeft } from 'lucide-react';
+import { Loader2, CreditCard, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import type { PaymentProduct } from '@/lib/products';
 
@@ -19,6 +19,7 @@ export default function PaymentClient({ product }: Props) {
   const { user, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [widgets, setWidgets] = useState<any>(null);
 
@@ -87,6 +88,40 @@ export default function PaymentClient({ product }: Props) {
     renderPaymentWidgets();
   }, [widgets, product]);
 
+  // 결제 진행 중일 때 새로고침/탭 닫기/뒤로 가기 방지
+  useEffect(() => {
+    if (!processing) return;
+
+    // 1) 새로고침/탭 닫기 차단 → 브라우저 기본 경고 다이얼로그 표시
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // 일부 브라우저는 returnValue 가 채워져 있어야 동작함
+      e.returnValue = '';
+    };
+
+    // 2) 뒤로 가기 차단 (Android 백버튼 포함)
+    //    history 에 더미 상태를 하나 push 한 뒤, popstate 가 발생하면 다시 push 하여 복구
+    window.history.pushState({ paymentLock: true }, '');
+    const handlePopState = () => {
+      if (
+        window.confirm('결제가 진행 중입니다. 정말로 페이지를 떠나시겠습니까?\n결제가 취소될 수 있습니다.')
+      ) {
+        setProcessing(false);
+        router.push('/pricing');
+      } else {
+        window.history.pushState({ paymentLock: true }, '');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [processing, router]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -96,6 +131,28 @@ export default function PaymentClient({ product }: Props) {
   }
 
   const periodLabel = product?.period === 'year' ? '/년' : '/월';
+
+  const handlePayment = async () => {
+    if (!widgets || !user || !product || processing) return;
+    setProcessing(true);
+    try {
+      // orderId format: pawdex_{userIdShort}_{productId}_{timestamp}
+      const orderId = `pawdex_${user.id.slice(0, 8)}_${product.id}_${Date.now()}`;
+      await widgets.requestPayment({
+        orderId,
+        orderName: product.name,
+        successUrl: window.location.origin + '/payment/success',
+        failUrl: window.location.origin + '/payment/fail',
+        customerEmail: user.email || undefined,
+      });
+      // requestPayment 가 정상적으로 successUrl 로 이동하면 이 코드는 실행되지 않음.
+      // 사용자가 결제창을 닫거나 실패하면 catch 또는 여기서 락 해제.
+      setProcessing(false);
+    } catch (err) {
+      console.error(err);
+      setProcessing(false);
+    }
+  };
 
   return (
     <div className="max-w-sm mx-auto px-4 py-6">
@@ -143,29 +200,45 @@ export default function PaymentClient({ product }: Props) {
 
           {ready && product && (
             <button
-              disabled={!ready}
-              onClick={async () => {
-                if (!widgets || !user) return;
-                try {
-                  // orderId format: pawdex_{userIdShort}_{productId}_{timestamp}
-                  const orderId = `pawdex_${user.id.slice(0, 8)}_${product.id}_${Date.now()}`;
-                  await widgets.requestPayment({
-                    orderId,
-                    orderName: product.name,
-                    successUrl: window.location.origin + '/payment/success',
-                    failUrl: window.location.origin + '/payment/fail',
-                    customerEmail: user.email || undefined,
-                  });
-                } catch (err) {
-                  console.error(err);
-                }
-              }}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+              disabled={!ready || processing}
+              onClick={handlePayment}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
-              ₩{product.price.toLocaleString()} 결제하기
+              {processing ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  결제 진행 중...
+                </>
+              ) : (
+                `₩${product.price.toLocaleString()} 결제하기`
+              )}
             </button>
           )}
         </>
+      )}
+
+      {/* 결제 진행 중 전체 화면 락 오버레이 */}
+      {processing && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center px-6"
+          // 백그라운드 클릭으로 닫히지 않도록 (이벤트 차단)
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-2xl p-6 max-w-xs w-full shadow-xl text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
+              <ShieldCheck className="text-blue-500" size={24} />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">결제 진행 중</h3>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              결제가 완료될 때까지 페이지를 이동하거나<br />
+              새로고침하지 마세요.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-xs text-blue-500">
+              <Loader2 size={14} className="animate-spin" />
+              <span>토스 결제창을 확인해 주세요</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
