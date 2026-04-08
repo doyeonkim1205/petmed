@@ -129,7 +129,7 @@ function PetModal({
     const config = getPlanConfig(profile?.plan || 'free');
     if (config.maxPets > 0 && pets.length >= config.maxPets) {
       const plan = profile?.plan || 'free';
-      const suffix = plan === 'premium' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
+      const suffix = plan !== 'free' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
       alert(`🐾 반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
       return;
     }
@@ -763,20 +763,12 @@ export default function ProfilePage() {
         <p className="text-sm text-gray-400 text-center mb-8">
           PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
         </p>
-        <div className="flex gap-3 w-full max-w-xs">
-          <button
-            onClick={() => router.push('/register')}
-            className="flex-1 h-11 border border-gray-200 rounded-full font-medium text-sm text-gray-600 hover:border-gray-300 transition-colors"
-          >
-            회원가입
-          </button>
-          <button
-            onClick={() => router.push('/login')}
-            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
-          >
-            로그인
-          </button>
-        </div>
+        <button
+          onClick={() => router.push('/login')}
+          className="w-full max-w-xs h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
+        >
+          시작하기
+        </button>
       </div>
     );
   }
@@ -811,13 +803,9 @@ export default function ProfilePage() {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
-          {profile?.plan === 'premium' ? (
-            <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">
-              <Crown size={10} /> Premium
-            </span>
-          ) : profile?.plan === 'basic' ? (
+          {profile?.plan === 'plus' ? (
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
-              <Heart size={10} /> Basic
+              <Crown size={10} /> Plus
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full">
@@ -893,57 +881,14 @@ export default function ProfilePage() {
         {/* Divider */}
         <div className="border-t border-gray-100 my-2" />
 
+        {/* 약관 및 정책 */}
         <Link
-          href="/terms"
+          href="/policies"
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
             <FileText size={18} className="text-gray-400" />
-            <span className="text-sm">이용약관</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/privacy"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Shield size={18} className="text-gray-400" />
-            <span className="text-sm">개인정보처리방침</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/refund"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <CreditCard size={18} className="text-gray-400" />
-            <span className="text-sm">환불 정책</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/location-terms"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <MapPin size={18} className="text-gray-400" />
-            <span className="text-sm">위치기반서비스 이용약관</span>
-          </div>
-          <ChevronRight size={14} className="text-gray-300" />
-        </Link>
-
-        <Link
-          href="/business"
-          className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3 text-gray-600">
-            <Building2 size={18} className="text-gray-400" />
-            <span className="text-sm">사업자 정보</span>
+            <span className="text-sm">약관 및 정책</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>

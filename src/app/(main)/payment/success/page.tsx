@@ -40,7 +40,7 @@ function SuccessContent() {
 
         if (res.ok) {
           setStatus('success');
-          setMessage(`${data.plan === 'premium' ? 'Premium' : 'Basic'} 구독이 시작되었습니다!`);
+          setMessage(`Plus 구독이 시작되었습니다!`);
           // Refresh profile to get updated plan
           await refreshProfile();
         } else {

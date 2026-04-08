@@ -1,4 +1,4 @@
-export type PlanType = 'free' | 'basic' | 'premium';
+export type PlanType = 'free' | 'plus';
 
 export interface PlanConfig {
   name: string;
@@ -15,6 +15,7 @@ export interface PlanConfig {
   attachmentsPerRecord: number;
   maxDevices: number;
   maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
+  maxSymptomLength: number; // 증상 입력 최대 글자 수
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -29,31 +30,16 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 1,
-    maxPets: 3,
+    maxPets: 2,
     attachmentsPerRecord: 1,
     maxDevices: 1,
     maxStorageMB: 50,
+    maxSymptomLength: 200,
   },
-  basic: {
-    name: 'Basic',
-    nameKo: '베이직',
+  plus: {
+    name: 'Plus',
+    nameKo: '플러스',
     price: 3900,
-    maxRecords: 100,
-    searchPerDay: 10,
-    symptomSearchPerDay: 5,
-    symptomRefinePerDay: 3,
-    aiAnalysis: 'full',
-    maxSavedAnalyses: 30,
-    costStatsMonths: 6,
-    maxPets: 5,
-    attachmentsPerRecord: 3,
-    maxDevices: 2,
-    maxStorageMB: 200,
-  },
-  premium: {
-    name: 'Premium',
-    nameKo: '프리미엄',
-    price: 5900,
     maxRecords: 0,
     searchPerDay: 15,
     symptomSearchPerDay: 10,
@@ -65,6 +51,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     attachmentsPerRecord: 5,
     maxDevices: 3,
     maxStorageMB: 1000,
+    maxSymptomLength: 500,
   },
 };
 

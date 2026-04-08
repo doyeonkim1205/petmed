@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Crown, Star, X, AlertTriangle } from 'lucide-react';
+import { Check, Crown, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PLANS, PlanType } from '@/lib/plans';
 
@@ -20,7 +20,7 @@ interface RefundCheck {
   reason?: string;
 }
 
-const planOrder: PlanType[] = ['free', 'basic', 'premium'];
+const planOrder: PlanType[] = ['free', 'plus'];
 
 const planMeta: Record<PlanType, {
   tagline: string;
@@ -38,21 +38,13 @@ const planMeta: Record<PlanType, {
     icon: null,
     headerBg: 'bg-gray-50',
   },
-  basic: {
-    tagline: '반려동물 건강관리의 시작',
+  plus: {
+    tagline: '모든 기능을 제한 없이',
     badge: 'bg-blue-50 text-blue-600',
     border: 'border-blue-200 ring-1 ring-blue-100',
     button: 'bg-blue-600 text-white hover:bg-blue-700',
-    icon: <Star size={14} />,
-    headerBg: 'bg-blue-50',
-  },
-  premium: {
-    tagline: '모든 기능을 제한 없이',
-    badge: 'bg-purple-50 text-purple-600',
-    border: 'border-purple-200 ring-1 ring-purple-100',
-    button: 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700',
     icon: <Crown size={14} />,
-    headerBg: 'bg-purple-50',
+    headerBg: 'bg-blue-50',
   },
 };
 
@@ -70,6 +62,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/일` },
       { label: '증상 검색', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
       { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
+      { label: '증상 입력', key: 'symptomLen', format: (p) => `최대 ${PLANS[p].maxSymptomLength}자` },
     ],
   },
   {
@@ -267,7 +260,7 @@ export default function PricingPage() {
               <th className="text-left py-3 px-4 text-gray-400 font-medium w-[30%]"></th>
               {planOrder.map((p) => (
                 <th key={p} className={`text-center py-3 px-2 font-bold ${
-                  p === 'premium' ? 'text-purple-600' : p === 'basic' ? 'text-blue-600' : 'text-gray-500'
+                  p === 'plus' ? 'text-blue-600' : 'text-gray-500'
                 }`}>
                   {PLANS[p].name}
                 </th>

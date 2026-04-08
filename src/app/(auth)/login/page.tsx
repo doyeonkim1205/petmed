@@ -8,23 +8,17 @@ import { ArrowLeft } from 'lucide-react';
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
-  // KakaoTalk, Instagram, Facebook, LINE, Naver, Twitter, Snapchat, Android WebView
   return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|Snapchat|Twitter|Android.*wv\)/.test(ua);
 }
 
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
-  const [showEmail, setShowEmail] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
-  const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
+  const { signInWithGoogle, signInWithKakao } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     setInApp(isInAppBrowser());
-    // Show session eviction message
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
       setError('다른 기기에서 로그인하여 현재 세션이 종료되었습니다.');
@@ -33,10 +27,8 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (inApp) {
-      // Silently open in external browser (Android intent, iOS Safari fallback)
       const loginUrl = `${window.location.origin}/login`;
       window.location.href = `intent://${window.location.host}/login#Intent;scheme=https;end`;
-      // Fallback for iOS or if intent fails
       setTimeout(() => { window.open(loginUrl, '_system'); }, 500);
       return;
     }
@@ -57,13 +49,13 @@ export default function LoginPage() {
         <button onClick={() => router.back()} className="p-2 -ml-2">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold pr-8">로그인</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold pr-8">시작하기</h1>
       </header>
 
       <div className="flex-1 px-6 py-8 flex flex-col items-center justify-center">
         <div className="mb-10 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">환영합니다!</h2>
-          <p className="text-gray-500">SNS 계정으로 간편하게 로그인하세요</p>
+          <p className="text-gray-500">SNS 계정으로 간편하게 시작하세요</p>
         </div>
 
         {error && (
@@ -83,7 +75,7 @@ export default function LoginPage() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Google로 로그인
+            Google로 시작하기
           </button>
 
           <button
@@ -94,50 +86,14 @@ export default function LoginPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="#191919">
               <path d="M12 3C6.48 3 2 6.36 2 10.44c0 2.62 1.75 4.93 4.38 6.24l-1.12 4.12a.3.3 0 00.46.33l4.66-3.08c.53.06 1.07.09 1.62.09 5.52 0 10-3.36 10-7.7S17.52 3 12 3z"/>
             </svg>
-            카카오로 로그인
+            카카오로 시작하기
           </button>
-
-          {/* Email login (for Toss review) */}
-          {!showEmail ? (
-            <button
-              onClick={() => setShowEmail(true)}
-              className="w-full text-center text-xs text-gray-400 mt-2"
-            >
-              이메일로 로그인
-            </button>
-          ) : (
-            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-              <input
-                type="email"
-                placeholder="이메일"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-4 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                placeholder="비밀번호"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 px-4 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={async () => {
-                  setEmailLoading(true);
-                  setError('');
-                  const { error } = await signIn(email, password);
-                  if (error) setError(error.message);
-                  else router.push('/');
-                  setEmailLoading(false);
-                }}
-                disabled={emailLoading || !email || !password}
-                className="w-full h-11 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
-              >
-                {emailLoading ? '로그인 중...' : '로그인'}
-              </button>
-            </div>
-          )}
         </div>
+
+        <p className="text-xs text-gray-400 mt-8 text-center">
+          시작하기를 누르면 <a href="/terms" className="underline">이용약관</a> 및{' '}
+          <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다.
+        </p>
       </div>
     </div>
   );

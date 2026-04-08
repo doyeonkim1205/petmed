@@ -99,8 +99,7 @@ export default function UsersPage() {
             >
               <option value="">전체 플랜</option>
               <option value="free">Free</option>
-              <option value="basic">Basic</option>
-              <option value="premium">Premium</option>
+              <option value="plus">Plus</option>
             </select>
             <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">
               검색
@@ -141,8 +140,7 @@ export default function UsersPage() {
                       <TableCell className="text-sm">{user.nickname || '-'}</TableCell>
                       <TableCell>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          user.plan === 'premium' ? 'bg-purple-100 text-purple-700' :
-                          user.plan === 'basic' ? 'bg-blue-100 text-blue-700' :
+                          user.plan === 'plus' ? 'bg-blue-100 text-blue-700' :
                           'bg-gray-100 text-gray-700'
                         }`}>
                           {user.plan}
@@ -232,8 +230,7 @@ export default function UsersPage() {
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="free">Free</option>
-                  <option value="basic">Basic</option>
-                  <option value="premium">Premium</option>
+                  <option value="plus">Plus</option>
                 </select>
               </div>
               <div>
