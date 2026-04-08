@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { confirmPayment } from '@/lib/toss';
-import { PLANS, PlanType } from '@/lib/plans';
+import { getProductById } from '@/lib/products';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,27 +21,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 파라미터가 누락되었습니다.' }, { status: 400 });
     }
 
-    // Extract plan from orderId: pawdex_{userId}_{plan}_{timestamp}
+    // orderId format: pawdex_{userIdShort}_{productId}_{timestamp}
+    // productId may itself contain underscores (e.g. plus_monthly), so we
+    // strip the prefix/suffix and rejoin the middle parts.
     const parts = orderId.split('_');
-    const plan = parts[2] as PlanType;
+    if (parts.length < 4 || parts[0] !== 'pawdex') {
+      return NextResponse.json({ error: '유효하지 않은 주문 ID입니다.' }, { status: 400 });
+    }
+    const productId = parts.slice(2, parts.length - 1).join('_');
 
-    if (!plan || !(plan in PLANS) || plan === 'free') {
-      return NextResponse.json({ error: '유효하지 않은 플랜입니다.' }, { status: 400 });
+    // Server-side product lookup. The DB is the source of truth for price.
+    const product = await getProductById(productId);
+    if (!product) {
+      return NextResponse.json({ error: '유효하지 않은 상품입니다.' }, { status: 400 });
     }
 
-    // Verify amount matches plan price (prevent client-side tampering)
-    const expectedAmount = PLANS[plan].price;
-    if (amount !== expectedAmount) {
+    // Verify amount matches DB price (prevent client-side tampering)
+    if (amount !== product.price) {
       return NextResponse.json({ error: '결제 금액이 일치하지 않습니다.' }, { status: 400 });
     }
 
     // Confirm payment with Toss
     const tossResult = await confirmPayment(paymentKey, orderId, amount);
 
-    // Calculate subscription period (30 days)
+    // Calculate subscription period based on product period
     const periodStart = new Date();
     const periodEnd = new Date();
-    periodEnd.setDate(periodEnd.getDate() + 30);
+    if (product.period === 'year') {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setDate(periodEnd.getDate() + 30);
+    }
 
     // Insert payment history
     await supabaseAdmin.from('payment_history').insert({
@@ -56,7 +66,8 @@ export async function POST(request: NextRequest) {
     // Upsert subscription
     await supabaseAdmin.from('subscriptions').upsert({
       user_id: userId,
-      plan,
+      plan: product.plan,
+      product_id: product.id,
       status: 'active',
       period_start: periodStart.toISOString(),
       period_end: periodEnd.toISOString(),
@@ -65,17 +76,18 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'user_id' });
 
     // Update profile plan
-    await supabaseAdmin.from('profiles').update({ plan }).eq('id', userId);
+    await supabaseAdmin.from('profiles').update({ plan: product.plan }).eq('id', userId);
 
     const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.purchase', { details: { plan, amount } });
+    logActivity(userId, 'subscription.purchase', { details: { plan: product.plan, productId: product.id, amount } });
 
     const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
-    await logSubscriptionEvent(userId, 'purchase', plan, amount, '신규 결제');
+    await logSubscriptionEvent(userId, 'purchase', product.plan, amount, '신규 결제');
 
     return NextResponse.json({
       success: true,
-      plan,
+      plan: product.plan,
+      productId: product.id,
       periodEnd: periodEnd.toISOString(),
     });
   } catch (error) {

@@ -185,7 +185,9 @@ export default function PricingPage() {
       return;
     }
     if (plan === 'free') return;
-    router.push(`/payment?plan=${plan}`);
+    // Default to monthly product. Annual product will be added later as a separate productId.
+    const productId = `${plan}_monthly`;
+    router.push(`/payment?productId=${productId}`);
   };
 
   return (
