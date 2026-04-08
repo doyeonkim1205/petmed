@@ -90,6 +90,10 @@ export async function POST(request: NextRequest) {
       receipt_url: charged.receipt?.url || null,
     });
 
+    // Card info from Toss response (for displaying in subscription mgmt UI)
+    const cardCompany = issued.cardCompany || issued.card?.issuerCode || null;
+    const cardNumber = issued.cardNumber || issued.card?.number || null;
+
     // 5) Upsert subscription with billing info
     await supabaseAdmin.from('subscriptions').upsert(
       {
@@ -100,6 +104,8 @@ export async function POST(request: NextRequest) {
         billing_type: 'recurring',
         toss_billing_key: issued.billingKey,
         toss_customer_key: customerKey,
+        card_company: cardCompany,
+        card_number: cardNumber,
         period_start: periodStart.toISOString(),
         period_end: periodEnd.toISOString(),
         next_billing_at: nextBillingAt.toISOString(),

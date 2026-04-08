@@ -11,6 +11,10 @@ interface SubscriptionInfo {
   status: string;
   period_end: string;
   canceled_at: string | null;
+  billing_type?: 'recurring' | 'one_time';
+  next_billing_at?: string | null;
+  card_company?: string | null;
+  card_number?: string | null;
 }
 
 interface RefundCheck {
@@ -107,6 +111,8 @@ export default function PricingPage() {
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  const [showDisableAutoRenewConfirm, setShowDisableAutoRenewConfirm] = useState(false);
+  const [disableAutoRenewLoading, setDisableAutoRenewLoading] = useState(false);
 
   const fetchSubscription = async (token: string) => {
     const res = await fetch('/api/subscription', {
@@ -183,6 +189,37 @@ export default function PricingPage() {
     } finally {
       setRefundLoading(false);
     }
+  };
+
+  const handleDisableAutoRenew = async () => {
+    setDisableAutoRenewLoading(true);
+    setActionMessage('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('세션이 만료되었습니다.');
+      const res = await fetch('/api/payments/billing/disable', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMessage(data.message);
+      setShowDisableAutoRenewConfirm(false);
+      await fetchSubscription(session.access_token);
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : '자동 갱신 해제에 실패했습니다.');
+    } finally {
+      setDisableAutoRenewLoading(false);
+    }
+  };
+
+  const handleChangeCard = () => {
+    if (!subscription) return;
+    // Re-register a new card via the existing billing-auth flow.
+    // The register API upserts on user_id, so the new billingKey replaces
+    // the old one automatically.
+    const productId = subscription.plan === 'plus' ? 'plus_monthly' : `${subscription.plan}_monthly`;
+    router.push(`/payment/billing-auth?productId=${productId}`);
   };
 
   const handleSubscribe = (plan: PlanType) => {
@@ -377,9 +414,32 @@ export default function PricingPage() {
               </span>
             </div>
             <div className="flex justify-between text-sm">
+              <span className="text-gray-500">결제 방식</span>
+              <span className={`font-semibold ${subscription.billing_type === 'recurring' ? 'text-blue-600' : 'text-gray-700'}`}>
+                {subscription.billing_type === 'recurring' ? '자동 갱신' : '1회 결제'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
               <span className="text-gray-500">이용 기간</span>
               <span className="text-gray-700">{new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지</span>
             </div>
+            {subscription.billing_type === 'recurring' && subscription.next_billing_at && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">다음 결제일</span>
+                <span className="text-gray-700">
+                  {new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+            )}
+            {subscription.billing_type === 'recurring' && subscription.card_number && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">결제 카드</span>
+                <span className="text-gray-700">
+                  {subscription.card_company ? `${subscription.card_company} ` : ''}
+                  {subscription.card_number}
+                </span>
+              </div>
+            )}
 
             {actionMessage && (
               <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">{actionMessage}</div>
@@ -387,6 +447,51 @@ export default function PricingPage() {
 
             {subscription.status === 'active' && (
               <div className="pt-2 space-y-2">
+                {/* Auto-renewal management (recurring billing only) */}
+                {subscription.billing_type === 'recurring' && (
+                  <>
+                    <button
+                      onClick={handleChangeCard}
+                      className="w-full py-2.5 rounded-full text-sm font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      결제 카드 변경
+                    </button>
+
+                    {!showDisableAutoRenewConfirm ? (
+                      <button
+                        onClick={() => setShowDisableAutoRenewConfirm(true)}
+                        className="w-full py-2.5 rounded-full text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                      >
+                        자동 갱신 끄기
+                      </button>
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded-xl space-y-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">자동 갱신을 끄시겠습니까?</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며,
+                              이후 자동으로 결제되지 않습니다. 등록된 카드 정보는 삭제됩니다.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowDisableAutoRenewConfirm(false)}
+                            className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500"
+                          >취소</button>
+                          <button
+                            onClick={handleDisableAutoRenew}
+                            disabled={disableAutoRenewLoading}
+                            className="flex-1 py-2 rounded-full text-xs bg-gray-700 text-white font-medium disabled:opacity-50"
+                          >{disableAutoRenewLoading ? '처리 중...' : '자동 갱신 끄기'}</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {/* Refund Button */}
                 {refundCheck?.refundable && (
                   <>
