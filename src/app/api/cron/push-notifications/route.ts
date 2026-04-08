@@ -162,6 +162,48 @@ export async function GET(request: NextRequest) {
       totalSent += result.sent;
       totalFailed += result.failed;
     }
+
+    // 6. Subscription expiration reminders (3 days before period_end)
+    //    Runs once per day at 9 AM KST. Idempotent via reminder_3day_sent_at column.
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
+
+    const { data: expiringSoon } = await supabaseAdmin
+      .from('subscriptions')
+      .select('id, user_id, plan, status, period_end')
+      .in('status', ['active', 'canceled'])
+      .gte('period_end', threeDaysFromNow.toISOString())
+      .lt('period_end', fourDaysFromNow.toISOString())
+      .is('reminder_3day_sent_at', null);
+
+    for (const sub of expiringSoon || []) {
+      // Only paid plans qualify (free users have no subscription anyway, but be safe)
+      if (sub.plan === 'free') continue;
+
+      const isCanceled = sub.status === 'canceled';
+      const notification = isCanceled
+        ? {
+            title: '⏰ 구독 만료 안내',
+            body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
+            url: '/pricing',
+          }
+        : {
+            title: '⏰ 구독 만료 안내',
+            body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
+            url: '/pricing',
+          };
+
+      const result = await sendPushToUser(sub.user_id, notification);
+      totalSent += result.sent;
+      totalFailed += result.failed;
+
+      // Mark as sent regardless of push success/failure to avoid spamming
+      // (push may legitimately fail if user disabled notifications, etc.)
+      await supabaseAdmin
+        .from('subscriptions')
+        .update({ reminder_3day_sent_at: new Date().toISOString() })
+        .eq('id', sub.id);
+    }
   }
 
   return NextResponse.json({
