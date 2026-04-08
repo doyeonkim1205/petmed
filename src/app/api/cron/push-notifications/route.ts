@@ -163,42 +163,62 @@ export async function GET(request: NextRequest) {
       totalFailed += result.failed;
     }
 
-    // 6. Subscription expiration reminders (3 days before period_end)
+    // 6. Subscription billing/expiration reminders (3 days before period_end)
     //    Runs once per day at 9 AM KST. Idempotent via reminder_3day_sent_at column.
+    //    Message branches based on billing_type:
+    //    - recurring active: "3일 후 자동 결제됩니다 (3,900원)"
+    //    - one_time active: "3일 후 만료됩니다, 재결제 필요"
+    //    - canceled: "3일 후 무료 플랜으로 전환됩니다"
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
 
     const { data: expiringSoon } = await supabaseAdmin
       .from('subscriptions')
-      .select('id, user_id, plan, status, period_end')
+      .select('id, user_id, plan, status, period_end, billing_type, product_id')
       .in('status', ['active', 'canceled'])
       .gte('period_end', threeDaysFromNow.toISOString())
       .lt('period_end', fourDaysFromNow.toISOString())
       .is('reminder_3day_sent_at', null);
 
     for (const sub of expiringSoon || []) {
-      // Only paid plans qualify (free users have no subscription anyway, but be safe)
       if (sub.plan === 'free') continue;
 
-      const isCanceled = sub.status === 'canceled';
-      const notification = isCanceled
-        ? {
-            title: '⏰ 구독 만료 안내',
-            body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
-            url: '/pricing',
-          }
-        : {
-            title: '⏰ 구독 만료 안내',
-            body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
-            url: '/pricing',
-          };
+      // Look up product price for recurring billing notice
+      let priceText = '';
+      if (sub.billing_type === 'recurring' && sub.product_id) {
+        const { data: product } = await supabaseAdmin
+          .from('payment_products')
+          .select('price')
+          .eq('id', sub.product_id)
+          .single();
+        if (product?.price) priceText = ` (${product.price.toLocaleString()}원)`;
+      }
+
+      let notification: { title: string; body: string; url: string };
+      if (sub.status === 'canceled') {
+        notification = {
+          title: '⏰ 구독 만료 안내',
+          body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
+          url: '/pricing',
+        };
+      } else if (sub.billing_type === 'recurring') {
+        notification = {
+          title: '🔄 자동 결제 안내',
+          body: `3일 후 PawDex Plus가 자동 결제됩니다${priceText}. 해지를 원하시면 요금제 페이지에서 자동 갱신을 끄세요.`,
+          url: '/pricing',
+        };
+      } else {
+        notification = {
+          title: '⏰ 구독 만료 안내',
+          body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
+          url: '/pricing',
+        };
+      }
 
       const result = await sendPushToUser(sub.user_id, notification);
       totalSent += result.sent;
       totalFailed += result.failed;
 
-      // Mark as sent regardless of push success/failure to avoid spamming
-      // (push may legitimately fail if user disabled notifications, etc.)
       await supabaseAdmin
         .from('subscriptions')
         .update({ reminder_3day_sent_at: new Date().toISOString() })
