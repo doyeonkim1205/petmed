@@ -1,7 +1,25 @@
 // Run once to create payment_products table on both DBs.
 // Usage: node scripts/create-payment-products.mjs
 
-const TOKEN = 'sbp_1d969fb88c128ea78d94332a114e935df6faf689';
+// Read access token from .env.local (never commit it)
+import { readFileSync } from 'node:fs';
+function readToken() {
+  try {
+    const text = readFileSync('.env.local', 'utf8');
+    const m = text.match(/^SUPABASE_ACCESS_TOKEN=(.*)$/m);
+    if (m) {
+      let v = m[1].trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      return v;
+    }
+  } catch {}
+  return process.env.SUPABASE_ACCESS_TOKEN || '';
+}
+const TOKEN = readToken();
+if (!TOKEN) {
+  console.error('SUPABASE_ACCESS_TOKEN not found in .env.local. Generate one at https://supabase.com/dashboard/account/tokens and add it.');
+  process.exit(1);
+}
 const PROJECTS = {
   production: 'ylbxtzwbwbnlmfxqgmoz',
   development: 'lzmmiksdvioidcldrnvh',

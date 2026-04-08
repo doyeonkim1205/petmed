@@ -1,4 +1,5 @@
-const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY!;
+// Widget secret key — used for confirming/canceling 1회성(widget) payments.
+const TOSS_SECRET_KEY = process.env.TOSS_WIDGET_SECRET_KEY!;
 const TOSS_API_URL = 'https://api.tosspayments.com/v1';
 
 function getAuthHeader() {

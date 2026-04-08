@@ -7,8 +7,8 @@ import { Loader2, CreditCard, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import type { PaymentProduct } from '@/lib/products';
 
-// 결제위젯 연동 키 (개발자센터 > 결제위젯 연동 키 > 클라이언트 키)
-const clientKey = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+// 결제위젯 클라이언트 키 — 환경별로 다른 값 (Preview=test, Production=live)
+const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY!;
 
 interface Props {
   product: PaymentProduct | null;
