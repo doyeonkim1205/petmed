@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import webpush from 'web-push';
 import { chargeBilling, classifyBillingError, type TossBillingError } from '@/lib/toss-billing';
 import { getProductById } from '@/lib/products';
 
@@ -10,6 +11,12 @@ const supabaseAdmin = createClient(
 
 // How long is one billing cycle for monthly recurring subs?
 const MONTHLY_CYCLE_DAYS = 30;
+
+// Retry schedule (in days) after each consecutive failure.
+// failure #1 → wait 1d, failure #2 → wait 3d, failure #3 → wait 7d.
+// failure #4 → no more retries, mark expired.
+const RETRY_DELAYS_DAYS = [1, 3, 7];
+const MAX_RETRY_ATTEMPTS = RETRY_DELAYS_DAYS.length; // 3 retries → expire on 4th failure
 
 interface DueSubscription {
   id: string;
@@ -126,29 +133,85 @@ export async function GET(request: NextRequest) {
       succeeded++;
     } catch (err) {
       const e = err as TossBillingError;
-      const { userMessage } = classifyBillingError(e.code);
+      const { userMessage, retryable } = classifyBillingError(e.code);
       console.error('auto-billing: charge failed', sub.id, e.code, e.message);
 
       const newFailedCount = (sub.billing_failed_count || 0) + 1;
+      const reasonSummary = `${e.code || 'UNKNOWN'}: ${userMessage}`;
 
-      // Schedule retry: 1 day after failure (Phase 2-6 will refine)
-      const retryAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      // Decide: retry, or expire?
+      // - Non-retryable errors (lost/stolen, expired card, bad number) → expire immediately
+      // - Retryable errors but reached max attempts → expire
+      // - Otherwise → schedule next retry
+      const shouldExpire = !retryable || newFailedCount > MAX_RETRY_ATTEMPTS;
 
-      await supabaseAdmin
-        .from('subscriptions')
-        .update({
-          billing_failed_count: newFailedCount,
-          last_billing_failure_at: now.toISOString(),
-          last_billing_failure_reason: `${e.code || 'UNKNOWN'}: ${userMessage}`,
-          next_billing_at: retryAt.toISOString(),
-          updated_at: now.toISOString(),
-        })
-        .eq('id', sub.id);
+      if (shouldExpire) {
+        // Final: expire the subscription, downgrade profile to free
+        await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: 'expired',
+            billing_failed_count: newFailedCount,
+            last_billing_failure_at: now.toISOString(),
+            last_billing_failure_reason: reasonSummary,
+            next_billing_at: null,
+            updated_at: now.toISOString(),
+          })
+          .eq('id', sub.id);
 
-      const { logActivity } = await import('@/lib/activityLog');
-      logActivity(sub.user_id, 'subscription.billing_failed', {
-        details: { code: e.code, attempt: newFailedCount },
-      });
+        await supabaseAdmin
+          .from('profiles')
+          .update({ plan: 'free' })
+          .eq('id', sub.user_id);
+
+        const { logActivity } = await import('@/lib/activityLog');
+        logActivity(sub.user_id, 'subscription.expired', {
+          details: { reason: 'billing_failed', code: e.code, attempts: newFailedCount },
+        });
+
+        const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
+        await logSubscriptionEvent(
+          sub.user_id,
+          'expired',
+          sub.plan,
+          undefined,
+          `자동 결제 실패로 만료: ${userMessage}`,
+        );
+
+        // Send push notification — final failure, action required
+        await sendBillingFailurePush(sub.user_id, {
+          title: '⚠️ 구독이 만료되었습니다',
+          body: `자동 결제에 ${newFailedCount}회 실패하여 무료 플랜으로 전환되었습니다. (${userMessage})`,
+          url: '/pricing',
+        });
+      } else {
+        // Schedule next retry based on attempt count
+        const delayDays = RETRY_DELAYS_DAYS[newFailedCount - 1] ?? RETRY_DELAYS_DAYS.at(-1)!;
+        const retryAt = new Date(now.getTime() + delayDays * 24 * 60 * 60 * 1000);
+
+        await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            billing_failed_count: newFailedCount,
+            last_billing_failure_at: now.toISOString(),
+            last_billing_failure_reason: reasonSummary,
+            next_billing_at: retryAt.toISOString(),
+            updated_at: now.toISOString(),
+          })
+          .eq('id', sub.id);
+
+        const { logActivity } = await import('@/lib/activityLog');
+        logActivity(sub.user_id, 'subscription.billing_failed', {
+          details: { code: e.code, attempt: newFailedCount, retryInDays: delayDays },
+        });
+
+        // Notify user of failure + retry
+        await sendBillingFailurePush(sub.user_id, {
+          title: '💳 결제 실패 안내',
+          body: `자동 결제에 실패했습니다 (${userMessage}). ${delayDays}일 후 다시 시도합니다.`,
+          url: '/pricing',
+        });
+      }
 
       failures.push({ userId: sub.user_id, reason: userMessage });
       failed++;
@@ -162,4 +225,46 @@ export async function GET(request: NextRequest) {
     failed,
     failures,
   });
+}
+
+// Send a push notification to all of a user's registered devices.
+// Mirrors sendPushToUser in push-notifications/route.ts.
+let vapidConfigured = false;
+async function sendBillingFailurePush(
+  userId: string,
+  notification: { title: string; body: string; url: string },
+) {
+  if (!vapidConfigured) {
+    try {
+      webpush.setVapidDetails(
+        'mailto:dylabs.pawdex@gmail.com',
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+        process.env.VAPID_PRIVATE_KEY!,
+      );
+      vapidConfigured = true;
+    } catch (e) {
+      console.error('VAPID setup failed', e);
+      return;
+    }
+  }
+
+  const { data: subs } = await supabaseAdmin
+    .from('push_subscriptions')
+    .select('*')
+    .eq('user_id', userId);
+
+  const payload = JSON.stringify(notification);
+  for (const sub of subs || []) {
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+        },
+        payload,
+      );
+    } catch {
+      await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+    }
+  }
 }
