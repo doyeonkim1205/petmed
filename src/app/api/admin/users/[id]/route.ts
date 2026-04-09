@@ -51,6 +51,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Update profile
   const { data, error: dbError } = await supabase
     .from('profiles')
     .update(updates)
@@ -60,6 +61,42 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
+  }
+
+  // When admin changes plan to a paid plan, ensure a subscription row exists
+  // so the subscription management page works correctly.
+  if (updates.plan && updates.plan !== 'free') {
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    await supabase.from('subscriptions').upsert(
+      {
+        user_id: id,
+        plan: updates.plan,
+        status: 'active',
+        billing_type: 'one_time',
+        period_start: now.toISOString(),
+        period_end: periodEnd.toISOString(),
+        canceled_at: null,
+        updated_at: now.toISOString(),
+      },
+      { onConflict: 'user_id' },
+    );
+  }
+
+  // When admin downgrades to free, expire the subscription
+  if (updates.plan === 'free') {
+    await supabase
+      .from('subscriptions')
+      .update({
+        status: 'expired',
+        billing_type: 'one_time',
+        toss_billing_key: null,
+        next_billing_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', id)
+      .in('status', ['active', 'canceled']);
   }
 
   return NextResponse.json(data);
