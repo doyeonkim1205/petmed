@@ -188,6 +188,21 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
+        {/* ── Subscribe buttons (Free/canceled — right below plan card) ── */}
+        {(!isPaid || isCanceled) && (
+          <div className="space-y-2 mb-5">
+            <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} variant="blue">
+              자동 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+            </ActionBtn>
+            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly')}>
+              1회 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+            </ActionBtn>
+            <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
+              연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
+            </ActionBtn>
+          </div>
+        )}
+
         {/* ── 2. Subscription Info ── */}
         {hasSub && subscription && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
@@ -245,21 +260,6 @@ export default function SubscriptionPage() {
         {/* ── 5. Feature Comparison ── */}
         <div className="border-t border-gray-100 pt-6 mb-6">
           <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">기능 비교</h2>
-
-          {/* Subscribe options — 3 direct buttons */}
-          {(!isPaid || isCanceled) && (
-            <div className="space-y-2 mb-5">
-              <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} variant="blue">
-                자동 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
-              </ActionBtn>
-              <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly')}>
-                1회 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
-              </ActionBtn>
-              <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
-                연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
-              </ActionBtn>
-            </div>
-          )}
 
           <div className="rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-xs">
