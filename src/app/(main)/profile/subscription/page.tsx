@@ -299,8 +299,9 @@ export default function SubscriptionPage() {
             <ConfirmCard
               color="red"
               title="환불하시겠습니까?"
-              description={`${refundCheck.amount?.toLocaleString()}원이 환불되며 즉시 무료 플랜으로 전환됩니다. (남은 시간: ${refundCheck.remainingHours}시간)`}
+              description={`${refundCheck.amount?.toLocaleString()}원이 원래 결제 수단으로 환불되며 즉시 무료 플랜으로 전환됩니다. 환불 가능 잔여 시간: ${refundCheck.remainingHours}시간. 카드사 사정에 따라 환불 반영에 3~10영업일이 소요될 수 있습니다.`}
               confirmLabel="환불 확인"
+              policyLink="/refund"
               loading={actionLoading === 'refund'}
               onCancel={() => setShowRefundConfirm(false)}
               onConfirm={() => handleAction('refund', () => callApi('/api/payments/refund'))}
@@ -511,9 +512,9 @@ function DetailRow({ icon, label, value, accent }: {
   );
 }
 
-function ConfirmCard({ color, title, description, confirmLabel, loading, onCancel, onConfirm }: {
+function ConfirmCard({ color, title, description, confirmLabel, loading, onCancel, onConfirm, policyLink }: {
   color: 'gray' | 'red'; title: string; description: string; confirmLabel: string;
-  loading: boolean; onCancel: () => void; onConfirm: () => void;
+  loading: boolean; onCancel: () => void; onConfirm: () => void; policyLink?: string;
 }) {
   const bg = color === 'red' ? 'bg-red-50/50 border-red-100' : 'bg-gray-50 border-gray-100';
   const iconColor = color === 'red' ? 'text-red-400' : 'text-gray-400';
@@ -528,6 +529,11 @@ function ConfirmCard({ color, title, description, confirmLabel, loading, onCance
         <div>
           <p className={`text-xs font-semibold ${titleColor}`}>{title}</p>
           <p className={`text-[11px] ${descColor} mt-1 leading-relaxed`}>{description}</p>
+          {policyLink && (
+            <a href={policyLink} target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">
+              환불 정책 보기
+            </a>
+          )}
         </div>
       </div>
       <div className="flex gap-2 pt-1">
