@@ -132,6 +132,9 @@ export default function SubscriptionPage() {
       await fetchData();
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : '처리에 실패했습니다.');
+      setShowCancelConfirm(false);
+      setCancelWithRefund(false);
+      setCancelReason('');
     } finally {
       setActionLoading(null);
     }
@@ -351,7 +354,7 @@ export default function SubscriptionPage() {
                     </label>
                   </div>
                 )}
-                {refundCheck && !refundCheck.refundable && (
+                {refundCheck && !refundCheck.refundable && refundCheck.reason !== '결제 내역이 없습니다.' && (
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-[11px] text-gray-500">
                       {refundCheck.reason || '환불 조건을 충족하지 않아 환불이 불가합니다.'}

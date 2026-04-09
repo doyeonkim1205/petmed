@@ -32,67 +32,63 @@ export async function POST(request: NextRequest) {
 
     let refundedAmount: number | null = null;
 
-    // Handle refund if requested
+    // Handle refund if requested (best-effort: if refund fails, cancel still proceeds)
+    let refundError: string | null = null;
     if (withRefund) {
-      const { data: payment } = await supabaseAdmin
-        .from('payment_history')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'done')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      try {
+        const { data: payment } = await supabaseAdmin
+          .from('payment_history')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'done')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      if (payment) {
-        const hoursSincePayment = (Date.now() - new Date(payment.created_at).getTime()) / 3600000;
-        const isYearly = subscription.product_id?.includes('yearly');
+        if (payment) {
+          const hoursSincePayment = (Date.now() - new Date(payment.created_at).getTime()) / 3600000;
+          const isYearly = subscription.product_id?.includes('yearly');
 
-        if (isYearly && hoursSincePayment <= 24) {
-          // Yearly 24h: full refund
-          await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (연간, 24시간 이내)');
-          refundedAmount = payment.amount;
-        } else if (isYearly && hoursSincePayment > 24) {
-          // Yearly after 24h: proportional refund
-          const startDate = new Date(subscription.period_start || payment.created_at);
-          const now = new Date();
-          const monthsUsed = Math.ceil(
-            (now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)
-          );
-          const remainingMonths = Math.max(0, 12 - monthsUsed);
-          const refundAmount = Math.round(payment.amount * (remainingMonths / 12));
-
-          if (refundAmount > 0) {
-            await cancelPayment(payment.toss_payment_key, `사용자 환불 요청 (연간, ${monthsUsed}개월 사용, ${remainingMonths}개월분 환불)`);
-            refundedAmount = refundAmount;
-          }
-        } else if (!isYearly && hoursSincePayment <= 24) {
-          // Monthly 24h: check usage then full refund
-          const paymentDate = payment.created_at;
-          const { count: usage } = await supabaseAdmin
-            .from('activity_logs')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .in('action', ['symptom.search', 'symptom.refine', 'analysis.save'])
-            .gte('created_at', paymentDate);
-
-          const { count: records } = await supabaseAdmin
-            .from('health_records')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .gte('created_at', paymentDate);
-
-          if ((usage || 0) + (records || 0) === 0) {
-            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (월간, 24시간 이내, 미이용)');
+          if (isYearly && hoursSincePayment <= 24) {
+            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (연간, 24시간 이내)');
             refundedAmount = payment.amount;
+          } else if (isYearly && hoursSincePayment > 24) {
+            const startDate = new Date(subscription.period_start || payment.created_at);
+            const now = new Date();
+            const monthsUsed = Math.ceil((now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000));
+            const remainingMonths = Math.max(0, 12 - monthsUsed);
+            const refundAmount = Math.round(payment.amount * (remainingMonths / 12));
+            if (refundAmount > 0) {
+              await cancelPayment(payment.toss_payment_key, `사용자 환불 요청 (연간, ${monthsUsed}개월 사용, ${remainingMonths}개월분 환불)`);
+              refundedAmount = refundAmount;
+            }
+          } else if (!isYearly && hoursSincePayment <= 24) {
+            const paymentDate = payment.created_at;
+            const { count: usage } = await supabaseAdmin
+              .from('activity_logs')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .in('action', ['symptom.search', 'symptom.refine', 'analysis.save'])
+              .gte('created_at', paymentDate);
+            const { count: records } = await supabaseAdmin
+              .from('health_records')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .gte('created_at', paymentDate);
+            if ((usage || 0) + (records || 0) === 0) {
+              await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (월간, 24시간 이내, 미이용)');
+              refundedAmount = payment.amount;
+            }
+          }
+
+          if (refundedAmount !== null) {
+            await supabaseAdmin.from('payment_history').update({ status: 'refunded' }).eq('id', payment.id);
           }
         }
-
-        if (refundedAmount !== null) {
-          await supabaseAdmin
-            .from('payment_history')
-            .update({ status: 'refunded' })
-            .eq('id', payment.id);
-        }
+      } catch (err) {
+        // Refund failed — continue with cancel anyway
+        refundError = err instanceof Error ? err.message : '환불 처리에 실패했습니다.';
+        console.error('Refund failed during cancel:', refundError);
       }
     }
 
@@ -143,6 +139,9 @@ export async function POST(request: NextRequest) {
     }
     if (refundedAmount !== null) {
       message = `${refundedAmount.toLocaleString()}원이 환불되었습니다. 카드사에 따라 반영에 3~10영업일이 소요될 수 있습니다.`;
+    }
+    if (refundError && withRefund) {
+      message = `구독이 해지되었습니다. 단, 환불 처리에 실패하여 환불은 되지 않았습니다. 환불 문의: dylabs.pawdex@gmail.com`;
     }
 
     return NextResponse.json({
