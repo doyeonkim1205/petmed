@@ -192,7 +192,7 @@ export default function SubscriptionPage() {
         {hasSub && subscription && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
             <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100">
-              <span className="text-[11px] font-semibold text-gray-400 tracking-wider">구독 정보</span>
+              <span className="text-xs font-semibold text-gray-400">구독 정보</span>
             </div>
             <div className="divide-y divide-gray-50">
               <DetailRow icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
@@ -239,78 +239,12 @@ export default function SubscriptionPage() {
                 결제 카드 변경
               </ActionBtn>
             )}
-
-            {/* 구독 해지 (환불 안내 통합) */}
-            {!showCancelConfirm && (
-              <ActionBtn onClick={() => setShowCancelConfirm(true)} variant="muted">
-                구독 해지
-              </ActionBtn>
-            )}
-
-            {showCancelConfirm && (
-              <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
-                    <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
-                      {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                      {isRecurring && ' 자동 결제도 중지됩니다.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 환불 안내 (자동) */}
-                {refundCheck?.refundable && (
-                  <div className="bg-white rounded-xl border border-green-200 p-3">
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input type="checkbox" checked={cancelWithRefund} onChange={(e) => setCancelWithRefund(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-green-600" />
-                      <div>
-                        <p className="text-xs font-semibold text-green-700">환불 받기 ({refundCheck.amount?.toLocaleString()}원)</p>
-                        <p className="text-[10px] text-green-600/70 mt-0.5">
-                          환불 가능 잔여 시간: {refundCheck.remainingHours}시간.
-                          카드사에 따라 반영에 3~10영업일 소요.
-                        </p>
-                        <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
-                      </div>
-                    </label>
-                  </div>
-                )}
-                {refundCheck && !refundCheck.refundable && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-[11px] text-gray-500">
-                      {refundCheck.reason || '환불 조건을 충족하지 않아 환불이 불가합니다.'}
-                    </p>
-                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
-                      <button key={r} onClick={() => setCancelReason(cancelReason === r ? '' : r)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${cancelReason === r ? 'bg-orange-500 text-white' : 'bg-white border border-orange-200 text-orange-600'}`}>{r}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); }}
-                    className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
-                  <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
-                    className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
-                    {actionLoading === 'cancel' ? '처리 중...' : cancelWithRefund ? '환불 후 해지' : '해지 확인'}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {/* ── 5. Feature Comparison ── */}
         <div className="border-t border-gray-100 pt-6 mb-6">
-          <h2 className="text-sm font-bold text-gray-800 mb-4">기능 비교</h2>
+          <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">기능 비교</h2>
 
           {(!isPaid || isCanceled) && (
             <div className="flex justify-center mb-4">
@@ -378,6 +312,75 @@ export default function SubscriptionPage() {
             </div>
           )}
         </div>
+
+        {/* ── 6. Cancel (below feature comparison) ── */}
+        {isActive && (
+          <div className="mb-6">
+            {!showCancelConfirm && (
+              <ActionBtn onClick={() => setShowCancelConfirm(true)} variant="muted">
+                구독 해지
+              </ActionBtn>
+            )}
+
+            {showCancelConfirm && (
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
+                    <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
+                      {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                      {isRecurring && ' 자동 결제도 중지됩니다.'}
+                    </p>
+                  </div>
+                </div>
+
+                {refundCheck?.refundable && (
+                  <div className="bg-white rounded-xl border border-green-200 p-3">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" checked={cancelWithRefund} onChange={(e) => setCancelWithRefund(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-green-600" />
+                      <div>
+                        <p className="text-xs font-semibold text-green-700">환불 받기 ({refundCheck.amount?.toLocaleString()}원)</p>
+                        <p className="text-[10px] text-green-600/70 mt-0.5">
+                          {refundCheck.reason && <span>{refundCheck.reason}. </span>}
+                          카드사에 따라 반영에 3~10영업일 소요.
+                        </p>
+                        <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
+                      </div>
+                    </label>
+                  </div>
+                )}
+                {refundCheck && !refundCheck.refundable && (
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-[11px] text-gray-500">
+                      {refundCheck.reason || '환불 조건을 충족하지 않아 환불이 불가합니다.'}
+                    </p>
+                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
+                      <button key={r} onClick={() => setCancelReason(cancelReason === r ? '' : r)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${cancelReason === r ? 'bg-orange-500 text-white' : 'bg-white border border-orange-200 text-orange-600'}`}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); }}
+                    className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
+                  <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
+                    className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
+                    {actionLoading === 'cancel' ? '처리 중...' : cancelWithRefund ? '환불 후 해지' : '해지 확인'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 text-center pb-4">
           <p className="text-[11px] text-gray-300">결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a></p>
