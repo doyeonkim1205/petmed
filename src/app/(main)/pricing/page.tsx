@@ -90,13 +90,18 @@ export default function PricingPage() {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // Logged-in users go to the unified subscription management page
-        router.replace('/profile/subscription');
-        return;
+        setIsLoggedIn(true);
+        const res = await fetch('/api/subscription', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentPlan(data.plan || 'free');
+        }
       }
     };
     check();
-  }, [router]);
+  }, []);
 
   const handleSubscribe = (plan: PlanType) => {
     if (!isLoggedIn) {
