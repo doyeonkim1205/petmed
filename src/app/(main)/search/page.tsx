@@ -549,7 +549,7 @@ function SearchContent() {
                     </div>
                     <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 분석 보관 · 기록장 확장</p>
                     <button
-                      onClick={() => window.location.href = '/pricing'}
+                      onClick={() => window.location.href = '/profile/subscription'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
                     >
                       요금제 보기
@@ -736,7 +736,7 @@ function SearchContent() {
                     <p className="text-xs text-gray-600 font-medium">{refineLimit}</p>
                     {!isPaid && (
                       <button
-                        onClick={() => window.location.href = '/pricing'}
+                        onClick={() => window.location.href = '/profile/subscription'}
                         className="mt-2 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
                       >
                         요금제 보기
@@ -840,7 +840,7 @@ function SearchContent() {
                     </div>
                     <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 분석 보관 · 기록장 확장</p>
                     <button
-                      onClick={() => window.location.href = '/pricing'}
+                      onClick={() => window.location.href = '/profile/subscription'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
                     >
                       요금제 보기
@@ -856,7 +856,7 @@ function SearchContent() {
             ) : (
               <>
                 {hasResults && !isPaid && (
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/pricing'}>
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
                       <p className="text-xs font-bold text-gray-600">구독하고 더 많이 이용하기</p>

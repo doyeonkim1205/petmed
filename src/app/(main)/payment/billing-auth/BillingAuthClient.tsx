@@ -26,7 +26,7 @@ export default function BillingAuthClient({ product }: Props) {
       return;
     }
     if (!product) {
-      router.push('/pricing');
+      router.push('/profile/subscription');
       return;
     }
   }, [user, product, authLoading, router]);

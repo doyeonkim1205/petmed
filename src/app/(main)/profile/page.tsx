@@ -976,7 +976,7 @@ export default function ProfilePage() {
                 닫기
               </button>
               <button
-                onClick={() => { setShowAlarmUpgrade(false); router.push('/pricing'); }}
+                onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               >
                 요금제 보기

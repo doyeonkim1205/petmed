@@ -85,7 +85,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
           <h1 className="text-base font-bold text-gray-900 mb-1">결제에 실패했습니다</h1>
           <p className="text-sm text-red-500 mb-6">{error}</p>
           <button
-            onClick={() => router.push('/pricing')}
+            onClick={() => router.push('/profile/subscription')}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
           >
             요금제 페이지로 돌아가기

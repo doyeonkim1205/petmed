@@ -199,19 +199,19 @@ export async function GET(request: NextRequest) {
         notification = {
           title: '⏰ 구독 만료 안내',
           body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
-          url: '/pricing',
+          url: '/profile/subscription',
         };
       } else if (sub.billing_type === 'recurring') {
         notification = {
           title: '🔄 자동 결제 안내',
           body: `3일 후 PawDex Plus가 자동 결제됩니다${priceText}. 해지를 원하시면 요금제 페이지에서 자동 갱신을 끄세요.`,
-          url: '/pricing',
+          url: '/profile/subscription',
         };
       } else {
         notification = {
           title: '⏰ 구독 만료 안내',
           body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
-          url: '/pricing',
+          url: '/profile/subscription',
         };
       }
 

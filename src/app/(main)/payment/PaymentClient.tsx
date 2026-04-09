@@ -39,7 +39,7 @@ export default function PaymentClient({ product }: Props) {
       return;
     }
     if (!product) {
-      router.push('/pricing');
+      router.push('/profile/subscription');
       return;
     }
   }, [user, product, authLoading, router]);
@@ -114,7 +114,7 @@ export default function PaymentClient({ product }: Props) {
         window.confirm('결제가 진행 중입니다. 정말로 페이지를 떠나시겠습니까?\n결제가 취소될 수 있습니다.')
       ) {
         setProcessing(false);
-        router.push('/pricing');
+        router.push('/profile/subscription');
       } else {
         window.history.pushState({ paymentLock: true }, '');
       }
@@ -234,7 +234,7 @@ export default function PaymentClient({ product }: Props) {
         <div className="text-center py-10">
           <p className="text-sm text-red-500 mb-4">{error}</p>
           <button
-            onClick={() => router.push('/pricing')}
+            onClick={() => router.push('/profile/subscription')}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
           >
             요금제 페이지로 이동

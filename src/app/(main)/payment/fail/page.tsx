@@ -22,13 +22,13 @@ function FailContent() {
       )}
       <div className="flex gap-3 justify-center">
         <button
-          onClick={() => router.push('/pricing')}
+          onClick={() => router.push('/profile/subscription')}
           className="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-full text-sm font-medium"
         >
           요금제 보기
         </button>
         <button
-          onClick={() => router.push('/pricing')}
+          onClick={() => router.push('/profile/subscription')}
           className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
         >
           다시 시도

@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
         await sendBillingFailurePush(sub.user_id, {
           title: '⚠️ 구독이 만료되었습니다',
           body: `자동 결제에 ${newFailedCount}회 실패하여 무료 플랜으로 전환되었습니다. (${userMessage})`,
-          url: '/pricing',
+          url: '/profile/subscription',
         });
       } else {
         // Schedule next retry based on attempt count
@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
         await sendBillingFailurePush(sub.user_id, {
           title: '💳 결제 실패 안내',
           body: `자동 결제에 실패했습니다 (${userMessage}). ${delayDays}일 후 다시 시도합니다.`,
-          url: '/pricing',
+          url: '/profile/subscription',
         });
       }
 
