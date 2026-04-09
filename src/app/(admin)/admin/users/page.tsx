@@ -17,7 +17,17 @@ interface User {
 
 interface UserDetail {
   profile: User & { avatar_url?: string };
-  subscription: { plan: string; status: string; period_end: string } | null;
+  subscription: {
+    plan: string;
+    status: string;
+    period_end: string;
+    billing_type?: string;
+    product_id?: string;
+    next_billing_at?: string;
+    card_company?: string;
+    card_number?: string;
+    billing_failed_count?: number;
+  } | null;
   searchCount: number;
 }
 
@@ -210,12 +220,67 @@ export default function UsersPage() {
                 <p className="font-medium">{selectedUser.searchCount}회</p>
               </div>
               {selectedUser.subscription && (
-                <div>
-                  <span className="text-sm text-gray-500">구독</span>
-                  <p className="font-medium">
-                    {selectedUser.subscription.plan} ({selectedUser.subscription.status})
-                    {' ~ '}{new Date(selectedUser.subscription.period_end).toLocaleDateString('ko-KR')}
-                  </p>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                  <span className="text-sm font-semibold text-gray-700">구독 정보</span>
+                  <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                    <span className="text-gray-500">상태</span>
+                    <span className={`font-medium ${
+                      selectedUser.subscription.status === 'active' ? 'text-green-600' :
+                      selectedUser.subscription.status === 'canceled' ? 'text-orange-500' : 'text-red-500'
+                    }`}>
+                      {selectedUser.subscription.status === 'active' ? '이용 중' :
+                       selectedUser.subscription.status === 'canceled' ? '해지됨' : '만료됨'}
+                    </span>
+
+                    <span className="text-gray-500">결제 방식</span>
+                    <span className="font-medium">
+                      {selectedUser.subscription.billing_type === 'recurring' ? '자동 갱신' : '1회 결제'}
+                    </span>
+
+                    <span className="text-gray-500">상품</span>
+                    <span className="font-medium">
+                      {selectedUser.subscription.product_id?.includes('yearly') ? '연간' :
+                       selectedUser.subscription.product_id?.includes('monthly') ? '월간' :
+                       selectedUser.subscription.product_id || '-'}
+                    </span>
+
+                    <span className="text-gray-500">만료일</span>
+                    <span className="font-medium">
+                      {new Date(selectedUser.subscription.period_end).toLocaleDateString('ko-KR')}
+                    </span>
+
+                    {selectedUser.subscription.next_billing_at && (
+                      <>
+                        <span className="text-gray-500">다음 결제</span>
+                        <span className="font-medium text-blue-600">
+                          {new Date(selectedUser.subscription.next_billing_at).toLocaleDateString('ko-KR')}
+                        </span>
+                      </>
+                    )}
+
+                    {selectedUser.subscription.card_number && (
+                      <>
+                        <span className="text-gray-500">결제 카드</span>
+                        <span className="font-medium">
+                          {selectedUser.subscription.card_company || ''} {selectedUser.subscription.card_number}
+                        </span>
+                      </>
+                    )}
+
+                    {(selectedUser.subscription.billing_failed_count ?? 0) > 0 && (
+                      <>
+                        <span className="text-gray-500">결제 실패</span>
+                        <span className="font-medium text-red-500">
+                          {selectedUser.subscription.billing_failed_count}회
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              {!selectedUser.subscription && selectedUser.profile.plan !== 'free' && (
+                <div className="bg-yellow-50 rounded-lg p-3">
+                  <span className="text-sm text-yellow-700">Plus 플랜이지만 구독 데이터 없음 (관리자 수동 부여)</span>
                 </div>
               )}
             </div>
