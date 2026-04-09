@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const [{ data: subscription }, { count: searchCount }] = await Promise.all([
-    supabase.from('subscriptions').select('*').eq('user_id', id).eq('status', 'active').maybeSingle(),
+    supabase.from('subscriptions').select('*').eq('user_id', id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', id),
   ]);
 
