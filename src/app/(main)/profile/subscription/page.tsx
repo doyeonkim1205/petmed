@@ -370,8 +370,8 @@ export default function SubscriptionPage() {
         <div className="border-t border-gray-100 pt-6 mb-6">
           <h2 className="text-sm font-bold text-gray-800 mb-4">기능 비교</h2>
 
-          {/* Billing period toggle (for non-subscriber CTA) */}
-          {!isPaid && (
+          {/* Billing period toggle — show when user can (re)subscribe */}
+          {(!isPaid || isCanceled) && (
             <div className="flex justify-center mb-4">
               <div className="inline-flex bg-gray-100 rounded-full p-0.5">
                 <button
@@ -462,11 +462,22 @@ export default function SubscriptionPage() {
             <div className="mt-4">
               <button
                 onClick={handleSubscribe}
+
                 className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
               >
                 <Crown size={15} />
                 다시 구독하기
+                <span className="text-xs text-blue-200">
+                  {billingPeriod === 'yearly'
+                    ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월`
+                    : `${MONTHLY_PRICE.toLocaleString()}원/월`}
+                </span>
               </button>
+              {billingPeriod === 'yearly' && (
+                <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                  연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)
+                </p>
+              )}
             </div>
           )}
         </div>
