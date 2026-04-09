@@ -93,15 +93,44 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
       .eq('status', 'active');
 
+    // Delete user data in FK-safe order (children before parents)
+    // -- subscription / payment related
+    await adminClient.from('subscription_events').delete().eq('user_id', userId);
     await adminClient.from('payment_history').delete().eq('user_id', userId);
     await adminClient.from('subscriptions').delete().eq('user_id', userId);
+
+    // -- health records related
     await adminClient.from('medication_checks').delete().eq('user_id', userId);
     await adminClient.from('medications').delete().eq('user_id', userId);
     await adminClient.from('record_files').delete().eq('user_id', userId);
     await adminClient.from('health_records').delete().eq('user_id', userId);
     await adminClient.from('pets').delete().eq('user_id', userId);
+
+    // -- search / analysis related
+    await adminClient.from('saved_analyses').delete().eq('user_id', userId);
+    await adminClient.from('saved_papers').delete().eq('user_id', userId);
+    await adminClient.from('search_logs').delete().eq('user_id', userId);
+
+    // -- session / notification related
+    await adminClient.from('active_sessions').delete().eq('user_id', userId);
+    await adminClient.from('push_subscriptions').delete().eq('user_id', userId);
+
+    // -- activity logs + profile (last, as other tables may FK to these)
     await adminClient.from('activity_logs').delete().eq('user_id', userId);
     await adminClient.from('profiles').delete().eq('id', userId);
+
+    // Delete uploaded files from storage (best-effort)
+    try {
+      const { data: files } = await adminClient.storage
+        .from('medical-files')
+        .list(userId);
+      if (files && files.length > 0) {
+        const paths = files.map((f) => `${userId}/${f.name}`);
+        await adminClient.storage.from('medical-files').remove(paths);
+      }
+    } catch {
+      // Storage deletion is best-effort; don't block account deletion
+    }
 
     // Delete the auth user
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
