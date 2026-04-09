@@ -311,7 +311,7 @@ export default function SubscriptionPage() {
           {isActive && !showCancelConfirm && (
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="w-full py-3 rounded-2xl text-xs font-medium text-gray-400 hover:text-orange-500 transition-colors"
+              className="w-full py-3 rounded-2xl text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
             >
               구독 해지
             </button>
@@ -361,7 +361,7 @@ export default function SubscriptionPage() {
               className="w-full py-3 rounded-2xl text-xs font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-between px-4"
             >
               <span>연간으로 변경</span>
-              <span className="text-[10px] text-blue-400">40,000원/년 (14% 할인)</span>
+              <span className="text-[10px] text-blue-400">40,000원/년 (14.5% 할인)</span>
             </button>
           )}
         </div>
@@ -385,7 +385,7 @@ export default function SubscriptionPage() {
                     billingPeriod === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                   }`}>
                   연간
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">-14%</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">-14.5%</span>
                 </button>
               </div>
             </div>
