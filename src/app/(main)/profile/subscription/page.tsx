@@ -78,7 +78,7 @@ type BillingPeriod = 'monthly' | 'yearly';
 const YEARLY_PRICE = 40000;
 const MONTHLY_PRICE = 3900;
 
-// ── Page Component ──
+// ── Page ──
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -158,6 +158,14 @@ export default function SubscriptionPage() {
   const isRecurring = subscription?.billing_type === 'recurring';
   const hasSub = isActive || isCanceled;
 
+  // Format card display: "현대 ****-****-****-1234" → "현대카드 •••• 1234"
+  const formatCard = () => {
+    if (!subscription?.card_number) return '';
+    const last4 = subscription.card_number.replace(/[^0-9]/g, '').slice(-4);
+    const company = subscription.card_company ? `${subscription.card_company}카드` : '';
+    return `${company} •••• ${last4}`.trim();
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -168,7 +176,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="max-w-lg mx-auto pb-24">
-      {/* Header — 뒤로 = 항상 프로필 */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100">
         <button onClick={() => router.push('/profile')} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft size={20} />
@@ -186,19 +194,17 @@ export default function SubscriptionPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                {isPaid
-                  ? <Crown size={15} className="text-blue-500" />
-                  : <Zap size={15} className="text-gray-400" />}
-                <span className={`text-base font-bold ${isPaid ? 'text-blue-700' : 'text-gray-700'}`}>
+                {isPaid ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
+                <span className={`text-lg font-bold ${isPaid ? 'text-blue-700' : 'text-gray-700'}`}>
                   {isPaid ? 'Plus' : 'Free'}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 {isPaid ? '모든 기능을 제한 없이' : '기본 기능 무료 이용'}
               </p>
             </div>
             {hasSub && (
-              <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-semibold ${
+              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${
                 isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
@@ -208,38 +214,28 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        {/* ── 2. Subscription Details ── */}
+        {/* ── 2. Subscription Info ── */}
         {hasSub && subscription && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
             <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100">
-              <span className="text-[10px] font-semibold text-gray-400 tracking-wider">구독 정보</span>
+              <span className="text-[11px] font-semibold text-gray-400 tracking-wider">구독 정보</span>
             </div>
             <div className="divide-y divide-gray-50">
               <DetailRow
-                icon={<RefreshCw size={13} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
-                label="결제 방식"
-                value={isRecurring ? '자동 갱신' : '1회 결제'}
-                accent={isRecurring}
-              />
+                icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
+                label="결제 방식" value={isRecurring ? '자동 갱신' : '1회 결제'} accent={isRecurring} />
               <DetailRow
-                icon={<Calendar size={13} className="text-gray-400" />}
-                label="이용 기간"
-                value={`${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지`}
-              />
+                icon={<Calendar size={14} className="text-gray-400" />}
+                label="이용 기간" value={`${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지`} />
               {isRecurring && subscription.next_billing_at && (
                 <DetailRow
-                  icon={<CreditCard size={13} className="text-blue-500" />}
-                  label="다음 결제일"
-                  value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')}
-                  accent
-                />
+                  icon={<CreditCard size={14} className="text-blue-500" />}
+                  label="다음 결제일" value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')} accent />
               )}
               {isRecurring && subscription.card_number && (
                 <DetailRow
-                  icon={<Shield size={13} className="text-gray-400" />}
-                  label="결제 카드"
-                  value={`${subscription.card_company || ''} ${subscription.card_number}`.trim()}
-                />
+                  icon={<Shield size={14} className="text-gray-400" />}
+                  label="결제 카드" value={formatCard()} />
               )}
             </div>
           </div>
@@ -250,157 +246,54 @@ export default function SubscriptionPage() {
           <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700 mb-4 leading-relaxed">{actionMessage}</div>
         )}
 
-        {/* ── 4. Action Buttons ── */}
-        <div className="space-y-2 mb-8">
-          {/* Recurring: card change */}
-          {isActive && isRecurring && (
-            <button
-              onClick={() => {
-                const pid = subscription?.product_id || 'plus_monthly';
-                router.push(`/payment/billing-auth?productId=${pid}`);
-              }}
-              className="w-full py-3 rounded-2xl text-xs font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              결제 카드 변경
-            </button>
-          )}
-
-          {/* Recurring: disable auto-renewal */}
-          {isActive && isRecurring && !showDisableAutoRenewConfirm && (
-            <button
-              onClick={() => setShowDisableAutoRenewConfirm(true)}
-              className="w-full py-3 rounded-2xl text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              자동 갱신 끄기
-            </button>
-          )}
-          {showDisableAutoRenewConfirm && (
-            <ConfirmCard
-              color="gray"
-              title="자동 갱신을 끄시겠습니까?"
-              description={`${new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 자동 결제가 중지됩니다.`}
-              confirmLabel="자동 갱신 끄기"
-              loading={actionLoading === 'disableAutoRenew'}
-              onCancel={() => setShowDisableAutoRenewConfirm(false)}
-              onConfirm={() => handleAction('disableAutoRenew', () => callApi('/api/payments/billing/disable'))}
-            />
-          )}
-
-          {/* Refund */}
-          {isActive && refundCheck?.refundable && !showRefundConfirm && (
-            <button
-              onClick={() => setShowRefundConfirm(true)}
-              className="w-full py-3 rounded-2xl text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
-            >
-              환불 요청 ({refundCheck.amount?.toLocaleString()}원)
-            </button>
-          )}
-          {showRefundConfirm && refundCheck && (
-            <ConfirmCard
-              color="red"
-              title="환불하시겠습니까?"
-              description={`${refundCheck.amount?.toLocaleString()}원이 원래 결제 수단으로 환불되며 즉시 무료 플랜으로 전환됩니다. 환불 가능 잔여 시간: ${refundCheck.remainingHours}시간. 카드사 사정에 따라 환불 반영에 3~10영업일이 소요될 수 있습니다.`}
-              confirmLabel="환불 확인"
-              policyLink="/refund"
-              loading={actionLoading === 'refund'}
-              onCancel={() => setShowRefundConfirm(false)}
-              onConfirm={() => handleAction('refund', () => callApi('/api/payments/refund'))}
-            />
-          )}
-
-          {/* Cancel subscription */}
-          {isActive && !showCancelConfirm && (
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="w-full py-3 rounded-2xl text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              구독 해지
-            </button>
-          )}
-          {showCancelConfirm && (
-            <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
-                  <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
-                    {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                    {isRecurring && ' 자동 결제도 중지됩니다.'}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setCancelReason(cancelReason === r ? '' : r)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
-                        cancelReason === r ? 'bg-orange-500 text-white' : 'bg-white border border-orange-200 text-orange-600'
-                      }`}
-                    >{r}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
-                  className="flex-1 py-2.5 rounded-xl text-[11px] border border-gray-200 text-gray-500">취소</button>
-                <button
-                  onClick={() => handleAction('cancel', () => callApi('/api/payments/cancel', { reason: cancelReason || undefined }))}
-                  disabled={actionLoading === 'cancel'}
-                  className="flex-1 py-2.5 rounded-xl text-[11px] bg-orange-500 text-white font-medium disabled:opacity-50"
-                >{actionLoading === 'cancel' ? '처리 중...' : '해지 확인'}</button>
-              </div>
-            </div>
-          )}
-
-          {/* Monthly → Yearly upgrade */}
-          {isActive && !subscription?.product_id?.includes('yearly') && (
-            <button
-              onClick={() => router.push('/payment?productId=plus_yearly')}
-              className="w-full py-3 rounded-2xl text-xs font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-between px-4"
-            >
-              <span>연간으로 변경</span>
-              <span className="text-[10px] text-blue-400">40,000원/년 (14.5% 할인)</span>
-            </button>
-          )}
-        </div>
+        {/* ── 4. Primary Actions (near subscription info) ── */}
+        {isActive && (
+          <div className="space-y-2 mb-6">
+            {/* Yearly upgrade */}
+            {!subscription?.product_id?.includes('yearly') && (
+              <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')} variant="blue">
+                연간으로 변경 (40,000원/년, 14.5% 할인)
+              </ActionBtn>
+            )}
+            {/* Card change (recurring only) */}
+            {isRecurring && (
+              <ActionBtn onClick={() => router.push(`/payment/billing-auth?productId=${subscription?.product_id || 'plus_monthly'}`)}>
+                결제 카드 변경
+              </ActionBtn>
+            )}
+          </div>
+        )}
 
         {/* ── 5. Feature Comparison ── */}
         <div className="border-t border-gray-100 pt-6 mb-6">
           <h2 className="text-sm font-bold text-gray-800 mb-4">기능 비교</h2>
 
-          {/* Billing period toggle — show when user can (re)subscribe */}
           {(!isPaid || isCanceled) && (
             <div className="flex justify-center mb-4">
               <div className="inline-flex bg-gray-100 rounded-full p-0.5">
-                <button
-                  onClick={() => setBillingPeriod('monthly')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+                <button onClick={() => setBillingPeriod('monthly')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                     billingPeriod === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                   }`}>월간</button>
-                <button
-                  onClick={() => setBillingPeriod('yearly')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-semibold transition-colors flex items-center gap-1 ${
+                <button onClick={() => setBillingPeriod('yearly')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${
                     billingPeriod === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                   }`}>
-                  연간
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">-14.5%</span>
+                  연간 <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">-14.5%</span>
                 </button>
               </div>
             </div>
           )}
 
           <div className="rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-[11px]">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left py-2.5 px-3 text-gray-400 font-medium w-[35%]"></th>
                   {planOrder.map((p) => (
-                    <th key={p} className={`text-center py-2.5 px-2 font-bold ${
-                      p === 'plus' ? 'text-blue-600' : 'text-gray-500'
-                    }`}>{PLANS[p].name}</th>
+                    <th key={p} className={`text-center py-2.5 px-2 font-bold ${p === 'plus' ? 'text-blue-600' : 'text-gray-500'}`}>
+                      {PLANS[p].name}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -408,23 +301,19 @@ export default function SubscriptionPage() {
                 {featureGroups.map((group) => (
                   <>
                     <tr key={`g-${group.title}`} className="bg-gray-50/80">
-                      <td colSpan={3} className="py-1.5 px-3 text-[10px] font-bold text-gray-400 tracking-wider">
-                        {group.title}
-                      </td>
+                      <td colSpan={3} className="py-1.5 px-3 text-[11px] font-bold text-gray-400 tracking-wider">{group.title}</td>
                     </tr>
                     {group.features.map((feat) => (
                       <tr key={feat.key} className="border-t border-gray-100 bg-white">
-                        <td className="py-2 px-3 text-gray-600">{feat.label}</td>
+                        <td className="py-2.5 px-3 text-gray-600">{feat.label}</td>
                         {planOrder.map((p) => {
                           const isUnavailable = feat.unavailable?.(p);
                           const text = feat.format(p);
                           const isBetter = p !== 'free' && !isUnavailable;
                           return (
-                            <td key={p} className={`py-2 px-2 text-center ${
+                            <td key={p} className={`py-2.5 px-2 text-center ${
                               isUnavailable ? 'text-gray-300' : isBetter ? 'text-gray-900 font-semibold' : 'text-gray-500'
-                            }`}>
-                              {isUnavailable ? <X size={11} className="inline text-gray-300" /> : text}
-                            </td>
+                            }`}>{isUnavailable ? <X size={12} className="inline text-gray-300" /> : text}</td>
                           );
                         })}
                       </tr>
@@ -435,57 +324,123 @@ export default function SubscriptionPage() {
             </table>
           </div>
 
-          {/* Subscribe CTA (non-subscriber) */}
+          {/* Subscribe CTA */}
           {!isPaid && !hasSub && (
             <div className="mt-4">
-              <button
-                onClick={handleSubscribe}
-                className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Crown size={15} />
-                Plus 시작하기
+              <button onClick={handleSubscribe}
+                className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                <Crown size={15} /> Plus 시작하기
                 <span className="text-xs text-blue-200">
-                  {billingPeriod === 'yearly'
-                    ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월`
-                    : `${MONTHLY_PRICE.toLocaleString()}원/월`}
+                  {billingPeriod === 'yearly' ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월` : `${MONTHLY_PRICE.toLocaleString()}원/월`}
                 </span>
               </button>
               {billingPeriod === 'yearly' && (
-                <p className="text-center text-[10px] text-gray-400 mt-1.5">
-                  연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)
-                </p>
+                <p className="text-center text-[11px] text-gray-400 mt-1.5">연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)</p>
               )}
             </div>
           )}
 
-          {/* Re-subscribe CTA (canceled/expired) */}
           {(isCanceled || (!isPaid && hasSub)) && (
             <div className="mt-4">
-              <button
-                onClick={handleSubscribe}
-
-                className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Crown size={15} />
-                다시 구독하기
+              <button onClick={handleSubscribe}
+                className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                <Crown size={15} /> 다시 구독하기
                 <span className="text-xs text-blue-200">
-                  {billingPeriod === 'yearly'
-                    ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월`
-                    : `${MONTHLY_PRICE.toLocaleString()}원/월`}
+                  {billingPeriod === 'yearly' ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월` : `${MONTHLY_PRICE.toLocaleString()}원/월`}
                 </span>
               </button>
               {billingPeriod === 'yearly' && (
-                <p className="text-center text-[10px] text-gray-400 mt-1.5">
-                  연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)
-                </p>
+                <p className="text-center text-[11px] text-gray-400 mt-1.5">연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)</p>
               )}
             </div>
           )}
         </div>
 
+        {/* ── 6. Secondary Actions (destructive, bottom) ── */}
+        {isActive && (
+          <div className="border-t border-gray-100 pt-5 space-y-2">
+            {/* Refund */}
+            {refundCheck?.refundable && !showRefundConfirm && (
+              <ActionBtn onClick={() => setShowRefundConfirm(true)} variant="danger">
+                환불 요청 ({refundCheck.amount?.toLocaleString()}원)
+              </ActionBtn>
+            )}
+            {showRefundConfirm && refundCheck && (
+              <ConfirmCard
+                color="red"
+                title="환불하시겠습니까?"
+                description={`${refundCheck.amount?.toLocaleString()}원이 원래 결제 수단으로 환불되며 즉시 무료 플랜으로 전환됩니다. 환불 가능 잔여 시간: ${refundCheck.remainingHours}시간. 카드사에 따라 반영에 3~10영업일 소요.`}
+                confirmLabel="환불 확인"
+                policyLink="/refund"
+                loading={actionLoading === 'refund'}
+                onCancel={() => setShowRefundConfirm(false)}
+                onConfirm={() => handleAction('refund', () => callApi('/api/payments/refund'))}
+              />
+            )}
+
+            {/* Disable auto-renewal */}
+            {isRecurring && !showDisableAutoRenewConfirm && (
+              <ActionBtn onClick={() => setShowDisableAutoRenewConfirm(true)} variant="muted">
+                자동 갱신 끄기
+              </ActionBtn>
+            )}
+            {showDisableAutoRenewConfirm && (
+              <ConfirmCard
+                color="gray"
+                title="자동 갱신을 끄시겠습니까?"
+                description={`${new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 자동 결제가 중지됩니다.`}
+                confirmLabel="자동 갱신 끄기"
+                loading={actionLoading === 'disableAutoRenew'}
+                onCancel={() => setShowDisableAutoRenewConfirm(false)}
+                onConfirm={() => handleAction('disableAutoRenew', () => callApi('/api/payments/billing/disable'))}
+              />
+            )}
+
+            {/* Cancel */}
+            {!showCancelConfirm && (
+              <ActionBtn onClick={() => setShowCancelConfirm(true)} variant="muted">
+                구독 해지
+              </ActionBtn>
+            )}
+            {showCancelConfirm && (
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
+                    <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
+                      {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                      {isRecurring && ' 자동 결제도 중지됩니다.'}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
+                      <button key={r} onClick={() => setCancelReason(cancelReason === r ? '' : r)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
+                          cancelReason === r ? 'bg-orange-500 text-white' : 'bg-white border border-orange-200 text-orange-600'
+                        }`}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
+                    className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
+                  <button onClick={() => handleAction('cancel', () => callApi('/api/payments/cancel', { reason: cancelReason || undefined }))}
+                    disabled={actionLoading === 'cancel'}
+                    className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
+                    {actionLoading === 'cancel' ? '처리 중...' : '해지 확인'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="text-center pb-4">
-          <p className="text-[10px] text-gray-300">
+        <div className="mt-8 text-center pb-4">
+          <p className="text-[11px] text-gray-300">
             결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a>
           </p>
         </div>
@@ -500,15 +455,31 @@ function DetailRow({ icon, label, value, accent }: {
   icon: React.ReactNode; label: string; value: string; accent?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
         {icon}
-        <span className="text-[11px] text-gray-500">{label}</span>
+        <span className="text-xs text-gray-500">{label}</span>
       </div>
-      <span className={`text-[11px] font-semibold ${accent ? 'text-blue-600' : 'text-gray-800'}`}>
-        {value}
-      </span>
+      <span className={`text-xs font-semibold ${accent ? 'text-blue-600' : 'text-gray-800'}`}>{value}</span>
     </div>
+  );
+}
+
+function ActionBtn({ children, onClick, variant = 'default' }: {
+  children: React.ReactNode; onClick: () => void;
+  variant?: 'default' | 'blue' | 'danger' | 'muted';
+}) {
+  const styles = {
+    default: 'border border-gray-200 text-gray-700 hover:bg-gray-50',
+    blue: 'border border-blue-200 text-blue-600 hover:bg-blue-50',
+    danger: 'border border-red-200 text-red-500 hover:bg-red-50',
+    muted: 'border border-gray-200 text-gray-400 hover:bg-gray-50',
+  };
+  return (
+    <button onClick={onClick}
+      className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>
+      {children}
+    </button>
   );
 }
 
@@ -529,19 +500,14 @@ function ConfirmCard({ color, title, description, confirmLabel, loading, onCance
         <div>
           <p className={`text-xs font-semibold ${titleColor}`}>{title}</p>
           <p className={`text-[11px] ${descColor} mt-1 leading-relaxed`}>{description}</p>
-          {policyLink && (
-            <a href={policyLink} target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">
-              환불 정책 보기
-            </a>
-          )}
+          {policyLink && <a href={policyLink} target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">환불 정책 보기</a>}
         </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[11px] border border-gray-200 text-gray-500">취소</button>
+        <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
         <button onClick={onConfirm} disabled={loading}
-          className={`flex-1 py-2.5 rounded-xl text-[11px] text-white font-medium disabled:opacity-50 ${btnBg}`}>
-          {loading ? '처리 중...' : confirmLabel}
-        </button>
+          className={`flex-1 py-2.5 rounded-xl text-xs text-white font-medium disabled:opacity-50 ${btnBg}`}>
+          {loading ? '처리 중...' : confirmLabel}</button>
       </div>
     </div>
   );
