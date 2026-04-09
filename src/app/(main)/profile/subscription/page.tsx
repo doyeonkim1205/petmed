@@ -355,7 +355,7 @@ export default function SubscriptionPage() {
           )}
 
           {/* Monthly → Yearly upgrade */}
-          {isActive && subscription?.product_id?.includes('monthly') && (
+          {isActive && !subscription?.product_id?.includes('yearly') && (
             <button
               onClick={() => router.push('/payment?productId=plus_yearly')}
               className="w-full py-3 rounded-2xl text-xs font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-between px-4"

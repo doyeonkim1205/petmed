@@ -73,6 +73,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       {
         user_id: id,
         plan: updates.plan,
+        product_id: `${updates.plan}_monthly`,
         status: 'active',
         billing_type: 'one_time',
         period_start: now.toISOString(),
