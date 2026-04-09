@@ -1,5 +1,5 @@
-// PawDex Service Worker v2
-const CACHE_NAME = 'pawdex-v2';
+// PawDex Service Worker v3
+const CACHE_NAME = 'pawdex-v3';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png'];
 
 // Install: precache essential resources
@@ -29,6 +29,12 @@ self.addEventListener('fetch', (event) => {
 
   // API: network only
   if (url.pathname.startsWith('/api/')) return;
+
+  // Payment pages: always skip SW to avoid interfering with Toss redirects
+  if (url.pathname.startsWith('/payment')) return;
+
+  // External origins (Toss, Supabase, etc.): never intercept
+  if (url.origin !== self.location.origin) return;
 
   // Navigation: network first, fallback to offline page
   if (event.request.mode === 'navigate') {
