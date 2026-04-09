@@ -248,24 +248,22 @@ export default function SubscriptionPage() {
         {/* ── 4. Primary Actions ── */}
         {isActive && (
           <div className="space-y-2 mb-6">
+            <p className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mb-2 text-center">
+              플랜 변경 시 현재 이용 기간 종료 후 적용됩니다.
+            </p>
+
             {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
-              <div>
-                <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} highlight
-                  title="월간 정기 결제로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-                  sub="월간 단건 대비 10.3% 할인" />
-                <p className="text-[10px] text-gray-400 text-center mt-1">현재 이용 기간 종료 후 적용됩니다.</p>
-              </div>
+              <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} highlight
+                title="월간 정기 결제로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+                sub="월간 단건 대비 10.3% 할인" />
             )}
 
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
-              <div>
-                <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly&upgrade=true')}
-                  title="연간 정기 결제로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-                  sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
-                <p className="text-[10px] text-gray-400 text-center mt-1">현재 이용 기간 종료 후 적용됩니다.</p>
-              </div>
+              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly&upgrade=true')}
+                title="연간 정기 결제로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
             )}
 
             {/* 자동 갱신 → 카드 변경 */}
