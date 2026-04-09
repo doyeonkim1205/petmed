@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
   const userId = auth.user!.id;
 
   try {
-    // Get active subscription
     const { data: subscription } = await supabaseAdmin
       .from('subscriptions')
       .select('*')
@@ -25,7 +24,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ refundable: false, reason: '활성 구독이 없습니다.' });
     }
 
-    // Get latest payment
     const { data: payment } = await supabaseAdmin
       .from('payment_history')
       .select('*')
@@ -39,55 +37,71 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ refundable: false, reason: '결제 내역이 없습니다.' });
     }
 
-    // Check 24-hour window
     const paymentTime = new Date(payment.created_at).getTime();
     const now = Date.now();
-    const hoursSincePayment = (now - paymentTime) / (1000 * 60 * 60);
+    const hoursSincePayment = (now - paymentTime) / 3600000;
+    const isYearly = subscription.product_id?.includes('yearly');
 
-    if (hoursSincePayment > 24) {
-      return NextResponse.json({ refundable: false, reason: '결제 후 24시간이 경과했습니다.' });
+    // === Monthly refund: 24h + no usage ===
+    if (!isYearly) {
+      if (hoursSincePayment > 24) {
+        return NextResponse.json({ refundable: false, reason: '결제 후 24시간이 경과했습니다.' });
+      }
+
+      // Check usage
+      const paymentDate = payment.created_at;
+      const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
+        supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+        supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+      ]);
+
+      if ((a || 0) + (r || 0) + (u || 0) + (s || 0) > 0) {
+        return NextResponse.json({ refundable: false, reason: '유료 서비스를 이용한 이력이 있습니다.' });
+      }
+
+      return NextResponse.json({
+        refundable: true,
+        amount: payment.amount,
+        remainingHours: Math.floor(24 - hoursSincePayment),
+      });
     }
 
-    // Check paid feature usage
-    const paymentDate = payment.created_at;
+    // === Yearly refund ===
+    // 24h + no usage → full refund
+    if (hoursSincePayment <= 24) {
+      const paymentDate = payment.created_at;
+      const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
+        supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+        supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+      ]);
 
-    const { count: analysisCount } = await supabaseAdmin
-      .from('saved_analyses')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', paymentDate);
-
-    const { count: recordCount } = await supabaseAdmin
-      .from('health_records')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', paymentDate);
-
-    const { count: paidUsageCount } = await supabaseAdmin
-      .from('activity_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .in('action', ['symptom.search', 'symptom.refine', 'analysis.save'])
-      .gte('created_at', paymentDate);
-
-    const { count: searchCount } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', paymentDate);
-
-    const totalUsage = (analysisCount || 0) + (recordCount || 0) + (paidUsageCount || 0) + (searchCount || 0);
-
-    if (totalUsage > 0) {
-      return NextResponse.json({ refundable: false, reason: '유료 서비스를 이용한 이력이 있습니다.' });
+      if ((a || 0) + (r || 0) + (u || 0) + (s || 0) === 0) {
+        return NextResponse.json({
+          refundable: true,
+          amount: payment.amount,
+          remainingHours: Math.floor(24 - hoursSincePayment),
+        });
+      }
     }
 
-    const remainingHours = Math.floor(24 - hoursSincePayment);
+    // After 24h or with usage → proportional refund
+    const startDate = new Date(subscription.period_start || payment.created_at);
+    const monthsUsed = Math.ceil((now - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000));
+    const remainingMonths = Math.max(0, 12 - monthsUsed);
+    const refundAmount = Math.round(payment.amount * (remainingMonths / 12));
+
+    if (refundAmount <= 0) {
+      return NextResponse.json({ refundable: false, reason: '남은 이용 기간이 없어 환불이 불가합니다.' });
+    }
 
     return NextResponse.json({
       refundable: true,
-      amount: payment.amount,
-      remainingHours,
+      amount: refundAmount,
+      reason: `${monthsUsed}개월 사용, ${remainingMonths}개월분 환불`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '확인에 실패했습니다.';

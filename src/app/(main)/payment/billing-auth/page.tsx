@@ -4,11 +4,12 @@ import { getProductById, getActiveProducts } from '@/lib/products';
 import BillingAuthClient from './BillingAuthClient';
 
 interface PageProps {
-  searchParams: Promise<{ productId?: string; plan?: string }>;
+  searchParams: Promise<{ productId?: string; plan?: string; mode?: string }>;
 }
 
 export default async function BillingAuthPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const mode = params.mode || 'register';
 
   // Resolve productId either directly or from `plan=plus` shorthand
   let productId = params.productId;
@@ -31,7 +32,7 @@ export default async function BillingAuthPage({ searchParams }: PageProps) {
         </div>
       }
     >
-      <BillingAuthClient product={isAllowed ? product : null} />
+      <BillingAuthClient product={isAllowed ? product : null} mode={mode} />
     </Suspense>
   );
 }

@@ -11,9 +11,10 @@ const billingClientKey = process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY!;
 
 interface Props {
   product: PaymentProduct | null;
+  mode?: string; // 'enable' = upgrade to recurring (no charge), default = new subscription
 }
 
-export default function BillingAuthClient({ product }: Props) {
+export default function BillingAuthClient({ product, mode = 'register' }: Props) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function BillingAuthClient({ product }: Props) {
       const payment = (tossPayments as any).payment({ customerKey: user.id });
       await payment.requestBillingAuth({
         method: 'CARD',
-        successUrl: `${window.location.origin}/payment/billing-auth/success?productId=${product.id}`,
+        successUrl: `${window.location.origin}/payment/billing-auth/success?productId=${product.id}&mode=${mode}`,
         failUrl: `${window.location.origin}/payment/fail`,
         customerEmail: user.email || undefined,
       });

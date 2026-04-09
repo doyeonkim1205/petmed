@@ -7,6 +7,7 @@ interface PageProps {
     authKey?: string;
     customerKey?: string;
     productId?: string;
+    mode?: string;
   }>;
 }
 
@@ -24,6 +25,7 @@ export default async function BillingAuthSuccessPage({ searchParams }: PageProps
         authKey={params.authKey || ''}
         customerKey={params.customerKey || ''}
         productId={params.productId || ''}
+        mode={params.mode || 'register'}
       />
     </Suspense>
   );

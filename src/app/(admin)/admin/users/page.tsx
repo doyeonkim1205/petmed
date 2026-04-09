@@ -237,11 +237,10 @@ export default function UsersPage() {
                       {selectedUser.subscription.billing_type === 'recurring' ? '자동 갱신' : '1회 결제'}
                     </span>
 
-                    <span className="text-gray-500">상품</span>
+                    <span className="text-gray-500">결제 주기</span>
                     <span className="font-medium">
                       {selectedUser.subscription.product_id?.includes('yearly') ? '연간' :
-                       selectedUser.subscription.product_id?.includes('monthly') ? '월간' :
-                       selectedUser.subscription.product_id || '-'}
+                       selectedUser.subscription.product_id?.includes('monthly') ? '월간' : '-'}
                     </span>
 
                     <span className="text-gray-500">만료일</span>
