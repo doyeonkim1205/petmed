@@ -88,7 +88,9 @@ export default function SubscriptionPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelWithRefund, setCancelWithRefund] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  const [billingMode, setBillingMode] = useState<'recurring' | 'one_time'>('recurring');
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -115,6 +117,7 @@ export default function SubscriptionPage() {
   const handleCancel = async () => {
     setActionLoading('cancel');
     setActionMessage('');
+    setCancelError('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('세션이 만료되었습니다.');
@@ -129,19 +132,23 @@ export default function SubscriptionPage() {
       setShowCancelConfirm(false);
       setCancelWithRefund(false);
       setCancelReason('');
+      setCancelError('');
       await fetchData();
     } catch (err) {
-      setActionMessage(err instanceof Error ? err.message : '처리에 실패했습니다.');
-      setShowCancelConfirm(false);
-      setCancelWithRefund(false);
-      setCancelReason('');
+      // Error stays in modal — user can retry or uncheck refund
+      setCancelError(err instanceof Error ? err.message : '처리에 실패했습니다.');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleSubscribe = () => {
-    router.push(`/payment?productId=${billingPeriod === 'yearly' ? 'plus_yearly' : 'plus_monthly'}`);
+    const productId = billingPeriod === 'yearly' ? 'plus_yearly' : 'plus_monthly';
+    if (billingPeriod === 'monthly' && billingMode === 'recurring') {
+      router.push(`/payment/billing-auth?productId=${productId}`);
+    } else {
+      router.push(`/payment?productId=${productId}`);
+    }
   };
 
   const currentPlan = profile?.plan || 'free';
@@ -300,7 +307,27 @@ export default function SubscriptionPage() {
 
           {/* Subscribe CTA */}
           {(!isPaid || isCanceled) && (
-            <div className="mt-4">
+            <div className="mt-5 space-y-3">
+              {/* Billing mode selection (monthly only — yearly is always one-time) */}
+              {billingPeriod === 'monthly' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setBillingMode('recurring')}
+                    className={`p-3 rounded-xl border text-center transition-colors ${
+                      billingMode === 'recurring' ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-gray-200'
+                    }`}>
+                    <p className={`text-xs font-bold mb-0.5 ${billingMode === 'recurring' ? 'text-blue-700' : 'text-gray-500'}`}>자동 갱신</p>
+                    <p className={`text-[10px] ${billingMode === 'recurring' ? 'text-blue-500' : 'text-gray-400'}`}>매월 자동 결제</p>
+                  </button>
+                  <button onClick={() => setBillingMode('one_time')}
+                    className={`p-3 rounded-xl border text-center transition-colors ${
+                      billingMode === 'one_time' ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-gray-200'
+                    }`}>
+                    <p className={`text-xs font-bold mb-0.5 ${billingMode === 'one_time' ? 'text-blue-700' : 'text-gray-500'}`}>1회 결제</p>
+                    <p className={`text-[10px] ${billingMode === 'one_time' ? 'text-blue-500' : 'text-gray-400'}`}>30일 이용권</p>
+                  </button>
+                </div>
+              )}
+
               <button onClick={handleSubscribe}
                 className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                 <Crown size={15} />
@@ -310,7 +337,7 @@ export default function SubscriptionPage() {
                 </span>
               </button>
               {billingPeriod === 'yearly' && (
-                <p className="text-center text-[11px] text-gray-400 mt-1.5">연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)</p>
+                <p className="text-center text-[11px] text-gray-400">연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)</p>
               )}
             </div>
           )}
@@ -372,8 +399,11 @@ export default function SubscriptionPage() {
                     ))}
                   </div>
                 </div>
+                {cancelError && (
+                  <div className="p-2.5 bg-red-50 rounded-lg text-[11px] text-red-600">{cancelError}</div>
+                )}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); }}
+                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); setCancelError(''); }}
                     className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
                   <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
                     className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">

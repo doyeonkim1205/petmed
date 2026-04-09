@@ -32,10 +32,9 @@ export async function POST(request: NextRequest) {
 
     let refundedAmount: number | null = null;
 
-    // Handle refund if requested (best-effort: if refund fails, cancel still proceeds)
-    let refundError: string | null = null;
+    // Handle refund if requested. If refund fails, cancel is BLOCKED (user keeps subscription).
     if (withRefund) {
-      try {
+      {
         const { data: payment } = await supabaseAdmin
           .from('payment_history')
           .select('*')
@@ -85,10 +84,6 @@ export async function POST(request: NextRequest) {
             await supabaseAdmin.from('payment_history').update({ status: 'refunded' }).eq('id', payment.id);
           }
         }
-      } catch (err) {
-        // Refund failed — continue with cancel anyway
-        refundError = err instanceof Error ? err.message : '환불 처리에 실패했습니다.';
-        console.error('Refund failed during cancel:', refundError);
       }
     }
 
@@ -139,9 +134,6 @@ export async function POST(request: NextRequest) {
     }
     if (refundedAmount !== null) {
       message = `${refundedAmount.toLocaleString()}원이 환불되었습니다. 카드사에 따라 반영에 3~10영업일이 소요될 수 있습니다.`;
-    }
-    if (refundError && withRefund) {
-      message = `구독이 해지되었습니다. 단, 환불 처리에 실패하여 환불은 되지 않았습니다. 환불 문의: dylabs.pawdex@gmail.com`;
     }
 
     return NextResponse.json({
