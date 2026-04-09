@@ -44,9 +44,21 @@ export async function POST(request: NextRequest) {
     // Confirm payment with Toss
     const tossResult = await confirmPayment(paymentKey, orderId, amount);
 
-    // Calculate subscription period based on product period
-    const periodStart = new Date();
-    const periodEnd = new Date();
+    // Check for existing active subscription (plan change / upgrade case)
+    const { data: existingSub } = await supabaseAdmin
+      .from('subscriptions')
+      .select('period_end, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    // If upgrading from an active plan, new period starts after current period ends.
+    // If new subscription (no active sub), starts now.
+    const existingEnd = existingSub?.period_end ? new Date(existingSub.period_end) : null;
+    const startFrom = existingEnd && existingEnd > new Date() ? existingEnd : new Date();
+
+    const periodStart = startFrom;
+    const periodEnd = new Date(startFrom.getTime());
     if (product.period === 'year') {
       periodEnd.setFullYear(periodEnd.getFullYear() + 1);
     } else {
