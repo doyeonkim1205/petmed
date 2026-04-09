@@ -3,18 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, CreditCard, Crown, RefreshCw, Calendar, Shield,
-  AlertTriangle, Loader2, ChevronRight,
+  ArrowLeft, Crown, RefreshCw, Calendar, CreditCard, Shield,
+  AlertTriangle, Loader2, ChevronRight, Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { PLANS, type PlanType } from '@/lib/plans';
 
 interface SubscriptionInfo {
   plan: string;
   status: string;
   billing_type?: 'recurring' | 'one_time';
-  period_start?: string;
   period_end: string;
   next_billing_at?: string | null;
   canceled_at: string | null;
@@ -37,8 +35,6 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  // Confirm modals
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
   const [showDisableAutoRenewConfirm, setShowDisableAutoRenewConfirm] = useState(false);
@@ -48,7 +44,6 @@ export default function SubscriptionPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const token = session.access_token;
-
     const res = await fetch('/api/subscription', {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -92,7 +87,7 @@ export default function SubscriptionPage() {
     setActionMessage('');
     try {
       const result = await fn();
-      setActionMessage(result.message || '처리 완료');
+      setActionMessage(result.message || '처리되었습니다.');
       setShowCancelConfirm(false);
       setShowRefundConfirm(false);
       setShowDisableAutoRenewConfirm(false);
@@ -105,10 +100,9 @@ export default function SubscriptionPage() {
   };
 
   const currentPlan = profile?.plan || 'free';
-  const planConfig = PLANS[currentPlan as PlanType] || PLANS.free;
+  const isPaid = currentPlan !== 'free';
   const isActive = subscription?.status === 'active';
   const isCanceled = subscription?.status === 'canceled';
-  const isExpired = subscription?.status === 'expired';
   const isRecurring = subscription?.billing_type === 'recurring';
   const hasSub = isActive || isCanceled;
 
@@ -121,268 +115,299 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 pb-24">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 mb-6">
-        <ArrowLeft size={16} /> 돌아가기
-      </button>
-
-      <h1 className="text-xl font-bold text-gray-900 mb-6">구독 관리</h1>
-
-      {/* Current Plan Badge */}
-      <div className={`rounded-2xl p-5 mb-6 ${currentPlan !== 'free' ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'}`}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            {currentPlan !== 'free' && <Crown size={18} className="text-blue-500" />}
-            <span className="text-lg font-bold text-gray-900">{planConfig.name}</span>
-          </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-            isActive ? 'bg-green-100 text-green-700' :
-            isCanceled ? 'bg-orange-100 text-orange-700' :
-            isExpired ? 'bg-red-100 text-red-700' :
-            'bg-gray-100 text-gray-500'
-          }`}>
-            {isActive ? '이용 중' : isCanceled ? '해지됨' : isExpired ? '만료됨' : '무료'}
-          </span>
-        </div>
-        {currentPlan !== 'free' && (
-          <p className="text-xs text-gray-500">
-            {planConfig.price.toLocaleString()}원/월 · 무제한 기록 · 15회/일 검색
-          </p>
-        )}
-      </div>
-
-      {/* Subscription Details */}
-      {hasSub && subscription && (
-        <div className="rounded-xl border border-gray-200 mb-6 divide-y divide-gray-100">
-          <InfoRow icon={<CreditCard size={16} />} label="결제 방식"
-            value={isRecurring ? '자동 갱신' : '1회 결제'}
-            valueColor={isRecurring ? 'text-blue-600' : 'text-gray-700'} />
-          <InfoRow icon={<Calendar size={16} />} label="이용 기간"
-            value={`${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지`} />
-          {isRecurring && subscription.next_billing_at && (
-            <InfoRow icon={<RefreshCw size={16} />} label="다음 결제일"
-              value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')} />
-          )}
-          {isRecurring && subscription.card_number && (
-            <InfoRow icon={<Shield size={16} />} label="결제 카드"
-              value={`${subscription.card_company || ''} ${subscription.card_number}`} />
-          )}
-        </div>
-      )}
-
-      {/* Action Message */}
-      {actionMessage && (
-        <div className="p-3 bg-blue-50 rounded-xl text-sm text-blue-700 mb-4">{actionMessage}</div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="space-y-2">
-
-        {/* Free → Subscribe */}
-        {currentPlan === 'free' && !hasSub && (
-          <ActionButton label="Plus 구독하기" primary onClick={() => router.push('/pricing')} />
-        )}
-
-        {/* Expired → Re-subscribe */}
-        {(isExpired || (currentPlan === 'free' && !subscription)) && (
-          <ActionButton label="다시 구독하기" primary onClick={() => router.push('/pricing')} />
-        )}
-
-        {/* Canceled → Re-subscribe (before expiry) */}
-        {isCanceled && (
-          <ActionButton label="다시 구독하기" primary onClick={() => router.push('/pricing')} />
-        )}
-
-        {/* Monthly → Change to yearly */}
-        {isActive && subscription?.product_id?.includes('monthly') && (
-          <ActionButton
-            label="연간으로 변경 (40,000원/년)"
-            onClick={() => router.push('/payment?productId=plus_yearly')}
-            icon={<ChevronRight size={14} />}
-          />
-        )}
-
-        {/* Change card (recurring only) */}
-        {isActive && isRecurring && (
-          <ActionButton
-            label="결제 카드 변경"
-            onClick={() => {
-              const pid = subscription?.product_id || 'plus_monthly';
-              router.push(`/payment/billing-auth?productId=${pid}`);
-            }}
-          />
-        )}
-
-        {/* Disable auto-renewal (recurring only) */}
-        {isActive && isRecurring && !showDisableAutoRenewConfirm && (
-          <ActionButton
-            label="자동 갱신 끄기"
-            muted
-            onClick={() => setShowDisableAutoRenewConfirm(true)}
-          />
-        )}
-        {showDisableAutoRenewConfirm && (
-          <ConfirmBox
-            icon={<AlertTriangle size={16} className="text-gray-400" />}
-            title="자동 갱신을 끄시겠습니까?"
-            description={`${new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 자동 결제가 중지됩니다.`}
-            confirmLabel="자동 갱신 끄기"
-            confirmColor="bg-gray-700"
-            loading={actionLoading === 'disableAutoRenew'}
-            onCancel={() => setShowDisableAutoRenewConfirm(false)}
-            onConfirm={() => handleAction('disableAutoRenew', () => callApi('/api/payments/billing/disable'))}
-          />
-        )}
-
-        {/* Refund */}
-        {isActive && refundCheck?.refundable && !showRefundConfirm && (
-          <ActionButton
-            label={`환불 요청 (${refundCheck.amount?.toLocaleString()}원)`}
-            danger
-            onClick={() => setShowRefundConfirm(true)}
-          />
-        )}
-        {showRefundConfirm && refundCheck && (
-          <ConfirmBox
-            icon={<AlertTriangle size={16} className="text-red-400" />}
-            title="환불하시겠습니까?"
-            description={`${refundCheck.amount?.toLocaleString()}원이 환불되며 즉시 무료 플랜으로 전환됩니다. 남은 환불 가능 시간: ${refundCheck.remainingHours}시간`}
-            confirmLabel="환불 확인"
-            confirmColor="bg-red-500"
-            loading={actionLoading === 'refund'}
-            onCancel={() => setShowRefundConfirm(false)}
-            onConfirm={() => handleAction('refund', () => callApi('/api/payments/refund'))}
-          />
-        )}
-
-        {/* Cancel subscription */}
-        {isActive && !showCancelConfirm && (
-          <ActionButton
-            label="구독 해지"
-            muted
-            onClick={() => setShowCancelConfirm(true)}
-          />
-        )}
-        {showCancelConfirm && (
-          <div className="p-4 bg-orange-50 rounded-xl space-y-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle size={16} className="text-orange-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-orange-700">구독을 해지하시겠습니까?</p>
-                <p className="text-xs text-orange-500 mt-1">
-                  {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                  {isRecurring && ' 자동 결제도 중지됩니다.'}
-                </p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-orange-600 mb-2">해지 사유 (선택)</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요', '기타'].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setCancelReason(cancelReason === r ? '' : r)}
-                    className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                      cancelReason === r
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-white border border-orange-200 text-orange-600'
-                    }`}
-                  >{r}</button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
-                className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500"
-              >취소</button>
-              <button
-                onClick={() => handleAction('cancel', () => callApi('/api/payments/cancel', { reason: cancelReason || undefined }))}
-                disabled={actionLoading === 'cancel'}
-                className="flex-1 py-2 rounded-full text-xs bg-orange-500 text-white font-medium disabled:opacity-50"
-              >{actionLoading === 'cancel' ? '처리 중...' : '해지 확인'}</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Plan comparison link */}
-      <div className="mt-8 text-center">
-        <button
-          onClick={() => router.push('/pricing')}
-          className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
-        >
-          요금제 비교 보기 →
+    <div className="max-w-lg mx-auto pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+          <ArrowLeft size={20} />
         </button>
+        <h1 className="text-sm font-semibold text-gray-700">구독/결제 관리</h1>
+        <div className="w-10" />
       </div>
 
-      {/* Contact */}
-      <p className="text-[11px] text-gray-400 text-center mt-4">
-        결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>
-      </p>
-    </div>
-  );
-}
+      <div className="px-4 pt-5">
 
-// ─── Subcomponents ───
+        {/* ── Plan Card ── */}
+        <div className={`rounded-2xl p-5 mb-5 relative overflow-hidden ${
+          isPaid
+            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
+        }`}>
+          {/* Decorative circle */}
+          <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full ${
+            isPaid ? 'bg-blue-400/30' : 'bg-gray-300/30'
+          }`} />
+          <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full ${
+            isPaid ? 'bg-blue-400/20' : 'bg-gray-300/20'
+          }`} />
 
-function InfoRow({ icon, label, value, valueColor = 'text-gray-700' }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  valueColor?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <div className="flex items-center gap-2 text-gray-500">
-        {icon}
-        <span className="text-sm">{label}</span>
-      </div>
-      <span className={`text-sm font-semibold ${valueColor}`}>{value}</span>
-    </div>
-  );
-}
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-1">
+              {isPaid ? <Crown size={16} /> : <Zap size={16} />}
+              <span className="text-xs font-medium opacity-80">현재 플랜</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-0.5">
+              {isPaid ? 'Plus' : 'Free'}
+            </h2>
+            <p className={`text-xs ${isPaid ? 'text-blue-100' : 'text-gray-500'}`}>
+              {isPaid ? '모든 기능을 제한 없이' : '기본 기능 무료 이용'}
+            </p>
 
-function ActionButton({ label, onClick, primary, danger, muted, icon }: {
-  label: string;
-  onClick: () => void;
-  primary?: boolean;
-  danger?: boolean;
-  muted?: boolean;
-  icon?: React.ReactNode;
-}) {
-  const base = 'w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1';
-  const style = primary ? `${base} bg-blue-600 text-white hover:bg-blue-700`
-    : danger ? `${base} border border-red-200 text-red-500 hover:bg-red-50`
-    : muted ? `${base} border border-gray-200 text-gray-500 hover:bg-gray-50`
-    : `${base} border border-blue-200 text-blue-600 hover:bg-blue-50`;
-  return <button onClick={onClick} className={style}>{label}{icon}</button>;
-}
+            {/* Status badge */}
+            {hasSub && (
+              <div className="mt-3">
+                <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                  isActive
+                    ? isPaid ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    isActive ? 'bg-green-400' : 'bg-orange-400'
+                  }`} />
+                  {isActive ? '이용 중' : '해지됨'}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
 
-function ConfirmBox({ icon, title, description, confirmLabel, confirmColor, loading, onCancel, onConfirm }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmColor: string;
-  loading: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div className="p-4 bg-gray-50 rounded-xl space-y-3">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex-shrink-0">{icon}</span>
-        <div>
-          <p className="text-sm font-medium text-gray-700">{title}</p>
-          <p className="text-xs text-gray-500 mt-1">{description}</p>
+        {/* ── Subscription Details ── */}
+        {hasSub && subscription && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100">
+              <span className="text-[11px] font-semibold text-gray-400 tracking-wider">구독 정보</span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              <DetailRow
+                icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
+                label="결제 방식"
+                value={isRecurring ? '자동 갱신' : '1회 결제'}
+                accent={isRecurring}
+              />
+              <DetailRow
+                icon={<Calendar size={14} className="text-gray-400" />}
+                label="이용 기간"
+                value={`${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지`}
+              />
+              {isRecurring && subscription.next_billing_at && (
+                <DetailRow
+                  icon={<CreditCard size={14} className="text-blue-500" />}
+                  label="다음 결제일"
+                  value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')}
+                  accent
+                />
+              )}
+              {isRecurring && subscription.card_number && (
+                <DetailRow
+                  icon={<Shield size={14} className="text-gray-400" />}
+                  label="결제 카드"
+                  value={`${subscription.card_company || ''} ${subscription.card_number}`.trim()}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Action Message ── */}
+        {actionMessage && (
+          <div className="p-3.5 bg-blue-50 rounded-xl text-xs text-blue-700 mb-4 leading-relaxed">{actionMessage}</div>
+        )}
+
+        {/* ── Action Buttons ── */}
+        <div className="space-y-2.5">
+
+          {/* Free or expired → Subscribe */}
+          {(!hasSub || isCanceled || (!isPaid && !isActive)) && (
+            <button
+              onClick={() => router.push('/pricing')}
+              className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <Crown size={15} />
+              {isCanceled ? '다시 구독하기' : 'Plus 구독하기'}
+            </button>
+          )}
+
+          {/* Monthly → Yearly upgrade */}
+          {isActive && subscription?.product_id?.includes('monthly') && (
+            <button
+              onClick={() => router.push('/payment?productId=plus_yearly')}
+              className="w-full py-3 rounded-2xl text-sm font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-between px-4"
+            >
+              <span>연간으로 변경</span>
+              <span className="text-xs text-blue-400">40,000원/년 (14% 할인)</span>
+            </button>
+          )}
+
+          {/* Recurring: card change */}
+          {isActive && isRecurring && (
+            <button
+              onClick={() => {
+                const pid = subscription?.product_id || 'plus_monthly';
+                router.push(`/payment/billing-auth?productId=${pid}`);
+              }}
+              className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              결제 카드 변경
+            </button>
+          )}
+
+          {/* Recurring: disable auto-renewal */}
+          {isActive && isRecurring && !showDisableAutoRenewConfirm && (
+            <button
+              onClick={() => setShowDisableAutoRenewConfirm(true)}
+              className="w-full py-3 rounded-2xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              자동 갱신 끄기
+            </button>
+          )}
+          {showDisableAutoRenewConfirm && (
+            <ConfirmCard
+              color="gray"
+              title="자동 갱신을 끄시겠습니까?"
+              description={`${new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 자동 결제가 중지됩니다.`}
+              confirmLabel="자동 갱신 끄기"
+              loading={actionLoading === 'disableAutoRenew'}
+              onCancel={() => setShowDisableAutoRenewConfirm(false)}
+              onConfirm={() => handleAction('disableAutoRenew', () => callApi('/api/payments/billing/disable'))}
+            />
+          )}
+
+          {/* Refund */}
+          {isActive && refundCheck?.refundable && !showRefundConfirm && (
+            <button
+              onClick={() => setShowRefundConfirm(true)}
+              className="w-full py-3 rounded-2xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+            >
+              환불 요청 ({refundCheck.amount?.toLocaleString()}원)
+            </button>
+          )}
+          {showRefundConfirm && refundCheck && (
+            <ConfirmCard
+              color="red"
+              title="환불하시겠습니까?"
+              description={`${refundCheck.amount?.toLocaleString()}원이 환불되며 즉시 무료 플랜으로 전환됩니다. (남은 시간: ${refundCheck.remainingHours}시간)`}
+              confirmLabel="환불 확인"
+              loading={actionLoading === 'refund'}
+              onCancel={() => setShowRefundConfirm(false)}
+              onConfirm={() => handleAction('refund', () => callApi('/api/payments/refund'))}
+            />
+          )}
+
+          {/* Cancel subscription */}
+          {isActive && !showCancelConfirm && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="w-full py-3 rounded-2xl text-sm font-medium text-gray-400 hover:text-orange-500 transition-colors"
+            >
+              구독 해지
+            </button>
+          )}
+          {showCancelConfirm && (
+            <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle size={15} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
+                  <p className="text-xs text-orange-500/80 mt-1 leading-relaxed">
+                    {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                    {isRecurring && ' 자동 결제도 중지됩니다.'}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setCancelReason(cancelReason === r ? '' : r)}
+                      className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
+                        cancelReason === r
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-white border border-orange-200 text-orange-600'
+                      }`}
+                    >{r}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
+                  className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500"
+                >취소</button>
+                <button
+                  onClick={() => handleAction('cancel', () => callApi('/api/payments/cancel', { reason: cancelReason || undefined }))}
+                  disabled={actionLoading === 'cancel'}
+                  className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50"
+                >{actionLoading === 'cancel' ? '처리 중...' : '해지 확인'}</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 space-y-3 text-center">
+          <button
+            onClick={() => router.push('/pricing')}
+            className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-0.5 mx-auto"
+          >
+            요금제 비교 <ChevronRight size={12} />
+          </button>
+          <p className="text-[10px] text-gray-300">
+            문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a>
+          </p>
         </div>
       </div>
-      <div className="flex gap-2">
-        <button onClick={onCancel} className="flex-1 py-2 rounded-full text-xs border border-gray-200 text-gray-500">취소</button>
+    </div>
+  );
+}
+
+// ── Sub-components ──
+
+function DetailRow({ icon, label, value, accent }: {
+  icon: React.ReactNode; label: string; value: string; accent?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
+        {icon}
+        <span className="text-xs text-gray-500">{label}</span>
+      </div>
+      <span className={`text-xs font-semibold ${accent ? 'text-blue-600' : 'text-gray-800'}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ConfirmCard({ color, title, description, confirmLabel, loading, onCancel, onConfirm }: {
+  color: 'gray' | 'red';
+  title: string; description: string; confirmLabel: string;
+  loading: boolean; onCancel: () => void; onConfirm: () => void;
+}) {
+  const bg = color === 'red' ? 'bg-red-50/50 border-red-100' : 'bg-gray-50 border-gray-100';
+  const iconColor = color === 'red' ? 'text-red-400' : 'text-gray-400';
+  const titleColor = color === 'red' ? 'text-red-700' : 'text-gray-700';
+  const descColor = color === 'red' ? 'text-red-500/80' : 'text-gray-500';
+  const btnBg = color === 'red' ? 'bg-red-500' : 'bg-gray-700';
+
+  return (
+    <div className={`rounded-2xl border p-4 space-y-3 ${bg}`}>
+      <div className="flex items-start gap-2.5">
+        <AlertTriangle size={15} className={`${iconColor} mt-0.5 flex-shrink-0`} />
+        <div>
+          <p className={`text-[13px] font-semibold ${titleColor}`}>{title}</p>
+          <p className={`text-xs ${descColor} mt-1 leading-relaxed`}>{description}</p>
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">
+          취소
+        </button>
         <button onClick={onConfirm} disabled={loading}
-          className={`flex-1 py-2 rounded-full text-xs text-white font-medium disabled:opacity-50 ${confirmColor}`}
-        >{loading ? '처리 중...' : confirmLabel}</button>
+          className={`flex-1 py-2.5 rounded-xl text-xs text-white font-medium disabled:opacity-50 ${btnBg}`}>
+          {loading ? '처리 중...' : confirmLabel}
+        </button>
       </div>
     </div>
   );

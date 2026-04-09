@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Crown, X } from 'lucide-react';
+import { Check, Crown, X, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PLANS, PlanType } from '@/lib/plans';
 
@@ -114,8 +114,17 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">요금제</h1>
+    <div className="max-w-lg mx-auto pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100 -mx-4">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-sm font-semibold text-gray-700">요금제</h1>
+        <div className="w-10" />
+      </div>
+
+      <h2 className="text-2xl font-bold text-gray-900 mb-1 mt-5">요금제</h2>
       <p className="text-sm text-gray-400 mb-6">
         나에게 맞는 플랜을 선택하세요.
       </p>
