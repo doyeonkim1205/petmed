@@ -868,12 +868,12 @@ export default function ProfilePage() {
         <div className="border-t border-gray-100 my-2" />
 
         <Link
-          href="/pricing"
+          href="/profile/subscription"
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
             <CreditCard size={18} className="text-blue-400" />
-            <span className="text-sm">요금제 관리</span>
+            <span className="text-sm">구독/결제 관리</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
