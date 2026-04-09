@@ -252,7 +252,7 @@ export default function SubscriptionPage() {
             {!isRecurring && !isYearly && (
               <div>
                 <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} highlight
-                  title="정기 결제로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+                  title="월간 정기 결제로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                   sub="월간 단건 대비 10.3% 할인" />
                 <p className="text-[10px] text-gray-400 text-center mt-1">현재 이용 기간 종료 후 적용됩니다.</p>
               </div>
