@@ -99,14 +99,11 @@ export default function PaymentClient({ product }: Props) {
     renderPaymentWidgets();
   }, [widgets, product, billingMode]);
 
-  // 결제 진행 중일 때 새로고침/탭 닫기/뒤로 가기 방지
+  // 결제 진행 중일 때 뒤로 가기 방지 (Android 백버튼 포함)
+  // NOTE: beforeunload는 사용하지 않음 — 토스 SDK가 successUrl로 navigation할 때
+  //       브라우저 "페이지를 떠나시겠습니까?" 팝업이 떠서 결제 흐름이 깨짐.
   useEffect(() => {
     if (!processing) return;
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
 
     window.history.pushState({ paymentLock: true }, '');
     const handlePopState = () => {
@@ -120,11 +117,9 @@ export default function PaymentClient({ product }: Props) {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
   }, [processing, router]);
