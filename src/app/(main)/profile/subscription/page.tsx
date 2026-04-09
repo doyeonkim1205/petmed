@@ -71,7 +71,6 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   },
 ];
 
-type BillingPeriod = 'monthly' | 'yearly';
 const YEARLY_PRICE = 40000;
 const MONTHLY_PRICE = 3900;
 
@@ -89,8 +88,7 @@ export default function SubscriptionPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelWithRefund, setCancelWithRefund] = useState(false);
   const [cancelError, setCancelError] = useState('');
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
-  const [billingMode, setBillingMode] = useState<'recurring' | 'one_time'>('recurring');
+  // billingPeriod and billingMode removed — replaced by 3 direct buttons
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -142,14 +140,6 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleSubscribe = () => {
-    const productId = billingPeriod === 'yearly' ? 'plus_yearly' : 'plus_monthly';
-    if (billingPeriod === 'monthly' && billingMode === 'recurring') {
-      router.push(`/payment/billing-auth?productId=${productId}`);
-    } else {
-      router.push(`/payment?productId=${productId}`);
-    }
-  };
 
   const currentPlan = profile?.plan || 'free';
   const isPaid = currentPlan !== 'free';
@@ -256,16 +246,18 @@ export default function SubscriptionPage() {
         <div className="border-t border-gray-100 pt-6 mb-6">
           <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">기능 비교</h2>
 
+          {/* Subscribe options — 3 direct buttons */}
           {(!isPaid || isCanceled) && (
-            <div className="flex justify-center mb-4">
-              <div className="inline-flex bg-gray-100 rounded-full p-0.5">
-                <button onClick={() => setBillingPeriod('monthly')}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${billingPeriod === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>월간</button>
-                <button onClick={() => setBillingPeriod('yearly')}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1 ${billingPeriod === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
-                  연간 <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-bold">-14.5%</span>
-                </button>
-              </div>
+            <div className="space-y-2 mb-5">
+              <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} variant="blue">
+                자동 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+              </ActionBtn>
+              <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly')}>
+                1회 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+              </ActionBtn>
+              <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
+                연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
+              </ActionBtn>
             </div>
           )}
 
@@ -305,42 +297,6 @@ export default function SubscriptionPage() {
             </table>
           </div>
 
-          {/* Subscribe CTA */}
-          {(!isPaid || isCanceled) && (
-            <div className="mt-5 space-y-3">
-              {/* Billing mode selection (monthly only — yearly is always one-time) */}
-              {billingPeriod === 'monthly' && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setBillingMode('recurring')}
-                    className={`p-3 rounded-xl border text-center transition-colors ${
-                      billingMode === 'recurring' ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-gray-200'
-                    }`}>
-                    <p className={`text-xs font-bold mb-0.5 ${billingMode === 'recurring' ? 'text-blue-700' : 'text-gray-500'}`}>자동 갱신</p>
-                    <p className={`text-[10px] ${billingMode === 'recurring' ? 'text-blue-500' : 'text-gray-400'}`}>매월 자동 결제</p>
-                  </button>
-                  <button onClick={() => setBillingMode('one_time')}
-                    className={`p-3 rounded-xl border text-center transition-colors ${
-                      billingMode === 'one_time' ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-gray-200'
-                    }`}>
-                    <p className={`text-xs font-bold mb-0.5 ${billingMode === 'one_time' ? 'text-blue-700' : 'text-gray-500'}`}>1회 결제</p>
-                    <p className={`text-[10px] ${billingMode === 'one_time' ? 'text-blue-500' : 'text-gray-400'}`}>30일 이용권</p>
-                  </button>
-                </div>
-              )}
-
-              <button onClick={handleSubscribe}
-                className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                <Crown size={15} />
-                {isCanceled ? '다시 구독하기' : 'Plus 구독하기'}
-                <span className="text-xs text-blue-200">
-                  {billingPeriod === 'yearly' ? `${Math.round(YEARLY_PRICE / 12).toLocaleString()}원/월` : `${MONTHLY_PRICE.toLocaleString()}원/월`}
-                </span>
-              </button>
-              {billingPeriod === 'yearly' && (
-                <p className="text-center text-[11px] text-gray-400">연 {YEARLY_PRICE.toLocaleString()}원 (월간 대비 {(MONTHLY_PRICE * 12 - YEARLY_PRICE).toLocaleString()}원 할인)</p>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ── 6. Cancel (below feature comparison) ── */}
@@ -400,7 +356,10 @@ export default function SubscriptionPage() {
                   </div>
                 </div>
                 {cancelError && (
-                  <div className="p-2.5 bg-red-50 rounded-lg text-[11px] text-red-600">{cancelError}</div>
+                  <div className="p-2.5 bg-red-50 rounded-lg text-[11px] text-red-600">
+                    {cancelError}
+                    <p className="mt-1 text-[10px] text-red-400">다시 시도하거나 고객센터에 문의해주세요.</p>
+                  </div>
                 )}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); setCancelError(''); }}
