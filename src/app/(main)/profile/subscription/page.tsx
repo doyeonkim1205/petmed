@@ -191,16 +191,15 @@ export default function SubscriptionPage() {
 
         {/* ── Subscribe buttons (Free only — no subscription info) ── */}
         {!isPaid && !hasSub && (
-          <div className="space-y-2 mb-5">
-            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}>
-              1회 결제 (월 {MONTHLY_ONETIME.toLocaleString()}원)
-            </ActionBtn>
-            <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}>
-              자동 결제 (월 {MONTHLY_AUTO.toLocaleString()}원, 10.3% 할인)
-            </ActionBtn>
-            <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
-              연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
-            </ActionBtn>
+          <div className="space-y-2.5 mb-5">
+            <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+              title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`} />
+            <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} highlight
+              title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+              sub="월간 단건 대비 10.3% 할인" />
+            <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+              title="연간 정기 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+              sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
           </div>
         )}
 
@@ -229,16 +228,15 @@ export default function SubscriptionPage() {
 
         {/* ── Re-subscribe buttons (canceled — after subscription info) ── */}
         {isCanceled && (
-          <div className="space-y-2 mb-5">
-            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}>
-              1회 결제 (월 {MONTHLY_ONETIME.toLocaleString()}원)
-            </ActionBtn>
-            <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}>
-              자동 결제 (월 {MONTHLY_AUTO.toLocaleString()}원, 10.3% 할인)
-            </ActionBtn>
-            <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
-              연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
-            </ActionBtn>
+          <div className="space-y-2.5 mb-5">
+            <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+              title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`} />
+            <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} highlight
+              title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+              sub="월간 단건 대비 10.3% 할인" />
+            <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+              title="연간 정기 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+              sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
           </div>
         )}
 
@@ -250,21 +248,27 @@ export default function SubscriptionPage() {
         {/* ── 4. Primary Actions ── */}
         {isActive && (
           <div className="space-y-2 mb-6">
-            {/* 1회 결제(월간) → 자동 결제로 전환 */}
+            {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
-              <ActionBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} variant="blue">
-                자동 결제로 전환
-              </ActionBtn>
+              <div>
+                <ActionBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} variant="blue">
+                  정기 결제로 전환 (월 {MONTHLY_AUTO.toLocaleString()}원)
+                </ActionBtn>
+                <p className="text-[10px] text-gray-400 text-center mt-1">현재 이용 기간 종료 후 적용됩니다.</p>
+              </div>
             )}
 
-            {/* 연간이 아니면 → 연간으로 변경 */}
+            {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
-              <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
-                연간으로 변경 (40,000원/년, 14.5% 할인)
-              </ActionBtn>
+              <div>
+                <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
+                  연간 정기 결제로 변경 (연 {YEARLY_PRICE.toLocaleString()}원)
+                </ActionBtn>
+                <p className="text-[10px] text-gray-400 text-center mt-1">현재 이용 기간 종료 후 적용됩니다.</p>
+              </div>
             )}
 
-            {/* 자동 갱신이면 → 카드 변경 */}
+            {/* 자동 갱신 → 카드 변경 */}
             {isRecurring && (
               <ActionBtn onClick={() => router.push(`/payment/billing-auth?productId=${subscription?.product_id || 'plus_monthly'}`)}>
                 결제 카드 변경
@@ -412,4 +416,23 @@ function DetailRow({ icon, label, value, accent }: { icon: React.ReactNode; labe
 function ActionBtn({ children, onClick, variant = 'default' }: { children: React.ReactNode; onClick: () => void; variant?: 'default' | 'blue' | 'muted' }) {
   const styles = { default: 'border border-gray-200 text-gray-700 hover:bg-gray-50', blue: 'border border-blue-200 text-blue-600 hover:bg-blue-50', muted: 'border border-gray-200 text-gray-400 hover:bg-gray-50' };
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
+}
+
+function PlanBtn({ onClick, title, price, sub, highlight }: {
+  onClick: () => void; title: string; price: string; sub?: string; highlight?: boolean;
+}) {
+  return (
+    <button onClick={onClick}
+      className={`w-full rounded-2xl border p-4 text-left transition-colors ${
+        highlight ? 'border-blue-300 bg-blue-50/40 hover:bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+      }`}>
+      <div className="flex items-center justify-between mb-0.5">
+        <span className={`text-xs font-bold ${highlight ? 'text-blue-700' : 'text-gray-700'}`}>{title}</span>
+        <span className={`text-sm font-bold ${highlight ? 'text-blue-600' : 'text-gray-900'}`}>{price}</span>
+      </div>
+      {sub && (
+        <p className={`text-[10px] ${highlight ? 'text-blue-500' : 'text-gray-400'}`}>{sub}</p>
+      )}
+    </button>
+  );
 }
