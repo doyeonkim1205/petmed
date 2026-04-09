@@ -114,9 +114,9 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto pb-20">
+    <div className="max-w-lg mx-auto pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100 -mx-4">
+      <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft size={20} />
         </button>
@@ -124,7 +124,8 @@ export default function PricingPage() {
         <div className="w-10" />
       </div>
 
-      <h2 className="text-2xl font-bold text-gray-900 mb-1 mt-5">요금제</h2>
+      <div className="px-4 pt-5">
+      <h2 className="text-xl font-bold text-gray-900 mb-1">요금제</h2>
       <p className="text-sm text-gray-400 mb-6">
         나에게 맞는 플랜을 선택하세요.
       </p>
@@ -303,6 +304,7 @@ export default function PricingPage() {
       <p className="text-[11px] text-gray-400 text-center pb-4">
         결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>
       </p>
+      </div>{/* end px-4 */}
     </div>
   );
 }

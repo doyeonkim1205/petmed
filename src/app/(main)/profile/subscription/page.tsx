@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Crown, RefreshCw, Calendar, CreditCard, Shield,
-  AlertTriangle, Loader2, ChevronRight, Zap,
+  AlertTriangle, Loader2, Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -128,45 +128,31 @@ export default function SubscriptionPage() {
       <div className="px-4 pt-5">
 
         {/* ── Plan Card ── */}
-        <div className={`rounded-2xl p-5 mb-5 relative overflow-hidden ${
-          isPaid
-            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700'
+        <div className={`rounded-2xl border p-5 mb-5 ${
+          isPaid ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'
         }`}>
-          {/* Decorative circle */}
-          <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full ${
-            isPaid ? 'bg-blue-400/30' : 'bg-gray-300/30'
-          }`} />
-          <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full ${
-            isPaid ? 'bg-blue-400/20' : 'bg-gray-300/20'
-          }`} />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              {isPaid ? <Crown size={16} /> : <Zap size={16} />}
-              <span className="text-xs font-medium opacity-80">현재 플랜</span>
-            </div>
-            <h2 className="text-2xl font-bold mb-0.5">
-              {isPaid ? 'Plus' : 'Free'}
-            </h2>
-            <p className={`text-xs ${isPaid ? 'text-blue-100' : 'text-gray-500'}`}>
-              {isPaid ? '모든 기능을 제한 없이' : '기본 기능 무료 이용'}
-            </p>
-
-            {/* Status badge */}
-            {hasSub && (
-              <div className="mt-3">
-                <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                  isActive
-                    ? isPaid ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
-                    : 'bg-orange-100 text-orange-700'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    isActive ? 'bg-green-400' : 'bg-orange-400'
-                  }`} />
-                  {isActive ? '이용 중' : '해지됨'}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                {isPaid
+                  ? <Crown size={15} className="text-blue-500" />
+                  : <Zap size={15} className="text-gray-400" />
+                }
+                <span className={`text-lg font-bold ${isPaid ? 'text-blue-700' : 'text-gray-700'}`}>
+                  {isPaid ? 'Plus' : 'Free'}
                 </span>
               </div>
+              <p className="text-xs text-gray-500">
+                {isPaid ? '모든 기능을 제한 없이' : '기본 기능 무료 이용'}
+              </p>
+            </div>
+            {hasSub && (
+              <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-semibold ${
+                isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
+                {isActive ? '이용 중' : '해지됨'}
+              </span>
             )}
           </div>
         </div>
@@ -346,13 +332,7 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 space-y-3 text-center">
-          <button
-            onClick={() => router.push('/pricing')}
-            className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-0.5 mx-auto"
-          >
-            요금제 비교 <ChevronRight size={12} />
-          </button>
+        <div className="mt-8 text-center">
           <p className="text-[10px] text-gray-300">
             문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a>
           </p>
