@@ -71,8 +71,9 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   },
 ];
 
-const YEARLY_PRICE = 40000;
-const MONTHLY_PRICE = 3900;
+const MONTHLY_ONETIME = 3900;  // 1회 결제 (기준가)
+const MONTHLY_AUTO = 3500;     // 자동 결제 (10.3% 할인)
+const YEARLY_PRICE = 40000;    // 연간 (14.5% 할인)
 
 // ── Page ──
 
@@ -192,10 +193,10 @@ export default function SubscriptionPage() {
         {(!isPaid || isCanceled) && (
           <div className="space-y-2 mb-5">
             <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} variant="blue">
-              자동 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+              자동 결제 (월 {MONTHLY_AUTO.toLocaleString()}원, 10.3% 할인)
             </ActionBtn>
-            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly')}>
-              1회 결제 (월 {MONTHLY_PRICE.toLocaleString()}원)
+            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}>
+              1회 결제 (월 {MONTHLY_ONETIME.toLocaleString()}원)
             </ActionBtn>
             <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
               연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
