@@ -189,8 +189,8 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        {/* ── Subscribe buttons (Free/canceled — right below plan card) ── */}
-        {(!isPaid || isCanceled) && (
+        {/* ── Subscribe buttons (Free only — no subscription info) ── */}
+        {!isPaid && !hasSub && (
           <div className="space-y-2 mb-5">
             <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}>
               1회 결제 (월 {MONTHLY_ONETIME.toLocaleString()}원)
@@ -224,6 +224,21 @@ export default function SubscriptionPage() {
                   label="결제 카드" value={formatCard()} />
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Re-subscribe buttons (canceled — after subscription info) ── */}
+        {isCanceled && (
+          <div className="space-y-2 mb-5">
+            <ActionBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}>
+              1회 결제 (월 {MONTHLY_ONETIME.toLocaleString()}원)
+            </ActionBtn>
+            <ActionBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}>
+              자동 결제 (월 {MONTHLY_AUTO.toLocaleString()}원, 10.3% 할인)
+            </ActionBtn>
+            <ActionBtn onClick={() => router.push('/payment?productId=plus_yearly')}>
+              연간 결제 ({YEARLY_PRICE.toLocaleString()}원/년, 14.5% 할인)
+            </ActionBtn>
           </div>
         )}
 
