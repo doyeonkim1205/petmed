@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { issueBillingKey, type TossBillingError } from '@/lib/toss-billing';
+import { encrypt } from '@/lib/encryption';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       .from('subscriptions')
       .update({
         billing_type: 'recurring',
-        toss_billing_key: issued.billingKey,
+        toss_billing_key: encrypt(issued.billingKey),
         toss_customer_key: customerKey,
         card_company: cardCompany,
         card_number: cardNumber,

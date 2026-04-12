@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig } from '@/lib/plans';
+import { sanitizeForLLM } from '@/lib/sanitize';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: 'user',
-            content: `우리 ${petLabel}가 이런 증상을 보입니다: "${symptoms}"${followupContext}`,
+            content: `우리 ${petLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${followupContext}`,
           },
         ],
       }),

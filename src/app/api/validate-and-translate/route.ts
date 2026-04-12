@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { diseaseMap } from '@/data/diseaseMap';
 import { checkBannedWords } from '@/data/bannedWords';
 import { verifyAuth } from '@/lib/apiAuth';
+import { sanitizeForLLM } from '@/lib/sanitize';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -15,10 +17,16 @@ const REJECT = {
  * - diseaseMap에 있으면 OpenAI 호출 없이 즉시 반환
  * - 없으면 GPT-4o-mini로 검증 + 번역을 동시에 처리
  */
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
+    const userId = auth.user!.id;
 
     const { query, petType } = await request.json();
     if (!query || query.trim().length < 1 || query.length > 200) {
@@ -46,6 +54,17 @@ export async function POST(request: NextRequest) {
       if (trimmed.includes(key)) {
         return NextResponse.json({ valid: true, englishQuery: diseaseMap[key] });
       }
+    }
+
+    // 3.5) Rate limit: max 30 OpenAI calls per hour per user
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: recentCalls } = await supabaseAdmin
+      .from('search_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', oneHourAgo);
+    if ((recentCalls || 0) >= 30) {
+      return NextResponse.json({ valid: false, reason: '잠시 후 다시 시도해주세요. (요청 한도 초과)' });
     }
 
     // 4) OpenAI로 검증 + 번역을 한 번에 처리 (동물 종 포함)
@@ -100,7 +119,7 @@ englishQuery 번역 규칙:
           },
           {
             role: 'user',
-            content: trimmed,
+            content: sanitizeForLLM(trimmed),
           },
         ],
       }),

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { chargeBilling, classifyBillingError, type TossBillingError } from '@/lib/toss-billing';
 import { getProductById } from '@/lib/products';
+import { decrypt } from '@/lib/encryption';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,19 +69,20 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
+    // Decrypt billing key (stored encrypted in DB)
+    const billingKey = decrypt(sub.toss_billing_key) || sub.toss_billing_key;
+
     const product = await getProductById(sub.product_id);
     if (!product) {
       console.warn('auto-billing: product not found for subscription', sub.id, sub.product_id);
       continue;
     }
 
-    // Idempotency: stamp updated_at first so concurrent crons can detect a race.
-    // (We rely on Postgres row-level last-writer-wins; this is a soft guard.)
     const orderId = `pawdex_${sub.user_id.slice(0, 8)}_${product.id}_${Date.now()}`;
 
     try {
       const charged = await chargeBilling({
-        billingKey: sub.toss_billing_key,
+        billingKey,
         customerKey: sub.toss_customer_key,
         amount: product.price,
         orderId,
