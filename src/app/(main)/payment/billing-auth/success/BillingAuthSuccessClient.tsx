@@ -57,8 +57,10 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         setStatus('success');
         setSuccessMessage(data.message || (mode === 'enable' ? '자동 결제가 등록되었습니다' : '결제가 완료되었습니다'));
 
-        const redirectTo = mode === 'enable' ? '/profile/subscription' : '/payment/success';
-        setTimeout(() => router.push(redirectTo), 1500);
+        // Always redirect to subscription page — payment is already confirmed
+        // by the register/enable API. Don't go to /payment/success which
+        // expects widget-style URL params (paymentKey, orderId, amount).
+        setTimeout(() => router.push('/profile/subscription'), 1500);
       } catch (err) {
         setStatus('error');
         setError(err instanceof Error ? err.message : '처리 중 오류가 발생했습니다.');
