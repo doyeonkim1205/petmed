@@ -204,6 +204,7 @@ export default function SubscriptionPage() {
         {/* ── Subscribe buttons (Free only — no subscription info) ── */}
         {!isPaid && !hasSub && (
           <div className="mb-5">
+            <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
             <div className="space-y-2.5">
               <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
@@ -216,6 +217,7 @@ export default function SubscriptionPage() {
                 title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+            </div>
             </div>
           </div>
         )}
@@ -249,6 +251,7 @@ export default function SubscriptionPage() {
         {/* ── Re-subscribe buttons (canceled — after subscription info) ── */}
         {isCanceled && (
           <div className="mb-5">
+            <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
             <div className="space-y-2.5">
               <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
@@ -261,6 +264,7 @@ export default function SubscriptionPage() {
                 title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+            </div>
             </div>
           </div>
         )}
