@@ -168,14 +168,13 @@ export default function StatsPage() {
             </button>
           ))}
           {lockedOptions.map((p) => (
-            <button
+            <div
               key={p.id}
-              onClick={() => router.push('/profile/subscription')}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1"
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1 cursor-not-allowed"
             >
               <Lock size={10} />
               {p.label}
-            </button>
+            </div>
           ))}
         </div>
 
