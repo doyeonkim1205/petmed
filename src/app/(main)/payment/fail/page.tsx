@@ -20,7 +20,7 @@ function FailContent() {
         height={180}
         className="mx-auto mb-4"
       />
-      <h2 className="text-base font-bold text-gray-900 mb-2">앗, 결제에 실패했어요!</h2>
+      <h2 className="text-base font-bold text-gray-900 mb-2">결제를 완료하지 못했어요</h2>
       <p className="text-xs text-gray-500 mb-1">{errorMessage}</p>
       {errorCode && (
         <p className="text-[10px] text-gray-400 mb-6">오류 코드: {errorCode}</p>

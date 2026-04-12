@@ -86,7 +86,7 @@ function SuccessContent() {
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/Robotics-pana.svg" alt="결제 실패" width={180} height={180} className="mx-auto mb-4" />
-          <h2 className="text-base font-bold text-gray-900 mb-2">앗, 결제에 실패했어요!</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-2">결제를 완료하지 못했어요</h2>
           <p className="text-xs text-gray-500 mb-6">{message}</p>
           <button
             onClick={() => router.push('/profile/subscription')}
