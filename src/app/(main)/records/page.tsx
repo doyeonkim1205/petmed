@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
+import { getPlanConfig } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { PetSelector } from '@/components/records/PetSelector';
 import { RecordCard } from '@/components/records/RecordCard';
@@ -47,7 +48,7 @@ export default function RecordsPage() {
   const [petRefreshKey, setPetRefreshKey] = useState(0);
   const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
   const [savingPet, setSavingPet] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { records, loading, error, fetchRecords, deleteRecords } = useHealthRecords(selectedPetId || undefined);
   const [selectMode, setSelectMode] = useState(false);
@@ -134,24 +135,27 @@ export default function RecordsPage() {
     }
   };
 
+  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const costMonths = planConfig.costStatsMonths;
+
   const recentCostStats = useMemo(() => {
     const now = new Date();
-    const threeMonthsAgo = new Date(now);
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    threeMonthsAgo.setHours(0, 0, 0, 0);
+    const rangeStart = new Date(now);
+    rangeStart.setMonth(rangeStart.getMonth() - costMonths);
+    rangeStart.setHours(0, 0, 0, 0);
     let total = 0;
     let count = 0;
     for (const r of records) {
       if (r.cost && r.cost > 0) {
         const d = new Date(r.visit_date);
-        if (d >= threeMonthsAgo && d <= now) {
+        if (d >= rangeStart && d <= now) {
           total += r.cost;
           count++;
         }
       }
     }
     return { total, count };
-  }, [records]);
+  }, [records, costMonths]);
 
   if (authLoading) {
     return (
@@ -378,7 +382,7 @@ export default function RecordsPage() {
                       <Wallet size={16} className="text-blue-600" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs text-blue-500 font-medium">최근 3개월 의료비</p>
+                      <p className="text-xs text-blue-500 font-medium">{costMonths === 12 ? '최근 1년' : `최근 ${costMonths}개월`} 의료비</p>
                       <p className="text-base font-bold text-gray-800">
                         {new Intl.NumberFormat('ko-KR').format(recentCostStats.total)}원
                       </p>
