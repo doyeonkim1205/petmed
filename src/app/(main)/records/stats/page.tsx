@@ -170,7 +170,7 @@ export default function StatsPage() {
           {lockedOptions.map((p) => (
             <div
               key={p.id}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1 cursor-not-allowed"
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1"
             >
               <Lock size={10} />
               {p.label}
