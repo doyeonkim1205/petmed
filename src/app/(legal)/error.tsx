@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LegalError({
   error,
@@ -17,10 +18,14 @@ export default function LegalError({
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-6">
       <div className="text-center max-w-xs">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-          <AlertTriangle className="text-red-400" size={28} />
-        </div>
-        <h2 className="text-base font-bold text-gray-900 mb-1">페이지를 불러올 수 없습니다</h2>
+        <Image
+          src="/icons/error-illustration.svg"
+          alt="에러 일러스트"
+          width={200}
+          height={200}
+          className="mx-auto mb-4"
+        />
+        <h2 className="text-base font-bold text-gray-900 mb-1">페이지를 불러올 수 없어요</h2>
         <p className="text-xs text-gray-500 mb-6">다시 시도해주세요.</p>
         <button
           onClick={reset}

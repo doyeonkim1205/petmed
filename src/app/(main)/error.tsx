@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
 export default function MainError({
   error,
@@ -17,12 +18,16 @@ export default function MainError({
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-6">
       <div className="text-center max-w-xs">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-          <AlertTriangle className="text-red-400" size={28} />
-        </div>
-        <h2 className="text-base font-bold text-gray-900 mb-1">문제가 발생했습니다</h2>
+        <Image
+          src="/icons/error-illustration.svg"
+          alt="에러 일러스트"
+          width={200}
+          height={200}
+          className="mx-auto mb-4"
+        />
+        <h2 className="text-base font-bold text-gray-900 mb-1">앗, 문제가 발생했어요!</h2>
         <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-          일시적인 오류입니다. 다시 시도해주세요.<br />
+          일시적인 오류예요. 다시 시도해주세요.<br />
           문제가 계속되면 앱을 새로고침해주세요.
         </p>
         <button
