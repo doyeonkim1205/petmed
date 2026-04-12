@@ -134,16 +134,17 @@ export default function RecordsPage() {
     }
   };
 
-  const monthlyStats = useMemo(() => {
+  const recentCostStats = useMemo(() => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    threeMonthsAgo.setHours(0, 0, 0, 0);
     let total = 0;
     let count = 0;
     for (const r of records) {
       if (r.cost && r.cost > 0) {
         const d = new Date(r.visit_date);
-        if (d.getFullYear() === year && d.getMonth() === month) {
+        if (d >= threeMonthsAgo && d <= now) {
           total += r.cost;
           count++;
         }
@@ -367,7 +368,7 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {monthlyStats.total > 0 && (
+              {recentCostStats.total > 0 ? (
                 <button
                   onClick={() => router.push('/records/stats')}
                   className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 mb-1"
@@ -377,18 +378,18 @@ export default function RecordsPage() {
                       <Wallet size={16} className="text-blue-600" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs text-blue-500 font-medium">이번 달 의료비</p>
+                      <p className="text-xs text-blue-500 font-medium">최근 3개월 의료비</p>
                       <p className="text-base font-bold text-gray-800">
-                        {new Intl.NumberFormat('ko-KR').format(monthlyStats.total)}원
+                        {new Intl.NumberFormat('ko-KR').format(recentCostStats.total)}원
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-blue-400">
-                    <span>{monthlyStats.count}건의 기록</span>
+                    <span>{recentCostStats.count}건의 기록</span>
                     <ChevronRight size={14} />
                   </div>
                 </button>
-              )}
+              ) : null}
               {filteredRecords.map((record) => (
                 <RecordCard
                   key={record.id}
