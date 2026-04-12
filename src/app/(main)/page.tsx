@@ -43,7 +43,7 @@ export default function HomePage() {
       <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">🐾 PawDex</h1>
 
       {/* Subtitle */}
-      <p className="text-sm text-gray-400 mt-2 mb-5">AI 수의학 논문 분석 서비스</p>
+      <p className="text-sm text-gray-400 mt-2 mb-5">반려동물 건강 정보 플랫폼</p>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">

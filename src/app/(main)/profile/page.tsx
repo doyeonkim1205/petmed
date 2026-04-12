@@ -574,7 +574,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                 try { sessionStorage.clear(); } catch {}
                 alert('캐시가 삭제되었습니다.');
               }}
-              className="mt-1 px-3 py-1.5 text-[11px] text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full h-9 rounded-full border border-gray-200 text-xs font-medium text-gray-400 hover:border-red-300 hover:bg-red-50 hover:text-red-500 transition-colors"
             >
               캐시 삭제
             </button>
