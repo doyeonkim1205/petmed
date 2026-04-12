@@ -3,8 +3,8 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "store.pawdex.app",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_YOUR_SHA256_FINGERPRINT"]
+      "package_name": "com.dylabs.pawdex",
+      "sha256_cert_fingerprints": ["54:DE:47:D3:75:5A:18:25:E5:40:64:85:C1:C4:21:02:4C:F9:60:7A:24:8E:1E:07:FB:26:89:03:F5:C4:E4:23"]
     }
   }
 ]
