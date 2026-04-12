@@ -2,7 +2,6 @@ export default function TermsPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">이용약관</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 20일</p>
 
       <Section title="제1조 (목적)">
         <p>
@@ -166,6 +165,8 @@ export default function TermsPage() {
           <li>협의에도 불구하고 분쟁이 해결되지 않을 경우, 관할 법원에 소송을 제기할 수 있습니다.</li>
         </ol>
       </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
     </article>
   );
 }

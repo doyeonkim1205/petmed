@@ -2,7 +2,6 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">개인정보처리방침</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 24일</p>
 
       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
         PawDex(이하 &quot;서비스&quot;)는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.
@@ -24,7 +23,8 @@ export default function PrivacyPage() {
       <Section title="2. 수집하는 개인정보 항목">
         <p><strong>필수 항목:</strong> 이메일 주소, 비밀번호(해시 처리), 닉네임</p>
         <p><strong>선택 항목:</strong> 프로필 사진, 반려동물 정보(이름, 종류, 품종, 생년월일), 건강 기록(증상, 진료 내용, 투약 정보)</p>
-        <p><strong>결제 정보:</strong> 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리)</p>
+        <p><strong>결제 정보:</strong> 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리). 자동 결제 이용 시 토스페이먼츠로부터 발급받은 암호화된 빌링키를 저장합니다.</p>
+        <p><strong>푸시 알림:</strong> 알림 수신 동의 시 기기 식별을 위한 구독 정보(엔드포인트, 암호화 키)를 수집합니다. 유료 플랜에서만 수집되며, 구독 해지 또는 탈퇴 시 즉시 삭제됩니다.</p>
         <p><strong>자동 수집 항목:</strong> 서비스 이용 기록, 접속 로그, 기기 정보</p>
         <p><strong>소셜 로그인 시:</strong> Google 또는 카카오 계정의 이메일 주소, 프로필 사진(선택)</p>
       </Section>
@@ -75,6 +75,11 @@ export default function PrivacyPage() {
             <tr className="border-b border-gray-100 dark:border-gray-800">
               <td className="py-2">토스페이먼츠(주)</td>
               <td className="py-2">결제 처리 및 정산</td>
+              <td className="py-2">대한민국</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">카카오(주)</td>
+              <td className="py-2">지도 표시 및 주변 동물병원 검색</td>
               <td className="py-2">대한민국</td>
             </tr>
           </tbody>
@@ -136,6 +141,8 @@ export default function PrivacyPage() {
       <Section title="11. 개인정보처리방침의 변경">
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
     </article>
   );
 }

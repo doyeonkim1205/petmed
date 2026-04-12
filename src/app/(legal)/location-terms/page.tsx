@@ -2,7 +2,6 @@ export default function LocationTermsPage() {
   return (
     <article className="prose prose-sm dark:prose-invert max-w-none">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">위치기반서비스 이용약관</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">시행일: 2026년 2월 24일</p>
 
       <Section title="제1조 (목적)">
         <p>
@@ -70,6 +69,8 @@ export default function LocationTermsPage() {
           <li>위치정보 관련 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
         </ul>
       </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 2월 24일</p>
     </article>
   );
 }
