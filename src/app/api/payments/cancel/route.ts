@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     let refundedAmount: number | null = null;
+    // Use billing secret key if the subscription was paid via billing (bill) service
+    const useBillingKey = subscription.billing_type === 'recurring';
 
     // Handle refund if requested. If refund fails, cancel is BLOCKED (user keeps subscription).
     if (withRefund) {
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
           const isYearly = subscription.product_id?.includes('yearly');
 
           if (isYearly && hoursSincePayment <= 24) {
-            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (연간, 24시간 이내)');
+            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (연간, 24시간 이내)', useBillingKey);
             refundedAmount = payment.amount;
           } else if (isYearly && hoursSincePayment > 24) {
             const startDate = new Date(subscription.period_start || payment.created_at);
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
             const remainingMonths = Math.max(0, 12 - monthsUsed);
             const refundAmount = Math.round(payment.amount * (remainingMonths / 12));
             if (refundAmount > 0) {
-              await cancelPayment(payment.toss_payment_key, `사용자 환불 요청 (연간, ${monthsUsed}개월 사용, ${remainingMonths}개월분 환불)`);
+              await cancelPayment(payment.toss_payment_key, `사용자 환불 요청 (연간, ${monthsUsed}개월 사용, ${remainingMonths}개월분 환불)`, useBillingKey);
               refundedAmount = refundAmount;
             }
           } else if (!isYearly && hoursSincePayment <= 24) {
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
               .eq('user_id', userId)
               .gte('created_at', paymentDate);
             if ((usage || 0) + (records || 0) === 0) {
-              await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (월간, 24시간 이내, 미이용)');
+              await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (월간, 24시간 이내, 미이용)', useBillingKey);
               refundedAmount = payment.amount;
             }
           }

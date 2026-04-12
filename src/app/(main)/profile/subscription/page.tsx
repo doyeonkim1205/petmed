@@ -198,7 +198,7 @@ export default function SubscriptionPage() {
               title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
               sub="월간 단건 대비 10.3% 할인" />
             <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
-              title="연간 정기 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+              title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
               sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
           </div>
         )}
@@ -235,7 +235,7 @@ export default function SubscriptionPage() {
               title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
               sub="월간 단건 대비 10.3% 할인" />
             <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
-              title="연간 정기 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+              title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
               sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
           </div>
         )}
@@ -262,7 +262,7 @@ export default function SubscriptionPage() {
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
               <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly&upgrade=true')}
-                title="연간 정기 결제로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+                title="연간 결제로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
             )}
 
