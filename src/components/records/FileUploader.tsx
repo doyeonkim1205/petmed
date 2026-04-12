@@ -55,12 +55,17 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
         } ${files.length >= maxFiles ? 'opacity-50 pointer-events-none' : ''}`}
       >
         <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-        <p className="text-sm text-gray-600">
-          {placeholder}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)
-        </p>
+        {files.length >= maxFiles ? (
+          <>
+            <p className="text-sm text-orange-600 font-medium">첨부파일 한도({maxFiles}개)에 도달했습니다.</p>
+            <p className="text-xs text-gray-400 mt-1">기존 파일을 삭제하거나 플랜을 업그레이드하세요.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600">{placeholder}</p>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)</p>
+          </>
+        )}
         <input
           ref={inputRef}
           type="file"

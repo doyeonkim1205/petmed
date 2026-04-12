@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
+import { sanitizeForLLM } from '@/lib/sanitize';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
 /**
  * 단일 배치 AI 분석 호출
@@ -86,22 +93,52 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
+    const userId = auth.user!.id;
 
     if (!OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
     const { diseaseName, petType, papers } = await request.json();
 
     if (!diseaseName || diseaseName.length > 200 || !papers || papers.length === 0 || papers.length > 20) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    const sanitized = sanitizeForLLM(diseaseName);
+    const pet = petType === 'cat' ? 'cat' : 'dog';
+
+    // Rate limit: max 15 per hour per user
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count } = await supabaseAdmin
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'papers.analyze')
+      .gte('created_at', oneHourAgo);
+    if ((count || 0) >= 15) {
+      return NextResponse.json({ error: '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
+    }
+
+    // Check cache (30-day TTL)
+    const pmids = papers.map((p: { pmid: string }) => p.pmid).sort().join(',');
+    const cacheKey = `paper_analysis:${sanitized}:${pet}:${pmids}`;
+    const ttl = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: cached } = await supabaseAdmin
+      .from('search_cache')
+      .select('analysis')
+      .eq('cache_key', cacheKey)
+      .gt('created_at', ttl)
+      .maybeSingle();
+    if (cached?.analysis) {
+      return NextResponse.json(cached.analysis);
+    }
+
+    // Log activity
+    await supabaseAdmin.from('activity_logs').insert({
+      user_id: userId, action: 'papers.analyze',
+      details: { diseaseName: sanitized, petType: pet, paperCount: papers.length },
+    });
 
     // 논문 6편 이상이면 2-batch 병렬 분석
     if (papers.length > 5) {
@@ -123,25 +160,34 @@ export async function POST(request: NextRequest) {
       const allPrecautions = [...(result1.precautions ?? []), ...(result2.precautions ?? [])];
       const allIngredients = [...(result1.ingredients ?? []), ...(result2.ingredients ?? [])];
 
-      return NextResponse.json({
+      const mergedResult = {
         titles: mergedTitles,
         summaries: mergedSummaries,
         relevant: mergedRelevant,
         precautions: allPrecautions.slice(0, 5),
         ingredients: allIngredients.slice(0, 5),
-      });
+      };
+      await supabaseAdmin.from('search_cache').upsert(
+        { cache_key: cacheKey, query: sanitized, pet_type: pet, analysis: mergedResult, created_at: new Date().toISOString() },
+        { onConflict: 'cache_key' },
+      ).then(() => {});
+      return NextResponse.json(mergedResult);
     }
 
     // 5편 이하는 단일 호출
-    const parsed = await analyzeBatch(papers, diseaseName, petType, OPENAI_API_KEY);
-
-    return NextResponse.json({
+    const parsed = await analyzeBatch(papers, sanitized, petType, OPENAI_API_KEY);
+    const singleResult = {
       titles: parsed.titles ?? [],
       summaries: parsed.summaries ?? [],
       relevant: parsed.relevant ?? [],
       precautions: (parsed.precautions ?? []).slice(0, 5),
       ingredients: (parsed.ingredients ?? []).slice(0, 5),
-    });
+    };
+    await supabaseAdmin.from('search_cache').upsert(
+      { cache_key: cacheKey, query: sanitized, pet_type: pet, analysis: singleResult, created_at: new Date().toISOString() },
+      { onConflict: 'cache_key' },
+    ).then(() => {});
+    return NextResponse.json(singleResult);
   } catch (error) {
     console.error('Paper analysis error:', error);
     return NextResponse.json(

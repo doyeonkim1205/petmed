@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
+import { sanitizeForLLM } from '@/lib/sanitize';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
+    const userId = auth.user!.id;
 
     if (!OPENAI_API_KEY) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
@@ -17,14 +25,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing diseaseName' }, { status: 400 });
     }
 
-    const petLabel = petType === 'cat' ? '고양이' : '강아지';
+    const pet = petType === 'cat' ? 'cat' : 'dog';
+    const petLabel = pet === 'cat' ? '고양이' : '강아지';
+    const sanitized = sanitizeForLLM(diseaseName);
+
+    // Rate limit: max 20 per hour per user
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count } = await supabaseAdmin
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action', 'disease.describe')
+      .gte('created_at', oneHourAgo);
+    if ((count || 0) >= 20) {
+      return NextResponse.json({ error: '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
+    }
+
+    // Check cache (90-day TTL)
+    const cacheKey = `disease_desc:${sanitized}:${pet}`;
+    const ttl = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: cached } = await supabaseAdmin
+      .from('search_cache')
+      .select('disease_description')
+      .eq('cache_key', cacheKey)
+      .gt('created_at', ttl)
+      .maybeSingle();
+
+    if (cached?.disease_description) {
+      return NextResponse.json(cached.disease_description);
+    }
+
+    // Log activity
+    await supabaseAdmin.from('activity_logs').insert({
+      user_id: userId, action: 'disease.describe',
+      details: { diseaseName: sanitized, petType: pet },
+    });
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         temperature: 0.3,
@@ -50,7 +89,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: 'user',
-            content: `${petLabel}의 "${diseaseName}"에 대해 설명해줘.`,
+            content: `${petLabel}의 "${sanitized}"에 대해 설명해줘.`,
           },
         ],
       }),
@@ -64,13 +103,21 @@ export async function POST(request: NextRequest) {
     const content = data.choices?.[0]?.message?.content ?? '{}';
     const parsed = JSON.parse(content);
 
-    return NextResponse.json({
+    const result = {
       name_ko: parsed.name_ko ?? diseaseName,
       name_en: parsed.name_en ?? '',
       description: parsed.description ?? '',
       symptoms: (parsed.symptoms ?? []).slice(0, 5),
       when_to_visit: parsed.when_to_visit ?? '',
-    });
+    };
+
+    // Save to cache (shared across all users)
+    await supabaseAdmin.from('search_cache').upsert(
+      { cache_key: cacheKey, query: sanitized, pet_type: pet, disease_description: result, created_at: new Date().toISOString() },
+      { onConflict: 'cache_key' },
+    ).then(() => {});
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Disease description error:', error);
     return NextResponse.json({ error: '질병 설명 생성 실패' }, { status: 500 });
