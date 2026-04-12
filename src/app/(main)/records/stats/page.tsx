@@ -11,24 +11,40 @@ import { supabase, Pet } from '@/lib/supabase';
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
-  { id: 'month', label: '이번 달', months: 1 },
-  { id: '3month', label: '3개월', months: 3 },
-  { id: '6month', label: '6개월', months: 6 },
-  { id: 'year', label: '1년', months: 12 },
+  { id: 'month', label: '최근 1개월', months: 1 },
+  { id: '3month', label: '최근 3개월', months: 3 },
+  { id: '6month', label: '최근 6개월', months: 6 },
+  { id: 'year', label: '최근 1년', months: 12 },
   { id: 'custom', label: '직접 선택', months: 12 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
   const now = new Date();
   switch (period) {
-    case 'month':
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    case '3month':
-      return new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    case '6month':
-      return new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    case 'year':
-      return new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    case 'month': {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case '3month': {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 3);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case '6month': {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 6);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case 'year': {
+      const d = new Date(now);
+      d.setFullYear(d.getFullYear() - 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
     case 'custom':
       return customStart ? new Date(customStart) : new Date(now.getFullYear(), now.getMonth(), 1);
   }
@@ -60,7 +76,8 @@ export default function StatsPage() {
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
 
-  const [period, setPeriod] = useState<Period>('month');
+  const defaultPeriod = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
+  const [period, setPeriod] = useState<Period>(defaultPeriod);
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [pets, setPets] = useState<Pet[]>([]);
