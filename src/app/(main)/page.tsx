@@ -40,10 +40,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">🐾 PawDex</h1>
-
-      {/* Subtitle */}
-      <p className="text-sm text-gray-400 mt-2 mb-5">반려동물 건강 정보 플랫폼</p>
+      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4">🐾 PawDex</h1>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
