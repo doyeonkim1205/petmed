@@ -103,9 +103,11 @@ export async function POST(request: NextRequest) {
       updateData.next_billing_at = null;
     }
 
-    // If refunded, downgrade immediately
+    // If refunded, expire immediately (not just canceled)
+    // Canceled = still has access until period_end
+    // Expired = no access, no subscription info shown
     if (refundedAmount !== null) {
-      updateData.status = 'canceled';
+      updateData.status = 'expired';
       await supabaseAdmin.from('profiles').update({ plan: 'free' }).eq('id', userId);
     }
 
