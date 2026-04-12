@@ -11,10 +11,36 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   title: "PawDex - 반려동물 건강 정보 플랫폼",
-  description: "반려동물 질병 정보, 건강 기록장, 동물병원 찾기",
+  description: "반려동물 질병 정보, 건강 기록장, AI 증상 분석, 동물병원 찾기. 우리 아이 건강을 한 곳에서 관리하세요.",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "PawDex - 반려동물 건강 정보 플랫폼",
+    description: "반려동물 질병 정보, 건강 기록장, AI 증상 분석, 동물병원 찾기. 우리 아이 건강을 한 곳에서 관리하세요.",
+    url: "https://pawdex.store",
+    siteName: "PawDex",
+    locale: "ko_KR",
+    type: "website",
+    images: [
+      {
+        url: "/icons/icon-512x512.png",
+        width: 1200,
+        height: 630,
+        alt: "PawDex - 반려동물 건강 정보 플랫폼",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PawDex - 반려동물 건강 정보 플랫폼",
+    description: "반려동물 질병 정보, 건강 기록장, AI 증상 분석, 동물병원 찾기",
+    images: ["/icons/icon-512x512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
