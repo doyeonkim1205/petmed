@@ -150,11 +150,21 @@ export default function SubscriptionPage() {
   const isYearly = subscription?.product_id?.includes('yearly');
   const hasSub = isActive || isCanceled;
 
+  // Toss returns issuer codes instead of card company names
+  const CARD_ISSUERS: Record<string, string> = {
+    '3K': 'KB국민', '46': '광주', '71': '롯데', '51': '삼성',
+    '38': '새마을금고', '41': '신한', '62': '신협', '36': '씨티',
+    '33': '우리', 'W1': '우체국', '37': '수협', '35': '전북',
+    '42': '제주', '15': '카카오뱅크', '3A': '케이뱅크', '24': '토스뱅크',
+    '21': '하나', '61': '현대', '11': 'BC', '91': 'NH농협',
+  };
+
   const formatCard = () => {
     if (!subscription?.card_number) return '';
     const last4 = subscription.card_number.replace(/[^0-9]/g, '').slice(-4);
-    const company = subscription.card_company ? `${subscription.card_company}카드` : '';
-    return `${company} •••• ${last4}`.trim();
+    const raw = subscription.card_company || '';
+    const company = CARD_ISSUERS[raw] || raw;
+    return `${company}카드 •••• ${last4}`.trim();
   };
 
   if (authLoading || loading) {
