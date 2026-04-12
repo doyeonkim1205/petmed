@@ -565,10 +565,20 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             )}
           </div>
 
-          {/* Cache Info */}
+          {/* Cache Management */}
           <div>
             <SectionHeader icon={Trash} iconColor="text-gray-400" label="캐시 관리" />
-            <p className="text-[11px] text-gray-400">6개월 이상 된 캐시 데이터는 자동으로 정리됩니다.</p>
+            <button
+              onClick={() => {
+                try { localStorage.removeItem('pawdex_translation_cache'); } catch {}
+                try { sessionStorage.clear(); } catch {}
+                alert('캐시가 삭제되었습니다.');
+              }}
+              className="mt-1 px-3 py-1.5 text-[11px] text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              캐시 삭제
+            </button>
+            <p className="text-[10px] text-gray-400 mt-1">검색 결과, 번역 등 임시 데이터를 정리합니다.</p>
           </div>
 
           {/* App Info */}
@@ -954,37 +964,52 @@ export default function ProfilePage() {
         onClose={() => setShowDeleteModal(false)}
       />
 
-      {/* 알림 기능 업그레이드 안내 팝업 */}
-      {showAlarmUpgrade && (
-        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Bell size={18} className="text-blue-500" />
-              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">
-              {!isPWA
-                ? '앱을 설치하고 유료 플랜으로 업그레이드하면 알림을 받을 수 있습니다.'
-                : '유료 플랜으로 업그레이드하면 알림을 받을 수 있습니다.'}
-            </p>
-            <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAlarmUpgrade(false)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
-              >
-                닫기
-              </button>
-              <button
-                onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-              >
-                요금제 보기
-              </button>
+      {/* 알림 기능 안내 팝업 — 상황별 문구 */}
+      {showAlarmUpgrade && (() => {
+        const isFree = !profile?.plan || profile.plan === 'free';
+        const needApp = !isPWA;
+        const needPlus = isFree;
+
+        let message = '';
+        let buttonLabel = '';
+        let buttonAction = () => { setShowAlarmUpgrade(false); };
+
+        if (needApp && needPlus) {
+          message = '앱을 설치하고 Plus로 업그레이드하면 알림을 사용할 수 있어요.';
+          buttonLabel = '구독/결제 관리';
+          buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
+        } else if (needApp && !needPlus) {
+          message = '앱을 설치하면 알림을 사용할 수 있어요. 홈 화면에 추가해주세요.';
+          buttonLabel = '확인';
+        } else if (!needApp && needPlus) {
+          message = 'Plus로 업그레이드하면 알림을 사용할 수 있어요.';
+          buttonLabel = '구독/결제 관리';
+          buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell size={18} className="text-blue-500" />
+                <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-1">{message}</p>
+              <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드려요.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowAlarmUpgrade(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+                  닫기
+                </button>
+                <button onClick={buttonAction}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                  {buttonLabel}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
