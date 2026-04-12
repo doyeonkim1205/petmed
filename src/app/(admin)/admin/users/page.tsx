@@ -15,6 +15,13 @@ interface User {
   created_at: string;
 }
 
+interface Payment {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
+
 interface UserDetail {
   profile: User & { avatar_url?: string };
   subscription: {
@@ -29,6 +36,7 @@ interface UserDetail {
     billing_failed_count?: number;
   } | null;
   searchCount: number;
+  payments: Payment[];
 }
 
 export default function UsersPage() {
@@ -42,6 +50,9 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -77,6 +88,45 @@ export default function UsersPage() {
     setSaving(false);
     setModalOpen(false);
     fetchUsers();
+  };
+
+  const refundPayment = async (paymentId: string) => {
+    if (!selectedUser || !confirm('이 결제를 환불하시겠습니까?')) return;
+    setSaving(true);
+    try {
+      const res = await authFetch(`/api/admin/users/${selectedUser.profile.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert(data.message);
+      openDetail(selectedUser.profile.id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '환불 실패');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!selectedUser) return;
+    setDeleting(true);
+    setDeleteMessage('');
+    try {
+      const res = await authFetch(`/api/admin/users/${selectedUser.profile.id}/delete`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDeleteMessage(data.message);
+      setShowDeleteConfirm(false);
+      setModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      setDeleteMessage(err instanceof Error ? err.message : '삭제에 실패했습니다.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -284,6 +334,29 @@ export default function UsersPage() {
               )}
             </div>
 
+            {/* Payment history */}
+            {selectedUser.payments.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2 mb-6">
+                <span className="text-sm font-semibold text-gray-700">결제 내역</span>
+                {selectedUser.payments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className="text-gray-500">{new Date(p.created_at).toLocaleDateString('ko-KR')}</span>
+                      <span className="ml-2 font-medium">{p.amount.toLocaleString()}원</span>
+                      <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                        p.status === 'done' ? 'bg-green-100 text-green-700' :
+                        p.status === 'refunded' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'
+                      }`}>{p.status === 'done' ? '완료' : p.status === 'refunded' ? '환불됨' : p.status}</span>
+                    </div>
+                    {p.status === 'done' && (
+                      <button onClick={() => refundPayment(p.id)} disabled={saving}
+                        className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50">환불</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-gray-500 block mb-1">플랜 변경</label>
@@ -309,6 +382,34 @@ export default function UsersPage() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+            </div>
+
+            {/* Delete user */}
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              {deleteMessage && (
+                <p className="text-sm text-red-500 mb-2">{deleteMessage}</p>
+              )}
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50"
+                >
+                  계정 삭제
+                </button>
+              ) : (
+                <div className="bg-red-50 rounded-lg p-3 space-y-2">
+                  <p className="text-sm font-medium text-red-700">정말 삭제하시겠습니까?</p>
+                  <p className="text-xs text-red-500">이 사용자의 모든 데이터가 영구 삭제됩니다. 복구할 수 없습니다.</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-2 text-xs border border-gray-200 rounded-lg text-gray-500">취소</button>
+                    <button onClick={deleteUser} disabled={deleting}
+                      className="flex-1 py-2 text-xs bg-red-500 text-white rounded-lg disabled:opacity-50">
+                      {deleting ? '삭제 중...' : '영구 삭제'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

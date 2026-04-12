@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, CreditCard, Search, Activity, HardDrive, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Search, Activity, HardDrive, Bell, ArrowLeft } from 'lucide-react';
 
 const menuItems = [
   { href: '/admin/dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const menuItems = [
   { href: '/admin/search-logs', label: '검색 로그', icon: Search },
   { href: '/admin/activity-logs', label: '활동 로그', icon: Activity },
   { href: '/admin/storage', label: '저장소 관리', icon: HardDrive },
+  { href: '/admin/notifications', label: '알림 발송', icon: Bell },
 ];
 
 export function AdminSidebar() {

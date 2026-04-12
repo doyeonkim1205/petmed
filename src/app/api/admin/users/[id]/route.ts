@@ -23,12 +23,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 });
   }
 
-  const [{ data: subscription }, { count: searchCount }] = await Promise.all([
+  const [{ data: subscription }, { count: searchCount }, { data: payments }] = await Promise.all([
     supabase.from('subscriptions').select('*').eq('user_id', id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', id),
+    supabase.from('payment_history').select('id, amount, status, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(10),
   ]);
 
-  return NextResponse.json({ profile, subscription, searchCount: searchCount || 0 });
+  return NextResponse.json({ profile, subscription, searchCount: searchCount || 0, payments: payments || [] });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

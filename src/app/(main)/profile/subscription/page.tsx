@@ -111,6 +111,8 @@ export default function SubscriptionPage() {
     if (authLoading) return;
     if (!user) { router.push('/login'); return; }
     fetchData();
+    // Track page view
+    import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
   }, [user, authLoading, router]);
 
   const handleCancel = async () => {
