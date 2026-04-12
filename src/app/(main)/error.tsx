@@ -25,10 +25,11 @@ export default function MainError({
           height={200}
           className="mx-auto mb-4"
         />
-        <h2 className="text-base font-bold text-gray-900 mb-1">앗, 문제가 발생했어요!</h2>
-        <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-          일시적인 오류예요. 다시 시도해주세요.<br />
-          문제가 계속되면 앱을 새로고침해주세요.
+        <h2 className="text-base font-bold text-gray-900 mb-2">앗, 문제가 발생했어요!</h2>
+        <p className="text-xs text-gray-500 leading-relaxed mb-6">
+          일시적인 오류일 수 있어요.<br />
+          잠시 후 다시 시도해주세요.<br />
+          문제가 계속되면 앱을 재실행해주세요.
         </p>
         <button
           onClick={reset}

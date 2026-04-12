@@ -195,7 +195,7 @@ export default function SubscriptionPage() {
             {hasSub && (
               <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
-                {isActive ? '이용 중' : '해지됨'}
+                {isActive ? '현재 이용 중' : '해지 예약'}
               </span>
             )}
           </div>
@@ -203,15 +203,20 @@ export default function SubscriptionPage() {
 
         {/* ── Subscribe buttons (Free only — no subscription info) ── */}
         {!isPaid && !hasSub && (
-          <div className="space-y-2.5 mb-5">
-            <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
-              title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`} />
-            <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} highlight
-              title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-              sub="월간 단건 대비 10.3% 할인" />
-            <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
-              title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-              sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
+          <div className="mb-5">
+            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
+            <div className="space-y-2.5">
+              <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+                title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
+                sub="한번만 결제하고 30일 동안 이용" />
+              <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
+                title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
+              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+                title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+            </div>
           </div>
         )}
 
@@ -223,12 +228,15 @@ export default function SubscriptionPage() {
             </div>
             <div className="divide-y divide-gray-50">
               <DetailRow icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
-                label="결제 방식" value={isRecurring ? '자동 갱신' : '1회 결제'} accent={isRecurring} />
-              <DetailRow icon={<Calendar size={14} className="text-gray-400" />}
-                label={isYearly ? '이용 기간 (연간)' : '이용 기간'} value={`${new Date(subscription.period_end).toLocaleDateString('ko-KR')}까지`} />
-              {isRecurring && subscription.next_billing_at && (
-                <DetailRow icon={<CreditCard size={14} className="text-blue-500" />}
-                  label="다음 결제일" value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')} accent />
+                label="결제 방식" value={isRecurring ? '월간 구독' : isYearly ? '연간 이용권' : '30일 이용권'} accent={isRecurring} />
+              {isRecurring ? (
+                subscription.next_billing_at && (
+                  <DetailRow icon={<Calendar size={14} className="text-blue-500" />}
+                    label="다음 결제일" value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')} accent />
+                )
+              ) : (
+                <DetailRow icon={<Calendar size={14} className="text-gray-400" />}
+                  label="만료일" value={new Date(subscription.period_end).toLocaleDateString('ko-KR')} />
               )}
               {isRecurring && subscription.card_number && (
                 <DetailRow icon={<Shield size={14} className="text-gray-400" />}
@@ -240,15 +248,20 @@ export default function SubscriptionPage() {
 
         {/* ── Re-subscribe buttons (canceled — after subscription info) ── */}
         {isCanceled && (
-          <div className="space-y-2.5 mb-5">
-            <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
-              title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`} />
-            <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')} highlight
-              title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-              sub="월간 단건 대비 10.3% 할인" />
-            <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
-              title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-              sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
+          <div className="mb-5">
+            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
+            <div className="space-y-2.5">
+              <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+                title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
+                sub="한번만 결제하고 30일 동안 이용" />
+              <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
+                title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
+              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+                title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+            </div>
           </div>
         )}
 
@@ -266,16 +279,17 @@ export default function SubscriptionPage() {
 
             {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
-              <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)} highlight
-                title="월간 정기 결제로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-                sub="월간 단건 대비 10.3% 할인" />
+              <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
+                title="월간 구독으로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
+                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
             )}
 
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
               <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly&upgrade=true')}
-                title="연간 결제로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`} />
+                title="연간 이용권으로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
+                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
             )}
 
             {/* 자동 갱신 → 카드 변경 */}
@@ -289,7 +303,7 @@ export default function SubscriptionPage() {
 
         {/* ── 5. Feature Comparison ── */}
         <div className="border-t border-gray-100 pt-6 mb-6">
-          <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">기능 비교</h2>
+          <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">주요 기능 비교</h2>
 
           <div className="rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-xs">
@@ -428,21 +442,25 @@ function ActionBtn({ children, onClick, variant = 'default' }: { children: React
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
 }
 
-function PlanBtn({ onClick, title, price, sub, highlight }: {
-  onClick: () => void; title: string; price: string; sub?: string; highlight?: boolean;
+function PlanBtn({ onClick, title, price, sub, badge, badgeColor }: {
+  onClick: () => void; title: string; price: string; sub?: string;
+  badge?: string; badgeColor?: string;
 }) {
   return (
     <button onClick={onClick}
-      className={`w-full rounded-2xl border p-4 text-left transition-colors ${
-        highlight ? 'border-blue-300 bg-blue-50/40 hover:bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
-      }`}>
+      className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50">
       <div className="flex items-center justify-between mb-0.5">
-        <span className={`text-xs font-bold ${highlight ? 'text-blue-700' : 'text-gray-700'}`}>{title}</span>
-        <span className={`text-sm font-bold ${highlight ? 'text-blue-600' : 'text-gray-900'}`}>{price}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-700">{title}</span>
+          {badge && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${badgeColor || 'bg-blue-100 text-blue-600'}`}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <span className="text-sm font-bold text-gray-900">{price}</span>
       </div>
-      {sub && (
-        <p className={`text-[10px] ${highlight ? 'text-blue-500' : 'text-gray-400'}`}>{sub}</p>
-      )}
+      {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
     </button>
   );
 }
