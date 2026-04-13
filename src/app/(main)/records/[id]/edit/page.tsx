@@ -241,7 +241,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         description: description.trim() || undefined,
         hospital_name: hospitalName.trim() || undefined,
         visit_date: visitDate,
-        cost: cost ? Number(cost) : undefined,
+        cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
         color: recordColor,
         discharge_date: dischargeDate || null,
         next_appointment_date: nextAppointmentDate || null,
@@ -507,6 +507,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 type="number"
                 value={cost}
                 onChange={(e) => setCost(e.target.value)}
+                max={100000000}
+                min={0}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>

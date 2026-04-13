@@ -295,11 +295,11 @@ export default function StatsPage() {
                                   {record.pets.name}
                                 </span>
                               )}
-                              <p className="text-sm text-gray-800 truncate">{record.title}</p>
+                              {record.hospital_name && (
+                                <span className="text-[11px] text-gray-400 truncate">{record.hospital_name}</span>
+                              )}
                             </div>
-                            {record.hospital_name && (
-                              <p className="text-[11px] text-gray-400 mt-0.5">{record.hospital_name}</p>
-                            )}
+                            <p className="text-sm text-gray-800 truncate mt-0.5">{record.title}</p>
                           </div>
                           <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">
                             {formatCost(record.cost!)}
