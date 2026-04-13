@@ -218,7 +218,7 @@ export default function StatsPage() {
 
   // Merge weight_logs + health_records weight, filter by period
   const weightData = useMemo(() => {
-    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; petName?: string }[] = [];
+    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; petName?: string; recordType?: string }[] = [];
 
     for (const log of weightLogs) {
       const d = new Date(log.measured_at);
@@ -232,7 +232,7 @@ export default function StatsPage() {
         if (!selectedPetId || r.pet_id === selectedPetId) {
           const d = new Date(r.visit_date);
           if (d >= startDate && d <= endDate) {
-            items.push({ date: r.visit_date.split('T')[0], weight: r.weight, source: 'record', id: r.id, petName: r.pets?.name });
+            items.push({ date: r.visit_date.split('T')[0], weight: r.weight, source: 'record', id: r.id, petName: r.pets?.name, recordType: r.record_type });
           }
         }
       }
@@ -526,7 +526,11 @@ export default function StatsPage() {
                             {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                           </span>
                           {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
-                          {item.source === 'record' && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">진료</span>}
+                          {item.source === 'record' && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
+                              {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
