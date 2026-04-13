@@ -43,6 +43,44 @@ function formatMonthLabel(year: number, month: number): string {
   return `${year}년 ${month + 1}월`;
 }
 
+// Sample data for chart: 1month=all, 3month=7day interval, 6month+=monthly
+function sampleForChart(data: { date: string; weight: number }[], period: Period): { date: string; weight: number }[] {
+  if (data.length <= 30) return data;
+  if (period === 'month') return data;
+
+  if (period === '3month' || period === '6month') {
+    // 7-day interval: keep last value per 7-day bucket
+    const result: { date: string; weight: number }[] = [];
+    let lastBucket = '';
+    for (const item of data) {
+      const d = new Date(item.date);
+      const weekNum = Math.floor(d.getTime() / (7 * 24 * 60 * 60 * 1000));
+      const bucket = String(weekNum);
+      if (bucket !== lastBucket) {
+        result.push(item);
+        lastBucket = bucket;
+      } else {
+        result[result.length - 1] = item; // keep latest in bucket
+      }
+    }
+    return result;
+  }
+
+  // year or custom: monthly last value
+  const result: { date: string; weight: number }[] = [];
+  let lastMonth = '';
+  for (const item of data) {
+    const month = item.date.substring(0, 7); // YYYY-MM
+    if (month !== lastMonth) {
+      result.push(item);
+      lastMonth = month;
+    } else {
+      result[result.length - 1] = item;
+    }
+  }
+  return result;
+}
+
 // ─── Weight Chart (SVG line chart) ──────────────────────
 function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
   if (data.length < 2) return null;
@@ -50,20 +88,25 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
   const weights = data.map(d => d.weight);
   const minW = Math.min(...weights);
   const maxW = Math.max(...weights);
-  const range = maxW - minW || 1;
+  const range = maxW - minW || 0.5;
   const chartW = W - PX * 2;
   const chartH = H - PY * 2;
 
   const points = data.map((d, i) => ({
-    x: PX + (data.length === 1 ? chartW / 2 : (i / (data.length - 1)) * chartW),
+    x: PX + (i / (data.length - 1)) * chartW,
     y: PY + chartH - ((d.weight - minW) / range) * chartH,
   }));
 
   const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
 
+  // Show ~5 date labels evenly spaced
+  const labelCount = Math.min(5, data.length);
+  const labelIndices = Array.from({ length: labelCount }, (_, i) =>
+    Math.round(i * (data.length - 1) / (labelCount - 1))
+  );
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: '180px' }}>
-      {/* Grid lines */}
       {[0, 0.5, 1].map((r) => {
         const y = PY + chartH - r * chartH;
         const val = (minW + r * range).toFixed(1);
@@ -74,23 +117,15 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
           </g>
         );
       })}
-      {/* Line */}
       <polyline points={polyline} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinejoin="round" />
-      {/* Dots */}
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
+        <circle key={i} cx={p.x} cy={p.y} r={data.length > 20 ? 2 : 4} fill="#3B82F6" stroke="#fff" strokeWidth={data.length > 20 ? 1 : 2} />
       ))}
-      {/* Date labels (first and last) */}
-      {data.length >= 2 && (
-        <>
-          <text x={points[0].x} y={H - 2} textAnchor="middle" fontSize="9" fill="#9ca3af">
-            {new Date(data[0].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-          </text>
-          <text x={points[points.length - 1].x} y={H - 2} textAnchor="middle" fontSize="9" fill="#9ca3af">
-            {new Date(data[data.length - 1].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-          </text>
-        </>
-      )}
+      {labelIndices.map((idx) => (
+        <text key={idx} x={points[idx].x} y={H - 2} textAnchor="middle" fontSize="9" fill="#9ca3af">
+          {new Date(data[idx].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+        </text>
+      ))}
     </svg>
   );
 }
@@ -122,10 +157,7 @@ export default function StatsPage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('pets')
-      .select('*')
-      .eq('user_id', user.id)
+    supabase.from('pets').select('*').eq('user_id', user.id)
       .then(({ data }) => {
         if (data) {
           setPets(data);
@@ -173,7 +205,7 @@ export default function StatsPage() {
   const fetchWeightLogs = useCallback(async () => {
     if (!user) return;
     setWeightLoading(true);
-    let query = supabase.from('weight_logs').select('*').eq('user_id', user.id).order('measured_at', { ascending: true });
+    let query = supabase.from('weight_logs').select('*').eq('user_id', user.id).order('measured_at', { ascending: true }).order('created_at', { ascending: true });
     if (selectedPetId) query = query.eq('pet_id', selectedPetId);
     const { data } = await query;
     setWeightLogs(data || []);
@@ -184,32 +216,52 @@ export default function StatsPage() {
     if (tab === 'weight') fetchWeightLogs();
   }, [tab, fetchWeightLogs]);
 
-  // Merge weight_logs + health_records weight into one timeline
+  // Merge weight_logs + health_records weight, filter by period
   const weightData = useMemo(() => {
     const items: { date: string; weight: number; source: 'log' | 'record'; id: string; petName?: string }[] = [];
 
-    // From weight_logs
     for (const log of weightLogs) {
-      items.push({ date: log.measured_at, weight: Number(log.weight), source: 'log', id: log.id, petName: pets.find(p => p.id === log.pet_id)?.name });
+      const d = new Date(log.measured_at);
+      if (d >= startDate && d <= endDate) {
+        items.push({ date: log.measured_at, weight: Number(log.weight), source: 'log', id: log.id, petName: pets.find(p => p.id === log.pet_id)?.name });
+      }
     }
 
-    // From health_records (with weight)
     for (const r of records) {
       if (r.weight && r.weight > 0) {
         if (!selectedPetId || r.pet_id === selectedPetId) {
-          items.push({ date: r.visit_date.split('T')[0], weight: r.weight, source: 'record', id: r.id, petName: r.pets?.name });
+          const d = new Date(r.visit_date);
+          if (d >= startDate && d <= endDate) {
+            items.push({ date: r.visit_date.split('T')[0], weight: r.weight, source: 'record', id: r.id, petName: r.pets?.name });
+          }
         }
       }
     }
 
-    // Sort by date, deduplicate same date (keep latest)
+    items.sort((a, b) => a.date.localeCompare(b.date) || a.weight - b.weight);
+    return items;
+  }, [weightLogs, records, selectedPetId, pets, startDate, endDate]);
+
+  // All weight data (no period filter) for latest/prev calculation
+  const allWeightData = useMemo(() => {
+    const items: { date: string; weight: number }[] = [];
+    for (const log of weightLogs) {
+      items.push({ date: log.measured_at, weight: Number(log.weight) });
+    }
+    for (const r of records) {
+      if (r.weight && r.weight > 0 && (!selectedPetId || r.pet_id === selectedPetId)) {
+        items.push({ date: r.visit_date.split('T')[0], weight: r.weight });
+      }
+    }
     items.sort((a, b) => a.date.localeCompare(b.date));
     return items;
-  }, [weightLogs, records, selectedPetId, pets]);
+  }, [weightLogs, records, selectedPetId]);
 
-  const latestWeight = weightData.length > 0 ? weightData[weightData.length - 1] : null;
-  const prevWeight = weightData.length > 1 ? weightData[weightData.length - 2] : null;
+  const latestWeight = allWeightData.length > 0 ? allWeightData[allWeightData.length - 1] : null;
+  const prevWeight = allWeightData.length > 1 ? allWeightData[allWeightData.length - 2] : null;
   const weightDiff = latestWeight && prevWeight ? +(latestWeight.weight - prevWeight.weight).toFixed(2) : null;
+
+  const chartData = useMemo(() => sampleForChart(weightData, period), [weightData, period]);
   const weightMin = weightData.length > 0 ? Math.min(...weightData.map(d => d.weight)) : 0;
   const weightMax = weightData.length > 0 ? Math.max(...weightData.map(d => d.weight)) : 0;
 
@@ -219,12 +271,7 @@ export default function StatsPage() {
     const today = new Date().toISOString().split('T')[0];
     const date = newWeightDate > today ? today : newWeightDate;
     setWeightSaving(true);
-    await supabase.from('weight_logs').insert({
-      user_id: user.id,
-      pet_id: selectedPetId,
-      weight: w,
-      measured_at: date,
-    });
+    await supabase.from('weight_logs').insert({ user_id: user.id, pet_id: selectedPetId, weight: w, measured_at: date });
     setNewWeight('');
     setShowWeightInput(false);
     setWeightSaving(false);
@@ -236,103 +283,85 @@ export default function StatsPage() {
     fetchWeightLogs();
   };
 
-  // Pet must be selected for weight tab
   const needPetSelect = tab === 'weight' && !selectedPetId && pets.length > 1;
+
+  // ─── Period selector (shared between tabs) ──────────────────────
+  const PeriodSelector = () => (
+    <div className="flex gap-1.5 overflow-x-auto">
+      {periodOptions.map((p) => (
+        <button key={p.id} onClick={() => setPeriod(p.id)}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >{p.label}</button>
+      ))}
+      {lockedOptions.map((p) => (
+        <div key={p.id} className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
+          <Lock size={10} />{p.label}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="bg-white min-h-full pb-20">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3 px-4 h-14 max-w-sm mx-auto">
-          <button onClick={() => router.back()} className="text-gray-600">
-            <ArrowLeft size={20} />
-          </button>
+          <button onClick={() => router.back()} className="text-gray-600"><ArrowLeft size={20} /></button>
           <h1 className="text-base font-bold text-gray-800">건강 통계</h1>
         </div>
-        {/* Tab */}
         <div className="flex max-w-sm mx-auto border-b border-gray-100">
-          <button
-            onClick={() => setTab('cost')}
-            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
-              tab === 'cost' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'
-            }`}
-          >
-            <Wallet size={14} className="inline -mt-0.5 mr-1" />
-            의료비
+          <button onClick={() => setTab('cost')}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${tab === 'cost' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>
+            <Wallet size={14} className="inline -mt-0.5 mr-1" />의료비
           </button>
-          <button
-            onClick={() => setTab('weight')}
-            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${
-              tab === 'weight' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'
-            }`}
-          >
-            <Scale size={14} className="inline -mt-0.5 mr-1" />
-            체중
+          <button onClick={() => setTab('weight')}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${tab === 'weight' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>
+            <Scale size={14} className="inline -mt-0.5 mr-1" />체중
           </button>
         </div>
       </div>
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        {/* Pet filter (shared) */}
+        {/* Pet filter */}
         {pets.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto">
             {tab === 'cost' && (
-              <button
-                onClick={() => setSelectedPetId(undefined)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  !selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
+              <button onClick={() => setSelectedPetId(undefined)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                 전체
               </button>
             )}
             {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => setSelectedPetId(pet.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
+              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                 {pet.name}
               </button>
             ))}
           </div>
         )}
 
+        {/* Period selector (shared) */}
+        <PeriodSelector />
+
+        {period === 'custom' && (
+          <div>
+            <div className="flex gap-2 items-center">
+              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
+                min={(() => { const d = new Date(); d.setMonth(d.getMonth() - maxMonths); return d.toISOString().split('T')[0]; })()}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <span className="text-gray-400 text-sm">~</span>
+              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">최대 {maxMonths === 12 ? '1년' : `${maxMonths}개월`}까지 조회 가능</p>
+          </div>
+        )}
+
         {/* ═══ COST TAB ═══ */}
         {tab === 'cost' && (
           <>
-            {/* Period selector */}
-            <div className="flex gap-1.5 overflow-x-auto">
-              {periodOptions.map((p) => (
-                <button key={p.id} onClick={() => setPeriod(p.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >{p.label}</button>
-              ))}
-              {lockedOptions.map((p) => (
-                <div key={p.id} className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-                  <Lock size={10} />{p.label}
-                </div>
-              ))}
-            </div>
-
-            {period === 'custom' && (
-              <div>
-                <div className="flex gap-2 items-center">
-                  <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
-                    min={(() => { const d = new Date(); d.setMonth(d.getMonth() - maxMonths); return d.toISOString().split('T')[0]; })()}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                  <span className="text-gray-400 text-sm">~</span>
-                  <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <p className="text-[11px] text-gray-400 mt-1">최대 {maxMonths === 12 ? '1년' : `${maxMonths}개월`}까지 조회 가능</p>
-              </div>
-            )}
-
             {loading ? (
               <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
             ) : (
@@ -372,12 +401,8 @@ export default function StatsPage() {
                                   <span className="text-xs text-gray-400 flex-shrink-0">
                                     {new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                                   </span>
-                                  {!selectedPetId && record.pets && (
-                                    <span className="text-[11px] text-gray-400 flex-shrink-0">{record.pets.name}</span>
-                                  )}
-                                  {record.hospital_name && (
-                                    <span className="text-[11px] text-gray-400 truncate">{record.hospital_name}</span>
-                                  )}
+                                  {!selectedPetId && record.pets && <span className="text-[11px] text-gray-400 flex-shrink-0">{record.pets.name}</span>}
+                                  {record.hospital_name && <span className="text-[11px] text-gray-400 truncate">{record.hospital_name}</span>}
                                 </div>
                                 <p className="text-sm text-gray-800 truncate mt-0.5">{record.title}</p>
                               </div>
@@ -412,40 +437,41 @@ export default function StatsPage() {
             ) : (
               <>
                 {/* Current weight summary */}
-                <div className="rounded-xl bg-blue-50 p-5 text-center">
+                <div className="rounded-xl bg-blue-50 p-4 flex items-center justify-between">
                   {latestWeight ? (
                     <>
-                      <p className="text-[11px] text-blue-400 font-medium mb-1">
-                        {pets.find(p => p.id === selectedPetId)?.name || '현재'} 체중
-                      </p>
-                      <p className="text-3xl font-bold text-gray-800">{latestWeight.weight}kg</p>
-                      {weightDiff !== null && weightDiff !== 0 && (
-                        <div className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      <div>
+                        <p className="text-[11px] text-blue-400 font-medium">
+                          {pets.find(p => p.id === selectedPetId)?.name || '현재'} 체중
+                        </p>
+                        <p className="text-xl font-bold text-gray-800">{latestWeight.weight}kg</p>
+                      </div>
+                      {weightDiff !== null && weightDiff !== 0 ? (
+                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                           weightDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
                         }`}>
                           {weightDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                           {weightDiff > 0 ? '+' : ''}{weightDiff}kg
                         </div>
-                      )}
-                      {weightDiff === 0 && (
-                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                      ) : weightDiff === 0 ? (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                           <Minus size={12} /> 변화없음
                         </div>
-                      )}
+                      ) : null}
                     </>
                   ) : (
-                    <>
-                      <Scale size={32} className="mx-auto text-blue-300 mb-2" />
+                    <div className="w-full text-center py-2">
+                      <Scale size={28} className="mx-auto text-blue-300 mb-1" />
                       <p className="text-sm text-gray-400">체중 기록이 없습니다.</p>
-                    </>
+                    </div>
                   )}
                 </div>
 
                 {/* Chart */}
-                {weightData.length >= 2 && (
+                {chartData.length >= 2 && (
                   <div className="rounded-xl border border-gray-100 p-4">
                     <h2 className="text-sm font-bold text-gray-700 mb-3">체중 변화</h2>
-                    <WeightChart data={weightData} />
+                    <WeightChart data={chartData} />
                     <div className="flex justify-center gap-6 mt-3">
                       <div className="text-center">
                         <p className="text-[10px] text-gray-400">최저</p>
@@ -463,45 +489,28 @@ export default function StatsPage() {
                 {showWeightInput ? (
                   <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                     <div className="flex gap-2">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0.1"
-                        max="100"
-                        placeholder="체중 (kg)"
-                        value={newWeight}
-                        onChange={(e) => setNewWeight(e.target.value)}
-                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      />
-                      <input
-                        type="date"
-                        value={newWeightDate}
-                        onChange={(e) => setNewWeightDate(e.target.value)}
+                      <input type="number" inputMode="decimal" step="0.01" min="0.1" max="100"
+                        placeholder="체중 (kg)" value={newWeight} onChange={(e) => setNewWeight(e.target.value)}
+                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                      <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
                         max={new Date().toISOString().split('T')[0]}
-                        className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      />
+                        className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowWeightInput(false)}
-                        className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white"
-                      >취소</button>
-                      <button
-                        onClick={handleAddWeight}
-                        disabled={!newWeight || weightSaving}
-                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40"
-                      >{weightSaving ? '저장 중...' : '저장'}</button>
+                      <button onClick={() => setShowWeightInput(false)}
+                        className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+                      <button onClick={handleAddWeight} disabled={!newWeight || weightSaving}
+                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
+                        {weightSaving ? '저장 중...' : '저장'}
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      if (!selectedPetId && pets.length === 1) setSelectedPetId(pets[0].id);
-                      setShowWeightInput(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors"
-                  >
+                  <button onClick={() => {
+                    if (!selectedPetId && pets.length === 1) setSelectedPetId(pets[0].id);
+                    setShowWeightInput(true);
+                  }}
+                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors">
                     <Plus size={16} /> 체중 기록
                   </button>
                 )}
@@ -511,25 +520,19 @@ export default function StatsPage() {
                   <div className="space-y-1">
                     <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역</h2>
                     {[...weightData].reverse().map((item) => (
-                      <div key={`${item.source}-${item.id}`} className="flex items-center justify-between py-2.5 px-1 border-b border-gray-50">
+                      <div key={`${item.source}-${item.id}-${item.date}`} className="flex items-center justify-between py-2.5 px-1 border-b border-gray-50">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-400">
                             {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                           </span>
-                          {!selectedPetId && item.petName && (
-                            <span className="text-[11px] text-gray-400">{item.petName}</span>
-                          )}
-                          {item.source === 'record' && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">진료</span>
-                          )}
+                          {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
+                          {item.source === 'record' && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">진료</span>}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
                           {item.source === 'log' && (
-                            <button
-                              onClick={() => handleDeleteWeight(item.id)}
-                              className="p-1 text-gray-300 hover:text-red-400 transition-colors"
-                            >
+                            <button onClick={() => handleDeleteWeight(item.id)}
+                              className="p-1 text-gray-300 hover:text-red-400 transition-colors">
                               <Trash2 size={12} />
                             </button>
                           )}
