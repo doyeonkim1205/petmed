@@ -106,6 +106,15 @@ export interface HealthRecord {
   record_files?: RecordFile[];
 }
 
+export interface WeightLog {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  weight: number;
+  measured_at: string;
+  created_at: string;
+}
+
 export interface Medication {
   id: string;
   record_id: string;

@@ -372,28 +372,32 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {recentCostStats.total > 0 ? (
-                <button
-                  onClick={() => router.push('/records/stats')}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 mb-1"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Wallet size={16} className="text-blue-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs text-blue-500 font-medium">{costMonths === 12 ? '최근 1년' : `최근 ${costMonths}개월`} 의료비</p>
-                      <p className="text-base font-bold text-gray-800">
-                        {new Intl.NumberFormat('ko-KR').format(recentCostStats.total)}원
-                      </p>
-                    </div>
+              <button
+                onClick={() => router.push('/records/stats')}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 mb-1"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Wallet size={16} className="text-blue-600" />
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-blue-400">
-                    <span>{recentCostStats.count}건의 기록</span>
-                    <ChevronRight size={14} />
+                  <div className="text-left">
+                    {recentCostStats.total > 0 ? (
+                      <>
+                        <p className="text-xs text-blue-500 font-medium">{costMonths === 12 ? '최근 1년' : `최근 ${costMonths}개월`} 의료비</p>
+                        <p className="text-base font-bold text-gray-800">
+                          {new Intl.NumberFormat('ko-KR').format(recentCostStats.total)}원
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-blue-500 font-medium">건강 통계</p>
+                    )}
                   </div>
-                </button>
-              ) : null}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-blue-400">
+                  {recentCostStats.count > 0 && <span>{recentCostStats.count}건</span>}
+                  <ChevronRight size={14} />
+                </div>
+              </button>
               {filteredRecords.map((record) => (
                 <RecordCard
                   key={record.id}
