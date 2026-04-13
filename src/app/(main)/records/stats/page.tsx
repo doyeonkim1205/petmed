@@ -9,11 +9,10 @@ import { getPlanConfig } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 
 type StatsTab = 'cost' | 'weight';
-type Period = 'month' | '2month' | '3month' | '6month' | 'year' | 'custom';
+type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
   { id: 'month', label: '최근 1개월', months: 1 },
-  { id: '2month', label: '최근 2개월', months: 2 },
   { id: '3month', label: '최근 3개월', months: 3 },
   { id: '6month', label: '최근 6개월', months: 6 },
   { id: 'year', label: '최근 1년', months: 12 },
@@ -24,7 +23,6 @@ function getStartDate(period: Period, customStart?: string): Date {
   const now = new Date();
   switch (period) {
     case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); d.setHours(0, 0, 0, 0); return d; }
-    case '2month': { const d = new Date(now); d.setMonth(d.getMonth() - 2); d.setHours(0, 0, 0, 0); return d; }
     case '3month': { const d = new Date(now); d.setMonth(d.getMonth() - 3); d.setHours(0, 0, 0, 0); return d; }
     case '6month': { const d = new Date(now); d.setMonth(d.getMonth() - 6); d.setHours(0, 0, 0, 0); return d; }
     case 'year': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); d.setHours(0, 0, 0, 0); return d; }
@@ -48,7 +46,7 @@ function formatMonthLabel(year: number, month: number): string {
 // Sample data for chart: 1month=all, 3month=7day interval, 6month+=monthly
 function sampleForChart(data: { date: string; weight: number }[], period: Period): { date: string; weight: number }[] {
   if (data.length <= 30) return data;
-  if (period === 'month' || period === '2month') return data;
+  if (period === 'month') return data;
 
   if (period === '3month' || period === '6month') {
     // 7-day interval: keep last value per 7-day bucket
@@ -142,7 +140,7 @@ export default function StatsPage() {
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
 
-  const defaultPeriod = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : maxMonths >= 2 ? '2month' : 'month';
+  const defaultPeriod = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
   const [period, setPeriod] = useState<Period>(defaultPeriod);
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
