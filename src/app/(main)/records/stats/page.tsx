@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig } from '@/lib/plans';
@@ -283,6 +283,8 @@ export default function StatsPage() {
     fetchWeightLogs();
   };
 
+  const [selectedWeightId, setSelectedWeightId] = useState<string | null>(null);
+
   const needPetSelect = tab === 'weight' && !selectedPetId && pets.length > 1;
 
   // ─── Period selector (shared between tabs) ──────────────────────
@@ -519,30 +521,43 @@ export default function StatsPage() {
                 {weightData.length > 0 && (
                   <div className="space-y-1">
                     <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역</h2>
-                    {[...weightData].reverse().map((item) => (
-                      <div key={`${item.source}-${item.id}-${item.date}`} className="flex items-center justify-between py-2.5 px-1 border-b border-gray-50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">
-                            {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                          </span>
-                          {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
-                          {item.source === 'record' && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
-                              {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                    {[...weightData].reverse().map((item) => {
+                      const key = `${item.source}-${item.id}-${item.date}`;
+                      const isSelected = selectedWeightId === key && item.source === 'log';
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => item.source === 'log' ? setSelectedWeightId(isSelected ? null : key) : null}
+                          className={`flex items-center justify-between py-2.5 px-2 border-b border-gray-50 rounded-lg transition-colors ${
+                            isSelected ? 'bg-red-50' : item.source === 'log' ? 'active:bg-gray-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">
+                              {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                             </span>
-                          )}
+                            {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
+                            {item.source === 'record' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
+                                {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isSelected ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteWeight(item.id); setSelectedWeightId(null); }}
+                                className="px-3 py-1 bg-red-500 text-white text-xs rounded-full font-medium"
+                              >
+                                삭제
+                              </button>
+                            ) : (
+                              <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
-                          {item.source === 'log' && (
-                            <button onClick={() => handleDeleteWeight(item.id)}
-                              className="p-1 text-gray-300 hover:text-red-400 transition-colors">
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </>
