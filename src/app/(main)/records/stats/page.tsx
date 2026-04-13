@@ -273,17 +273,15 @@ export default function StatsPage() {
                       <span className="text-xs text-gray-500 w-12 flex-shrink-0">{month}</span>
                       <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
                         <div
-                          className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
+                          className="bg-blue-500 h-full rounded-full transition-all duration-300"
                           style={{
-                            width: `${Math.max((amount / monthlyData.maxValue) * 100, 8)}%`,
-                            minWidth: '2rem',
+                            width: `${Math.max((amount / monthlyData.maxValue) * 100, 5)}%`,
                           }}
-                        >
-                          <span className="text-[10px] text-white font-medium whitespace-nowrap">
-                            {formatCost(amount)}
-                          </span>
-                        </div>
+                        />
                       </div>
+                      <span className="text-[11px] text-gray-600 font-medium whitespace-nowrap flex-shrink-0">
+                        {formatCost(amount)}
+                      </span>
                     </div>
                   ))}
                 </div>
