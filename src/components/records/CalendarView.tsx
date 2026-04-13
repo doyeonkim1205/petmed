@@ -10,11 +10,12 @@ interface CalendarViewProps {
   records: HealthRecord[];
   onDateSelect: (date: Date) => void;
   selectedDate: Date;
+  onRecordClick?: (recordId: string) => void;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-export function CalendarView({ records, onDateSelect, selectedDate }: CalendarViewProps) {
+export function CalendarView({ records, onDateSelect, selectedDate, onRecordClick }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
 
   // Build dot map, appointment dates, medication map, and hospitalization range map
@@ -301,7 +302,11 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
               const color = typeColor[record.record_type] || 'text-gray-500';
               const label = typeLabel[record.record_type] || '기록';
               return (
-                <div key={record.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <button
+                  key={record.id}
+                  onClick={() => onRecordClick?.(record.id)}
+                  className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                     record.record_type === 'visit' ? 'bg-blue-100' :
                     record.record_type === 'symptom' ? 'bg-orange-100' :
@@ -323,7 +328,7 @@ export function CalendarView({ records, onDateSelect, selectedDate }: CalendarVi
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

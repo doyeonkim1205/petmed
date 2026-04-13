@@ -46,7 +46,7 @@ export default function HomePage() {
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
         <button
           type="button"
-          onClick={() => setSearchMode('disease')}
+          onClick={() => { setSearchMode('disease'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
             searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
           }`}
@@ -56,7 +56,7 @@ export default function HomePage() {
         </button>
         <button
           type="button"
-          onClick={() => setSearchMode('symptom')}
+          onClick={() => { setSearchMode('symptom'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
             searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
           }`}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
@@ -730,6 +730,34 @@ export default function ProfilePage() {
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
+
+  // 모달 열릴 때 히스토리 추가, 뒤로가기 시 모달 닫기
+  const modalOpenRef = useRef(false);
+  const anyModalOpen = showNicknameModal || showPetModal || showNotificationModal || showSettingsModal || showDeleteModal || showAlarmUpgrade;
+
+  useEffect(() => {
+    if (anyModalOpen && !modalOpenRef.current) {
+      modalOpenRef.current = true;
+      window.history.pushState({ modal: true }, '');
+    } else if (!anyModalOpen && modalOpenRef.current) {
+      modalOpenRef.current = false;
+    }
+  }, [anyModalOpen]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (anyModalOpen) {
+        setShowNicknameModal(false);
+        setShowPetModal(false);
+        setShowNotificationModal(false);
+        setShowSettingsModal(false);
+        setShowDeleteModal(false);
+        setShowAlarmUpgrade(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [anyModalOpen]);
 
   const handleLogout = () => {
     // Clear auth data from localStorage (검색 기록은 사용자별로 유지)

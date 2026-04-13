@@ -417,7 +417,7 @@ function SearchContent() {
           <div className="flex bg-gray-100 rounded-full p-0.5">
             <button
               type="button"
-              onClick={() => { setSearchMode('disease'); }}
+              onClick={() => { setSearchMode('disease'); setQuery(''); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
               }`}
@@ -427,7 +427,7 @@ function SearchContent() {
             </button>
             <button
               type="button"
-              onClick={() => { setSearchMode('symptom'); }}
+              onClick={() => { setSearchMode('symptom'); setQuery(''); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
               }`}
@@ -515,8 +515,7 @@ function SearchContent() {
         {loginRequired && (
           <div className="max-w-sm mx-auto mt-6 text-center py-10">
             <Lock size={32} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-sm text-gray-600 font-medium mb-1">로그인 후 이용할 수 있습니다</p>
-            <p className="text-xs text-gray-400 mb-4">AI 논문 검색은 로그인이 필요합니다</p>
+            <p className="text-sm text-gray-600 font-medium mb-4">로그인 후 이용할 수 있습니다</p>
             <button
               onClick={() => window.location.href = '/login'}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"

@@ -413,6 +413,7 @@ export default function RecordsPage() {
             records={records}
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
+            onRecordClick={(id) => router.push(`/records/${id}`)}
           />
           <div className="border-t border-gray-100">
             <MedicationCheckList petId={selectedPetId || undefined} date={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`} />
