@@ -52,7 +52,7 @@ export default function HomePage() {
           }`}
         >
           <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
-          질병명
+          논문 검색
         </button>
         <button
           type="button"
@@ -62,7 +62,7 @@ export default function HomePage() {
           }`}
         >
           <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
-          증상으로 찾기
+          증상 분석
         </button>
       </div>
 
