@@ -115,19 +115,14 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
     }, {});
   }, [records]);
 
-  // Appointment records for a given date (future only)
+  // Appointment records for a given date (all dates, for detail view)
   const appointmentRecords = useMemo(() => {
     const map: Record<string, HealthRecord[]> = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     for (const record of records) {
       if (record.next_appointment_date) {
-        const apptDate = new Date(record.next_appointment_date);
-        if (apptDate >= today) {
-          const key = record.next_appointment_date.split('T')[0];
-          if (!map[key]) map[key] = [];
-          map[key].push(record);
-        }
+        const key = record.next_appointment_date.split('T')[0];
+        if (!map[key]) map[key] = [];
+        map[key].push(record);
       }
     }
     return map;

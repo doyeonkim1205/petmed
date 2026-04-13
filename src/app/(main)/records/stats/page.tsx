@@ -6,7 +6,7 @@ import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig } from '@/lib/plans';
-import { supabase, Pet } from '@/lib/supabase';
+import { supabase, Pet, HealthRecord } from '@/lib/supabase';
 
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
 
@@ -59,12 +59,12 @@ function getEndDate(period: Period, customEnd?: string): Date {
   return new Date();
 }
 
-function formatMonth(year: number, month: number): string {
-  return `${year}.${String(month + 1).padStart(2, '0')}`;
-}
-
 function formatCost(cost: number): string {
   return new Intl.NumberFormat('ko-KR').format(cost) + '원';
+}
+
+function formatMonthLabel(year: number, month: number): string {
+  return `${year}년 ${month + 1}월`;
 }
 
 export default function StatsPage() {
@@ -120,23 +120,27 @@ export default function StatsPage() {
     return { total, count, avg };
   }, [filteredRecords]);
 
-  const monthlyData = useMemo(() => {
-    const map = new Map<string, number>();
+  // Group records by month (newest first)
+  const monthlyGroups = useMemo(() => {
+    const map = new Map<string, { label: string; total: number; records: HealthRecord[] }>();
     for (const r of filteredRecords) {
       const d = new Date(r.visit_date);
-      const key = formatMonth(d.getFullYear(), d.getMonth());
-      map.set(key, (map.get(key) || 0) + r.cost!);
+      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+      if (!map.has(key)) {
+        map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, records: [] });
+      }
+      const group = map.get(key)!;
+      group.total += r.cost!;
+      group.records.push(r);
     }
-    // Sort by key (year.month)
-    const entries = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    const maxValue = entries.length > 0 ? Math.max(...entries.map(e => e[1])) : 0;
-    return { entries, maxValue };
-  }, [filteredRecords]);
-
-  const sortedRecords = useMemo(() => {
-    return [...filteredRecords].sort(
-      (a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime()
-    );
+    // Sort records within each group by date descending
+    for (const group of map.values()) {
+      group.records.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
+    }
+    // Sort groups by key descending (newest first)
+    return Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([, group]) => group);
   }, [filteredRecords]);
 
   return (
@@ -263,65 +267,49 @@ export default function StatsPage() {
               </div>
             </div>
 
-            {/* Monthly bar chart */}
-            {monthlyData.entries.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="text-sm font-bold text-gray-700">월별 의료비</h2>
-                <div className="space-y-2">
-                  {monthlyData.entries.map(([month, amount]) => (
-                    <div key={month} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-12 flex-shrink-0">{month}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
-                        <div
-                          className="bg-blue-500 h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${Math.max((amount / monthlyData.maxValue) * 100, 5)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-[11px] text-gray-600 font-medium whitespace-nowrap flex-shrink-0">
-                        {formatCost(amount)}
-                      </span>
+            {/* Monthly grouped records (Toss style) */}
+            {monthlyGroups.length > 0 ? (
+              <div className="space-y-6">
+                {monthlyGroups.map((group) => (
+                  <div key={group.label}>
+                    {/* Month header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-sm font-bold text-gray-800">{group.label}</h2>
+                      <span className="text-sm font-bold text-blue-600">{formatCost(group.total)}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Record list */}
-            {sortedRecords.length > 0 ? (
-              <div className="space-y-2">
-                <h2 className="text-sm font-bold text-gray-700">비용 기록</h2>
-                {sortedRecords.map((record) => (
-                  <button
-                    key={record.id}
-                    onClick={() => router.push(`/records/${record.id}`)}
-                    className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-400">
-                        {new Date(record.visit_date).toLocaleDateString('ko-KR', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                      <p className="text-sm font-medium text-gray-800 truncate">{record.title}</p>
-                      <div className="flex items-center gap-1.5">
-                        {!selectedPetId && record.pets && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full flex-shrink-0">
-                            {record.pets.name}
+                    {/* Records */}
+                    <div className="space-y-1">
+                      {group.records.map((record) => (
+                        <button
+                          key={record.id}
+                          onClick={() => router.push(`/records/${record.id}`)}
+                          className="w-full flex items-center justify-between py-3 px-1 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                {new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                              </span>
+                              <p className="text-sm text-gray-800 truncate">{record.title}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {!selectedPetId && record.pets && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                                  {record.pets.name}
+                                </span>
+                              )}
+                              {record.hospital_name && (
+                                <span className="text-[11px] text-gray-400">{record.hospital_name}</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">
+                            {formatCost(record.cost!)}
                           </span>
-                        )}
-                        {record.hospital_name && (
-                          <p className="text-xs text-gray-400 truncate">{record.hospital_name}</p>
-                        )}
-                      </div>
+                        </button>
+                      ))}
                     </div>
-                    <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-3">
-                      {formatCost(record.cost!)}
-                    </span>
-                  </button>
+                  </div>
                 ))}
               </div>
             ) : (
