@@ -121,7 +121,6 @@ export default function RecordAddPage() {
   };
 
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
-  const [hiddenHospitals, setHiddenHospitals] = useState<string[]>([]);
   const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
 
   useEffect(() => {
@@ -142,20 +141,9 @@ export default function RecordAddPage() {
           }
         }
       });
-    // 이전에 사용한 병원명 목록 로드
-    const hidden: string[] = JSON.parse(localStorage.getItem('hiddenHospitals') || '[]');
-    setHiddenHospitals(hidden);
-    supabase
-      .from('health_records')
-      .select('hospital_name')
-      .eq('user_id', user.id)
-      .not('hospital_name', 'is', null)
-      .then(({ data }) => {
-        if (data) {
-          const unique = [...new Set(data.map(r => r.hospital_name).filter(Boolean))] as string[];
-          setHospitalSuggestions(unique.filter(h => !hidden.includes(h)));
-        }
-      });
+    // 최근 병원명 localStorage에서 로드 (최대 10개)
+    const saved: string[] = JSON.parse(localStorage.getItem('recentHospitals') || '[]');
+    setHospitalSuggestions(saved);
   }, [user]);
 
   const addMedicationRow = () => {
@@ -290,6 +278,14 @@ export default function RecordAddPage() {
         } catch (err) {
           console.error('Medication add error:', err);
         }
+      }
+
+      // 병원명 저장 시 최근 목록에 추가 (최대 10개)
+      const hn = hospitalName.trim();
+      if (hn) {
+        const prev: string[] = JSON.parse(localStorage.getItem('recentHospitals') || '[]');
+        const updated = [hn, ...prev.filter(h => h !== hn)].slice(0, 10);
+        localStorage.setItem('recentHospitals', JSON.stringify(updated));
       }
 
       router.push('/records');
@@ -523,10 +519,9 @@ export default function RecordAddPage() {
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
-                            const updated = [...hiddenHospitals, name];
-                            setHiddenHospitals(updated);
-                            setHospitalSuggestions(prev => prev.filter(h => h !== name));
-                            localStorage.setItem('hiddenHospitals', JSON.stringify(updated));
+                            const updated = hospitalSuggestions.filter(h => h !== name);
+                            setHospitalSuggestions(updated);
+                            localStorage.setItem('recentHospitals', JSON.stringify(updated));
                           }}
                           className="px-3 py-2.5 text-gray-300 hover:text-red-400"
                         >
