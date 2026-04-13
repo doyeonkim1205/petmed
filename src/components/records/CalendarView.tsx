@@ -70,11 +70,16 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
         addDot(visitKey, recordColor);
       }
 
-      // Next appointment date with its own color
+      // Next appointment date with its own color (future only)
       if (record.next_appointment_date) {
-        const apptKey = record.next_appointment_date.split('T')[0];
-        const apptColor = record.next_appointment_color || '#8B5CF6';
-        appointments.set(apptKey, apptColor);
+        const apptDate = new Date(record.next_appointment_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (apptDate >= today) {
+          const apptKey = record.next_appointment_date.split('T')[0];
+          const apptColor = record.next_appointment_color || '#8B5CF6';
+          appointments.set(apptKey, apptColor);
+        }
       }
 
       // Medications: spread across date range
@@ -110,14 +115,19 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
     }, {});
   }, [records]);
 
-  // Appointment records for a given date
+  // Appointment records for a given date (future only)
   const appointmentRecords = useMemo(() => {
     const map: Record<string, HealthRecord[]> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     for (const record of records) {
       if (record.next_appointment_date) {
-        const key = record.next_appointment_date.split('T')[0];
-        if (!map[key]) map[key] = [];
-        map[key].push(record);
+        const apptDate = new Date(record.next_appointment_date);
+        if (apptDate >= today) {
+          const key = record.next_appointment_date.split('T')[0];
+          if (!map[key]) map[key] = [];
+          map[key].push(record);
+        }
       }
     }
     return map;
