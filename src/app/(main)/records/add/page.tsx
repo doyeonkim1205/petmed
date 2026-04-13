@@ -121,6 +121,7 @@ export default function RecordAddPage() {
   };
 
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
+  const [hiddenHospitals, setHiddenHospitals] = useState<string[]>([]);
   const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
 
   useEffect(() => {
@@ -142,6 +143,8 @@ export default function RecordAddPage() {
         }
       });
     // 이전에 사용한 병원명 목록 로드
+    const hidden: string[] = JSON.parse(localStorage.getItem('hiddenHospitals') || '[]');
+    setHiddenHospitals(hidden);
     supabase
       .from('health_records')
       .select('hospital_name')
@@ -150,7 +153,7 @@ export default function RecordAddPage() {
       .then(({ data }) => {
         if (data) {
           const unique = [...new Set(data.map(r => r.hospital_name).filter(Boolean))] as string[];
-          setHospitalSuggestions(unique);
+          setHospitalSuggestions(unique.filter(h => !hidden.includes(h)));
         }
       });
   }, [user]);
@@ -507,15 +510,29 @@ export default function RecordAddPage() {
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
                     {hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).map((name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => { setHospitalName(name); setShowHospitalSuggestions(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
-                      >
-                        {name}
-                      </button>
+                      <div key={name} className="flex items-center hover:bg-blue-50 transition-colors">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setHospitalName(name); setShowHospitalSuggestions(false); }}
+                          className="flex-1 text-left px-4 py-2.5 text-sm text-gray-700"
+                        >
+                          {name}
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            const updated = [...hiddenHospitals, name];
+                            setHiddenHospitals(updated);
+                            setHospitalSuggestions(prev => prev.filter(h => h !== name));
+                            localStorage.setItem('hiddenHospitals', JSON.stringify(updated));
+                          }}
+                          className="px-3 py-2.5 text-gray-300 hover:text-red-400"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
