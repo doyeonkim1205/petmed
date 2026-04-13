@@ -269,39 +269,37 @@ export default function StatsPage() {
 
             {/* Monthly grouped records (Toss style) */}
             {monthlyGroups.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {monthlyGroups.map((group) => (
-                  <div key={group.label}>
+                  <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
                     {/* Month header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-sm font-bold text-gray-800">{group.label}</h2>
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+                      <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
                       <span className="text-sm font-bold text-blue-600">{formatCost(group.total)}</span>
                     </div>
                     {/* Records */}
-                    <div className="space-y-1">
+                    <div className="divide-y divide-gray-50">
                       {group.records.map((record) => (
                         <button
                           key={record.id}
                           onClick={() => router.push(`/records/${record.id}`)}
-                          className="w-full flex items-center justify-between py-3 px-1 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-400 flex-shrink-0">
                                 {new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                               </span>
-                              <p className="text-sm text-gray-800 truncate">{record.title}</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
                               {!selectedPetId && record.pets && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full flex-shrink-0">
                                   {record.pets.name}
                                 </span>
                               )}
-                              {record.hospital_name && (
-                                <span className="text-[11px] text-gray-400">{record.hospital_name}</span>
-                              )}
+                              <p className="text-sm text-gray-800 truncate">{record.title}</p>
                             </div>
+                            {record.hospital_name && (
+                              <p className="text-[11px] text-gray-400 mt-0.5">{record.hospital_name}</p>
+                            )}
                           </div>
                           <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">
                             {formatCost(record.cost!)}
