@@ -505,10 +505,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               </label>
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                max={100000000}
-                min={0}
+                onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
