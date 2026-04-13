@@ -1,7 +1,7 @@
 'use client';
 
 import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, CalendarClock, LogOut } from 'lucide-react';
+import { Stethoscope, AlertCircle, FileEdit, Building2 } from 'lucide-react';
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -83,50 +83,14 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
             </span>
           </div>
           <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">{record.title}</h3>
-          {record.description && (
-            <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">{record.description}</p>
+          {(record.hospital_name || (record.cost != null && record.cost > 0)) && (
+            <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+              {record.hospital_name && <span>{record.hospital_name}</span>}
+              {record.cost != null && record.cost > 0 && (
+                <span className="font-medium text-gray-600">{formatCost(record.cost)}</span>
+              )}
+            </div>
           )}
-          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400 flex-wrap">
-            {record.hospital_name && (
-              <span>{record.hospital_name}</span>
-            )}
-            {record.cost != null && record.cost > 0 && (
-              <span className="font-medium text-gray-600">{formatCost(record.cost)}</span>
-            )}
-            {record.medications && record.medications.length > 0 && (
-              <span className="flex items-center gap-1">
-                <Pill size={12} />
-                <span>
-                  {record.medications.slice(0, 2).map(m => m.name).join(' · ')}
-                  {record.medications.length > 2 && ` 외 ${record.medications.length - 2}개`}
-                </span>
-              </span>
-            )}
-            {record.record_files && record.record_files.length > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Paperclip size={12} /> {record.record_files.length}
-              </span>
-            )}
-            {record.discharge_date && (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <LogOut size={12} />
-                <span>{new Date(record.discharge_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 퇴원</span>
-              </span>
-            )}
-            {!record.discharge_date && record.record_type === 'hospitalization' && (
-              <span className="text-orange-500 font-medium">입원 중</span>
-            )}
-            {record.next_appointment_date && (
-              <span className="flex items-center gap-1">
-                <CalendarClock size={12} />
-                <span
-                  className="w-2 h-2 rounded-full inline-block"
-                  style={{ backgroundColor: record.next_appointment_color || '#8B5CF6' }}
-                />
-                <span>{new Date(record.next_appointment_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
-              </span>
-            )}
-          </div>
         </div>
       </div>
     </div>

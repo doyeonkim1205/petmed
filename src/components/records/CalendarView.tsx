@@ -22,7 +22,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
   const { dotMap, appointmentDates, medicationMap, hospMap } = useMemo(() => {
     const dots: Record<string, string[]> = {};
     const appointments = new Map<string, string>(); // dateKey → color
-    const medMap: Record<string, { name: string; dosage?: string; frequency: string; color: string }[]> = {};
+    const medMap: Record<string, { name: string; dosage?: string; frequency: string; color: string; recordId: string }[]> = {};
     const hosp: Record<string, { color: string; roundLeft: boolean; roundRight: boolean }> = {};
 
     const addDot = (dateKey: string, color: string) => {
@@ -32,7 +32,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
       }
     };
 
-    const addMed = (dateKey: string, med: { name: string; dosage?: string; frequency: string; color: string }) => {
+    const addMed = (dateKey: string, med: { name: string; dosage?: string; frequency: string; color: string; recordId: string }) => {
       if (!medMap[dateKey]) medMap[dateKey] = [];
       medMap[dateKey].push(med);
     };
@@ -90,7 +90,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
           while (d <= actualEnd) {
             const dateKey = format(d, 'yyyy-MM-dd');
             addDot(dateKey, medColor);
-            addMed(dateKey, { name: med.name, dosage: med.dosage, frequency: med.frequency, color: medColor });
+            addMed(dateKey, { name: med.name, dosage: med.dosage, frequency: med.frequency, color: medColor, recordId: record.id });
             d = addDays(d, 1);
           }
         }
@@ -342,12 +342,12 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
             </p>
             <div className="space-y-1.5">
               {dayMedications.map((med, i) => (
-                <div key={i} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                <button key={i} onClick={() => onRecordClick?.(med.recordId)} className="w-full flex items-center gap-2 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left">
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: med.color }} />
                   <span className="text-sm font-medium text-gray-800">{med.name}</span>
                   {med.dosage && <span className="text-xs text-gray-500">{med.dosage}</span>}
                   <span className="text-xs text-gray-400">{med.frequency}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -363,13 +363,13 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
               {dayAppointments.map((record) => {
                 const apptColor = record.next_appointment_color || '#8B5CF6';
                 return (
-                <div key={record.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: apptColor + '18' }}>
+                <button key={record.id} onClick={() => onRecordClick?.(record.id)} className="w-full flex items-center gap-2 p-2 rounded-lg hover:opacity-80 transition-opacity text-left" style={{ backgroundColor: apptColor + '18' }}>
                   <Calendar size={14} style={{ color: apptColor }} />
                   <span className="text-sm font-medium text-gray-800">{record.title}</span>
                   {record.hospital_name && (
                     <span className="text-xs text-gray-400">{record.hospital_name}</span>
                   )}
-                </div>
+                </button>
                 );
               })}
             </div>
@@ -384,13 +384,13 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
             </p>
             <div className="space-y-1.5">
               {dayDischarges.map((record) => (
-                <div key={record.id} className="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg">
+                <button key={record.id} onClick={() => onRecordClick?.(record.id)} className="w-full flex items-center gap-2 p-2 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors text-left">
                   <Building2 size={14} className="text-emerald-500" />
                   <span className="text-sm font-medium text-gray-800">{record.title}</span>
                   {record.hospital_name && (
                     <span className="text-xs text-gray-400">{record.hospital_name}</span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           </div>

@@ -477,6 +477,7 @@ export default function RecordAddPage() {
                 placeholder="병원명을 입력하세요"
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
+                maxLength={50}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
