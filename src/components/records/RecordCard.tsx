@@ -30,10 +30,6 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
     });
   };
 
-  const formatCost = (cost: number) => {
-    return new Intl.NumberFormat('ko-KR').format(cost) + '원';
-  };
-
   const handleClick = () => {
     if (selectMode && onSelect) {
       onSelect(record.id);
@@ -83,13 +79,8 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
             </span>
           </div>
           <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">{record.title}</h3>
-          {(record.hospital_name || (record.cost != null && record.cost > 0)) && (
-            <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
-              {record.hospital_name && <span>{record.hospital_name}</span>}
-              {record.cost != null && record.cost > 0 && (
-                <span className="font-medium text-gray-600">{formatCost(record.cost)}</span>
-              )}
-            </div>
+          {record.description && (
+            <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{record.description}</p>
           )}
         </div>
       </div>

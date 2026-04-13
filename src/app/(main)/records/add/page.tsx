@@ -120,6 +120,9 @@ export default function RecordAddPage() {
     setRecordType(newType);
   };
 
+  const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
+  const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -129,8 +132,26 @@ export default function RecordAddPage() {
       .then(({ data }) => {
         const petList = data || [];
         setPets(petList);
-        // 1마리면 자동 선택, 2마리 이상이면 "선택해주세요"
-        if (petList.length === 1) setPetId(petList[0].id);
+        if (petList.length === 1) {
+          setPetId(petList[0].id);
+        } else {
+          const defaultId = localStorage.getItem('defaultPetId');
+          if (defaultId && petList.some(p => p.id === defaultId)) {
+            setPetId(defaultId);
+          }
+        }
+      });
+    // 이전에 사용한 병원명 목록 로드
+    supabase
+      .from('health_records')
+      .select('hospital_name')
+      .eq('user_id', user.id)
+      .not('hospital_name', 'is', null)
+      .then(({ data }) => {
+        if (data) {
+          const unique = [...new Set(data.map(r => r.hospital_name).filter(Boolean))] as string[];
+          setHospitalSuggestions(unique);
+        }
       });
   }, [user]);
 
@@ -473,13 +494,32 @@ export default function RecordAddPage() {
               <label className="text-sm font-medium">
                 병원명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
-              <input
-                placeholder="병원명을 입력하세요"
-                value={hospitalName}
-                onChange={(e) => setHospitalName(e.target.value)}
-                maxLength={50}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
+              <div className="relative">
+                <input
+                  placeholder="병원명을 입력하세요"
+                  value={hospitalName}
+                  onChange={(e) => { setHospitalName(e.target.value); setShowHospitalSuggestions(true); }}
+                  onFocus={() => setShowHospitalSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
+                  maxLength={50}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                    {hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { setHospitalName(name); setShowHospitalSuggestions(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">
