@@ -291,7 +291,7 @@ export default function StatsPage() {
                                 {new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                               </span>
                               {!selectedPetId && record.pets && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full flex-shrink-0">
+                                <span className="text-[11px] text-gray-400 flex-shrink-0">
                                   {record.pets.name}
                                 </span>
                               )}
