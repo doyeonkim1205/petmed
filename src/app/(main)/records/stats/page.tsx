@@ -315,12 +315,12 @@ export default function StatsPage() {
         </div>
         <div className="flex max-w-sm mx-auto">
           <button onClick={() => setTab('cost')}
-            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${tab === 'cost' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>
-            <Wallet size={14} className="inline -mt-0.5 mr-1" />의료비
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === 'cost' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+            <Wallet size={14} />의료비
           </button>
           <button onClick={() => setTab('weight')}
-            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${tab === 'weight' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>
-            <Scale size={14} className="inline -mt-0.5 mr-1" />체중
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === 'weight' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+            <Scale size={14} />체중
           </button>
         </div>
       </div>
