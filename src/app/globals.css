@@ -1,11 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark *));
 
-/* Force light mode by default — only light blocks browser auto-dark */
 :root {
-  color-scheme: only light;
   --font-size: 16px;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
@@ -41,12 +39,6 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-html,
-body {
-  background: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
 /* ─── Dark Mode (Zinc neutral palette) ─────────────────── */
 html.dark {
   color-scheme: dark;
@@ -77,12 +69,6 @@ html.dark {
   --sidebar-accent: #27272a;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: #27272a;
-}
-
-html.dark,
-html.dark body {
-  background: var(--background) !important;
-  color: var(--foreground) !important;
 }
 
 /* Remap Tailwind gray scale for dark mode (Zinc) */
