@@ -103,7 +103,7 @@ export default function SavedAnalysesPage() {
             const hasPapers = papers.length > 0 || legacyArticles.length > 0;
 
             return (
-              <div key={item.id} className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div key={item.id} className="rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                 {/* Header */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : item.id)}
