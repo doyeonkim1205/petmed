@@ -759,7 +759,18 @@ export default function ProfilePage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [anyModalOpen]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Remove this device session from DB (maxDevices tracking)
+    try {
+      const { getDeviceId } = await import('@/lib/deviceId');
+      const { authFetch } = await import('@/lib/authFetch');
+      const device_id = getDeviceId();
+      await authFetch('/api/sessions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id }),
+      });
+    } catch {}
     // Clear auth data from localStorage (검색 기록은 사용자별로 유지)
     try {
       Object.keys(localStorage).forEach(key => {
