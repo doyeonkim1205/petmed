@@ -25,9 +25,14 @@ export function DarkModeHint() {
       if (localStorage.getItem(TRIGGER_KEY) !== 'true') return false;
 
       // TWA/PWA standalone에서는 표시하지 않음 (우리가 색상 제어)
-      // 일반 브라우저에서만 표시 (브라우저가 강제 다크 적용 가능)
       if (window.matchMedia('(display-mode: standalone)').matches) return false;
       if (document.referrer.startsWith('android-app://')) return false;
+
+      // Chrome은 color-scheme:light 존중하므로 안 띄움
+      // 다른 브라우저(삼성인터넷, 네이버 등)는 강제 다크 가능 → 표시
+      const ua = navigator.userAgent;
+      const isChrome = /Chrome\//.test(ua) && !/Edg|EdgA|OPR|SamsungBrowser|UCBrowser|YaBrowser|Whale|NAVER/.test(ua);
+      if (isChrome) return false;
 
       return true;
     };
