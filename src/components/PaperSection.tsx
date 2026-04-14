@@ -132,7 +132,7 @@ export function PaperSection({
         {headerAction}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+      <div className="bg-white rounded-xl border border-gray-100 p-4">
         {loading && !error && articles.length === 0 && <SkeletonLoader />}
 
         {error && (
