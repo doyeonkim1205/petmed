@@ -9,12 +9,6 @@ export function DarkModeHint() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // 디버그: ?debugDarkHint=1 쿼리로 강제 표시
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debugDarkHint') === '1') {
-      setShow(true);
-      return;
-    }
-
     const check = () => {
       // 이미 안내를 본 적이 있으면 표시하지 않음
       if (localStorage.getItem(HINT_KEY) === 'true') return false;
@@ -66,23 +60,15 @@ export function DarkModeHint() {
         >
           <X size={16} />
         </button>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
             <Moon size={16} className="text-blue-500" />
           </div>
-          <p className="text-sm font-bold text-gray-800">화면이 어둡게 보이셨나요?</p>
+          <p className="text-sm font-bold text-gray-800">어두운 화면을 사용 중이신가요?</p>
         </div>
-        <p className="text-xs text-gray-500 leading-relaxed mb-2">
-          기기가 다크 모드로 설정되어 있어<br />
-          앱이 전체적으로 어둡게 표시됐어요.
-        </p>
-        <p className="text-xs text-gray-500 leading-relaxed mb-2">
-          앱 다크 모드를 켜면<br />
+        <p className="text-xs text-gray-500 leading-relaxed mb-4">
+          앱 설정에서 다크 모드를 켜면<br />
           더 편안하게 이용할 수 있어요.
-        </p>
-        <p className="text-xs text-gray-400 leading-relaxed mb-4">
-          또는 기기/브라우저 설정에서<br />
-          라이트 모드로 변경하실 수 있어요.
         </p>
         <div className="flex gap-2">
           <button
