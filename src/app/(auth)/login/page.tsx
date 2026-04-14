@@ -30,8 +30,6 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
-    // 구글 로그인은 브라우저 OAuth라 시스템 다크모드 영향 받음 → 콜백 후 안내 트리거
-    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     if (inApp) {
       const loginUrl = `${window.location.origin}/login`;
       // Chrome으로 강제 (없으면 기본 브라우저로 폴백)
@@ -46,8 +44,6 @@ export default function LoginPage() {
 
   const handleKakaoLogin = async () => {
     setError('');
-    // 브라우저(특히 삼성 인터넷)에서 다크모드 강제 적용 → 콜백 후 안내 트리거
-    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     const { error } = await signInWithKakao();
     if (error) setError(error.message);
   };
