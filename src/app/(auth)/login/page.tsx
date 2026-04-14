@@ -30,15 +30,16 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
+    // 구글 로그인은 브라우저 OAuth라 시스템 다크모드 영향 받음 → 콜백 후 안내 트리거
+    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     if (inApp) {
       const loginUrl = `${window.location.origin}/login`;
-      window.location.href = `intent://${window.location.host}/login#Intent;scheme=https;end`;
+      // Chrome으로 강제 (없으면 기본 브라우저로 폴백)
+      window.location.href = `intent://${window.location.host}/login#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(loginUrl)};end`;
       setTimeout(() => { window.open(loginUrl, '_system'); }, 500);
       return;
     }
     setError('');
-    // 구글 로그인은 브라우저 OAuth라 시스템 다크모드 영향 받음 → 콜백 후 안내 트리거
-    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     const { error } = await signInWithGoogle();
     if (error) setError(error.message);
   };
