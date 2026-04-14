@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Moon, X } from 'lucide-react';
 
 const HINT_KEY = 'darkModeHintShown';
-const TRIGGER_KEY = 'darkModeHintTrigger';
 
 export function DarkModeHint() {
   const [show, setShow] = useState(false);
@@ -20,9 +19,6 @@ export function DarkModeHint() {
       // 시스템 다크모드 감지
       const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (!systemDark) return false;
-
-      // OAuth 트리거가 있어야 표시 (구글 로그인 후 등)
-      if (localStorage.getItem(TRIGGER_KEY) !== 'true') return false;
 
       // TWA/PWA standalone에서는 표시하지 않음 (우리가 색상 제어)
       if (window.matchMedia('(display-mode: standalone)').matches) return false;
@@ -45,13 +41,11 @@ export function DarkModeHint() {
     document.documentElement.classList.add('dark');
     localStorage.setItem('theme', 'dark');
     localStorage.setItem(HINT_KEY, 'true');
-    localStorage.removeItem(TRIGGER_KEY);
     setShow(false);
   };
 
   const handleDismiss = () => {
     localStorage.setItem(HINT_KEY, 'true');
-    localStorage.removeItem(TRIGGER_KEY);
     setShow(false);
   };
 
