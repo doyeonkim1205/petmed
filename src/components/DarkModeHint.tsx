@@ -28,11 +28,9 @@ export function DarkModeHint() {
       if (window.matchMedia('(display-mode: standalone)').matches) return false;
       if (document.referrer.startsWith('android-app://')) return false;
 
-      // Chrome은 color-scheme:light 존중하므로 안 띄움
-      // 다른 브라우저(삼성인터넷, 네이버 등)는 강제 다크 가능 → 표시
-      const ua = navigator.userAgent;
-      const isChrome = /Chrome\//.test(ua) && !/Edg|EdgA|OPR|SamsungBrowser|UCBrowser|YaBrowser|Whale|NAVER/.test(ua);
-      if (isChrome) return false;
+      // 삼성 인터넷에서만 표시 (color-scheme:light 무시하고 강제 다크)
+      const isSamsungBrowser = /SamsungBrowser/.test(navigator.userAgent);
+      if (!isSamsungBrowser) return false;
 
       return true;
     };
