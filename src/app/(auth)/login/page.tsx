@@ -33,6 +33,8 @@ export default function LoginPage() {
       return;
     }
     setError('');
+    // 구글 로그인은 브라우저 OAuth라 시스템 다크모드 영향 받음 → 콜백 후 안내 트리거
+    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     const { error } = await signInWithGoogle();
     if (error) setError(error.message);
   };
@@ -66,6 +68,17 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm space-y-3">
           <button
+            onClick={handleKakaoLogin}
+            className="w-full h-12 flex items-center justify-center gap-3 rounded-lg font-medium transition-colors"
+            style={{ backgroundColor: '#FEE500', color: '#191919' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#191919">
+              <path d="M12 3C6.48 3 2 6.36 2 10.44c0 2.62 1.75 4.93 4.38 6.24l-1.12 4.12a.3.3 0 00.46.33l4.66-3.08c.53.06 1.07.09 1.62.09 5.52 0 10-3.36 10-7.7S17.52 3 12 3z"/>
+            </svg>
+            카카오로 시작하기
+          </button>
+
+          <button
             onClick={handleGoogleLogin}
             className="w-full h-12 flex items-center justify-center gap-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
@@ -76,17 +89,6 @@ export default function LoginPage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Google로 시작하기
-          </button>
-
-          <button
-            onClick={handleKakaoLogin}
-            className="w-full h-12 flex items-center justify-center gap-3 rounded-lg font-medium transition-colors"
-            style={{ backgroundColor: '#FEE500', color: '#191919' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#191919">
-              <path d="M12 3C6.48 3 2 6.36 2 10.44c0 2.62 1.75 4.93 4.38 6.24l-1.12 4.12a.3.3 0 00.46.33l4.66-3.08c.53.06 1.07.09 1.62.09 5.52 0 10-3.36 10-7.7S17.52 3 12 3z"/>
-            </svg>
-            카카오로 시작하기
           </button>
         </div>
 
