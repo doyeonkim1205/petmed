@@ -7,31 +7,34 @@ const HINT_KEY = 'darkModeHintShown';
 
 export function DarkModeHint() {
   const [show, setShow] = useState(false);
+  const [debug, setDebug] = useState<string | null>(null);
 
   useEffect(() => {
-    const check = () => {
-      // 이미 안내를 본 적이 있으면 표시하지 않음
-      if (localStorage.getItem(HINT_KEY) === 'true') return false;
+    const isDebug = new URLSearchParams(window.location.search).get('debugHint') === '1';
 
-      // 앱 내 다크모드가 이미 켜져 있으면 표시하지 않음
-      if (localStorage.getItem('theme') === 'dark') return false;
+    const reasons: string[] = [];
+    const hintShown = localStorage.getItem(HINT_KEY) === 'true';
+    const themeDark = localStorage.getItem('theme') === 'dark';
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    const androidApp = document.referrer.startsWith('android-app://');
+    const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
 
-      // 시스템 다크모드 감지
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (!systemDark) return false;
+    reasons.push(`hintShown=${hintShown}`);
+    reasons.push(`themeDark=${themeDark}`);
+    reasons.push(`systemDark=${systemDark}`);
+    reasons.push(`standalone=${standalone}`);
+    reasons.push(`androidApp=${androidApp}`);
+    reasons.push(`samsung=${isSamsungBrowser}`);
+    reasons.push(`ua=${navigator.userAgent.slice(0,60)}`);
 
-      // TWA/PWA standalone에서는 표시하지 않음 (우리가 색상 제어)
-      if (window.matchMedia('(display-mode: standalone)').matches) return false;
-      if (document.referrer.startsWith('android-app://')) return false;
+    const pass = !hintShown && !themeDark && systemDark && !standalone && !androidApp && isSamsungBrowser;
 
-      // 삼성 인터넷에서만 표시 (color-scheme:light 무시하고 강제 다크)
-      const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
-      if (!isSamsungBrowser) return false;
+    if (isDebug) {
+      setDebug(reasons.join(' | ') + ' => ' + (pass ? 'SHOW' : 'HIDE'));
+    }
 
-      return true;
-    };
-
-    if (!check()) return;
+    if (!pass) return;
 
     const timer = setTimeout(() => setShow(true), 800);
     return () => clearTimeout(timer);
@@ -49,7 +52,16 @@ export function DarkModeHint() {
     setShow(false);
   };
 
-  if (!show) return null;
+  if (!show) {
+    if (debug) {
+      return (
+        <div className="fixed top-2 left-2 right-2 z-[100] p-2 bg-yellow-100 text-[10px] text-gray-900 rounded border border-yellow-400 break-all">
+          {debug}
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-[100]">
