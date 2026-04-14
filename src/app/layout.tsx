@@ -60,23 +60,34 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        <meta name="color-scheme" content="light" />
+        <meta name="color-scheme" content="only light" />
         {/* Prevent flash of wrong theme */}
         <script dangerouslySetInnerHTML={{ __html: `
-          try {
-            var t = localStorage.getItem('theme');
-            if (t === 'dark') {
-              document.documentElement.classList.add('dark');
-              document.documentElement.style.colorScheme = 'dark';
-              document.querySelector('meta[name=color-scheme]').content = 'dark';
-            } else {
-              document.documentElement.style.colorScheme = 'light';
+          (function() {
+            try {
+              var t = localStorage.getItem('theme');
+              var d = document.documentElement;
+              var m = document.querySelector('meta[name="color-scheme"]');
+
+              if (t === 'dark') {
+                d.classList.add('dark');
+                d.style.colorScheme = 'dark';
+                if (m) m.setAttribute('content', 'dark');
+              } else {
+                d.classList.remove('dark');
+                d.style.colorScheme = 'only light';
+                if (m) m.setAttribute('content', 'only light');
+              }
+
+              var fs = parseInt(localStorage.getItem('fontSize'), 10);
+              if (fs >= 12 && fs <= 24) d.style.fontSize = fs + 'px';
+
+              var hc = localStorage.getItem('highContrast');
+              if (hc === 'true') d.classList.add('high-contrast');
+            } catch(e) {
+              document.documentElement.style.colorScheme = 'only light';
             }
-            var fs = parseInt(localStorage.getItem('fontSize'), 10);
-            if (fs >= 12 && fs <= 24) document.documentElement.style.fontSize = fs + 'px';
-            var hc = localStorage.getItem('highContrast');
-            if (hc !== 'false') document.documentElement.classList.add('high-contrast');
-          } catch(e) {}
+          })();
         ` }} />
       </head>
       <body className={`${geist.variable} antialiased bg-gray-50`}>
