@@ -39,20 +39,47 @@ export async function verifyAuth(request: Request, options?: { skipDeviceCheck?:
       .single();
 
     if (!session) {
-      return {
-        user: null,
-        error: NextResponse.json(
-          { error: 'session_evicted', message: '다른 기기에서 로그인하여 현재 세션이 종료되었습니다.' },
-          { status: 403 },
-        ),
-      };
-    }
+      // Check if user has reached maxDevices limit
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+      const plan = profile?.plan || 'free';
+      const { getPlanConfig } = await import('./plans');
+      const maxDevices = getPlanConfig(plan).maxDevices;
 
-    // Piggyback heartbeat: update last_active
-    await supabaseAdmin
-      .from('active_sessions')
-      .update({ last_active: new Date().toISOString() })
-      .eq('id', session.id);
+      const { data: existingSessions } = await supabaseAdmin
+        .from('active_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('last_active', { ascending: false });
+
+      if ((existingSessions?.length || 0) >= maxDevices) {
+        // Truly evicted: another device took the slot
+        return {
+          user: null,
+          error: NextResponse.json(
+            { error: 'session_evicted', message: '다른 기기에서 로그인하여 현재 세션이 종료되었습니다.' },
+            { status: 403 },
+          ),
+        };
+      }
+
+      // Auto-register this device (race condition recovery)
+      await supabaseAdmin
+        .from('active_sessions')
+        .upsert(
+          { user_id: user.id, device_id: deviceId, last_active: new Date().toISOString() },
+          { onConflict: 'user_id,device_id' },
+        );
+    } else {
+      // Piggyback heartbeat: update last_active
+      await supabaseAdmin
+        .from('active_sessions')
+        .update({ last_active: new Date().toISOString() })
+        .eq('id', session.id);
+    }
   }
 
   return { user, error: null };
