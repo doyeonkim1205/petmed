@@ -308,7 +308,7 @@ export default function StatsPage() {
   return (
     <div className="bg-white min-h-full pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-30 bg-white">
         <div className="flex items-center gap-3 px-4 h-14 max-w-sm mx-auto">
           <button onClick={() => router.back()} className="text-gray-600"><ArrowLeft size={20} /></button>
           <h1 className="text-base font-bold text-gray-800">건강 통계</h1>

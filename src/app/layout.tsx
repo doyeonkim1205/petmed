@@ -60,12 +60,18 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        <meta name="color-scheme" content="light" />
         {/* Prevent flash of wrong theme */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             var t = localStorage.getItem('theme');
-            if (t === 'dark') document.documentElement.classList.add('dark');
-            document.documentElement.style.colorScheme = t === 'dark' ? 'dark' : 'light';
+            if (t === 'dark') {
+              document.documentElement.classList.add('dark');
+              document.documentElement.style.colorScheme = 'dark';
+              document.querySelector('meta[name=color-scheme]').content = 'dark';
+            } else {
+              document.documentElement.style.colorScheme = 'light';
+            }
             var fs = parseInt(localStorage.getItem('fontSize'), 10);
             if (fs >= 12 && fs <= 24) document.documentElement.style.fontSize = fs + 'px';
             var hc = localStorage.getItem('highContrast');
