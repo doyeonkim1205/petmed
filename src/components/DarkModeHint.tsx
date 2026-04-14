@@ -28,16 +28,9 @@ export function DarkModeHint() {
       if (window.matchMedia('(display-mode: standalone)').matches) return false;
       if (document.referrer.startsWith('android-app://')) return false;
 
-      // 실제로 브라우저가 우리 앱을 어둡게 렌더링 중인지 확인
-      // (Chrome은 color-scheme:light 존중 → 라이트, 삼성인터넷 등은 강제 다크)
-      const bodyBg = getComputedStyle(document.body).backgroundColor;
-      const match = bodyBg.match(/\d+/g);
-      if (match && match.length >= 3) {
-        const [r, g, b] = match.map(Number);
-        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        // 밝게 렌더링되고 있으면 안내 불필요
-        if (luminance > 0.5) return false;
-      }
+      // 삼성 인터넷에서만 표시 (color-scheme:light 무시하고 강제 다크)
+      const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+      if (!isSamsungBrowser) return false;
 
       return true;
     };
