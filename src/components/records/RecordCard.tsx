@@ -44,7 +44,7 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
       className={`rounded-xl p-4 border cursor-pointer transition-colors ${
         selectMode && selected
           ? 'border-blue-400 bg-blue-50'
-          : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50'
+          : 'border-gray-100 hover:bg-gray-50'
       }`}
     >
       <div className="flex items-start gap-3">
