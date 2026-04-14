@@ -46,6 +46,8 @@ export default function LoginPage() {
 
   const handleKakaoLogin = async () => {
     setError('');
+    // 브라우저(특히 삼성 인터넷)에서 다크모드 강제 적용 → 콜백 후 안내 트리거
+    try { localStorage.setItem('darkModeHintTrigger', 'true'); } catch {}
     const { error } = await signInWithKakao();
     if (error) setError(error.message);
   };
