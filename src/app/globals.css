@@ -76,7 +76,7 @@ html.dark {
   --color-white: #18181b;
   /* --color-black stays #000000 (not remapped — needed for overlays) */
   --color-gray-50: #09090b;
-  --color-gray-100: #18181b;
+  --color-gray-100: #2a2a2e;
   --color-gray-200: #27272a;
   --color-gray-300: #3f3f46;
   --color-gray-400: #52525b;
