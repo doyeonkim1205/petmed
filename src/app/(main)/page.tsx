@@ -40,7 +40,10 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4">🐾 PawDex</h1>
+      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
+        <img src="/icons/paw-title.svg" alt="" width={40} height={40} className="inline-block" />
+        PawDex
+      </h1>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
