@@ -28,7 +28,10 @@ export function DarkModeHint() {
     reasons.push(`samsung=${isSamsungBrowser}`);
     reasons.push(`ua=${navigator.userAgent.slice(0,60)}`);
 
-    const pass = !hintShown && !themeDark && systemDark && !standalone && !androidApp && isSamsungBrowser;
+    // 삼성 인터넷은 시스템 다크모드와 무관하게 브라우저 자체 다크모드로 강제 변환하므로
+    // systemDark 체크 없이 Samsung Browser 감지만으로 판정
+    const pass = !hintShown && !themeDark && !standalone && !androidApp && isSamsungBrowser;
+    void systemDark;
 
     if (isDebug) {
       setDebug(reasons.join(' | ') + ' => ' + (pass ? 'SHOW' : 'HIDE'));
