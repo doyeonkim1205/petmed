@@ -40,8 +40,8 @@ function AccordionItem({ article, index, analysis, analysisLoading, isBookmarked
   const [isOpen, setIsOpen] = React.useState(index === 0);
 
   return (
-    <div className="border-b border-gray-50 last:border-b-0">
-      <div className="flex items-start gap-1 py-3">
+    <div className="bg-white rounded-xl border border-gray-100 p-3">
+      <div className="flex items-start gap-1">
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex-1 flex items-start gap-2 text-left min-w-0"
@@ -132,52 +132,54 @@ export function PaperSection({
         {headerAction}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
-        {loading && !error && articles.length === 0 && <SkeletonLoader />}
+      {loading && !error && articles.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <SkeletonLoader />
+        </div>
+      )}
 
-        {error && (
-          <div className="flex items-center gap-2 mb-3 p-2.5 bg-red-50 rounded-lg text-xs text-red-500">
-            <AlertCircle size={14} />
-            <span className="flex-1">PubMed 연결에 실패했습니다.</span>
-            <button
-              onClick={retry}
-              className="flex items-center gap-1 text-xs hover:text-red-700 transition-colors"
-            >
-              <RefreshCw size={11} />
-              재시도
-            </button>
-          </div>
-        )}
+      {error && (
+        <div className="flex items-center gap-2 mb-3 p-2.5 bg-red-50 rounded-lg text-xs text-red-500">
+          <AlertCircle size={14} />
+          <span className="flex-1">PubMed 연결에 실패했습니다.</span>
+          <button
+            onClick={retry}
+            className="flex items-center gap-1 text-xs hover:text-red-700 transition-colors"
+          >
+            <RefreshCw size={11} />
+            재시도
+          </button>
+        </div>
+      )}
 
-        {!loading && articles.length > 0 && (
-          <div>
-            {articles.map((article, idx) => (
-              <AccordionItem
-                key={article.pmid}
-                article={article}
-                index={idx}
-                analysis={analysis}
-                analysisLoading={analysisLoading}
-                isBookmarked={bookmarkedPapers?.has(idx)}
-                onToggleBookmark={onToggleBookmark ? () => onToggleBookmark(idx) : undefined}
-                showBookmark={showBookmarks}
-              />
-            ))}
-          </div>
-        )}
+      {!loading && articles.length > 0 && (
+        <div className="space-y-2">
+          {articles.map((article, idx) => (
+            <AccordionItem
+              key={article.pmid}
+              article={article}
+              index={idx}
+              analysis={analysis}
+              analysisLoading={analysisLoading}
+              isBookmarked={bookmarkedPapers?.has(idx)}
+              onToggleBookmark={onToggleBookmark ? () => onToggleBookmark(idx) : undefined}
+              showBookmark={showBookmarks}
+            />
+          ))}
+        </div>
+      )}
 
-        {showFallback && (
-          <div className="space-y-2">
-            <p className="font-medium text-sm text-gray-700">{diseaseName}</p>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              {diseaseSummary}
-            </p>
-            <span className="inline-block text-xs bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full mt-1">
-              오프라인 데이터
-            </span>
-          </div>
-        )}
-      </div>
+      {showFallback && (
+        <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+          <p className="font-medium text-sm text-gray-700">{diseaseName}</p>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            {diseaseSummary}
+          </p>
+          <span className="inline-block text-xs bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full mt-1">
+            오프라인 데이터
+          </span>
+        </div>
+      )}
     </section>
   );
 }

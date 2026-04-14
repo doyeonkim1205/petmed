@@ -51,9 +51,9 @@ const severityConfig = {
 };
 
 const likelihoodConfig = {
-  '높음': 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
-  '중간': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
-  '낮음': 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+  '높음': 'bg-red-100 text-red-600',
+  '중간': 'bg-yellow-100 text-yellow-700',
+  '낮음': 'bg-gray-100 text-gray-500',
 };
 
 function SearchContent() {
