@@ -24,6 +24,11 @@ export function DarkModeHint() {
       // OAuth 트리거가 있어야 표시 (구글 로그인 후 등)
       if (localStorage.getItem(TRIGGER_KEY) !== 'true') return false;
 
+      // TWA/PWA standalone에서는 표시하지 않음 (우리가 색상 제어)
+      // 일반 브라우저에서만 표시 (브라우저가 강제 다크 적용 가능)
+      if (window.matchMedia('(display-mode: standalone)').matches) return false;
+      if (document.referrer.startsWith('android-app://')) return false;
+
       return true;
     };
 
