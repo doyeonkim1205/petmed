@@ -42,17 +42,17 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
       <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
-        <PawIcon size={44} className="text-blue-800 dark:text-blue-300" />
+        <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
         PawDex
       </h1>
 
       {/* Mode Toggle */}
-      <div className="flex bg-gray-100 dark:bg-gray-800/50 rounded-full p-0.5 mb-4">
+      <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
         <button
           type="button"
           onClick={() => { setSearchMode('disease'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'disease' ? 'bg-white dark:bg-gray-700/60 text-blue-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
+            searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
           }`}
         >
           <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
@@ -62,7 +62,7 @@ export default function HomePage() {
           type="button"
           onClick={() => { setSearchMode('symptom'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'symptom' ? 'bg-white dark:bg-gray-700/60 text-purple-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
+            searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
           }`}
         >
           <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
@@ -73,7 +73,7 @@ export default function HomePage() {
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="w-full max-w-sm mx-auto">
         <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
-          searchMode === 'symptom' ? 'border-purple-200' : 'border-gray-200'
+          searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-300'
         }`}>
           <button
             type="button"

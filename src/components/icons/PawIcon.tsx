@@ -2,7 +2,7 @@ export function PawIcon({ size = 24, className = '' }: { size?: number; classNam
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 128 128"
+      viewBox="30 32 64 58"
       width={size}
       height={size}
       fill="currentColor"
