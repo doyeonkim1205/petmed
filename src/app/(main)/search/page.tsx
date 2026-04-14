@@ -358,6 +358,7 @@ function SearchContent() {
 
   const handleSaveAnalysis = async () => {
     if (!isPaid || saving || saved) return;
+    if (!searchTerm) return; // 검색하지 않은 상태에서는 저장 불가
     setSaving(true);
     try {
       const { authFetch } = await import('@/lib/authFetch');

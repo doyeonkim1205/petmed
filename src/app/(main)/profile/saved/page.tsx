@@ -198,15 +198,15 @@ export default function SavedAnalysesPage() {
                                   {paper.summary && (
                                     <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{paper.summary}</p>
                                   )}
-                                  <div className="flex items-center gap-2 mt-1.5">
-                                    <p className="text-[10px] text-gray-400">
+                                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <p className="text-[10px] text-gray-400 truncate">
                                       {paper.journal} · {paper.pub_date}
                                     </p>
                                     <a
                                       href={getPubMedUrl(paper.pmid)}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs text-blue-500"
+                                      className="inline-flex items-center gap-1 text-xs text-blue-500 flex-shrink-0"
                                     >
                                       <ExternalLink size={10} />
                                       원문
