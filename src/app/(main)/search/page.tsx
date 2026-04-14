@@ -882,7 +882,7 @@ function SearchContent() {
                       <AlertTriangle size={14} className="text-orange-400" />
                       주의사항 & 대처방법
                     </h3>
-                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />
@@ -914,7 +914,7 @@ function SearchContent() {
                       <Pill size={14} className="text-purple-400" />
                       도움되는 성분
                     </h3>
-                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />
