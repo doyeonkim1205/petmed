@@ -115,12 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) {
           setSession(localSession);
           setUser(verifiedUser);
-          const profileData = await fetchProfile(verifiedUser.id);
-          if (mounted) {
-            setProfile(profileData);
-            setLoading(false);
-          }
-          // Register device session (heartbeat)
+          // Register device session BEFORE unlocking pages (prevents race with API calls)
           try {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
@@ -130,6 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               body: JSON.stringify({ device_id: getDeviceId() }),
             });
           } catch {}
+          const profileData = await fetchProfile(verifiedUser.id);
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error('Auth init error:', err);
@@ -168,17 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try { await ensureProfile(authUser); } catch {}
             const provider = authUser.app_metadata?.provider || 'unknown';
             logActivity(authUser.id, 'auth.login', { details: { method: provider } });
-            // Register device session on sign-in
-            try {
-              const { getDeviceId } = await import('@/lib/deviceId');
-              const { authFetch } = await import('@/lib/authFetch');
-              await authFetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: getDeviceId() }),
-              });
-            } catch {}
           }
+          // Always register device session first (prevents race with API calls)
+          try {
+            const { getDeviceId } = await import('@/lib/deviceId');
+            const { authFetch } = await import('@/lib/authFetch');
+            await authFetch('/api/sessions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ device_id: getDeviceId() }),
+            });
+          } catch {}
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
             setProfile(profileData);
