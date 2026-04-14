@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { DarkModeHint } from "@/components/DarkModeHint";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -77,6 +78,7 @@ export default function RootLayout({
           {children}
         </Providers>
         <ServiceWorkerRegister />
+        <DarkModeHint />
       </body>
     </html>
   );
