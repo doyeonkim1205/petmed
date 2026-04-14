@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Force light mode by default, dark only via .dark class */
+html:not(.dark) {
+  color-scheme: light !important;
+}
+
 :root {
   --font-size: 16px;
   --background: #ffffff;
