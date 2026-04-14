@@ -88,6 +88,7 @@ export default function SubscriptionPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelWithRefund, setCancelWithRefund] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [showComingSoon, setShowComingSoon] = useState(false);
   // billingPeriod and billingMode removed — replaced by 3 direct buttons
 
   const fetchData = async () => {
@@ -206,13 +207,13 @@ export default function SubscriptionPage() {
             <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
             <div className="space-y-2.5">
-              <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+              <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
               <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
-              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+              <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
@@ -253,13 +254,13 @@ export default function SubscriptionPage() {
             <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
             <div className="space-y-2.5">
-              <PlanBtn onClick={() => router.push('/payment?productId=plus_monthly_onetime')}
+              <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
               <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
-              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly')}
+              <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
@@ -289,7 +290,7 @@ export default function SubscriptionPage() {
 
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
-              <PlanBtn onClick={() => router.push('/payment?productId=plus_yearly&upgrade=true')}
+              <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="연간 이용권으로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
@@ -425,6 +426,27 @@ export default function SubscriptionPage() {
           <p className="text-[11px] text-gray-300">결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a></p>
         </div>
       </div>
+
+      {/* ── Coming Soon Modal (단건/연간 결제 심사 중) ── */}
+      {showComingSoon && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowComingSoon(false)}>
+          <div className="bg-white rounded-2xl max-w-xs w-full p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                <Calendar size={20} className="text-blue-500" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800 mb-1.5">서비스 준비 중입니다</h3>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                단건·연간 결제는 현재 준비 중이에요.<br />
+                정기 결제로 먼저 이용해보세요.
+              </p>
+              <button onClick={() => setShowComingSoon(false)} className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium">
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
