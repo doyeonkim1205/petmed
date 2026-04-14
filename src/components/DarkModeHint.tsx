@@ -9,6 +9,12 @@ export function DarkModeHint() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // 디버그: ?debugDarkHint=1 쿼리로 강제 표시
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debugDarkHint') === '1') {
+      setShow(true);
+      return;
+    }
+
     const check = () => {
       // 이미 안내를 본 적이 있으면 표시하지 않음
       if (localStorage.getItem(HINT_KEY) === 'true') return false;
