@@ -9,13 +9,13 @@ import { getPubMedUrl } from '@/services/pubmed';
 
 export default function SavedAnalysesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user) return;
     const fetchSaved = async () => {
       try {
         const { authFetch } = await import('@/lib/authFetch');
@@ -29,7 +29,7 @@ export default function SavedAnalysesPage() {
       }
     };
     fetchSaved();
-  }, [user]);
+  }, [user, authLoading]);
 
   const handleDeleteAnalysis = async (id: string) => {
     try {
