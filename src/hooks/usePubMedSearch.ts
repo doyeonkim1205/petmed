@@ -84,25 +84,43 @@ async function saveCache(
 }
 
 /**
- * Rate limit check — returns { allowed, reason?, plan? }
+ * Pre-check rate limit (no logging) — returns { allowed, reason?, plan? }
  */
-async function checkAndLogSearch(query: string, petType: string): Promise<{
+async function checkSearchLimit(): Promise<{
   allowed: boolean;
   reason?: string;
   plan?: string;
 }> {
   try {
     const { authFetch } = await import('@/lib/authFetch');
-    const res = await authFetch('/api/search-usage', {
+    const res = await authFetch('/api/search-usage');
+    if (!res.ok) return { allowed: true };
+    const data = await res.json();
+    if (!data.unlimited && data.remaining <= 0) {
+      return {
+        allowed: false,
+        plan: data.plan,
+        reason: `🔍 오늘의 검색 횟수(${data.limit}회)를 모두 사용했습니다.${data.plan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 검색을 이용하세요.'}`,
+      };
+    }
+    return { allowed: true, plan: data.plan };
+  } catch {
+    return { allowed: true };
+  }
+}
+
+/**
+ * Log a successful search (count deduction)
+ */
+async function logSearch(query: string, petType: string): Promise<void> {
+  try {
+    const { authFetch } = await import('@/lib/authFetch');
+    await authFetch('/api/search-usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, petType }),
     });
-    if (!res.ok) return { allowed: true }; // fail-open: allow search if rate-limit service is down
-    return await res.json();
-  } catch {
-    return { allowed: true };
-  }
+  } catch {}
 }
 
 /**
@@ -164,8 +182,8 @@ export function usePubMedSearch(
       return;
     }
 
-    // Step 2: 검증 통과 후 횟수 차감 (캐시 여부와 무관하게 항상 차감)
-    const usage = await checkAndLogSearch(diseaseName, petType);
+    // Step 2: 검증 통과 후 검색 한도 사전 체크 (로깅 X)
+    const usage = await checkSearchLimit();
     if (!usage.allowed) {
       setError(usage.reason || '검색 횟수를 초과했습니다.');
       setLimitReached(true);
@@ -185,6 +203,8 @@ export function usePubMedSearch(
       setIsCached(true);
       setLoading(false);
       setStep('done');
+      // 캐시 hit도 검색으로 카운트 (성공이니까)
+      logSearch(diseaseName, petType);
       return;
     }
 
@@ -277,6 +297,9 @@ export function usePubMedSearch(
 
         // 캐시에 저장 (백그라운드, 에러 무시)
         saveCache(diseaseName, petType, finalArticles, finalAnalysis, desc);
+
+        // 검색 성공 시에만 카운트 차감
+        logSearch(diseaseName, petType);
       } catch (aiErr) {
         console.error('[AI 분석 실패]', aiErr);
         // AI 실패 시 원본 5편 그대로 표시
