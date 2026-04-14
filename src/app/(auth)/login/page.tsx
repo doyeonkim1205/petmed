@@ -11,7 +11,8 @@ function isInAppBrowser(): boolean {
   if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) return false;
   if (typeof document !== 'undefined' && document.referrer.startsWith('android-app://')) return false;
   const ua = navigator.userAgent || '';
-  return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|Snapchat|Twitter|Android.*wv\)/.test(ua);
+  // Only detect known problematic in-app browsers (not generic WebView)
+  return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|Snapchat|Twitter/.test(ua);
 }
 
 export default function LoginPage() {
