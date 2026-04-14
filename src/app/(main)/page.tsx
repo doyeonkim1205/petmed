@@ -41,8 +41,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-700 dark:text-blue-400 tracking-tight mb-4 flex items-center gap-1">
-        <PawIcon size={36} />
+      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
+        <PawIcon size={44} className="text-blue-800 dark:text-blue-300" />
         PawDex
       </h1>
 
