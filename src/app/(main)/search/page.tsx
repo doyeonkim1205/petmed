@@ -51,9 +51,9 @@ const severityConfig = {
 };
 
 const likelihoodConfig = {
-  '높음': 'bg-red-100 text-red-600',
-  '중간': 'bg-yellow-100 text-yellow-700',
-  '낮음': 'bg-gray-100 text-gray-500',
+  '높음': 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
+  '중간': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+  '낮음': 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
 };
 
 function SearchContent() {
@@ -882,7 +882,7 @@ function SearchContent() {
                       <AlertTriangle size={14} className="text-orange-400" />
                       주의사항 & 대처방법
                     </h3>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                    <div className="bg-white rounded-xl border border-gray-100 dark:border-gray-600 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />
@@ -914,7 +914,7 @@ function SearchContent() {
                       <Pill size={14} className="text-purple-400" />
                       도움되는 성분
                     </h3>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                    <div className="bg-white rounded-xl border border-gray-100 dark:border-gray-600 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />

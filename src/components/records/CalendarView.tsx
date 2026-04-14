@@ -294,7 +294,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
       </div>
 
       {/* Selected Date Details */}
-      <div className="border-t border-gray-100 px-4 py-3">
+      <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
         <h4 className="text-sm font-bold text-gray-800 mb-2">
           {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
         </h4>
@@ -315,7 +315,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                     record.record_type === 'visit' ? 'bg-blue-100' :
                     record.record_type === 'symptom' ? 'bg-orange-100' :
-                    record.record_type === 'hospitalization' ? 'bg-emerald-100' : 'bg-gray-100'
+                    record.record_type === 'hospitalization' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-gray-100 dark:bg-gray-800'
                   }`}>
                     <Icon size={16} className={color} />
                   </div>
@@ -389,7 +389,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
             </p>
             <div className="space-y-1.5">
               {dayDischarges.map((record) => (
-                <button key={record.id} onClick={() => onRecordClick?.(record.id)} className="w-full flex items-center gap-2 p-2 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors text-left">
+                <button key={record.id} onClick={() => onRecordClick?.(record.id)} className="w-full flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-left">
                   <Building2 size={14} className="text-emerald-500" />
                   <span className="text-sm font-medium text-gray-800">{record.title}</span>
                   {record.hospital_name && (

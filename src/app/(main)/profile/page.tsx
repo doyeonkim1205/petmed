@@ -956,8 +956,8 @@ export default function ProfilePage() {
       </div>
 
       <div className="py-8 px-6 text-center space-y-1">
-        <p className="text-xs text-gray-300">PawDex v1.0.0</p>
-        <div className="text-[10px] text-gray-300 leading-relaxed">
+        <p className="text-xs text-gray-400">PawDex v1.0.0</p>
+        <div className="text-[10px] text-gray-400 leading-relaxed">
           <p>디와이랩스(DYLabs) | 대표: 김도연</p>
           <p>사업자등록번호: 769-77-00552</p>
           <p>통신판매업신고번호: 2026-화성동탄-1654</p>

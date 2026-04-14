@@ -12,10 +12,10 @@ interface RecordCardProps {
 }
 
 const typeConfig = {
-  symptom: { icon: AlertCircle, label: '증상', color: 'bg-orange-100 text-orange-600' },
-  visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600' },
-  hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600' },
-  manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600' },
+  symptom: { icon: AlertCircle, label: '증상', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' },
+  visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
+  hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
+  manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
 };
 
 export function RecordCard({ record, onClick, selectMode, selected, onSelect }: RecordCardProps) {
@@ -44,7 +44,7 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
       className={`rounded-xl p-4 border cursor-pointer transition-colors ${
         selectMode && selected
           ? 'border-blue-400 bg-blue-50'
-          : 'border-gray-100 hover:bg-gray-50'
+          : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50'
       }`}
     >
       <div className="flex items-start gap-3">
