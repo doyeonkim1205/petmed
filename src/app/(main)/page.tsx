@@ -47,12 +47,12 @@ export default function HomePage() {
       </h1>
 
       {/* Mode Toggle */}
-      <div className="flex bg-gray-100 dark:bg-gray-800 rounded-full p-0.5 mb-4">
+      <div className="flex bg-gray-100 dark:bg-gray-800/50 rounded-full p-0.5 mb-4">
         <button
           type="button"
           onClick={() => { setSearchMode('disease'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'disease' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
+            searchMode === 'disease' ? 'bg-white dark:bg-gray-700/60 text-blue-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
@@ -62,7 +62,7 @@ export default function HomePage() {
           type="button"
           onClick={() => { setSearchMode('symptom'); setQuery(''); }}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'symptom' ? 'bg-white dark:bg-gray-700 text-purple-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
+            searchMode === 'symptom' ? 'bg-white dark:bg-gray-700/60 text-purple-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
