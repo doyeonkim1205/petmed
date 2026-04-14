@@ -19,7 +19,9 @@ export function DarkModeHint() {
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
     const androidApp = document.referrer.startsWith('android-app://');
     const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+    const onboarded = localStorage.getItem('pawdex_onboarded') === 'true';
 
+    reasons.push(`onboarded=${onboarded}`);
     reasons.push(`hintShown=${hintShown}`);
     reasons.push(`themeDark=${themeDark}`);
     reasons.push(`systemDark=${systemDark}`);
@@ -30,7 +32,7 @@ export function DarkModeHint() {
 
     // 삼성 인터넷은 시스템 다크모드와 무관하게 브라우저 자체 다크모드로 강제 변환하므로
     // systemDark 체크 없이 Samsung Browser 감지만으로 판정
-    const pass = !hintShown && !themeDark && !standalone && !androidApp && isSamsungBrowser;
+    const pass = onboarded && !hintShown && !themeDark && !standalone && !androidApp && isSamsungBrowser;
     void systemDark;
 
     if (isDebug) {
@@ -82,8 +84,7 @@ export function DarkModeHint() {
           <p className="text-sm font-bold text-gray-800">어두운 화면을 사용 중이신가요?</p>
         </div>
         <p className="text-xs text-gray-500 leading-relaxed mb-4">
-          앱 설정에서 다크 모드를 켜면<br />
-          더 편안하게 이용할 수 있어요.
+          앱 설정에서 다크 모드를 켜면 더 편안하게 이용할 수 있어요.
         </p>
         <div className="flex gap-2">
           <button
