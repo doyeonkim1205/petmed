@@ -414,12 +414,12 @@ function SearchContent() {
       <div className="bg-white px-4 pt-6 pb-4 sticky top-14 z-40">
         {/* Mode Toggle */}
         <div className="max-w-sm mx-auto mb-3 flex justify-center">
-          <div className="flex bg-gray-100 rounded-full p-0.5">
+          <div className="flex bg-gray-100 dark:bg-gray-800/50 rounded-full p-0.5">
             <button
               type="button"
               onClick={() => { setSearchMode('disease'); setQuery(''); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+                searchMode === 'disease' ? 'bg-white dark:bg-gray-700/60 text-blue-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
@@ -429,7 +429,7 @@ function SearchContent() {
               type="button"
               onClick={() => { setSearchMode('symptom'); setQuery(''); }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
+                searchMode === 'symptom' ? 'bg-white dark:bg-gray-700/60 text-purple-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
@@ -440,7 +440,7 @@ function SearchContent() {
 
         <form onSubmit={handleSearch} className="max-w-sm mx-auto">
           <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
-            searchMode === 'symptom' ? 'border-purple-200' : 'border-gray-200'
+            searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-200'
           }`}>
             <button
               type="button"
