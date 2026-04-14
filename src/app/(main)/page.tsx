@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Search as SearchIcon, Stethoscope } from 'lucide-react';
+import { PawIcon } from '@/components/icons/PawIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -40,8 +41,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
       {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
-        <img src="/icons/paw-title.svg" alt="" width={40} height={40} className="inline-block" />
+      <h1 className="text-4xl font-extrabold text-blue-700 dark:text-blue-400 tracking-tight mb-4 flex items-center gap-1">
+        <PawIcon size={36} />
         PawDex
       </h1>
 
