@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangl
 import { useAuth } from '@/contexts/AuthContext';
 import { SavedAnalysis, SavedPaper } from '@/lib/supabase';
 import { getPubMedUrl } from '@/services/pubmed';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function SavedAnalysesPage() {
   const router = useRouter();
@@ -13,6 +14,11 @@ export default function SavedAnalysesPage() {
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<
+    | { kind: 'analysis'; id: string }
+    | { kind: 'paper'; paperId: string; analysisId: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -32,7 +38,6 @@ export default function SavedAnalysesPage() {
   }, [user, authLoading]);
 
   const handleDeleteAnalysis = async (id: string) => {
-    if (!confirm('이 보관함 항목을 삭제하시겠습니까?')) return;
     try {
       const { authFetch } = await import('@/lib/authFetch');
       const res = await authFetch('/api/saved-analyses', {
@@ -47,7 +52,6 @@ export default function SavedAnalysesPage() {
   };
 
   const handleDeletePaper = async (paperId: string, analysisId: string) => {
-    if (!confirm('이 논문을 삭제하시겠습니까?')) return;
     try {
       const { authFetch } = await import('@/lib/authFetch');
       const res = await authFetch('/api/saved-papers', {
@@ -131,7 +135,7 @@ export default function SavedAnalysesPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteAnalysis(item.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmTarget({ kind: 'analysis', id: item.id }); }}
                         className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
                       >
                         <Trash2 size={14} />
@@ -216,7 +220,7 @@ export default function SavedAnalysesPage() {
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() => handleDeletePaper(paper.id, item.id)}
+                                  onClick={() => setConfirmTarget({ kind: 'paper', paperId: paper.id, analysisId: item.id })}
                                   className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
                                 >
                                   <Trash2 size={12} />
@@ -271,6 +275,25 @@ export default function SavedAnalysesPage() {
           })
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmTarget !== null}
+        title={confirmTarget?.kind === 'paper' ? '논문을 삭제할까요?' : '보관함에서 삭제할까요?'}
+        message={
+          confirmTarget?.kind === 'paper'
+            ? '이 논문을 보관함에서 제거합니다.'
+            : '이 보관함 항목을 완전히 삭제합니다.\n되돌릴 수 없어요.'
+        }
+        variant="danger"
+        confirmLabel="삭제"
+        onConfirm={() => {
+          if (!confirmTarget) return;
+          if (confirmTarget.kind === 'analysis') handleDeleteAnalysis(confirmTarget.id);
+          else handleDeletePaper(confirmTarget.paperId, confirmTarget.analysisId);
+          setConfirmTarget(null);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
-// PawDex Service Worker v6
-const CACHE_NAME = 'pawdex-v6';
+// PawDex Service Worker v7
+const CACHE_NAME = 'pawdex-v7';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png'];
 
 // Install: precache essential resources
@@ -62,10 +62,25 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'PawDex';
+
+  // 카테고리별 오른쪽 큰 아이콘 매핑
+  // 서버 payload 의 data.category 를 보고 결정 (없으면 기본 파우)
+  let categoryIcon = '/icons/notification-icon.png';
+  switch (data.category) {
+    case 'medication':
+      categoryIcon = '/icons/med.png';
+      break;
+    case 'appointment':
+      categoryIcon = '/icons/cal.png';
+      break;
+    case 'hospitalization':
+      categoryIcon = '/icons/hos.png';
+      break;
+  }
+
   const options = {
     body: data.body || '',
-    // icon (오른쪽 large): 구 TWA 버전(v16 이하) 에서 SMALL_ICON 렌더가 실패해 'P' 폴백이 뜨는 문제 방지용 보험
-    icon: '/icons/notification-icon.png',
+    icon: categoryIcon,
     badge: '/icons/badge-72x72.png',
     data: { url: data.url || '/' },
   };

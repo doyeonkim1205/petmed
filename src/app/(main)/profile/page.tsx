@@ -15,6 +15,7 @@ import {
 import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 import { APP_VERSION } from '@/lib/version';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -91,6 +92,7 @@ function PetModal({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
@@ -152,7 +154,6 @@ function PetModal({
   };
 
   const handleDelete = async (petId: string) => {
-    if (!confirm('이 반려동물을 삭제하시겠습니까?\n관련된 건강 기록도 함께 삭제됩니다.')) return;
     await supabase.from('pets').delete().eq('id', petId).eq('user_id', userId);
     logActivity(userId, 'pet.delete', { resourceType: 'pet', resourceId: petId });
     fetchPets();
@@ -186,7 +187,7 @@ function PetModal({
                       {pet.birth_date ? ` / ${pet.birth_date}` : ''}
                     </p>
                   </div>
-                  <button onClick={() => handleDelete(pet.id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors">
+                  <button onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })} className="p-1 text-gray-300 hover:text-red-400 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -265,6 +266,18 @@ function PetModal({
           )}
         </div>
       </div>
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="반려동물을 삭제할까요?"
+        message={`${deleteTarget?.name ?? ''} 의 모든 건강 기록도 함께 삭제돼요.\n되돌릴 수 없어요.`}
+        variant="danger"
+        confirmLabel="삭제"
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

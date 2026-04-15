@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
       title: '💊 투약 알림',
       body: `${names.join(', ')} 투약 시간입니다.`,
       url: '/records',
+      category: 'medication',
     });
     totalSent += result.sent;
     totalFailed += result.failed;
@@ -107,6 +108,7 @@ export async function GET(request: NextRequest) {
         title: '📅 예약일 알림',
         body: `내일 "${appt.title}" 예약이 있습니다.`,
         url: '/records',
+        category: 'appointment',
       });
       totalSent += result.sent;
       totalFailed += result.failed;
@@ -124,6 +126,7 @@ export async function GET(request: NextRequest) {
         title: '🏥 퇴원일 알림',
         body: `내일 "${d.title}" 퇴원 예정입니다.`,
         url: '/records',
+        category: 'hospitalization',
       });
       totalSent += result.sent;
       totalFailed += result.failed;
@@ -141,6 +144,7 @@ export async function GET(request: NextRequest) {
         title: '📅 오늘 예약',
         body: `오늘 "${appt.title}" 예약이 있습니다.`,
         url: '/records',
+        category: 'appointment',
       });
       totalSent += result.sent;
       totalFailed += result.failed;
@@ -158,6 +162,7 @@ export async function GET(request: NextRequest) {
         title: '🏥 오늘 퇴원',
         body: `오늘 "${d.title}" 퇴원 예정입니다.`,
         url: '/records',
+        category: 'hospitalization',
       });
       totalSent += result.sent;
       totalFailed += result.failed;
@@ -236,7 +241,7 @@ export async function GET(request: NextRequest) {
 
 async function sendPushToUser(
   userId: string,
-  notification: { title: string; body: string; url: string },
+  notification: { title: string; body: string; url: string; category?: string },
 ) {
   const { data: subs } = await supabaseAdmin
     .from('push_subscriptions')
