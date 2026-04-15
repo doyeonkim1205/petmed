@@ -32,6 +32,7 @@ export default function SavedAnalysesPage() {
   }, [user, authLoading]);
 
   const handleDeleteAnalysis = async (id: string) => {
+    if (!confirm('이 보관함 항목을 삭제하시겠습니까?')) return;
     try {
       const { authFetch } = await import('@/lib/authFetch');
       const res = await authFetch('/api/saved-analyses', {
@@ -46,6 +47,7 @@ export default function SavedAnalysesPage() {
   };
 
   const handleDeletePaper = async (paperId: string, analysisId: string) => {
+    if (!confirm('이 논문을 삭제하시겠습니까?')) return;
     try {
       const { authFetch } = await import('@/lib/authFetch');
       const res = await authFetch('/api/saved-papers', {

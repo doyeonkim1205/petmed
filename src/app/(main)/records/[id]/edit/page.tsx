@@ -312,7 +312,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
-      router.replace(`/records/${id}`);
+      // edit 엔트리만 pop 해서 기존 detail 로 복귀 (history 중복 방지 — 뒤로가기 2번 문제)
+      // 히스토리가 없는 극단 케이스 (edit URL 직접 진입) 에선 replace 로 폴백
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back();
+      } else {
+        router.replace(`/records/${id}`);
+      }
+      // detail 페이지의 서버 상태 revalidate (Router Cache 무효화 → useEffect 재실행 시 최신 데이터 fetch)
+      router.refresh();
     } catch (err) {
       console.error('Error updating record:', err);
       setError('수정에 실패했습니다.');
