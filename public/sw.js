@@ -63,8 +63,8 @@ self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'PawDex';
   const options = {
+    // 왼쪽 아이콘만 표시 (오른쪽 large icon 생략 — TWA 의 SMALL_ICON 이 상단바+알림 왼쪽에 사용됨)
     body: data.body || '',
-    icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
     data: { url: data.url || '/' },
   };
