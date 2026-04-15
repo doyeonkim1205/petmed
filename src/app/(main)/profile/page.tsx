@@ -277,7 +277,13 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   useEffect(() => {
     if (!open) return;
     if (typeof window !== 'undefined') {
-      setDebugMode(new URLSearchParams(window.location.search).get('debugPush') === '1');
+      // TWA 에서도 테스트 가능하도록: URL 쿼리 또는 localStorage 에 debugPush 설정 시 활성
+      // 제거 방법: localStorage.removeItem('debugPush'), 또는 이 줄 전체 false 로
+      const urlOn = new URLSearchParams(window.location.search).get('debugPush') === '1';
+      const storageOn = localStorage.getItem('debugPush') === '1';
+      // TEMP: 진단 동안 항상 ON. 원인 파악 후 이 줄 지우고 위 urlOn/storageOn 만 쓸 것
+      const tempForceOn = true;
+      setDebugMode(urlOn || storageOn || tempForceOn);
     }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
