@@ -10,6 +10,11 @@ export function SamsungBrowserHint() {
   const [howto, setHowto] = useState(false);
 
   useEffect(() => {
+    // ?resetSamsungHint=1 쿼리로 플래그 초기화 (테스트용)
+    if (new URLSearchParams(window.location.search).get('resetSamsungHint') === '1') {
+      localStorage.removeItem(HINT_KEY);
+    }
+
     if (localStorage.getItem(HINT_KEY) === 'true') return;
     if (localStorage.getItem('theme') === 'dark') return;
     if (!/SamsungBrowser/i.test(navigator.userAgent)) return;
