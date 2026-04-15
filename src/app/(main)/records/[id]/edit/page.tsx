@@ -294,6 +294,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             end_date: med.end_date || undefined,
             frequency: med.frequency,
             color: med.color,
+            alarm_enabled: med.alarm_enabled,
+            alarm_times: med.alarm_times,
           });
         } else if (med.id && med.name.trim()) {
           await updateMed(med.id, {
@@ -303,6 +305,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             end_date: med.end_date || null,
             frequency: med.frequency,
             color: med.color,
+            alarm_enabled: med.alarm_enabled,
+            alarm_times: med.alarm_times,
           });
         }
       }

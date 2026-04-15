@@ -200,6 +200,26 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     {med.end_date ? ` ~ ${med.end_date}` : ' ~'}
                   </span>
                 </div>
+                {med.alarm_times && med.alarm_times.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="text-[10px] text-gray-400">알림</span>
+                    {med.alarm_enabled === false && (
+                      <span className="text-[10px] text-gray-400">(꺼짐)</span>
+                    )}
+                    {med.alarm_times.map((t: string, i: number) => (
+                      <span
+                        key={i}
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                          med.alarm_enabled === false
+                            ? 'bg-gray-100 text-gray-400'
+                            : 'bg-blue-50 text-blue-600'
+                        }`}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
