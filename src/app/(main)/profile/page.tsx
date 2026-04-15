@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
+import { APP_VERSION } from '@/lib/version';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -640,7 +641,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           <div>
             <SectionHeader icon={Info} iconColor="text-gray-400" label="앱 정보" />
             <div className="space-y-1.5 text-xs text-gray-400">
-              <div className="flex justify-between"><span>버전</span><span className="text-gray-600">1.0.0</span></div>
+              <div className="flex justify-between"><span>버전</span><span className="text-gray-600">{APP_VERSION}</span></div>
               <div className="flex justify-between"><span>개발</span><span className="text-gray-600">PawDex Team</span></div>
             </div>
           </div>
@@ -1022,7 +1023,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="py-8 px-6 text-center space-y-1">
-        <p className="text-xs text-gray-400">PawDex v1.0.0</p>
+        <p className="text-xs text-gray-400">PawDex v{APP_VERSION}</p>
         <div className="text-[10px] text-gray-400 leading-relaxed">
           <p>디와이랩스(DYLabs) | 대표: 김도연</p>
           <p>사업자등록번호: 769-77-00552</p>
