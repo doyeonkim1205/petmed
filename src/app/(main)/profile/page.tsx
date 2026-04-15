@@ -332,24 +332,30 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         const json = sub.toJSON();
         log(`  → endpoint=${(json.endpoint || '').slice(0, 50)}...`);
 
-        log('Step 5: POST /api/push/subscribe');
-        const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-        if (session) {
-          const res = await fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
-          });
-          log(`  → status=${res.status} ${res.ok ? 'OK' : 'FAIL'}`);
-          if (!res.ok) {
-            const body = await res.text().catch(() => '');
-            log(`  → body=${body.slice(0, 100)}`);
-            await sub.unsubscribe();
-            setPushLoading(false);
-            return;
-          }
+        if (debugMode) {
+          log('Step 5: SKIPPED (debug mode — free 유저도 테스트 가능)');
+          await sub.unsubscribe();
+          log('  → test subscription cleaned up');
         } else {
-          log('  → no session, skipping server save');
+          log('Step 5: POST /api/push/subscribe');
+          const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+          if (session) {
+            const res = await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
+            });
+            log(`  → status=${res.status} ${res.ok ? 'OK' : 'FAIL'}`);
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              log(`  → body=${body.slice(0, 100)}`);
+              await sub.unsubscribe();
+              setPushLoading(false);
+              return;
+            }
+          } else {
+            log('  → no session, skipping server save');
+          }
         }
         setPushEnabled(true);
         log('DONE: subscribed');

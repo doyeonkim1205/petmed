@@ -57,8 +57,10 @@ export function SamsungBrowserHint() {
         </div>
 
         <p className="text-xs text-gray-500 leading-relaxed mb-4">
-          삼성 인터넷의 <span className="font-bold text-gray-700">자동 다크 모드</span> 때문이에요.
-          Chrome 으로 열면 더 편하게 이용할 수 있어요.
+          삼성 인터넷의 <span className="font-bold text-gray-700">자동 다크 모드</span>로 일부 화면이 다르게 표시될 수 있어요.
+          <br /><br />
+          <span className="font-bold text-gray-700">Chrome 에서 열면</span> 화면을 더 자연스럽게 볼 수 있고,
+          어두운 테마를 원하시면 <span className="font-bold text-gray-700">앱 설정에서 다크 모드</span>를 켜 주세요.
         </p>
 
         <div className="flex gap-2">
