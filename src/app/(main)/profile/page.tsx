@@ -152,6 +152,7 @@ function PetModal({
   };
 
   const handleDelete = async (petId: string) => {
+    if (!confirm('이 반려동물을 삭제하시겠습니까?\n관련된 건강 기록도 함께 삭제됩니다.')) return;
     await supabase.from('pets').delete().eq('id', petId).eq('user_id', userId);
     logActivity(userId, 'pet.delete', { resourceType: 'pet', resourceId: petId });
     fetchPets();

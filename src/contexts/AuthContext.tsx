@@ -88,6 +88,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     const init = async () => {
       try {
+        // 0) '자동 로그인' 꺼져있으면 Supabase 에 저장된 세션 정리 후 로그인 페이지로 유도
+        // (한 세션 안에서 토글 후 재실행 시점에만 적용 — 현재 화면 유지 중 로그아웃은 안 함)
+        if (typeof window !== 'undefined' && localStorage.getItem('autoLogin') === 'false') {
+          await supabase.auth.signOut({ scope: 'local' });
+          if (mounted) {
+            setUser(null);
+            setSession(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
         // 1) Quick check: is there a session in localStorage?
         const { data: { session: localSession } } = await supabase.auth.getSession();
         if (!localSession) {
