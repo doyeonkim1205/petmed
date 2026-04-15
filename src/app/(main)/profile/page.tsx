@@ -13,6 +13,7 @@ import {
   CreditCard, MapPin, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -273,17 +274,15 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [pushSupported, setPushSupported] = useState(false);
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [debugMode, setDebugMode] = useState(false);
+  const [deniedModalOpen, setDeniedModalOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     if (typeof window !== 'undefined') {
-      // TWA 에서도 테스트 가능하도록: URL 쿼리 또는 localStorage 에 debugPush 설정 시 활성
-      // 제거 방법: localStorage.removeItem('debugPush'), 또는 이 줄 전체 false 로
+      // URL 쿼리 또는 localStorage 에 debugPush 설정 시 활성
       const urlOn = new URLSearchParams(window.location.search).get('debugPush') === '1';
       const storageOn = localStorage.getItem('debugPush') === '1';
-      // TEMP: 진단 동안 항상 ON. 원인 파악 후 이 줄 지우고 위 urlOn/storageOn 만 쓸 것
-      const tempForceOn = true;
-      setDebugMode(urlOn || storageOn || tempForceOn);
+      setDebugMode(urlOn || storageOn);
     }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
@@ -315,6 +314,8 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         const permission = await Notification.requestPermission();
         log(`  → permission=${permission}`);
         if (permission !== 'granted') {
+          // 'denied' 면 안내 모달 표시 (유저가 차단 해제 방법을 알 수 있도록)
+          if (permission === 'denied') setDeniedModalOpen(true);
           setPushLoading(false);
           return;
         }
@@ -430,6 +431,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         )}
         <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
       </div>
+      <NotificationPermissionDenied open={deniedModalOpen} onClose={() => setDeniedModalOpen(false)} />
     </div>
   );
 }
