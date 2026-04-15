@@ -34,7 +34,8 @@ export function useHealthRecords(petId?: string) {
           record_files (*)
         `)
         .eq('user_id', userId)
-        .order('visit_date', { ascending: false });
+        .order('visit_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (petId) {
         query = query.eq('pet_id', petId);
@@ -49,7 +50,8 @@ export function useHealthRecords(petId?: string) {
           .from('health_records')
           .select('*')
           .eq('user_id', userId)
-          .order('visit_date', { ascending: false });
+          .order('visit_date', { ascending: false })
+        .order('created_at', { ascending: false });
         if (petId) {
           fallback = fallback.eq('pet_id', petId);
         }

@@ -128,18 +128,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         )}
 
         <div className="space-y-2">
-          {record.hospital_name && (
-            <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">병원</span>
-              <span className="text-sm font-medium">{record.hospital_name}</span>
-            </div>
-          )}
-          {record.cost != null && record.cost > 0 && (
-            <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">비용</span>
-              <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
-            </div>
-          )}
           {record.weight != null && Number(record.weight) > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">체중</span>
@@ -150,6 +138,18 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">증상 발생 시간</span>
               <span className="text-sm font-medium">{record.symptom_time}</span>
+            </div>
+          )}
+          {record.hospital_name && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">병원</span>
+              <span className="text-sm font-medium">{record.hospital_name}</span>
+            </div>
+          )}
+          {record.cost != null && record.cost > 0 && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">비용</span>
+              <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
             </div>
           )}
           {record.discharge_date && (
