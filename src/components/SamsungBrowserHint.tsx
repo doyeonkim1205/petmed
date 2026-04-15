@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Moon, X, Info } from 'lucide-react';
-import { openDefaultAppsSettings, openInChrome } from '@/lib/androidIntents';
+import { openDefaultAppsSettings } from '@/lib/androidIntents';
 
 const HINT_KEY = 'samsungHintShown';
 
@@ -96,22 +96,16 @@ export function SamsungBrowserHint() {
               <span className="font-bold text-gray-700"> PawDex 앱을 재실행</span>해주세요.
             </p>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => { openDefaultAppsSettings(); handleDismiss(); }}
-                className="w-full py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
+                className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
               >
                 설정 열기
               </button>
               <button
-                onClick={() => { openInChrome(); handleDismiss(); }}
-                className="w-full py-2.5 border border-blue-200 text-blue-600 text-xs font-bold rounded-full"
-              >
-                Chrome 에서 열기
-              </button>
-              <button
                 onClick={handleDismiss}
-                className="w-full py-2 text-gray-400 text-xs font-bold"
+                className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
               >
                 그냥 쓸게요
               </button>
