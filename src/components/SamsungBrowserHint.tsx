@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Moon, X, ChevronRight } from 'lucide-react';
+import { Moon, X } from 'lucide-react';
 
 const HINT_KEY = 'samsungHintShown';
 
 export function SamsungBrowserHint() {
   const [show, setShow] = useState(false);
-  const [howto, setHowto] = useState(false);
 
   useEffect(() => {
     // ?resetSamsungHint=1 쿼리로 플래그 초기화 (테스트용)
@@ -28,26 +27,20 @@ export function SamsungBrowserHint() {
     setShow(false);
   };
 
-  const handleOpenChromeSettings = () => {
-    // Android 기본 앱 설정 intent 시도
-    try {
-      window.location.href =
-        'intent://#Intent;action=android.settings.MANAGE_DEFAULT_APPS_SETTINGS;end';
-    } catch {
-      // 실패 시 단계별 안내 표시
-      setHowto(true);
-    }
-    // 3초 뒤 intent 실패 판단 → 안내 모달
-    setTimeout(() => {
-      if (document.visibilityState === 'visible') setHowto(true);
-    }, 1500);
+  const handleOpenChrome = () => {
+    // Chrome 앱 강제 실행 (없으면 현재 페이지에 머무름)
+    const host = window.location.host;
+    const path = window.location.pathname + window.location.search;
+    const fallback = encodeURIComponent(window.location.href);
+    window.location.href =
+      `intent://${host}${path}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
   };
 
   if (!show) return null;
 
   return (
-    <div className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-[100]">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 relative">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30" onClick={handleDismiss}>
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 w-full max-w-sm relative" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
@@ -63,27 +56,17 @@ export function SamsungBrowserHint() {
           <p className="text-sm font-bold text-gray-800">화면이 어둡게 보이시나요?</p>
         </div>
 
-        <p className="text-xs text-gray-500 leading-relaxed mb-3">
-          삼성 인터넷에서는 <span className="font-bold text-gray-700">자동 다크 모드</span>가 적용되어
-          앱 색상이 다르게 표시될 수 있어요.
+        <p className="text-xs text-gray-500 leading-relaxed mb-4">
+          삼성 인터넷의 <span className="font-bold text-gray-700">자동 다크 모드</span> 때문이에요.
+          Chrome 으로 열면 더 편하게 이용할 수 있어요.
         </p>
-
-        <p className="text-xs text-gray-600 leading-relaxed mb-1.5">
-          <span className="font-bold">더 편안하게 이용하려면:</span>
-        </p>
-        <ul className="text-xs text-gray-500 leading-relaxed mb-4 space-y-1 pl-0.5">
-          <li>• 삼성 인터넷 설정에서 다크 모드 끄기</li>
-          <li>
-            • 또는 <span className="font-bold text-gray-700">Chrome 을 기본 브라우저로 설정</span>
-          </li>
-        </ul>
 
         <div className="flex gap-2">
           <button
-            onClick={handleOpenChromeSettings}
+            onClick={handleOpenChrome}
             className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
           >
-            Chrome 설정 열기
+            Chrome 으로 열기
           </button>
           <button
             onClick={handleDismiss}
@@ -92,14 +75,6 @@ export function SamsungBrowserHint() {
             그냥 쓸게요
           </button>
         </div>
-
-        {howto && (
-          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 space-y-1.5">
-            <p className="font-bold text-gray-700">수동 설정 방법</p>
-            <p className="flex items-center gap-1">설정 <ChevronRight size={12} /> 앱 <ChevronRight size={12} /> 기본 앱 선택</p>
-            <p className="flex items-center gap-1">브라우저 앱 <ChevronRight size={12} /> Chrome 선택</p>
-          </div>
-        )}
       </div>
     </div>
   );

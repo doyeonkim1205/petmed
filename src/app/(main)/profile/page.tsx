@@ -271,9 +271,14 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    if (typeof window !== 'undefined') {
+      setDebugMode(new URLSearchParams(window.location.search).get('debugPush') === '1');
+    }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
     if (supported) {
@@ -287,16 +292,28 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 
   if (!open) return null;
 
+  const log = (msg: string) => {
+    // 콘솔에도 남기고 화면에도 누적
+    console.log('[push]', msg);
+    setDebugLog((prev) => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+  };
+
   const handleTogglePush = async (enabled: boolean) => {
     setPushLoading(true);
+    setDebugLog([]);
+    log(`toggle=${enabled}, UA=${navigator.userAgent.slice(0, 60)}`);
+    log(`Notification.permission=${Notification.permission}`);
     try {
       if (enabled) {
+        log('Step 1: requestPermission()');
         const permission = await Notification.requestPermission();
+        log(`  → permission=${permission}`);
         if (permission !== 'granted') {
           setPushLoading(false);
           return;
         }
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        log(`Step 2: VAPID key ${vapidKey ? 'present (' + vapidKey.length + ' chars)' : 'MISSING'}`);
         if (!vapidKey) { setPushLoading(false); return; }
 
         const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
@@ -304,11 +321,18 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         const raw = atob(base64);
         const arr = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        log(`  → applicationServerKey Uint8Array(${arr.length})`);
 
+        log('Step 3: serviceWorker.ready');
         const reg = await navigator.serviceWorker.ready;
+        log(`  → SW scope=${reg.scope}`);
+
+        log('Step 4: pushManager.subscribe()');
         const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
         const json = sub.toJSON();
+        log(`  → endpoint=${(json.endpoint || '').slice(0, 50)}...`);
 
+        log('Step 5: POST /api/push/subscribe');
         const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
         if (session) {
           const res = await fetch('/api/push/subscribe', {
@@ -316,14 +340,21 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
             headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
           });
+          log(`  → status=${res.status} ${res.ok ? 'OK' : 'FAIL'}`);
           if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            log(`  → body=${body.slice(0, 100)}`);
             await sub.unsubscribe();
             setPushLoading(false);
             return;
           }
+        } else {
+          log('  → no session, skipping server save');
         }
         setPushEnabled(true);
+        log('DONE: subscribed');
       } else {
+        log('Unsubscribe flow');
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
@@ -338,8 +369,11 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           await sub.unsubscribe();
         }
         setPushEnabled(false);
+        log('DONE: unsubscribed');
       }
     } catch (err) {
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      log(`ERROR: ${msg}`);
       console.error('Push toggle failed:', err);
     } finally {
       setPushLoading(false);
@@ -375,6 +409,13 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
             </p>
           )}
         </div>
+        {debugMode && debugLog.length > 0 && (
+          <div className="mt-4 p-2 bg-gray-900 text-green-300 text-[10px] rounded-md max-h-48 overflow-auto font-mono leading-relaxed">
+            {debugLog.map((line, i) => (
+              <div key={i} className="break-all">{line}</div>
+            ))}
+          </div>
+        )}
         <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
       </div>
     </div>
