@@ -879,6 +879,8 @@ export default function ProfilePage() {
   }
 
   // (main) 레이아웃에서 미인증 유저를 /login 으로 리다이렉트함 → 여기 도달 시 user 는 항상 있음
+  // 단 TypeScript 가 user 의 non-null 을 추론 못하므로 이 가드로 타입 narrowing
+  if (!user) return null;
 
   return (
     <div className="bg-white min-h-[calc(100vh-8rem)]">

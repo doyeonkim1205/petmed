@@ -147,6 +147,8 @@ export default function RecordsPage() {
   }
 
   // (main) 레이아웃에서 미인증 유저를 /login 으로 리다이렉트함 → 여기 도달 시 user 는 항상 있음
+  // TypeScript 타입 narrowing 용 가드
+  if (!user) return null;
 
   const tabs = [
     { id: 'records' as Tab, label: '기록', icon: ClipboardList },
