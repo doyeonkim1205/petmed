@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 /* ─── SVG Illustrations ─── */
 
@@ -335,6 +337,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checked, setChecked] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const done = localStorage.getItem('pawdex_onboarded');
@@ -344,9 +347,12 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setChecked(true);
   }, []);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     localStorage.setItem('pawdex_onboarded', 'true');
     setShowOnboarding(false);
+    // 온보딩 완료 후 로그인 상태 확인 → 미로그인이면 로그인 페이지로
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) router.push('/login');
   };
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
