@@ -319,6 +319,11 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   const handleTogglePush = async (enabled: boolean) => {
+    // Samsung Internet: 켜는 방향이면 사전 차단 (SPS 제약으로 알림 수신 불안정)
+    if (enabled && /SamsungBrowser/i.test(navigator.userAgent)) {
+      setDeniedModalOpen(true);
+      return;
+    }
     setPushLoading(true);
     setDebugLog([]);
     log(`toggle=${enabled}, UA=${navigator.userAgent.slice(0, 60)}`);

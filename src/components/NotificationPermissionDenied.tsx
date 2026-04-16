@@ -1,13 +1,24 @@
 'use client';
 
 import { Bell, X } from 'lucide-react';
-import { openSamsungInternetAppInfo, openDefaultAppsSettings } from '@/lib/androidIntents';
+import { openDefaultAppsSettings } from '@/lib/androidIntents';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+/**
+ * 알림 사용 불가 상황 안내 모달.
+ *
+ * 호출 시점:
+ *   - Samsung Internet 유저가 토글 ON 시도 (Samsung Push Service 는
+ *     web-push 가 공식 지원 안 해서 결국 알림 도달 불안정 → 미리 차단)
+ *   - Chrome 등에서 Notification.requestPermission() 이 denied 로 리턴
+ *
+ * Samsung 인 경우: Chrome 으로 전환 유도
+ * 그 외: 브라우저 설정에서 차단 해제 안내
+ */
 export function NotificationPermissionDenied({ open, onClose }: Props) {
   if (!open) return null;
 
@@ -34,46 +45,24 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
           <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
             <Bell size={16} className="text-orange-500" />
           </div>
-          <p className="text-sm font-bold text-gray-800">알림이 차단되어 있습니다</p>
+          <p className="text-sm font-bold text-gray-800">알림 수신이 어려워요</p>
         </div>
 
         {isSamsung ? (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              인터넷 설정 문제로 알림 권한을 켤 수 없어요.
-              <br />아래 방법 중 하나로 해결해 보세요!
+              현재 <span className="font-bold text-gray-700">삼성 브라우저의 일부 설정</span>으로 인해
+              알림 수신이 원활하지 않을 수 있습니다.
+              <br /><br />
+              소중한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">Chrome 브라우저 이용</span>을 권장합니다.
             </p>
 
-            <div className="space-y-3 mb-4">
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs font-bold text-gray-700 mb-1">방법 A. 삼성 인터넷 설정 초기화</p>
-                <p className="text-[11px] text-gray-500 leading-relaxed">
-                  <span className="font-bold text-gray-600">[저장공간]</span> → <span className="font-bold text-gray-600">[데이터 삭제]</span>를 누른 뒤 앱을 다시 켜주세요.
-                  <br />
-                  <span className="text-gray-400">(PawDex 관련 데이터만 초기화되며, 북마크 등은 안전합니다)</span>
-                </p>
-              </div>
-
-              <div className="p-3 bg-blue-50 rounded-xl">
-                <p className="text-xs font-bold text-blue-700 mb-1">방법 B. Chrome 으로 전환 (추천)</p>
-                <p className="text-[11px] text-blue-500 leading-relaxed">
-                  기본 브라우저를 <span className="font-bold">Chrome</span> 으로 변경하면 가장 안정적으로 작동해요.
-                </p>
-              </div>
-            </div>
-
             <div className="flex flex-col gap-2">
-              <button
-                onClick={() => { openSamsungInternetAppInfo(); onClose(); }}
-                className="w-full py-2.5 border border-gray-200 text-gray-700 text-xs font-bold rounded-full"
-              >
-                삼성 설정 열기
-              </button>
               <button
                 onClick={() => { openDefaultAppsSettings(); onClose(); }}
                 className="w-full py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
               >
-                Chrome 으로 해결하기
+                Chrome 으로 전환
               </button>
               <button
                 onClick={onClose}
