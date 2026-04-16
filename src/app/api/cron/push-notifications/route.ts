@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 
   // Only run appointment check at 9 AM KST
-  if (currentHour === '09') {
+  if (currentHour === '07') {
     const { data: appointments } = await supabaseAdmin
       .from('health_records')
       .select('user_id, title, next_appointment_date')
