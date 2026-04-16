@@ -48,9 +48,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="sticky top-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-center px-4">
-        <div className="text-base font-extrabold text-blue-600 flex items-center gap-1">
-          <PawIcon size={18} className="text-blue-800 dark:text-blue-300" />
-          PawDex 시작하기
+        <div className="flex items-center gap-1.5">
+          <PawIcon size={20} className="text-blue-800 dark:text-blue-300" />
+          <span className="text-lg font-extrabold text-blue-600">PawDex</span>
+          <span className="text-base font-semibold text-gray-900">시작하기</span>
         </div>
       </header>
 
