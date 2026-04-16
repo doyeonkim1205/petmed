@@ -18,20 +18,12 @@ export function SamsungBrowserHint() {
       localStorage.removeItem(HINT_KEY);
     }
 
-    const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // ?debugHint=1 쿼리로 조건 값 화면에 표시
-    if (new URLSearchParams(window.location.search).get('debugHint') === '1') {
-      alert(
-        `samsung=${isSamsung}\nsystemDark=${systemDark}\nhintShown=${localStorage.getItem(HINT_KEY)}\ntheme=${localStorage.getItem('theme')}`
-      );
-    }
-
     if (localStorage.getItem(HINT_KEY) === 'true') return;
     if (localStorage.getItem('theme') === 'dark') return;
-    if (!isSamsung) return;
-    if (!systemDark) return;  // 시스템 다크일 때만
+    if (!/SamsungBrowser/i.test(navigator.userAgent)) return;
+    // 주의: Samsung Internet 은 시스템 다크여도 prefers-color-scheme:dark 를 false 로 리턴하는
+    // 버그가 있어 이 체크를 넣으면 다크 유저에게도 힌트가 뜨지 않음. 라이트 유저는 "그냥 쓸게요"
+    // 1회 탭으로 dismiss — 다크 유저를 돕기 위한 트레이드오프.
 
     const timer = setTimeout(() => setShow(true), 800);
     return () => clearTimeout(timer);
