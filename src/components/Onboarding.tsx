@@ -337,6 +337,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -347,17 +348,25 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setChecked(true);
   }, []);
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     localStorage.setItem('pawdex_onboarded', 'true');
-    // 온보딩 완료 후 로그인 상태 확인 → 미로그인이면 로그인 페이지로
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      // replace: 뒤로가기 시 홈으로 가지 않게 하고, 홈 플래시 노출도 방지
-      router.replace('/login');
-      return;
-    }
-    // 로그인 상태: 온보딩 닫고 홈 노출
+    // UI 즉시 반응: 하얀 오버레이 + 온보딩 닫기
+    setNavigating(true);
     setShowOnboarding(false);
+    // 세션 체크 후 로그인 페이지 or 홈
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.replace('/login');
+        } else {
+          setNavigating(false);
+        }
+      } catch (e) {
+        console.error('session check failed', e);
+        setNavigating(false);
+      }
+    })();
   };
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
@@ -367,6 +376,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     <>
       {showOnboarding && <Onboarding onComplete={handleComplete} />}
       {children}
+      {navigating && <div className="fixed inset-0 bg-white z-[300]" />}
     </>
   );
 }
