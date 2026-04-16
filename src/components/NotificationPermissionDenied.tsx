@@ -45,7 +45,9 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
           <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
             <Bell size={16} className="text-orange-500" />
           </div>
-          <p className="text-sm font-bold text-gray-800">알림 수신이 어려워요</p>
+          <p className="text-sm font-bold text-gray-800">
+            {isSamsung ? '알림 수신이 어려워요' : '알림이 차단되어 있어요'}
+          </p>
         </div>
 
         {isSamsung ? (
@@ -75,10 +77,13 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
         ) : (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              이전에 알림을 <span className="font-bold text-gray-700">차단</span> 하셔서 권한 요청이 막혀 있어요.
+              🔒 알림이 차단되어 있어 권한 요청이 막혀 있어요.
               <br /><br />
-              Chrome 앱의 <span className="font-bold text-gray-700">설정 → 사이트 설정 → 알림</span> 에서
-              <span className="font-bold text-gray-700"> pawdex.store</span> 를 <span className="font-bold text-gray-700">허용</span> 으로 변경 후 다시 시도해주세요.
+              <span className="font-bold text-gray-700">Chrome 앱 설정 → 알림 선택</span>
+              <br />
+              알림 <span className="font-bold text-gray-700">허용</span> 으로 변경 후 다시 시도해주세요.
+              <br /><br />
+              <span className="text-gray-400">설정 변경 후 앱을 재실행해주세요.</span>
             </p>
 
             <button

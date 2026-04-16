@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 /* ─── SVG Illustrations ─── */
@@ -339,6 +339,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
   const [navigating, setNavigating] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const done = localStorage.getItem('pawdex_onboarded');
@@ -347,6 +348,11 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     }
     setChecked(true);
   }, []);
+
+  // URL 이 바뀌면 navigating 오버레이 해제 (로그인 페이지 렌더되면 오버레이 걷기)
+  useEffect(() => {
+    if (navigating) setNavigating(false);
+  }, [pathname]);
 
   const handleComplete = () => {
     localStorage.setItem('pawdex_onboarded', 'true');
