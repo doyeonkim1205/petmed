@@ -209,11 +209,7 @@ function SearchContent() {
 
   useEffect(() => {
     if (initialQuery) {
-      if (!user) {
-        setLoginRequired(true);
-        return;
-      }
-      setLoginRequired(false);
+      // (main) 레이아웃이 미인증 유저를 /login 으로 리다이렉트하므로 여기선 user 가 항상 있음
       setSearchTerm(initialQuery);
       if (storageKey) {
         try {
@@ -234,7 +230,6 @@ function SearchContent() {
     }
   }, [initialQuery, user, storageKey]);
 
-  const [loginRequired, setLoginRequired] = useState(false);
 
   const handleSymptomSearch = async (q: string, answers?: { question: string; answer: string }[]) => {
     const isRefine = !!answers;
@@ -310,11 +305,6 @@ function SearchContent() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    if (!user) {
-      setLoginRequired(true);
-      return;
-    }
-    setLoginRequired(false);
     const q = query.trim();
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
     saveHistory(updated);
@@ -512,21 +502,8 @@ function SearchContent() {
 
       {/* Content Area */}
       <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>
-        {/* Login required message */}
-        {loginRequired && (
-          <div className="max-w-sm mx-auto mt-6 text-center py-10">
-            <Lock size={32} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-sm text-gray-600 font-medium mb-4">로그인 후 이용할 수 있습니다</p>
-            <button
-              onClick={() => window.location.href = '/login'}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
-            >
-              로그인하기
-            </button>
-          </div>
-        )}
         {/* Symptom Mode Results */}
-        {searchMode === 'symptom' && !loginRequired && (symptomLoading || symptomResult || symptomError) ? (
+        {searchMode === 'symptom' && (symptomLoading || symptomResult || symptomError) ? (
           <div className="max-w-sm mx-auto space-y-4">
             {symptomLoading && (
               <div className="flex items-center gap-2.5 p-4 rounded-xl bg-purple-50">
@@ -752,15 +729,10 @@ function SearchContent() {
               </>
             )}
           </div>
-        ) : !hasSearched && !loginRequired ? (
+        ) : !hasSearched ? (
           <div className="max-w-sm mx-auto mt-6">
-            {user && <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>}
-            {!user ? (
-              <div className="text-center mt-10 text-gray-400">
-                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
-                {searchMode !== 'symptom' && <p className="text-xs mt-1">AI가 논문을 분석하여 요약해드립니다.</p>}
-              </div>
-            ) : recentSearches.length === 0 ? (
+            <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>
+            {recentSearches.length === 0 ? (
               <p className="text-sm text-gray-400">검색기록이 없습니다.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -776,14 +748,12 @@ function SearchContent() {
                 ))}
               </div>
             )}
-            {user && (
-              <div className="mt-10 text-center text-gray-400">
-                <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
-                <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
-              </div>
-            )}
+            <div className="mt-10 text-center text-gray-400">
+              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
+              <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
+            </div>
           </div>
-        ) : !loginRequired && searchMode === 'disease' ? (
+        ) : searchMode === 'disease' ? (
           <div className="max-w-sm mx-auto space-y-5">
             {displayPubmed.step !== 'idle' && displayPubmed.step !== 'done' && (
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50">

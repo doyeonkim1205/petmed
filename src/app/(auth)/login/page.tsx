@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft } from 'lucide-react';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -19,8 +17,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
   const { signInWithGoogle, signInWithKakao } = useAuth();
-  const router = useRouter();
-
   useEffect(() => {
     setInApp(isInAppBrowser());
     const params = new URLSearchParams(window.location.search);
@@ -51,10 +47,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center px-4 py-3 border-b">
-        <button onClick={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="flex-1 text-center text-lg font-semibold pr-8">시작하기</h1>
+        <h1 className="flex-1 text-center text-lg font-semibold">시작하기</h1>
       </header>
 
       <div className="flex-1 px-6 py-8 flex flex-col items-center justify-center">
