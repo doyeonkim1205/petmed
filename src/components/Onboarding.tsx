@@ -311,6 +311,10 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           {slides.map((s, i) => (
             <motion.div
               key={i}
+              initial={hasMounted ? undefined : {
+                width: i === page ? 24 : 8,
+                backgroundColor: i === page ? s.accentColor : '#D1D5DB',
+              }}
               animate={{
                 width: i === page ? 24 : 8,
                 backgroundColor: i === page ? s.accentColor : '#D1D5DB',
@@ -325,6 +329,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
         <motion.button
           onClick={goNext}
           whileTap={{ scale: 0.97 }}
+          initial={hasMounted ? undefined : { backgroundColor: slide.accentColor }}
           animate={{ backgroundColor: slide.accentColor }}
           transition={{ duration: 0.4 }}
           className="w-full h-[52px] text-white font-semibold rounded-2xl text-[16px] shadow-lg"
