@@ -878,25 +878,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="bg-white min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-6">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <User size={28} className="text-gray-400" />
-        </div>
-        <h2 className="text-lg font-bold text-gray-800 mb-1">로그인이 필요합니다</h2>
-        <p className="text-sm text-gray-400 text-center mb-8">
-          PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
-        </p>
-        <button
-          onClick={() => router.push('/login')}
-          className="w-full max-w-xs h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
-        >
-          시작하기
-        </button>
-      </div>
-    );
-  }
+  // (main) 레이아웃에서 미인증 유저를 /login 으로 리다이렉트함 → 여기 도달 시 user 는 항상 있음
 
   return (
     <div className="bg-white min-h-[calc(100vh-8rem)]">
