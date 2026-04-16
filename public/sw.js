@@ -64,8 +64,7 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'PawDex';
 
   // 카테고리별 오른쪽 큰 아이콘 매핑
-  // 서버 payload 의 data.category 를 보고 결정 (없으면 기본 파우)
-  let categoryIcon = '/icons/notification-icon.png';
+  let categoryIcon = '/icons/alarm.png';  // 기본: 관리자 발송 / 일반 알림
   switch (data.category) {
     case 'medication':
       categoryIcon = '/icons/med.png';

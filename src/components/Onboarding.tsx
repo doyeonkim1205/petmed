@@ -349,7 +349,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setShowOnboarding(false);
   };
 
-  if (!checked) return null;
+  // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
+  if (!checked) return <div className="fixed inset-0 bg-white z-[200]" />;
 
   return (
     <>
