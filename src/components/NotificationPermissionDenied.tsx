@@ -54,7 +54,7 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
               현재 <span className="font-bold text-gray-700">삼성 브라우저의 일부 설정</span>으로 인해
               알림 수신이 원활하지 않을 수 있습니다.
               <br /><br />
-              소중한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">Chrome 브라우저 이용</span>을 권장합니다.
+              중요한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">크롬(Chrome) 브라우저</span>를 이용해 주세요.
             </p>
 
             <div className="flex flex-col gap-2">
@@ -75,9 +75,10 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
         ) : (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              브라우저 설정에서 이 사이트의 <span className="font-bold text-gray-700">알림 차단</span>을 해제해주세요.
+              이전에 알림을 <span className="font-bold text-gray-700">차단</span> 하셔서 권한 요청이 막혀 있어요.
               <br /><br />
-              Chrome: <span className="font-bold text-gray-700">주소창 왼쪽 자물쇠 아이콘</span> → 사이트 설정 → 알림 → 허용
+              Chrome 앱의 <span className="font-bold text-gray-700">설정 → 사이트 설정 → 알림</span> 에서
+              <span className="font-bold text-gray-700"> pawdex.store</span> 를 <span className="font-bold text-gray-700">허용</span> 으로 변경 후 다시 시도해주세요.
             </p>
 
             <button

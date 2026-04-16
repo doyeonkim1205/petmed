@@ -349,10 +349,15 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   const handleComplete = async () => {
     localStorage.setItem('pawdex_onboarded', 'true');
-    setShowOnboarding(false);
     // 온보딩 완료 후 로그인 상태 확인 → 미로그인이면 로그인 페이지로
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) router.push('/login');
+    if (!session) {
+      // replace: 뒤로가기 시 홈으로 가지 않게 하고, 홈 플래시 노출도 방지
+      router.replace('/login');
+      return;
+    }
+    // 로그인 상태: 온보딩 닫고 홈 노출
+    setShowOnboarding(false);
   };
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)

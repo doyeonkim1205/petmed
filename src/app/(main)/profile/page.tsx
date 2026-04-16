@@ -283,7 +283,7 @@ function PetModal({
 }
 
 // ─── Notification Settings Modal ───────────────────────────
-function NotificationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function NotificationModal({ open, onClose, plan }: { open: boolean; onClose: () => void; plan?: string }) {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
@@ -319,7 +319,12 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   const handleTogglePush = async (enabled: boolean) => {
-    // Samsung Internet: 켜는 방향이면 사전 차단 (SPS 제약으로 알림 수신 불안정)
+    // Free 유저: 서버가 403 리턴하므로 토글 자체 막고 Plus 유도
+    if (enabled && plan === 'free') {
+      alert('알림은 Plus 플랜에서 이용 가능합니다.\n프로필 → 요금제에서 업그레이드 해주세요.');
+      return;
+    }
+    // Samsung Internet 유료 유저: 켜는 방향이면 사전 차단 (SPS 제약으로 알림 수신 불안정)
     if (enabled && /SamsungBrowser/i.test(navigator.userAgent)) {
       setDeniedModalOpen(true);
       return;
@@ -1067,6 +1072,7 @@ export default function ProfilePage() {
       <NotificationModal
         open={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
+        plan={profile?.plan}
       />
       <AppSettingsModal
         open={showSettingsModal}
