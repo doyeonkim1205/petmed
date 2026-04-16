@@ -56,9 +56,13 @@ export async function POST(request: Request) {
         payload,
       );
       sent++;
-    } catch {
+    } catch (err: any) {
       failed++;
-      await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+      // 410 / 404 만 영구 삭제 — 일시적 실패엔 유지
+      const statusCode = err?.statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+      }
     }
   }
 

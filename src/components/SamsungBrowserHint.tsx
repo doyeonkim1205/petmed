@@ -18,11 +18,20 @@ export function SamsungBrowserHint() {
       localStorage.removeItem(HINT_KEY);
     }
 
+    const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // ?debugHint=1 쿼리로 조건 값 화면에 표시
+    if (new URLSearchParams(window.location.search).get('debugHint') === '1') {
+      alert(
+        `samsung=${isSamsung}\nsystemDark=${systemDark}\nhintShown=${localStorage.getItem(HINT_KEY)}\ntheme=${localStorage.getItem('theme')}`
+      );
+    }
+
     if (localStorage.getItem(HINT_KEY) === 'true') return;
     if (localStorage.getItem('theme') === 'dark') return;
-    if (!/SamsungBrowser/i.test(navigator.userAgent)) return;
-    // Samsung Internet 에서 prefers-color-scheme 는 시스템 다크여도 false 리턴하므로 체크 불가
-    // 라이트 유저는 "그냥 쓸게요" 로 1회 dismiss → 허용 가능한 트레이드오프
+    if (!isSamsung) return;
+    if (!systemDark) return;  // 시스템 다크일 때만
 
     const timer = setTimeout(() => setShow(true), 800);
     return () => clearTimeout(timer);

@@ -262,10 +262,13 @@ async function sendPushToUser(
         payload,
       );
       sent++;
-    } catch {
+    } catch (err: any) {
       failed++;
-      // Remove invalid subscription (410 Gone)
-      await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+      // 410 Gone / 404 Not Found 만 영구 삭제 — 그 외 (5xx, 네트워크 오류 등) 는 일시적 실패라 유지
+      const statusCode = err?.statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+      }
     }
   }
 
