@@ -25,8 +25,8 @@ export function SamsungBrowserHint() {
     // 버그가 있어 이 체크를 넣으면 다크 유저에게도 힌트가 뜨지 않음. 라이트 유저는 "그냥 쓸게요"
     // 1회 탭으로 dismiss — 다크 유저를 돕기 위한 트레이드오프.
 
-    const timer = setTimeout(() => setShow(true), 800);
-    return () => clearTimeout(timer);
+    // 즉시 표시 (800ms 지연 제거 — 온보딩 중 늦게 뜨면서 깜박이는 현상 방지)
+    setShow(true);
   }, []);
 
   const handleDismiss = () => {
@@ -60,7 +60,7 @@ export function SamsungBrowserHint() {
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
                 <Moon size={16} className="text-blue-500" />
               </div>
-              <p className="text-sm font-bold text-gray-800">화면이 어둡게 보이나요?</p>
+              <p className="text-sm font-bold text-gray-800">혹시 화면이 어둡게 보이나요?</p>
             </div>
 
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
