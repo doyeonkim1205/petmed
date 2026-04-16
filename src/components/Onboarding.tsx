@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 /* ─── SVG Illustrations ─── */
@@ -337,9 +337,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checked, setChecked] = useState(false);
-  const [navigating, setNavigating] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const done = localStorage.getItem('pawdex_onboarded');
@@ -349,40 +347,19 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     setChecked(true);
   }, []);
 
-  // URL 이 바뀌면 navigating 오버레이 해제 (로그인 페이지 렌더되면 오버레이 걷기)
-  useEffect(() => {
-    if (navigating) setNavigating(false);
-  }, [pathname]);
-
   const handleComplete = () => {
     localStorage.setItem('pawdex_onboarded', 'true');
-    // UI 즉시 반응: 하얀 오버레이 + 온보딩 닫기
-    setNavigating(true);
     setShowOnboarding(false);
-    // 세션 체크 후 로그인 페이지 or 홈
-    (async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.replace('/login');
-        } else {
-          setNavigating(false);
-        }
-      } catch (e) {
-        console.error('session check failed', e);
-        setNavigating(false);
-      }
-    })();
+    // 비로그인이면 /login 으로. (main) 레이아웃이 이미 blank guard 를 주므로
+    // 여기서 별도 오버레이는 필요 없음 — 중복이면 오히려 stuck 위험.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace('/login');
+    });
   };
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
   if (!checked) return <div className="fixed inset-0 bg-white z-[200]" />;
 
-  return (
-    <>
-      {showOnboarding && <Onboarding onComplete={handleComplete} />}
-      {children}
-      {navigating && <div className="fixed inset-0 bg-white z-[300]" />}
-    </>
-  );
+  // 온보딩 진행 중엔 children 렌더링 자체를 막아 한 프레임짜리 홈 플래시 제거
+  return <>{showOnboarding ? <Onboarding onComplete={handleComplete} /> : children}</>;
 }
