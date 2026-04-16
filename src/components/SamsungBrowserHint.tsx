@@ -20,8 +20,6 @@ export function SamsungBrowserHint() {
 
     if (localStorage.getItem(HINT_KEY) === 'true') return;
     if (localStorage.getItem('theme') === 'dark') return;
-    // 온보딩 끝난 후에만 표시
-    if (localStorage.getItem('pawdex_onboarded') !== 'true') return;
     if (!/SamsungBrowser/i.test(navigator.userAgent)) return;
 
     const timer = setTimeout(() => setShow(true), 800);
