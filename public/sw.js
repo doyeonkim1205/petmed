@@ -1,5 +1,5 @@
-// PawDex Service Worker v7
-const CACHE_NAME = 'pawdex-v7';
+// PawDex Service Worker v8
+const CACHE_NAME = 'pawdex-v8';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png'];
 
 // Install: precache essential resources
@@ -63,24 +63,10 @@ self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'PawDex';
 
-  // 카테고리별 오른쪽 큰 아이콘 매핑
-  let categoryIcon = '/icons/alarm.png';  // 기본: 관리자 발송 / 일반 알림
-  switch (data.category) {
-    case 'medication':
-      categoryIcon = '/icons/med.png';
-      break;
-    case 'appointment':
-      categoryIcon = '/icons/cal.png';
-      break;
-    case 'hospitalization':
-      categoryIcon = '/icons/hos.png';
-      break;
-  }
-
   const options = {
     body: data.body || '',
-    icon: categoryIcon,
-    badge: '/icons/badge-72x72.png',
+    icon: '/icons/icon-192x192.png',  // PawDex 앱 아이콘 (오른쪽 큰 아이콘)
+    badge: '/icons/icon-192x192.png', // 데스크톱 Chrome 소형 아이콘
     data: { url: data.url || '/' },
   };
   event.waitUntil(self.registration.showNotification(title, options));

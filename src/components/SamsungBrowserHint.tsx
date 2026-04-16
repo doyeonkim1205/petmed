@@ -21,8 +21,8 @@ export function SamsungBrowserHint() {
     if (localStorage.getItem(HINT_KEY) === 'true') return;
     if (localStorage.getItem('theme') === 'dark') return;
     if (!/SamsungBrowser/i.test(navigator.userAgent)) return;
-    // 기기 시스템이 다크모드일 때만 (라이트면 삼성도 밝게 보여서 힌트 불필요)
-    if (!window.matchMedia('(prefers-color-scheme: dark)').matches) return;
+    // Samsung Internet 에서 prefers-color-scheme 는 시스템 다크여도 false 리턴하므로 체크 불가
+    // 라이트 유저는 "그냥 쓸게요" 로 1회 dismiss → 허용 가능한 트레이드오프
 
     const timer = setTimeout(() => setShow(true), 800);
     return () => clearTimeout(timer);
