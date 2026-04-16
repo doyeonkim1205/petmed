@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { PawIcon } from '@/components/icons/PawIcon';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -46,8 +47,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="flex items-center px-4 py-3 border-b">
-        <h1 className="flex-1 text-center text-lg font-semibold">시작하기</h1>
+      <header className="sticky top-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-center px-4">
+        <div className="text-base font-extrabold text-blue-600 flex items-center gap-1">
+          <PawIcon size={18} className="text-blue-800 dark:text-blue-300" />
+          PawDex 시작하기
+        </div>
       </header>
 
       <div className="flex-1 px-6 py-8 flex flex-col items-center justify-center">
