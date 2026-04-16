@@ -187,6 +187,9 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(1);
   const touchStartX = useRef(0);
+  // 최초 마운트 시엔 애니메이션 비활성 (페이드-인 단계가 "두 번 뜨는 느낌" 유발)
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => { setHasMounted(true); }, []);
 
   const goNext = useCallback(() => {
     if (page < slides.length - 1) {
@@ -248,7 +251,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       <AnimatePresence mode="wait">
         <motion.div
           key={`bg-${page}`}
-          initial={{ opacity: 0 }}
+          initial={hasMounted ? { opacity: 0 } : false}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
@@ -262,7 +265,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           <motion.div
             key={page}
             custom={direction}
-            initial={{ opacity: 0, x: direction * 80 }}
+            initial={hasMounted ? { opacity: 0, x: direction * 80 } : false}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: direction * -80 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -270,7 +273,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             {/* Illustration */}
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={hasMounted ? { scale: 0.8, opacity: 0 } : false}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
               className="w-52 h-52 mb-10"
@@ -280,7 +283,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 
             {/* Title */}
             <motion.h2
-              initial={{ opacity: 0, y: 10 }}
+              initial={hasMounted ? { opacity: 0, y: 10 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.4 }}
               className="text-[22px] font-bold text-gray-900 dark:text-white mb-4 leading-snug whitespace-pre-line tracking-tight"
@@ -290,7 +293,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
 
             {/* Description */}
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={hasMounted ? { opacity: 0, y: 10 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.4 }}
               className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line"
