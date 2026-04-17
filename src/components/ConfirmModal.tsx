@@ -62,8 +62,10 @@ export function ConfirmModal({
         </div>
 
         {message && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-4 whitespace-pre-line">
-            {message}
+          <p className="text-xs text-gray-500 leading-relaxed mb-4">
+            {message.split('\n').map((line, i) => (
+              <span key={i}>{i > 0 && <br />}{line}</span>
+            ))}
           </p>
         )}
 

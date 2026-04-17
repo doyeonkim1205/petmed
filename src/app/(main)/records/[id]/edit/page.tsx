@@ -12,6 +12,8 @@ import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supab
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
 import { getPlanConfig } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
+import { TimePicker } from '@/components/TimePicker';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -54,6 +56,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
+
+  const [isDirty, setIsDirty] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [petId, setPetId] = useState('');
@@ -144,6 +149,38 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  // ── 변경 감지 + 이탈 방어 ──
+  // form 값이 변경되면 isDirty = true
+  useEffect(() => {
+    if (!loading && !isDirty) {
+      // 초기 로딩 끝나면 첫 변경부터 dirty 추적 시작
+      // (onChange 핸들러에서 setIsDirty(true) 호출)
+    }
+  }, [loading, isDirty]);
+
+  // 브라우저 닫기/새로고침 방어
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  // 뒤로가기 시 dirty 확인
+  const handleBack = () => {
+    if (isDirty) {
+      setShowExitConfirm(true);
+    } else {
+      router.back();
+    }
+  };
+
+  // dirty wrapper — 모든 input onChange 를 이 함수로 감쌈
+  const markDirty = <T,>(setter: (v: T) => void) => (v: T) => {
+    setIsDirty(true);
+    setter(v);
+  };
+
   const addMedicationRow = () => {
     setMedications([
       ...medications,
@@ -153,6 +190,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
+    setIsDirty(true);
     setMedications(medications.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
   };
 
@@ -216,11 +254,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
     if (badMed) {
       showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
-    }
-
-    // 체중 범위 검증 (DB: numeric(5,2) → 최대 999.99)
-    if (weight && (Number(weight) <= 0 || Number(weight) > 999.99)) {
-      showError('체중은 0.01 ~ 999.99 사이로 입력해주세요.'); return;
     }
 
     setSaving(true);
@@ -345,14 +378,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+        <button onClick={handleBack} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 수정</h1>
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
@@ -397,12 +430,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
             </label>
             <input
-              type="number"
-              step="0.1"
-              min="0"
+              type="text"
+              inputMode="decimal"
               placeholder="예: 3.5"
               value={weight}
-              onChange={(e) => setWeight(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -429,12 +464,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <label className="text-sm font-medium">
               발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
-            <input
-              type="time"
-              value={symptomTime}
-              onChange={(e) => setSymptomTime(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
+            <TimePicker value={symptomTime} onChange={setSymptomTime} />
           </div>
         )}
 
@@ -499,7 +529,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 min="0"
                 placeholder="예: 3.5"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -785,6 +818,17 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={showExitConfirm}
+        title="저장하지 않고 나갈까요?"
+        message="저장되지 않은 변경사항이 있습니다."
+        confirmLabel="나가기"
+        cancelLabel="계속 수정"
+        variant="danger"
+        onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); router.back(); }}
+        onCancel={() => setShowExitConfirm(false)}
+      />
     </div>
   );
 }

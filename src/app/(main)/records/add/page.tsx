@@ -11,6 +11,7 @@ import { getPlanConfig } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
+import { TimePicker } from '@/components/TimePicker';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -212,11 +213,6 @@ export default function RecordAddPage() {
       showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
     }
 
-    // 체중 범위 검증 (DB: numeric(5,2) → 최대 999.99)
-    if (weight && (Number(weight) <= 0 || Number(weight) > 999.99)) {
-      showError('체중은 0.01 ~ 999.99 사이로 입력해주세요.'); return;
-    }
-
     setSaving(true);
     setError('');
 
@@ -386,12 +382,14 @@ export default function RecordAddPage() {
               체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
             </label>
             <input
-              type="number"
-              step="0.1"
-              min="0"
+              type="text"
+              inputMode="decimal"
               placeholder="예: 3.5"
               value={weight}
-              onChange={(e) => setWeight(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -419,12 +417,7 @@ export default function RecordAddPage() {
             <label className="text-sm font-medium">
               발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
-            <input
-              type="time"
-              value={symptomTime}
-              onChange={(e) => setSymptomTime(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
+            <TimePicker value={symptomTime} onChange={setSymptomTime} />
           </div>
         )}
 
@@ -484,12 +477,14 @@ export default function RecordAddPage() {
                 체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <input
-                type="number"
-                step="0.1"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="예: 3.5"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
