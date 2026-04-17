@@ -12,6 +12,7 @@ import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -75,6 +76,9 @@ export default function RecordAddPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const guardPushedRef = useRef(false);
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
@@ -184,6 +188,36 @@ export default function RecordAddPage() {
     setMedications(medications.filter((_, i) => i !== index));
   };
 
+  // ── 변경 감지 + 이탈 방어 ──
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    if (!guardPushedRef.current) {
+      window.history.pushState({ addGuard: true }, '');
+      guardPushedRef.current = true;
+    }
+    const handler = () => {
+      if (isDirty && !saving && window.location.pathname.includes('/add')) {
+        window.history.pushState({ addGuard: true }, '');
+        setShowExitConfirm(true);
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [isDirty, saving]);
+
+  const handleBack = () => {
+    if (saving) return;
+    if (isDirty) setShowExitConfirm(true);
+    else router.back();
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user) { router.push('/login'); return; }
@@ -289,6 +323,9 @@ export default function RecordAddPage() {
         localStorage.setItem('recentHospitals', JSON.stringify(updated));
       }
 
+      // 저장 성공 → dirty 해제 후 이동
+      setIsDirty(false);
+      guardPushedRef.current = false;
       router.push('/records');
     } catch (err) {
       console.error('Error creating record:', err);
@@ -303,14 +340,14 @@ export default function RecordAddPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+        <button onClick={handleBack} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 추가</h1>
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
@@ -750,6 +787,17 @@ export default function RecordAddPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={showExitConfirm}
+        title="저장하지 않고 나갈까요?"
+        message={<>저장되지 않은 변경사항이 있습니다.</>}
+        confirmLabel="나가기"
+        cancelLabel="계속 작성"
+        variant="danger"
+        onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); guardPushedRef.current = false; window.history.go(-2); }}
+        onCancel={() => setShowExitConfirm(false)}
+      />
     </div>
   );
 }

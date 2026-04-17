@@ -169,8 +169,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       guardPushedRef.current = true;
     }
     const handler = () => {
-      if (isDirty) {
-        // 뒤로가기 가로챔 → 다시 가짜 항목 push + 모달 표시
+      if (isDirty && !saving && window.location.pathname.includes('/edit')) {
         window.history.pushState({ editGuard: true }, '');
         setShowExitConfirm(true);
       }
@@ -179,13 +178,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     return () => window.removeEventListener('popstate', handler);
   }, [isDirty]);
 
-  // 화면 ← 버튼 클릭 시
   const handleBack = () => {
-    if (isDirty) {
-      setShowExitConfirm(true);
-    } else {
-      router.back();
-    }
+    if (saving) return;
+    if (isDirty) setShowExitConfirm(true);
+    else router.back();
   };
 
   const addMedicationRow = () => {
