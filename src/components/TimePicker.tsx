@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Props {
   value: string;           // "HH:MM" (24h format, e.g. "14:30")
@@ -9,79 +9,77 @@ interface Props {
 }
 
 /**
- * AM/PM 토글 + 시/분 입력 시간 선택기.
+ * AM/PM 토글 + 단일 시:분 입력 시간 선택기.
  *
- * 내부: 12h 표시 (오전/오후 + 1~12시)
- * 입출력: 24h "HH:MM" 포맷 (DB/기존 코드 호환)
+ * [오전|오후]  [12:30]
  *
- * 모바일 알람 설정 UI 참고:
- *   [오전|오후]  [HH] : [MM]
+ * 내부 12h 표시, 입출력은 24h "HH:MM".
  */
 export function TimePicker({ value, onChange, className = '' }: Props) {
   const parsed = parse24h(value);
   const [ampm, setAmpm] = useState<'AM' | 'PM'>(parsed.ampm);
-  const [hour, setHour] = useState(parsed.hour12);
-  const [minute, setMinute] = useState(parsed.minute);
+  const [display, setDisplay] = useState(parsed.display);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 외부 value 변경 시 동기화
   useEffect(() => {
     const p = parse24h(value);
     setAmpm(p.ampm);
-    setHour(p.hour12);
-    setMinute(p.minute);
+    setDisplay(p.display);
   }, [value]);
 
-  const emit = (a: 'AM' | 'PM', h: string, m: string) => {
-    const h24 = to24h(a, h, m);
-    onChange(h24);
+  const emit = (a: 'AM' | 'PM', disp: string) => {
+    const h24 = displayTo24h(a, disp);
+    if (h24) onChange(h24);
   };
 
   const handleAmpm = (a: 'AM' | 'PM') => {
     setAmpm(a);
-    emit(a, hour, minute);
+    emit(a, display);
   };
 
-  const handleHour = (raw: string) => {
-    // 1~12 만 허용
-    const cleaned = raw.replace(/\D/g, '').slice(0, 2);
-    const n = Number(cleaned);
-    if (cleaned === '' || (n >= 0 && n <= 12)) {
-      setHour(cleaned);
-      if (cleaned && n >= 1 && n <= 12) emit(ampm, cleaned, minute);
+  const handleInput = (raw: string) => {
+    // 숫자와 콜론만 허용
+    const cleaned = raw.replace(/[^\d:]/g, '');
+
+    // 자동 콜론 삽입: "12" → "12:", "1" 는 그대로
+    let formatted = cleaned;
+    const digits = cleaned.replace(/:/g, '');
+
+    if (digits.length <= 4) {
+      if (digits.length >= 3 && !cleaned.includes(':')) {
+        formatted = digits.slice(0, -2) + ':' + digits.slice(-2);
+      }
+    }
+
+    // 최대 "HH:MM" = 5글자
+    if (formatted.length > 5) return;
+
+    setDisplay(formatted);
+
+    // 완전한 "H:MM" 이상이면 emit
+    if (/^\d{1,2}:\d{2}$/.test(formatted)) {
+      emit(ampm, formatted);
     }
   };
 
-  const handleMinute = (raw: string) => {
-    // 0~59 만 허용
-    const cleaned = raw.replace(/\D/g, '').slice(0, 2);
-    const n = Number(cleaned);
-    if (cleaned === '' || (n >= 0 && n <= 59)) {
-      setMinute(cleaned);
-      if (cleaned !== '') emit(ampm, hour, cleaned);
+  const handleBlur = () => {
+    // blur 시 보정: 빈 값이면 기본값, 불완전이면 완성
+    if (!display || display === ':') {
+      setDisplay('12:00');
+      emit(ampm, '12:00');
+      return;
     }
-  };
 
-  // blur 시 패딩 보정
-  const handleHourBlur = () => {
-    let h = Number(hour) || 12;
-    if (h < 1) h = 12;
-    if (h > 12) h = 12;
-    const padded = String(h);
-    setHour(padded);
-    emit(ampm, padded, minute);
-  };
-
-  const handleMinuteBlur = () => {
-    let m = Number(minute) || 0;
-    if (m > 59) m = 59;
-    const padded = String(m).padStart(2, '0');
-    setMinute(padded);
-    emit(ampm, hour, padded);
+    const parts = display.split(':');
+    let h = Math.min(Math.max(Number(parts[0]) || 12, 1), 12);
+    let m = Math.min(Number(parts[1]) || 0, 59);
+    const fixed = `${h}:${String(m).padStart(2, '0')}`;
+    setDisplay(fixed);
+    emit(ampm, fixed);
   };
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* AM/PM 토글 */}
       <div className="flex bg-gray-100 rounded-lg overflow-hidden">
         <button
           type="button"
@@ -103,53 +101,38 @@ export function TimePicker({ value, onChange, className = '' }: Props) {
         </button>
       </div>
 
-      {/* 시 */}
       <input
+        ref={inputRef}
         type="text"
         inputMode="numeric"
-        value={hour}
-        onChange={(e) => handleHour(e.target.value)}
-        onBlur={handleHourBlur}
-        placeholder="12"
-        className="w-12 text-center px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-      />
-
-      <span className="text-gray-400 font-bold">:</span>
-
-      {/* 분 */}
-      <input
-        type="text"
-        inputMode="numeric"
-        value={minute}
-        onChange={(e) => handleMinute(e.target.value)}
-        onBlur={handleMinuteBlur}
-        placeholder="00"
-        className="w-12 text-center px-2 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        value={display}
+        onChange={(e) => handleInput(e.target.value)}
+        onBlur={handleBlur}
+        placeholder="12:00"
+        className="w-20 text-center px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
       />
     </div>
   );
 }
 
-// ── helpers ──
-
-function parse24h(v: string): { ampm: 'AM' | 'PM'; hour12: string; minute: string } {
-  if (!v || !v.includes(':')) return { ampm: 'AM', hour12: '12', minute: '00' };
+function parse24h(v: string): { ampm: 'AM' | 'PM'; display: string } {
+  if (!v || !v.includes(':')) return { ampm: 'AM', display: '12:00' };
   const [hStr, mStr] = v.split(':');
   let h = Number(hStr) || 0;
   const m = String(Number(mStr) || 0).padStart(2, '0');
   const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
   if (h === 0) h = 12;
   else if (h > 12) h -= 12;
-  return { ampm, hour12: String(h), minute: m };
+  return { ampm, display: `${h}:${m}` };
 }
 
-function to24h(ampm: 'AM' | 'PM', hourStr: string, minuteStr: string): string {
-  let h = Number(hourStr) || 12;
-  if (ampm === 'AM') {
-    if (h === 12) h = 0;
-  } else {
-    if (h !== 12) h += 12;
-  }
-  const m = Number(minuteStr) || 0;
+function displayTo24h(ampm: 'AM' | 'PM', disp: string): string | null {
+  if (!disp || !disp.includes(':')) return null;
+  const [hStr, mStr] = disp.split(':');
+  let h = Number(hStr) || 12;
+  const m = Number(mStr) || 0;
+  if (h < 1 || h > 12 || m < 0 || m > 59) return null;
+  if (ampm === 'AM') { if (h === 12) h = 0; }
+  else { if (h !== 12) h += 12; }
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }

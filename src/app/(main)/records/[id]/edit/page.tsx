@@ -150,13 +150,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   // ── 변경 감지 + 이탈 방어 ──
-  // form 값이 변경되면 isDirty = true
-  useEffect(() => {
-    if (!loading && !isDirty) {
-      // 초기 로딩 끝나면 첫 변경부터 dirty 추적 시작
-      // (onChange 핸들러에서 setIsDirty(true) 호출)
-    }
-  }, [loading, isDirty]);
 
   // 브라우저 닫기/새로고침 방어
   useEffect(() => {
@@ -166,19 +159,33 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  // 뒤로가기 시 dirty 확인
+  // 하드웨어 뒤로가기 버튼 방어 (Android TWA / 모바일 브라우저)
+  // isDirty 되면 가짜 히스토리 항목 push → popstate 로 가로채기
+  const guardPushedRef = useRef(false);
+  useEffect(() => {
+    if (!isDirty) return;
+    if (!guardPushedRef.current) {
+      window.history.pushState({ editGuard: true }, '');
+      guardPushedRef.current = true;
+    }
+    const handler = () => {
+      if (isDirty) {
+        // 뒤로가기 가로챔 → 다시 가짜 항목 push + 모달 표시
+        window.history.pushState({ editGuard: true }, '');
+        setShowExitConfirm(true);
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [isDirty]);
+
+  // 화면 ← 버튼 클릭 시
   const handleBack = () => {
     if (isDirty) {
       setShowExitConfirm(true);
     } else {
       router.back();
     }
-  };
-
-  // dirty wrapper — 모든 input onChange 를 이 함수로 감쌈
-  const markDirty = <T,>(setter: (v: T) => void) => (v: T) => {
-    setIsDirty(true);
-    setter(v);
   };
 
   const addMedicationRow = () => {
@@ -826,7 +833,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         confirmLabel="나가기"
         cancelLabel="계속 수정"
         variant="danger"
-        onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); router.back(); }}
+        onConfirm={() => {
+          setShowExitConfirm(false);
+          setIsDirty(false);
+          guardPushedRef.current = false;
+          // 가짜 히스토리 항목 + 실제 뒤로가기 → 2단계 back
+          window.history.go(-2);
+        }}
         onCancel={() => setShowExitConfirm(false)}
       />
     </div>
