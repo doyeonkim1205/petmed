@@ -38,13 +38,17 @@ export function NetworkStatusBanner() {
     window.addEventListener('offline', markOffline);
     window.addEventListener('online', markOnline);
 
-    // fetch 기반 폴링 (확실한 감지)
+    // fetch 기반 폴링 (확실한 감지 + 4초 타임아웃)
     const checkConnection = async () => {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
         const res = await fetch('/icons/icon-192x192.png', {
           method: 'HEAD',
           cache: 'no-store',
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
         if (res.ok) markOnline();
         else markOffline();
       } catch {
@@ -65,7 +69,7 @@ export function NetworkStatusBanner() {
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-[200] flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-white transition-colors ${
+      className={`fixed top-14 left-0 right-0 z-[60] flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-white transition-colors ${
         offline ? 'bg-red-500' : 'bg-green-500'
       }`}
     >
