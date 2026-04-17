@@ -1,6 +1,6 @@
-// PawDex Service Worker v10
-const CACHE_NAME = 'pawdex-v10';
-const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png'];
+// PawDex Service Worker v11
+const CACHE_NAME = 'pawdex-v11';
+const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
 self.addEventListener('install', (event) => {
