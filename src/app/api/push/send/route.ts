@@ -4,7 +4,7 @@ import { verifyAdmin } from '@/lib/adminAuth';
 import webpush from 'web-push';
 
 export async function POST(request: Request) {
-  const { error } = await verifyAdmin(request);
+  const { user, error } = await verifyAdmin(request);
   if (error) return error;
 
   const { title, body, url, userId, target, userEmail } = await request.json();
