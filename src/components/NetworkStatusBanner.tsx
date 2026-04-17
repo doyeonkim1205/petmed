@@ -1,46 +1,65 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WifiOff } from 'lucide-react';
 
 /**
  * 네트워크 상태 배너.
  *
- * navigator.onLine 이 false 가 되면 상단에 빨간 바 표시.
- * 네트워크 복귀 시 "연결됨!" 초록 바 잠깐 보여주고 자동 사라짐.
+ * navigator.onLine 은 일부 기기에서 비행기모드에도 true 반환하므로,
+ * 실제 fetch 를 통해 연결 상태를 확인한다.
+ *
+ * 5초 간격으로 favicon 에 HEAD 요청 → 실패하면 오프라인 판정.
+ * online/offline 이벤트도 병행해서 빠른 감지 + 확실한 감지 둘 다.
  */
 export function NetworkStatusBanner() {
   const [offline, setOffline] = useState(false);
   const [recovered, setRecovered] = useState(false);
+  const wasOfflineRef = useRef(false);
 
   useEffect(() => {
-    // 초기 상태
-    setOffline(!navigator.onLine);
-
-    const goOffline = () => setOffline(true);
-    const goOnline = () => {
-      setOffline(false);
-      setRecovered(true);
-      setTimeout(() => setRecovered(false), 2500);
+    const markOffline = () => {
+      if (!wasOfflineRef.current) {
+        wasOfflineRef.current = true;
+        setOffline(true);
+      }
     };
 
-    window.addEventListener('offline', goOffline);
-    window.addEventListener('online', goOnline);
+    const markOnline = () => {
+      if (wasOfflineRef.current) {
+        wasOfflineRef.current = false;
+        setOffline(false);
+        setRecovered(true);
+        setTimeout(() => setRecovered(false), 2500);
+      }
+    };
 
-    // 모바일/TWA 에서 online/offline 이벤트가 안 발생하는 경우 대비
-    // 3초마다 navigator.onLine 폴링
-    const poll = setInterval(() => {
-      const nowOffline = !navigator.onLine;
-      if (nowOffline && !offline) goOffline();
-      else if (!nowOffline && offline) goOnline();
-    }, 3000);
+    // 이벤트 기반 (빠른 감지)
+    window.addEventListener('offline', markOffline);
+    window.addEventListener('online', markOnline);
+
+    // fetch 기반 폴링 (확실한 감지)
+    const checkConnection = async () => {
+      try {
+        const res = await fetch('/icons/icon-192x192.png', {
+          method: 'HEAD',
+          cache: 'no-store',
+        });
+        if (res.ok) markOnline();
+        else markOffline();
+      } catch {
+        markOffline();
+      }
+    };
+
+    const poll = setInterval(checkConnection, 5000);
 
     return () => {
-      window.removeEventListener('offline', goOffline);
-      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', markOffline);
+      window.removeEventListener('online', markOnline);
       clearInterval(poll);
     };
-  }, [offline]);
+  }, []);
 
   if (!offline && !recovered) return null;
 
