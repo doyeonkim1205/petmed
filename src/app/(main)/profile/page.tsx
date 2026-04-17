@@ -269,7 +269,7 @@ function PetModal({
       <ConfirmModal
         open={deleteTarget !== null}
         title="반려동물을 삭제할까요?"
-        message={`${deleteTarget?.name ?? ''} 의 모든 건강 기록도 함께 삭제돼요.\n되돌릴 수 없어요.`}
+        message={`${deleteTarget?.name ?? ''}의 건강기록도 함께 삭제돼요.\n되돌릴 수 없어요.`}
         variant="danger"
         confirmLabel="삭제"
         onConfirm={() => {

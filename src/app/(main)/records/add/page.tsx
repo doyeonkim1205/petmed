@@ -212,6 +212,11 @@ export default function RecordAddPage() {
       showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
     }
 
+    // 체중 범위 검증 (DB: numeric(5,2) → 최대 999.99)
+    if (weight && (Number(weight) <= 0 || Number(weight) > 999.99)) {
+      showError('체중은 0.01 ~ 999.99 사이로 입력해주세요.'); return;
+    }
+
     setSaving(true);
     setError('');
 

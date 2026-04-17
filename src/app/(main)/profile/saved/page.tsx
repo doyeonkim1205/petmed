@@ -279,11 +279,7 @@ export default function SavedAnalysesPage() {
       <ConfirmModal
         open={confirmTarget !== null}
         title={confirmTarget?.kind === 'paper' ? '논문을 삭제할까요?' : '보관함에서 삭제할까요?'}
-        message={
-          confirmTarget?.kind === 'paper'
-            ? '이 논문을 보관함에서 제거합니다.'
-            : '이 보관함 항목을 완전히 삭제합니다.\n되돌릴 수 없어요.'
-        }
+        message="선택한 항목을 완전히 삭제합니다.\n되돌릴 수 없어요."
         variant="danger"
         confirmLabel="삭제"
         onConfirm={() => {
