@@ -26,11 +26,21 @@ export function NetworkStatusBanner() {
 
     window.addEventListener('offline', goOffline);
     window.addEventListener('online', goOnline);
+
+    // 모바일/TWA 에서 online/offline 이벤트가 안 발생하는 경우 대비
+    // 3초마다 navigator.onLine 폴링
+    const poll = setInterval(() => {
+      const nowOffline = !navigator.onLine;
+      if (nowOffline && !offline) goOffline();
+      else if (!nowOffline && offline) goOnline();
+    }, 3000);
+
     return () => {
       window.removeEventListener('offline', goOffline);
       window.removeEventListener('online', goOnline);
+      clearInterval(poll);
     };
-  }, []);
+  }, [offline]);
 
   if (!offline && !recovered) return null;
 
