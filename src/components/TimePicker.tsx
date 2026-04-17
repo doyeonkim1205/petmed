@@ -38,25 +38,19 @@ export function TimePicker({ value, onChange, className = '' }: Props) {
   };
 
   const handleInput = (raw: string) => {
-    // 숫자와 콜론만 허용
-    const cleaned = raw.replace(/[^\d:]/g, '');
+    // 숫자만 추출 (콜론 포함 모든 비숫자 제거)
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
 
-    // 자동 콜론 삽입: "12" → "12:", "1" 는 그대로
-    let formatted = cleaned;
-    const digits = cleaned.replace(/:/g, '');
-
-    if (digits.length <= 4) {
-      if (digits.length >= 3 && !cleaned.includes(':')) {
-        formatted = digits.slice(0, -2) + ':' + digits.slice(-2);
-      }
+    // 자동 콜론 삽입: 3자리 이상이면 뒤 2자리 앞에 콜론
+    let formatted: string;
+    if (digits.length <= 2) {
+      formatted = digits;
+    } else {
+      formatted = digits.slice(0, digits.length - 2) + ':' + digits.slice(-2);
     }
-
-    // 최대 "HH:MM" = 5글자
-    if (formatted.length > 5) return;
 
     setDisplay(formatted);
 
-    // 완전한 "H:MM" 이상이면 emit
     if (/^\d{1,2}:\d{2}$/.test(formatted)) {
       emit(ampm, formatted);
     }

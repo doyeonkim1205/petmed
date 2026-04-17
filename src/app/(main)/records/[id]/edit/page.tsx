@@ -357,10 +357,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
-      // edit 엔트리만 pop 해서 기존 detail 로 복귀 (history 중복 방지 — 뒤로가기 2번 문제)
-      // 히스토리가 없는 극단 케이스 (edit URL 직접 진입) 에선 replace 로 폴백
+      // 저장 성공 → dirty 해제 (popstate guard 가 가로채지 않도록)
+      const hadGuard = guardPushedRef.current;
+      setIsDirty(false);
+      guardPushedRef.current = false;
+      // edit 엔트리만 pop 해서 기존 detail 로 복귀
       if (typeof window !== 'undefined' && window.history.length > 1) {
-        router.back();
+        // 가짜 히스토리 항목이 있으면 2단계 back, 아니면 1단계
+        window.history.go(hadGuard ? -2 : -1);
       } else {
         router.replace(`/records/${id}`);
       }

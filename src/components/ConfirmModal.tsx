@@ -5,7 +5,7 @@ import { AlertTriangle, X } from 'lucide-react';
 interface Props {
   open: boolean;
   title: string;
-  message?: string;
+  message?: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'default' | 'danger';
@@ -62,11 +62,9 @@ export function ConfirmModal({
         </div>
 
         {message && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-4">
-            {message.split('\n').map((line, i) => (
-              <span key={i}>{i > 0 && <br />}{line}</span>
-            ))}
-          </p>
+          <div className="text-xs text-gray-500 leading-relaxed mb-4">
+            {message}
+          </div>
         )}
 
         <div className="flex gap-2">
