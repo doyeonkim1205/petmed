@@ -79,9 +79,8 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
               🔒 알림이 차단되어 있어 권한 요청이 막혀 있어요.
               <br /><br />
-              <span className="font-bold text-gray-700">Chrome 앱 설정 → 알림 선택</span>
-              <br />
-              알림 <span className="font-bold text-gray-700">허용</span> 으로 변경 후 다시 시도해주세요.
+              사용 중인 <span className="font-bold text-gray-700">브라우저 앱의 설정</span>에서
+              알림 <span className="font-bold text-gray-700">허용</span>으로 변경 후 다시 시도해주세요.
               <br /><br />
               <span className="text-gray-400">설정 변경 후 앱을 재실행해주세요.</span>
             </p>
