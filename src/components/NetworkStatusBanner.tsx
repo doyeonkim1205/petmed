@@ -56,7 +56,10 @@ export function NetworkStatusBanner() {
       }
     };
 
-    const poll = setInterval(checkConnection, 5000);
+    const poll = setInterval(() => {
+      // 유저가 앱을 보고 있을 때만 체크 (백그라운드 부하 방지)
+      if (document.visibilityState === 'visible') checkConnection();
+    }, 5000);
 
     return () => {
       window.removeEventListener('offline', markOffline);
