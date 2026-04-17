@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -76,6 +77,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <NetworkStatusBanner />
         <ServiceWorkerRegister />
       </body>
     </html>
