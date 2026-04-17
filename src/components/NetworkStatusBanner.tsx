@@ -16,11 +16,13 @@ export function NetworkStatusBanner() {
   const [offline, setOffline] = useState(false);
   const [recovered, setRecovered] = useState(false);
   const wasOfflineRef = useRef(false);
+  const failCountRef = useRef(0);
 
   useEffect(() => {
     const markOffline = () => {
       if (!wasOfflineRef.current) {
         wasOfflineRef.current = true;
+        failCountRef.current = 0;
         setOffline(true);
       }
     };
@@ -28,6 +30,7 @@ export function NetworkStatusBanner() {
     const markOnline = () => {
       if (wasOfflineRef.current) {
         wasOfflineRef.current = false;
+        failCountRef.current = 0;
         setOffline(false);
         setRecovered(true);
         setTimeout(() => setRecovered(false), 2500);
@@ -39,6 +42,7 @@ export function NetworkStatusBanner() {
     window.addEventListener('online', markOnline);
 
     // fetch 기반 폴링 (확실한 감지 + 4초 타임아웃)
+    // 2회 연속 실패 시 오프라인 판정 (느린 WiFi 깜빡임 방지)
     const checkConnection = async () => {
       try {
         const controller = new AbortController();
@@ -49,10 +53,16 @@ export function NetworkStatusBanner() {
           signal: controller.signal,
         });
         clearTimeout(timeout);
-        if (res.ok) markOnline();
-        else markOffline();
+        if (res.ok) {
+          failCountRef.current = 0;
+          markOnline();
+        } else {
+          failCountRef.current++;
+          if (failCountRef.current >= 2) markOffline();
+        }
       } catch {
-        markOffline();
+        failCountRef.current++;
+        if (failCountRef.current >= 2) markOffline();
       }
     };
 
