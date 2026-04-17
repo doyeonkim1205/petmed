@@ -66,5 +66,13 @@ export async function POST(request: Request) {
     }
   }
 
+  // 관리자 발송 기록
+  await supabase.from('activity_logs').insert({
+    user_id: user!.id,
+    action: 'admin.push_send',
+    resource_type: 'push',
+    details: { title, body, target: target || 'all', sent, failed },
+  });
+
   return NextResponse.json({ sent, failed });
 }

@@ -26,6 +26,11 @@ const actionLabels: Record<string, string> = {
   'symptom.refine': '증상 재분석',
   'file.upload': '파일 업로드',
   'file.delete': '파일 삭제',
+  'admin.push_send': '관리자 알림 발송',
+  'push.subscribe': '알림 구독',
+  'push.unsubscribe': '알림 해지',
+  'admin.plan_change': '관리자 플랜 변경',
+  'subscription.refund': '구독 환불',
 };
 
 export default function ActivityLogsPage() {
@@ -136,8 +141,13 @@ export default function ActivityLogsPage() {
                       <TableCell className="text-sm font-medium">
                         {actionLabels[log.action] || log.action}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500 max-w-[200px] truncate">
-                        {log.details ? Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ') : '-'}
+                      <TableCell className="text-sm text-gray-500 max-w-[300px]">
+                        {log.details && Object.keys(log.details).length > 0 ? (
+                          <details className="cursor-pointer">
+                            <summary className="truncate">{Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ')}</summary>
+                            <pre className="mt-1 text-[10px] bg-gray-50 p-2 rounded overflow-auto max-h-32">{JSON.stringify(log.details, null, 2)}</pre>
+                          </details>
+                        ) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}

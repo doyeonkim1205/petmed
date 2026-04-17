@@ -38,6 +38,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
+  // 구독 등록 기록
+  await supabase.from('activity_logs').insert({
+    user_id: user!.id,
+    action: 'push.subscribe',
+    resource_type: 'push',
+    details: { endpoint: endpoint.slice(0, 50) },
+  });
+
   return NextResponse.json({ success: true });
 }
 
@@ -60,6 +68,14 @@ export async function DELETE(request: Request) {
     .delete()
     .eq('user_id', user!.id)
     .eq('endpoint', endpoint);
+
+  // 구독 해제 기록
+  await supabase.from('activity_logs').insert({
+    user_id: user!.id,
+    action: 'push.unsubscribe',
+    resource_type: 'push',
+    details: { endpoint: endpoint.slice(0, 50) },
+  });
 
   return NextResponse.json({ success: true });
 }
