@@ -1,5 +1,5 @@
-// PawDex Service Worker v11
-const CACHE_NAME = 'pawdex-v11';
+// PawDex Service Worker v12
+const CACHE_NAME = 'pawdex-v12';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -36,10 +36,16 @@ self.addEventListener('fetch', (event) => {
   // External origins (Toss, Supabase, etc.): never intercept
   if (url.origin !== self.location.origin) return;
 
-  // Navigation: network first, fallback to offline page
+  // Navigation: network first → cached page → offline.html
+  // 캐시된 페이지가 있으면 그걸 먼저 (TWA 컨텍스트 유지)
+  // 캐시도 없으면 offline.html (정적 HTML, TWA 컨텍스트 이탈 가능)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/offline.html'))
+      fetch(event.request).catch(() =>
+        caches.match(event.request).then((cached) =>
+          cached || caches.match('/offline.html')
+        )
+      )
     );
     return;
   }
