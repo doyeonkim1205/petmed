@@ -67,6 +67,12 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
     features: [
       { label: '건강 통계', key: 'cost', format: (p) => PLANS[p].costStatsMonths === 12 ? '최근 1년' : `최근 ${PLANS[p].costStatsMonths}개월` },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
+      {
+        label: '투약·진료 알림',
+        key: 'push',
+        format: (p) => p === 'free' ? '-' : '앱 설치 시',
+        unavailable: (p) => p === 'free',
+      },
     ],
   },
 ];
