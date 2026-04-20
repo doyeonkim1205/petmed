@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
+import { UpdateToast } from "@/components/UpdateToast";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -79,6 +80,7 @@ export default function RootLayout({
           {children}
         </Providers>
         <ServiceWorkerRegister />
+        <UpdateToast />
       </body>
     </html>
   );
