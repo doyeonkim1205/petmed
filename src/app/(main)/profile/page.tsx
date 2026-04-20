@@ -295,6 +295,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const [deniedModalOpen, setDeniedModalOpen] = useState(false);
+  const [iosInstallHintOpen, setIosInstallHintOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -329,6 +330,15 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
     if (enabled && /SamsungBrowser/i.test(navigator.userAgent)) {
       setDeniedModalOpen(true);
       return;
+    }
+    // iOS + 홈 화면 미설치: 푸시가 구조적으로 불가 → 간결한 안내만 띄움
+    if (enabled) {
+      const { detectDevice } = await import('@/lib/deviceDetect');
+      const device = detectDevice();
+      if (device?.isIos && !device.isStandalone) {
+        setIosInstallHintOpen(true);
+        return;
+      }
     }
     setPushLoading(true);
     setDebugLog([]);
@@ -461,6 +471,34 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
       </div>
       <NotificationPermissionDenied open={deniedModalOpen} onClose={() => setDeniedModalOpen(false)} />
+      {iosInstallHintOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setIosInstallHintOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">알림을 받으려면 앱을 설치해야 해요</h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-5">
+              iOS 에서는 홈 화면에 추가한 뒤에만 푸시 알림을 받을 수 있어요.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIosInstallHintOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => {
+                  setIosInstallHintOpen(false);
+                  onClose();
+                  window.dispatchEvent(new Event('show-ios-install'));
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium"
+              >
+                설치 방법 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
