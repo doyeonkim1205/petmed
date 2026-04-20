@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Send, Users, Crown, UserCheck } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
@@ -33,6 +34,10 @@ export default function NotificationsPage() {
       setTitle('');
       setBody('');
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'push-send' },
+        extra: { target, userEmail: userEmail ? '(provided)' : undefined },
+      });
       setResult(`❌ ${err instanceof Error ? err.message : '발송 실패'}`);
     } finally {
       setSending(false);

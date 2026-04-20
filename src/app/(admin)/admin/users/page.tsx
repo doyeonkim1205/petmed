@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -104,6 +105,10 @@ export default function UsersPage() {
       alert(data.message);
       openDetail(selectedUser.profile.id);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'user-refund' },
+        extra: { targetUserId: selectedUser?.profile.id },
+      });
       alert(err instanceof Error ? err.message : '환불 실패');
     } finally {
       setSaving(false);
@@ -123,6 +128,10 @@ export default function UsersPage() {
       setModalOpen(false);
       fetchUsers();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'user-delete' },
+        extra: { targetUserId: selectedUser?.profile.id },
+      });
       setDeleteMessage(err instanceof Error ? err.message : '삭제에 실패했습니다.');
     } finally {
       setDeleting(false);

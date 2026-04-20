@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
 
@@ -119,6 +120,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'openai', action: 'disease-description' },
+    });
     console.error('Disease description error:', error);
     return NextResponse.json({ error: '질병 설명 생성 실패' }, { status: 500 });
   }

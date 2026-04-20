@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
@@ -160,6 +161,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'openai', action: 'symptom-analysis' },
+    });
     console.error('Symptom analysis error:', error);
     return NextResponse.json({ error: '증상 분석에 실패했습니다.' }, { status: 500 });
   }

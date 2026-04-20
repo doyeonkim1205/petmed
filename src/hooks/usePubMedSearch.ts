@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import {
   searchPubMed,
   fetchArticleSummaries,
@@ -79,6 +80,9 @@ async function saveCache(
       { onConflict: 'cache_key' },
     );
   } catch (e) {
+    Sentry.captureException(e, {
+      tags: { feature: 'pubmed', action: 'cache-save' },
+    });
     console.error('[캐시 저장 실패]', e);
   }
 }
@@ -301,6 +305,10 @@ export function usePubMedSearch(
         // 검색 성공 시에만 카운트 차감
         logSearch(diseaseName, petType);
       } catch (aiErr) {
+        Sentry.captureException(aiErr, {
+          tags: { feature: 'pubmed', action: 'ai-analysis' },
+          extra: { diseaseName, petType },
+        });
         console.error('[AI 분석 실패]', aiErr);
         // AI 실패 시 원본 5편 그대로 표시
         setArticles(enrichedSummaries.slice(0, 5));
@@ -310,6 +318,10 @@ export function usePubMedSearch(
         setStep('done');
       }
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'pubmed', action: 'search' },
+        extra: { diseaseName, petType },
+      });
       const message =
         err instanceof Error ? err.message : 'PubMed 검색에 실패했습니다.';
       setError(message);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw } from 'lucide-react';
 
 declare global {
@@ -143,6 +144,9 @@ export default function MapPage() {
 
         searchNearby(lat, lng);
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'map', action: 'init' },
+        });
         console.error('Map init error:', err);
         setError('지도 초기화에 실패했습니다.');
         setLoading(false);

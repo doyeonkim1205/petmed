@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
@@ -270,7 +271,11 @@ function SearchContent() {
       const data = await res.json();
       setSymptomResult(data);
       setFollowupAnswers({});
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'symptom', action: 'analyze' },
+        extra: { isRefine },
+      });
       if (!isRefine) setSymptomError('증상 분석에 실패했습니다.');
     } finally {
       setSymptomLoading(false);
@@ -389,7 +394,11 @@ function SearchContent() {
           }
         } catch {}
       }
-    } catch {} finally {
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'search', action: 'save-analysis' },
+      });
+    } finally {
       setSaving(false);
     }
   };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HardDrive, Upload, AlertTriangle, Users } from 'lucide-react';
@@ -44,6 +45,9 @@ export default function StoragePage() {
       const res = await authFetch('/api/admin/storage');
       setData(await res.json());
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'storage-fetch' },
+      });
       console.error(err);
     } finally {
       setLoading(false);

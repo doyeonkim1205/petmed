@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
 
@@ -189,6 +190,9 @@ export async function POST(request: NextRequest) {
     ).then(() => {});
     return NextResponse.json(singleResult);
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'openai', action: 'analyze-papers' },
+    });
     console.error('Paper analysis error:', error);
     return NextResponse.json(
       { error: 'AI 분석 중 오류가 발생했습니다.' },
