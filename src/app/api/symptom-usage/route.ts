@@ -27,16 +27,16 @@ export async function GET(request: NextRequest) {
 
   const [searchCount, refineCount] = await Promise.all([
     supabaseAdmin
-      .from('activity_logs')
+      .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', 'symptom.search')
+      .eq('kind', 'symptom')
       .gte('created_at', startOfDay.toISOString()),
     supabaseAdmin
-      .from('activity_logs')
+      .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', 'symptom.refine')
+      .eq('kind', 'symptom_refine')
       .gte('created_at', startOfDay.toISOString()),
   ]);
 

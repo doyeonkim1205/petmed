@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
         supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
         supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
-        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('action', 'analysis.save').gte('created_at', paymentDate),
         supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
       ]);
 
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
         supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
         supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
-        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('action', 'analysis.save').gte('created_at', paymentDate),
         supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
       ]);
 

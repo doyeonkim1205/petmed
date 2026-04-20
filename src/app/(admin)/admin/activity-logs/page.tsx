@@ -35,6 +35,8 @@ const actionLabels: Record<string, string> = {
   'cron.push_notifications': '자동 푸시 알림 cron',
   'cron.expire_subscriptions': '자동 구독 만료 cron',
   'cron.auto_billing': '자동 결제 cron',
+  // 참고: symptom.search / symptom.refine 은 search_logs 테이블로 이동.
+  //      검색 로그 페이지에서 확인 가능.
 };
 
 interface LogProfile {
@@ -124,11 +126,8 @@ const filterGroups: FilterGroup[] = [
     ],
   },
   {
-    label: '검색 / 분석',
+    label: 'AI 분석',
     options: [
-      { value: 'category:symptom', label: '▸ 증상 전체' },
-      { value: 'action:symptom.search', label: '증상 검색' },
-      { value: 'action:symptom.refine', label: '증상 재분석' },
       { value: 'action:papers.analyze', label: 'AI 논문 분석' },
       { value: 'action:disease.describe', label: 'AI 질병 설명' },
       { value: 'action:analysis.save', label: '분석 보관' },

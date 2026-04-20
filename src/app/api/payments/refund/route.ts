@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       .from('activity_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .in('action', ['symptom.search', 'symptom.refine', 'analysis.save'])
+      .eq('action', 'analysis.save')
       .gte('created_at', paymentDate);
 
     // Check search logs

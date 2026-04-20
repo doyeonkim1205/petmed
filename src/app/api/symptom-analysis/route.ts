@@ -49,14 +49,14 @@ export async function POST(request: NextRequest) {
     startOfDay.setHours(0, 0, 0, 0);
 
     // Rate limit check
-    const action = isRefinement ? 'symptom.refine' : 'symptom.search';
+    const kind = isRefinement ? 'symptom_refine' : 'symptom';
     const dailyLimit = isRefinement ? config.symptomRefinePerDay : config.symptomSearchPerDay;
 
     const { count } = await supabaseAdmin
-      .from('activity_logs')
+      .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', action)
+      .eq('kind', kind)
       .gte('created_at', startOfDay.toISOString());
 
     if ((count || 0) >= dailyLimit) {
@@ -152,11 +152,12 @@ export async function POST(request: NextRequest) {
       emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
     };
 
-    // Log only after successful analysis (count deduction)
-    await supabaseAdmin.from('activity_logs').insert({
+    // 성공한 분석만 카운트 (사용량 차감). 질병 검색과 통일된 search_logs 에 기록.
+    await supabaseAdmin.from('search_logs').insert({
       user_id: userId,
-      action,
-      details: { symptoms, petType },
+      query: symptoms,
+      pet_type: petType,
+      kind,
     });
 
     return NextResponse.json(result);
