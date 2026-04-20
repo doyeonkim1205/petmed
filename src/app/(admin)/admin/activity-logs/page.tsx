@@ -48,26 +48,111 @@ function formatUser(p: LogProfile | null | undefined) {
   return p.nickname ? `${p.email} (${p.nickname})` : p.email;
 }
 
-// 필터 옵션: 특정 action 또는 카테고리(prefix) 선택
-const filterOptions: { value: string; label: string }[] = [
-  { value: '', label: '전체' },
-  { value: 'category:deleted_user', label: '🗑 탈퇴 유저만' },
-  { value: 'category:cron', label: '시스템 (cron)' },
-  { value: 'category:admin', label: '관리자 액션' },
-  { value: 'category:auth', label: '인증 (로그인/가입)' },
-  { value: 'category:record', label: '기록 CRUD' },
-  { value: 'category:pet', label: '반려동물' },
-  { value: 'category:subscription', label: '구독' },
-  { value: 'category:push', label: '푸시 알림' },
-  { value: 'category:symptom', label: '증상 검색' },
-  { value: 'category:file', label: '파일' },
-  { value: 'category:analysis', label: '분석 보관' },
-  { value: 'category:paper', label: '논문' },
-  { value: 'action:auth.login', label: '— 로그인만' },
-  { value: 'action:auth.signup', label: '— 가입만' },
-  { value: 'action:record.create', label: '— 기록 추가만' },
-  { value: 'action:admin.plan_change', label: '— 플랜 변경만' },
-  { value: 'action:cron.push_notifications', label: '— 푸시 cron 만' },
+// optgroup 구조로 세분화된 필터. 각 그룹에 '카테고리 전체' + 세부 액션
+interface FilterGroup {
+  label: string;
+  options: { value: string; label: string }[];
+}
+
+const filterGroups: FilterGroup[] = [
+  {
+    label: '특수',
+    options: [
+      { value: '', label: '전체' },
+      { value: 'category:deleted_user', label: '🗑 탈퇴 유저만' },
+    ],
+  },
+  {
+    label: '관리자 액션',
+    options: [
+      { value: 'category:admin', label: '▸ 관리자 액션 전체' },
+      { value: 'action:admin.plan_change', label: '플랜 변경' },
+      { value: 'action:admin.role_change', label: '역할 변경' },
+      { value: 'action:admin.push_send', label: '알림 발송' },
+      { value: 'action:admin.refund', label: '환불' },
+      { value: 'action:admin.delete-user', label: '유저 삭제' },
+    ],
+  },
+  {
+    label: '시스템 (cron)',
+    options: [
+      { value: 'category:cron', label: '▸ 시스템 전체' },
+      { value: 'action:cron.push_notifications', label: '푸시 cron' },
+      { value: 'action:cron.expire_subscriptions', label: '구독 만료 cron' },
+      { value: 'action:cron.auto_billing', label: '자동 결제 cron' },
+    ],
+  },
+  {
+    label: '인증',
+    options: [
+      { value: 'category:auth', label: '▸ 인증 전체' },
+      { value: 'action:auth.login', label: '로그인' },
+      { value: 'action:auth.signup', label: '가입' },
+      { value: 'action:auth.logout', label: '로그아웃' },
+      { value: 'action:auth.delete_account', label: '탈퇴' },
+    ],
+  },
+  {
+    label: '기록 (건강 기록장)',
+    options: [
+      { value: 'category:record', label: '▸ 기록 전체' },
+      { value: 'action:record.create', label: '기록 추가' },
+      { value: 'action:record.update', label: '기록 수정' },
+      { value: 'action:record.delete', label: '기록 삭제' },
+      { value: 'action:record.bulk_delete', label: '기록 일괄 삭제' },
+    ],
+  },
+  {
+    label: '반려동물',
+    options: [
+      { value: 'category:pet', label: '▸ 반려동물 전체' },
+      { value: 'action:pet.create', label: '추가' },
+      { value: 'action:pet.delete', label: '삭제' },
+    ],
+  },
+  {
+    label: '구독 / 결제',
+    options: [
+      { value: 'category:subscription', label: '▸ 구독 전체' },
+      { value: 'action:subscription.purchase', label: '결제' },
+      { value: 'action:subscription.cancel', label: '해지' },
+      { value: 'action:subscription.refund', label: '환불' },
+      { value: 'action:subscription.expired', label: '만료' },
+      { value: 'action:subscription.auto_billed', label: '자동 갱신' },
+      { value: 'action:subscription.auto_renew_disabled', label: '자동 갱신 해제' },
+      { value: 'action:subscription.enable_recurring', label: '자동 결제 전환' },
+    ],
+  },
+  {
+    label: '검색 / 분석',
+    options: [
+      { value: 'category:symptom', label: '▸ 증상 전체' },
+      { value: 'action:symptom.search', label: '증상 검색' },
+      { value: 'action:symptom.refine', label: '증상 재분석' },
+      { value: 'action:papers.analyze', label: 'AI 논문 분석' },
+      { value: 'action:disease.describe', label: 'AI 질병 설명' },
+      { value: 'action:analysis.save', label: '분석 보관' },
+      { value: 'action:analysis.delete', label: '분석 삭제' },
+      { value: 'action:paper.delete', label: '논문 삭제' },
+    ],
+  },
+  {
+    label: '푸시 알림',
+    options: [
+      { value: 'category:push', label: '▸ 푸시 전체' },
+      { value: 'action:push.subscribe', label: '구독' },
+      { value: 'action:push.unsubscribe', label: '해지' },
+    ],
+  },
+  {
+    label: '기타',
+    options: [
+      { value: 'action:profile.update', label: '프로필 수정' },
+      { value: 'action:file.upload', label: '파일 업로드' },
+      { value: 'action:file.delete', label: '파일 삭제' },
+      { value: 'action:page.subscription', label: '구독 페이지 방문' },
+    ],
+  },
 ];
 
 export default function ActivityLogsPage() {
@@ -146,10 +231,14 @@ export default function ActivityLogsPage() {
               <select
                 value={filter}
                 onChange={(e) => { setFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 border rounded-lg text-sm bg-white w-48"
+                className="px-3 py-2 border rounded-lg text-sm bg-white w-56"
               >
-                {filterOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {filterGroups.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((opt) => (
+                      <option key={opt.value || group.label} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

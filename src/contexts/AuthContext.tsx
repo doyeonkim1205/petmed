@@ -191,19 +191,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!mounted) return;
           if (isSignIn) {
             try { await ensureProfile(authUser); } catch {}
-            // 중복 방지: 같은 세션 안에서 SIGNED_IN 이 여러 번 fire 되는 경우
-            // (탭 포커스, 페이지 새로고침 등) 에 대비. sessionStorage 키를
-            // session.access_token 의 일부로 구성해서 같은 세션당 1회만.
+            // 중복 방지: SIGNED_IN 은 멀티탭 / OAuth 콜백 / 탭 포커스 /
+            // 리프레시 등에서 여러 번 fire 됨. sessionStorage 는 탭마다
+            // 분리돼서 멀티탭 상황에 무용 → localStorage 로 변경.
+            // 키 = session 지문 (access_token 끝 24자) — 한 세션 = 한 번만.
+            // 새 세션이 시작되면 자동으로 새 키 → 다시 로깅.
             try {
               const fingerprint = newSession.access_token?.slice(-24) ?? authUser.id;
               const key = `authLoginLogged_${fingerprint}`;
-              if (!sessionStorage.getItem(key)) {
-                sessionStorage.setItem(key, '1');
+              if (!localStorage.getItem(key)) {
+                localStorage.setItem(key, String(Date.now()));
+                // 오래된 키 정리 (24시간 지난 것)
+                const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+                for (const k of Object.keys(localStorage)) {
+                  if (k.startsWith('authLoginLogged_')) {
+                    const ts = Number(localStorage.getItem(k) ?? 0);
+                    if (ts < cutoff) localStorage.removeItem(k);
+                  }
+                }
                 const provider = authUser.app_metadata?.provider || 'unknown';
                 logActivity(authUser.id, 'auth.login', { details: { method: provider } });
               }
             } catch {
-              // sessionStorage 접근 불가 (privacy mode 등) 시 기존대로
+              // localStorage 접근 불가 (privacy mode 등) 시 기존대로
               const provider = authUser.app_metadata?.provider || 'unknown';
               logActivity(authUser.id, 'auth.login', { details: { method: provider } });
             }
