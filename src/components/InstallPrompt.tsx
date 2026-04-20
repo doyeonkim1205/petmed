@@ -8,18 +8,43 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+const INSTALLED_KEY = 'pwaInstalled';
+
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    // 이미 설치된 PWA 로 실행 중 (standalone) → 프롬프트 불필요
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      return;
+    }
+    // 이전에 appinstalled 이벤트가 발동했던 기록이 있으면 → 설치 완료 상태
+    try {
+      if (localStorage.getItem(INSTALLED_KEY) === '1') return;
+    } catch {
+      /* noop */
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
+    const onInstalled = () => {
+      try {
+        localStorage.setItem(INSTALLED_KEY, '1');
+      } catch {
+        /* noop */
+      }
+      setDeferredPrompt(null);
+    };
 
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
   }, []);
 
   if (!deferredPrompt || dismissed) return null;
@@ -28,6 +53,11 @@ export function InstallPrompt() {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
+      try {
+        localStorage.setItem(INSTALLED_KEY, '1');
+      } catch {
+        /* noop */
+      }
       setDeferredPrompt(null);
     }
   };

@@ -48,17 +48,35 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // Attach profile info (FK points to auth.users, not profiles)
+  // Attach profile info (FK points to auth.users, not profiles).
+  // Cron/system logs have user_id=null; admin actions have targetUserId
+  // in details. Fetch every id we encounter, then decorate.
   const logs = data || [];
   if (logs.length > 0) {
-    const userIds = [...new Set(logs.map((l: any) => l.user_id))];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, email, nickname')
-      .in('id', userIds);
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const ids = new Set<string>();
     for (const log of logs) {
-      (log as any).profiles = profileMap.get(log.user_id) || null;
+      if (log.user_id) ids.add(log.user_id);
+      const targetId = (log.details as Record<string, unknown>)?.targetUserId;
+      if (typeof targetId === 'string' && targetId) ids.add(targetId);
+    }
+
+    if (ids.size > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, nickname')
+        .in('id', [...ids]);
+      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+
+      for (const log of logs) {
+        const actor = log.user_id ? profileMap.get(log.user_id) ?? null : null;
+        const targetIdRaw = (log.details as Record<string, unknown>)?.targetUserId;
+        const targetId = typeof targetIdRaw === 'string' ? targetIdRaw : null;
+        const target = targetId ? profileMap.get(targetId) ?? null : null;
+
+        (log as { actor?: unknown }).actor = actor;
+        (log as { target?: unknown }).target = target;
+        (log as { profiles?: unknown }).profiles = actor; // backward compat
+      }
     }
   }
 

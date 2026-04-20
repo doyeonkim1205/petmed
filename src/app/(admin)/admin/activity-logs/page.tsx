@@ -30,8 +30,23 @@ const actionLabels: Record<string, string> = {
   'push.subscribe': '알림 구독',
   'push.unsubscribe': '알림 해지',
   'admin.plan_change': '관리자 플랜 변경',
+  'admin.role_change': '관리자 역할 변경',
   'subscription.refund': '구독 환불',
+  'cron.push_notifications': '자동 푸시 알림 cron',
+  'cron.expire_subscriptions': '자동 구독 만료 cron',
+  'cron.auto_billing': '자동 결제 cron',
 };
+
+interface LogProfile {
+  id: string;
+  email: string;
+  nickname: string | null;
+}
+
+function formatUser(p: LogProfile | null | undefined) {
+  if (!p) return null;
+  return p.nickname ? `${p.email} (${p.nickname})` : p.email;
+}
 
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -130,27 +145,41 @@ export default function ActivityLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log: any) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString('ko-KR')}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {log.profiles?.email || log.user_id?.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {actionLabels[log.action] || log.action}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 max-w-[300px]">
-                        {log.details && Object.keys(log.details).length > 0 ? (
-                          <details className="cursor-pointer">
-                            <summary className="truncate">{Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ')}</summary>
-                            <pre className="mt-1 text-[10px] bg-gray-50 p-2 rounded overflow-auto max-h-32">{JSON.stringify(log.details, null, 2)}</pre>
-                          </details>
-                        ) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {logs.map((log: any) => {
+                    const actor = formatUser(log.actor);
+                    const target = formatUser(log.target);
+                    const isSystem = !log.user_id;
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-sm text-gray-500 whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('ko-KR')}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {isSystem ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-xs">시스템</span>
+                          ) : actor ? (
+                            <div className="space-y-0.5">
+                              <div>{actor}</div>
+                              {target && <div className="text-xs text-blue-500">→ 대상: {target}</div>}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 font-mono">{log.user_id?.slice(0, 8)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {actionLabels[log.action] || log.action}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500 max-w-[300px]">
+                          {log.details && Object.keys(log.details).length > 0 ? (
+                            <details className="cursor-pointer">
+                              <summary className="truncate">{Object.entries(log.details).map(([k, v]) => `${k}: ${v}`).join(', ')}</summary>
+                              <pre className="mt-1 text-[10px] bg-gray-50 p-2 rounded overflow-auto max-h-32">{JSON.stringify(log.details, null, 2)}</pre>
+                            </details>
+                          ) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {logs.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-gray-400 py-8">로그가 없습니다.</TableCell>
