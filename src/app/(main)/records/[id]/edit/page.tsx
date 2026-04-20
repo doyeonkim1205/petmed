@@ -166,6 +166,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
   // 하드웨어 뒤로가기 버튼 방어 (Android TWA / 모바일 브라우저)
   // isDirty 되면 가짜 히스토리 항목 push → popstate 로 가로채기
+  //
+  // iOS Safari "미완성 제스처" 대응:
+  //   스와이프 백을 중간까지 밀고 놓으면 브라우저가 peek 후 취소해도
+  //   popstate 가 발동되는 경우가 있음. 50ms 뒤 history.state 를
+  //   재확인해서 guard 가 여전히 있으면 (= 제스처 취소됨) 모달 안 띄움.
   const guardPushedRef = useRef(false);
   useEffect(() => {
     if (!isDirty) return;
@@ -174,10 +179,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       guardPushedRef.current = true;
     }
     const handler = () => {
-      if (isDirty && !saving && window.location.pathname.includes('/edit')) {
-        window.history.pushState({ editGuard: true }, '');
-        setShowExitConfirm(true);
-      }
+      setTimeout(() => {
+        if (window.history.state?.editGuard) return;
+        if (isDirty && !saving && window.location.pathname.includes('/edit')) {
+          window.history.pushState({ editGuard: true }, '');
+          setShowExitConfirm(true);
+        }
+      }, 50);
     };
     window.addEventListener('popstate', handler);
     return () => window.removeEventListener('popstate', handler);

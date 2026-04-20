@@ -197,6 +197,10 @@ export default function RecordAddPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
+  // iOS Safari "미완성 제스처" 대응:
+  //   스와이프 백을 중간까지 밀고 놓으면 브라우저가 peek 후 취소해도
+  //   popstate 가 발동되는 경우가 있음. 50ms 뒤 history.state 를
+  //   재확인해서 guard 가 여전히 있으면 (= 제스처 취소됨) 모달 안 띄움.
   useEffect(() => {
     if (!isDirty) return;
     if (!guardPushedRef.current) {
@@ -204,10 +208,13 @@ export default function RecordAddPage() {
       guardPushedRef.current = true;
     }
     const handler = () => {
-      if (isDirty && !saving && window.location.pathname.includes('/add')) {
-        window.history.pushState({ addGuard: true }, '');
-        setShowExitConfirm(true);
-      }
+      setTimeout(() => {
+        if (window.history.state?.addGuard) return;
+        if (isDirty && !saving && window.location.pathname.includes('/add')) {
+          window.history.pushState({ addGuard: true }, '');
+          setShowExitConfirm(true);
+        }
+      }, 50);
     };
     window.addEventListener('popstate', handler);
     return () => window.removeEventListener('popstate', handler);
