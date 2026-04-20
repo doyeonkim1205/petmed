@@ -161,6 +161,7 @@ html.dark {
 
   html {
     font-size: var(--font-size);
+    overscroll-behavior-y: none;
   }
 }
 
