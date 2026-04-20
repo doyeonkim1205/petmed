@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
-import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw } from 'lucide-react';
+import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -67,30 +67,67 @@ export default function MapPage() {
       return;
     }
 
+    // 10초 타임아웃 — 느린 네트워크에서 무한 로딩 방지
+    const loadTimeout = setTimeout(() => {
+      if (!mapInstance.current) {
+        Sentry.captureMessage('Kakao map SDK load timeout', {
+          level: 'warning',
+          tags: { feature: 'map', action: 'sdk-timeout' },
+        });
+        setError('지도 로딩이 너무 오래 걸립니다. 네트워크를 확인해 주세요.');
+        setLoading(false);
+      }
+    }, 10000);
+
+    const safeInit = () => {
+      try {
+        if (!window.kakao?.maps?.Map) {
+          throw new Error('Kakao Maps SDK not available');
+        }
+        initMap();
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'map', action: 'sdk-init' },
+        });
+        setError('지도를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+        setLoading(false);
+      }
+    };
+
     if (window.kakao?.maps?.Map) {
-      initMap();
+      clearTimeout(loadTimeout);
+      safeInit();
       return;
     }
 
     const existing = document.querySelector('script[src*="dapi.kakao.com"]');
     if (existing) {
       existing.addEventListener('load', () => {
-        window.kakao.maps.load(() => initMap());
+        clearTimeout(loadTimeout);
+        window.kakao?.maps?.load(safeInit);
       });
-      return;
+      return () => clearTimeout(loadTimeout);
     }
 
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services&autoload=false`;
     script.async = true;
     script.onload = () => {
-      window.kakao.maps.load(() => initMap());
+      clearTimeout(loadTimeout);
+      window.kakao?.maps?.load(safeInit);
     };
     script.onerror = () => {
-      setError('카카오맵 SDK 로드에 실패했습니다.');
+      clearTimeout(loadTimeout);
+      Sentry.captureMessage('Kakao map SDK script load failed', {
+        level: 'error',
+        tags: { feature: 'map', action: 'sdk-load-failed' },
+      });
+      setError('지도 SDK 로드에 실패했습니다. 네트워크를 확인해 주세요.');
       setLoading(false);
     };
     document.head.appendChild(script);
+
+    return () => clearTimeout(loadTimeout);
   }, []);
 
   const showMyLocationMarker = useCallback((map: any, lat: number, lng: number) => {
@@ -363,13 +400,20 @@ export default function MapPage() {
 
       {error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-30 p-6">
-          <div className="text-center">
-            <p className="text-red-500 font-medium mb-2">{error}</p>
+          <div className="text-center max-w-xs">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <MapPinOff size={28} className="text-gray-400" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900 mb-2">지도를 불러오지 못했어요</h2>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              {error}
+            </p>
             <button
               onClick={() => window.location.reload()}
-              className="text-sm text-blue-600 underline"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
             >
-              새로고침
+              <RefreshCw size={14} />
+              다시 시도
             </button>
           </div>
         </div>
