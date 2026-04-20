@@ -1,9 +1,13 @@
-// PawDex Service Worker v18
-const CACHE_NAME = 'pawdex-v18';
+// PawDex Service Worker v19
+const CACHE_NAME = 'pawdex-v19';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
 // 저가형 기기에서 QuotaExceededError 발생해도 SW 설치 자체는 성공하도록 try-catch
+//
+// skipWaiting 을 호출하지 않음 → 새 SW 는 "waiting" 상태로 머물고,
+// 유저가 UpdateToast 의 [지금 적용] 을 눌러야 활성화됨. 편집 중인 작업
+// 날리는 자동 업데이트를 방지하기 위함.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -15,7 +19,12 @@ self.addEventListener('install', (event) => {
       }
     })()
   );
-  self.skipWaiting();
+});
+
+// 유저가 UpdateToast 의 [지금 적용] 을 누르면 클라이언트가
+// postMessage({ type: 'SKIP_WAITING' }) 를 보내서 새 SW 가 활성화됨.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // Activate: clean old caches

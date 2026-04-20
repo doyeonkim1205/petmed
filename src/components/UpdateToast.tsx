@@ -6,48 +6,72 @@ import { Sparkles, X } from 'lucide-react';
 /**
  * Service Worker 가 업데이트됐을 때 하단에 표시되는 토스트.
  *
- * 동작:
- *   - 새 SW 가 "activated" 상태로 넘어가고, 기존 controller 가 있었으면 (= 첫 설치가 아님)
- *     → 업데이트가 발생한 것이므로 토스트 노출
- *   - [지금 적용] 클릭 → 페이지 reload (새 JS 로드)
- *   - X 또는 10초 경과 → 토스트 dismiss, 다음 네비게이션 때 자동으로 새 코드 반영
+ * 표준 PWA 업데이트 패턴 사용:
+ *   - 새 SW 는 sw.js 의 skipWaiting 제거로 "waiting" 상태에 머무름
+ *   - reg.waiting (마운트 시) 또는 updatefound + installed 전환으로 감지
+ *   - [지금 적용] 클릭 → postMessage({type: 'SKIP_WAITING'}) → controllerchange → reload
+ *   - waiting 상태는 유저 액션까지 지속되므로 race condition 없음
  *
- * isDirty 보호: 자동 reload 하지 않고 유저에게 선택권을 주는 이유는,
- * 기록 편집 중인 유저의 작성 내용을 날리지 않기 위함.
+ * 첫 SW 설치 (기존 controller 없음) 에는 토스트 안 보임.
  */
 export function UpdateToast() {
   const [show, setShow] = useState(false);
+  const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+    // 첫 설치 (컨트롤러 없음) → 업데이트 아님
+    if (!navigator.serviceWorker.controller) return;
 
     let dismissTimer: ReturnType<typeof setTimeout>;
 
-    const reveal = () => {
+    const reveal = (sw: ServiceWorker) => {
+      setWaitingSW(sw);
       setShow(true);
+      clearTimeout(dismissTimer);
       dismissTimer = setTimeout(() => setShow(false), 10000);
     };
 
-    // 기존 controller 없으면 = 첫 설치 → 업데이트 아님, 토스트 안 띄움
-    if (!navigator.serviceWorker.controller) return;
-
-    navigator.serviceWorker.addEventListener('controllerchange', reveal);
-
-    navigator.serviceWorker.ready.then((reg) => {
+    const attachTo = (reg: ServiceWorkerRegistration) => {
+      // 이미 waiting 중인 SW 가 있으면 즉시 노출 (race condition 해결)
+      if (reg.waiting) {
+        reveal(reg.waiting);
+        return;
+      }
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
         sw.addEventListener('statechange', () => {
-          if (sw.state === 'activated') reveal();
+          // installed 로 전환됐는데 기존 controller 가 있으면 = 업데이트 대기 중
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            reveal(sw);
+          }
         });
       });
+    };
+
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (reg) attachTo(reg);
     });
 
     return () => {
-      navigator.serviceWorker.removeEventListener('controllerchange', reveal);
       clearTimeout(dismissTimer);
     };
   }, []);
+
+  const applyUpdate = () => {
+    if (!waitingSW) return;
+
+    // 새 SW 가 활성화되면 자동으로 reload (controllerchange 이후)
+    const onControllerChange = () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+    // waiting SW 에게 skipWaiting 지시
+    waitingSW.postMessage({ type: 'SKIP_WAITING' });
+  };
 
   if (!show) return null;
 
@@ -57,7 +81,7 @@ export function UpdateToast() {
         <Sparkles size={18} className="flex-shrink-0" />
         <span className="text-xs font-medium flex-1">새 버전이 준비됐어요</span>
         <button
-          onClick={() => window.location.reload()}
+          onClick={applyUpdate}
           className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
         >
           지금 적용
