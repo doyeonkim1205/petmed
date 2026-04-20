@@ -693,15 +693,11 @@ export default function RecordAddPage() {
                       {med.alarm_times.map((time, ti) => (
                         <div key={ti} className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
-                          <select
+                          <TimePicker
                             value={time}
-                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            {alarmTimeOptions.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMedAlarmTime(i, ti, v)}
+                            minuteStep={15}
+                          />
                         </div>
                       ))}
                     </div>
