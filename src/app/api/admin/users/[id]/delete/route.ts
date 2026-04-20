@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
 
 const supabaseAdmin = createClient(
@@ -55,6 +56,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ success: true, message: `${profile.email} 계정이 삭제되었습니다.` });
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { feature: 'admin', action: 'delete-user' },
+      extra: { targetUserId: userId },
+    });
     return NextResponse.json({ error: err instanceof Error ? err.message : '삭제에 실패했습니다.' }, { status: 500 });
   }
 }

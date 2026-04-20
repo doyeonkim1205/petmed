@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
@@ -34,6 +35,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       const data = await getRecord(id);
       setRecord(data);
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'fetch-detail' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error fetching record:', error);
       router.push('/records');
     } finally {
@@ -47,6 +52,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       await deleteRecord(record.id);
       router.push('/records');
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'delete' },
+        extra: { recordId: record?.id, userId: user?.id },
+      });
       console.error('Error deleting record:', error);
     }
   };

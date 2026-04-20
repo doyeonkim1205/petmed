@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -68,6 +69,10 @@ export default function RecordsPage() {
       setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
       setPetRefreshKey(k => k + 1);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'pets', action: 'add' },
+        extra: { userId: user?.id },
+      });
       console.error('Error adding pet:', err);
     } finally {
       setSavingPet(false);
@@ -127,6 +132,10 @@ export default function RecordsPage() {
       await deleteRecords(Array.from(selectedIds));
       exitSelectMode();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'bulk-delete' },
+        extra: { userId: user?.id, count: selectedIds.size },
+      });
       console.error('Bulk delete error:', err);
       alert('삭제 중 오류가 발생했습니다.');
     } finally {

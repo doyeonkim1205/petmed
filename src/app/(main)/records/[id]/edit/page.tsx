@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -142,6 +143,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         setExistingFiles(record.record_files);
       }
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'load-for-edit' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error loading record:', error);
       router.push('/records');
     } finally {
@@ -298,6 +303,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           if (file) await deleteFile(file.file_path);
           await supabase.from('record_files').delete().eq('id', fileId).eq('user_id', user.id);
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'records', action: 'file-delete' },
+            extra: { recordId: id, userId: user?.id, fileId },
+          });
           console.error('File delete error:', err);
         }
       }
@@ -315,6 +324,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             file_size: file.size,
           });
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'records', action: 'file-upload-edit' },
+            extra: { recordId: id, userId: user?.id, fileName: file.name },
+          });
           console.error('File upload error:', err);
         }
       }
@@ -367,6 +380,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       // detail 페이지의 서버 상태 revalidate (Router Cache 무효화 → useEffect 재실행 시 최신 데이터 fetch)
       router.refresh();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'update' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error updating record:', err);
       setError('수정에 실패했습니다.');
     } finally {

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { supabase, Profile } from '@/lib/supabase';
 import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
@@ -39,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return data;
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'auth', action: 'fetch-profile' },
+      });
       console.error('Error fetching profile:', error);
       return null;
     }
@@ -150,6 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'auth', action: 'init' },
+        });
         console.error('Auth init error:', err);
         if (mounted) setLoading(false);
       }
@@ -334,6 +341,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(freshProfile);
       return { error: null };
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'auth', action: 'update-profile' },
+        extra: { userId: user?.id },
+      });
       setProfile(prevProfile);
       return { error: error as Error };
     }

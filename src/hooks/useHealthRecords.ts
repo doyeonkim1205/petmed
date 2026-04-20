@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase, HealthRecord } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
@@ -64,6 +65,10 @@ export function useHealthRecords(petId?: string) {
 
       setRecords(data || []);
     } catch (err: unknown) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'fetch' },
+        extra: { userId, petId },
+      });
       const message = err instanceof Error ? err.message : '기록을 불러오는데 실패했습니다';
       console.error('Error fetching records:', err);
       setError(message);

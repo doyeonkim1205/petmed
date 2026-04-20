@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2 } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -311,6 +312,10 @@ export default function RecordAddPage() {
             alarm_times: med.alarm_enabled ? med.alarm_times : [],
           });
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'medications', action: 'add' },
+            extra: { userId: user?.id, medicationName: med.name },
+          });
           console.error('Medication add error:', err);
         }
       }
@@ -328,6 +333,10 @@ export default function RecordAddPage() {
       guardPushedRef.current = false;
       router.push('/records');
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'create' },
+        extra: { userId: user?.id, recordType },
+      });
       console.error('Error creating record:', err);
       setError(err instanceof Error ? err.message : '기록 저장에 실패했습니다.');
     } finally {

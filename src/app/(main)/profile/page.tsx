@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { logActivity } from '@/lib/activityLog';
@@ -109,6 +110,10 @@ function PetModal({
       if (error) throw error;
       setPets(data ?? []);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'pets', action: 'fetch' },
+        extra: { userId },
+      });
       console.error('Error fetching pets:', err);
       setPets([]);
     } finally {
@@ -406,6 +411,9 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         log('DONE: unsubscribed');
       }
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'push', action: 'toggle' },
+      });
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
       log(`ERROR: ${msg}`);
       console.error('Push toggle failed:', err);
@@ -740,6 +748,9 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       } catch {}
       window.location.href = '/';
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'account', action: 'delete' },
+      });
       setErrorMsg(err instanceof Error ? err.message : '오류가 발생했습니다.');
       setDeleting(false);
     }
