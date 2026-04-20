@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { cancelPayment } from '@/lib/toss';
 
@@ -133,6 +134,10 @@ export async function POST(request: NextRequest) {
       refundedAmount: payment.amount,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'payment', action: 'refund' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '환불 처리에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

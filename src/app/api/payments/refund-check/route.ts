@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -104,6 +105,10 @@ export async function GET(request: NextRequest) {
       reason: `${monthsUsed}개월 사용, ${remainingMonths}개월분 환불`,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'payment', action: 'refund-check' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '확인에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

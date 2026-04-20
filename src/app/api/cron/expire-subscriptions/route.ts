@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,6 +58,9 @@ export async function GET(request: NextRequest) {
       count: expired.length,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'cron', action: 'expire-subscriptions' },
+    });
     const message = error instanceof Error ? error.message : 'Failed to process';
     return NextResponse.json({ error: message }, { status: 500 });
   }

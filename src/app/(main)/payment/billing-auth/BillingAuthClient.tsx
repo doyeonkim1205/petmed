@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ShieldCheck, ArrowLeft, AlertCircle } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+import * as Sentry from '@sentry/nextjs';
 import type { PaymentProduct } from '@/lib/products';
 
 const billingClientKey = process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY!;
@@ -48,6 +49,10 @@ export default function BillingAuthClient({ product, mode = 'register' }: Props)
         customerEmail: user.email || undefined,
       });
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'billing', action: 'request-billing-auth' },
+        extra: { userId: user.id, productId: product.id, mode },
+      });
       console.error(err);
       const msg = err instanceof Error ? err.message : String(err);
       setError(`카드 등록창 호출에 실패했습니다: ${msg}`);

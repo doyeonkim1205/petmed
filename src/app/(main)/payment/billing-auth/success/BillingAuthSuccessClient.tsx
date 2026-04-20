@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 
 interface Props {
@@ -62,6 +63,10 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         // expects widget-style URL params (paymentKey, orderId, amount).
         setTimeout(() => router.push('/profile/subscription'), 1500);
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'billing', action: 'billing-auth-callback' },
+          extra: { customerKey, productId, mode },
+        });
         setStatus('error');
         setError(err instanceof Error ? err.message : '처리 중 오류가 발생했습니다.');
       }

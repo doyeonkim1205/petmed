@@ -6,6 +6,7 @@ import {
   ArrowLeft, Crown, RefreshCw, Calendar, CreditCard, Shield,
   AlertTriangle, Loader2, Zap, Check, X,
 } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { PLANS, type PlanType } from '@/lib/plans';
@@ -136,6 +137,10 @@ export default function SubscriptionPage() {
       setCancelError('');
       await fetchData();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'subscription', action: 'cancel' },
+        extra: { userId: user?.id, withRefund: cancelWithRefund, reason: cancelReason },
+      });
       // Error stays in modal — user can retry or uncheck refund
       setCancelError(err instanceof Error ? err.message : '처리에 실패했습니다.');
     } finally {

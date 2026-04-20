@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { issueBillingKey, type TossBillingError } from '@/lib/toss-billing';
 import { encrypt } from '@/lib/encryption';
@@ -51,6 +52,10 @@ export async function POST(request: NextRequest) {
       issued = await issueBillingKey(authKey, customerKey);
     } catch (err) {
       const e = err as TossBillingError;
+      Sentry.captureException(e, {
+        tags: { feature: 'billing', action: 'enable-issue-key' },
+        extra: { userId },
+      });
       return NextResponse.json({ error: e.message || '카드 등록에 실패했습니다.' }, { status: 400 });
     }
 
@@ -84,6 +89,10 @@ export async function POST(request: NextRequest) {
       nextBillingAt: subscription.period_end,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'billing', action: 'enable' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '처리에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

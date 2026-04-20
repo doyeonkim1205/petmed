@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
 import { cancelPayment } from '@/lib/toss';
 
@@ -49,6 +50,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       message: `${payment.amount.toLocaleString()}원 환불 완료. 무료 플랜으로 전환되었습니다.`,
     });
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { feature: 'admin', action: 'refund' },
+      extra: { targetUserId: userId, paymentId },
+    });
     return NextResponse.json({ error: err instanceof Error ? err.message : '환불에 실패했습니다.' }, { status: 500 });
   }
 }
