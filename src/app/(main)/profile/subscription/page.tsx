@@ -79,7 +79,7 @@ const YEARLY_PRICE = 40000;    // 연간 (14.5% 할인)
 
 export default function SubscriptionPage() {
   const router = useRouter();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [refundCheck, setRefundCheck] = useState<RefundCheck | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,6 +96,9 @@ export default function SubscriptionPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const token = session.access_token;
+    // AuthContext 의 profile 캐시가 stale 일 수 있어 (관리자가 수동 변경한 경우)
+    // 페이지 진입할 때마다 최신 profile 재조회 — subscription 상태와 불일치 방지.
+    await refreshProfile();
     const res = await fetch('/api/subscription', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       const data = await res.json();
