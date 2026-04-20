@@ -9,4 +9,4 @@
  *   - TWA 빌드 올릴 때 PATCH 를 appVersionCode 와 동일하게 맞추기
  *   - 큰 기능 추가되면 MINOR 증가, 호환성 깨는 변경은 MAJOR 증가
  */
-export const APP_VERSION = '1.0.22';
+export const APP_VERSION = '1.0.23';

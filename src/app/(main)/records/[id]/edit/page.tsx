@@ -690,14 +690,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeMedication(i)}
-                  className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={13} />
-                  삭제
-                </button>
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => removeMedication(i)}
+                    className="flex items-center gap-1 py-1.5 px-3 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
             <div ref={medEndRef} />
