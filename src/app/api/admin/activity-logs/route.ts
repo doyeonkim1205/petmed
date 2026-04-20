@@ -10,6 +10,8 @@ export async function GET(request: Request) {
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
   const userSearch = searchParams.get('userId') || '';
+  const action = searchParams.get('action') || '';   // 단일 action (정확 매칭)
+  const category = searchParams.get('category') || ''; // 카테고리 (prefix 매칭), 예: 'auth', 'cron', 'admin'
   const page = parseInt(searchParams.get('page') || '1');
   const limit = 30;
   const offset = (page - 1) * limit;
@@ -43,6 +45,8 @@ export async function GET(request: Request) {
   if (from) query = query.gte('created_at', from);
   if (to) query = query.lte('created_at', `${to}T23:59:59`);
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
+  if (action) query = query.eq('action', action);
+  else if (category) query = query.like('action', `${category}.%`);
 
   const { data, count } = await query
     .order('created_at', { ascending: false })

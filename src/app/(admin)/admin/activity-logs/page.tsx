@@ -48,6 +48,27 @@ function formatUser(p: LogProfile | null | undefined) {
   return p.nickname ? `${p.email} (${p.nickname})` : p.email;
 }
 
+// 필터 옵션: 특정 action 또는 카테고리(prefix) 선택
+const filterOptions: { value: string; label: string }[] = [
+  { value: '', label: '전체' },
+  { value: 'category:cron', label: '시스템 (cron)' },
+  { value: 'category:admin', label: '관리자 액션' },
+  { value: 'category:auth', label: '인증 (로그인/가입)' },
+  { value: 'category:record', label: '기록 CRUD' },
+  { value: 'category:pet', label: '반려동물' },
+  { value: 'category:subscription', label: '구독' },
+  { value: 'category:push', label: '푸시 알림' },
+  { value: 'category:symptom', label: '증상 검색' },
+  { value: 'category:file', label: '파일' },
+  { value: 'category:analysis', label: '분석 보관' },
+  { value: 'category:paper', label: '논문' },
+  { value: 'action:auth.login', label: '— 로그인만' },
+  { value: 'action:auth.signup', label: '— 가입만' },
+  { value: 'action:record.create', label: '— 기록 추가만' },
+  { value: 'action:admin.plan_change', label: '— 플랜 변경만' },
+  { value: 'action:cron.push_notifications', label: '— 푸시 cron 만' },
+];
+
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,6 +78,7 @@ export default function ActivityLogsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState(today);
   const [userId, setUserId] = useState('');
+  const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [datesReady, setDatesReady] = useState(false);
 
@@ -80,6 +102,8 @@ export default function ActivityLogsPage() {
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     if (userId.trim()) params.set('userId', userId.trim());
+    if (filter.startsWith('category:')) params.set('category', filter.slice('category:'.length));
+    else if (filter.startsWith('action:')) params.set('action', filter.slice('action:'.length));
 
     const res = await authFetch(`/api/admin/activity-logs?${params}`);
     const data = await res.json();
@@ -87,7 +111,7 @@ export default function ActivityLogsPage() {
     setTotal(data.total || 0);
     setTotalPages(data.totalPages || 1);
     setLoading(false);
-  }, [page, from, to, userId, datesReady]);
+  }, [page, from, to, userId, filter, datesReady]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -116,9 +140,21 @@ export default function ActivityLogsPage() {
               <label className="text-xs text-gray-500 block mb-1">사용자</label>
               <input type="text" placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
             </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">행동</label>
+              <select
+                value={filter}
+                onChange={(e) => { setFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border rounded-lg text-sm bg-white w-48"
+              >
+                {filterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
             <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">검색</button>
-            {(from || to || userId) && (
-              <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
+            {(from || to || userId || filter) && (
+              <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setFilter(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
             )}
           </form>
         </CardContent>
