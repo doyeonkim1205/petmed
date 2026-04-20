@@ -755,12 +755,30 @@ function ToggleRow({ label, desc, checked, onChange }: {
 }
 
 // ─── Delete Account Modal ─────────────────────────────────
+const REASON_OPTIONS: { value: string; label: string }[] = [
+  { value: 'expectation_gap', label: '서비스가 기대와 달라요' },
+  { value: 'price', label: '가격이 부담돼요' },
+  { value: 'low_usage', label: '사용 빈도가 낮아요' },
+  { value: 'switching', label: '다른 앱으로 갈아타요' },
+  { value: 'privacy', label: '개인정보가 걱정돼요' },
+  { value: 'other', label: '기타' },
+];
+
 function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [reason, setReason] = useState('');
+  const [reasonDetail, setReasonDetail] = useState('');
 
-  useEffect(() => { if (open) { setConfirmText(''); setErrorMsg(''); } }, [open]);
+  useEffect(() => {
+    if (open) {
+      setConfirmText('');
+      setErrorMsg('');
+      setReason('');
+      setReasonDetail('');
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -773,7 +791,14 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 
       const res = await fetch('/api/delete-account', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reason || null,
+          reasonDetail: reasonDetail.trim() || null,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || '삭제 실패');
@@ -805,6 +830,35 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
           <p className="text-xs text-gray-400 text-center leading-relaxed">
             모든 데이터가 <span className="text-red-400 font-medium">영구 삭제</span>되며<br />복구할 수 없습니다.
           </p>
+        </div>
+
+        <div className="mb-3">
+          <p className="text-[11px] text-gray-500 mb-1.5">탈퇴 이유 <span className="text-gray-300">(선택)</span></p>
+          <div className="flex flex-wrap gap-1.5">
+            {REASON_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setReason(reason === opt.value ? '' : opt.value)}
+                className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
+                  reason === opt.value
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {reason === 'other' && (
+            <input
+              type="text"
+              value={reasonDetail}
+              onChange={(e) => setReasonDetail(e.target.value.slice(0, 100))}
+              placeholder="자세한 사유를 입력해주세요 (선택)"
+              className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-red-500 outline-none"
+            />
+          )}
         </div>
 
         <div className="mb-4">

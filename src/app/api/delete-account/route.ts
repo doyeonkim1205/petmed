@@ -40,11 +40,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 });
     }
 
-    // Parse optional provider token (for Google revoke)
+    // Parse optional payload (provider token + 탈퇴 이유)
     let providerToken: string | undefined;
+    let reason: string | null = null;
+    let reasonDetail: string | null = null;
     try {
       const body = await request.json();
       providerToken = body.providerToken;
+      if (typeof body.reason === 'string') reason = body.reason.slice(0, 50);
+      if (typeof body.reasonDetail === 'string') reasonDetail = body.reasonDetail.slice(0, 200);
     } catch {
       // Body may be empty
     }
@@ -80,11 +84,12 @@ export async function POST(request: Request) {
     // Delete user data in order (foreign key safe)
     const userId = user.id;
 
-    // Log account deletion before deleting data
+    // Log account deletion before deleting data.
+    // details 에 탈퇴 이유 포함 (서비스 개선 용도, 비식별).
     await adminClient.from('activity_logs').insert({
       user_id: userId,
       action: 'auth.delete_account',
-      details: { provider },
+      details: { provider, reason, reasonDetail },
     }).then(() => {});
 
     // Cancel active subscriptions before deleting
