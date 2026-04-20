@@ -74,10 +74,10 @@ export default function RootLayout({
         ` }} />
       </head>
       <body className={`${geist.variable} antialiased bg-gray-50`}>
+        <NetworkStatusBanner />
         <Providers>
           {children}
         </Providers>
-        <NetworkStatusBanner />
         <ServiceWorkerRegister />
       </body>
     </html>
