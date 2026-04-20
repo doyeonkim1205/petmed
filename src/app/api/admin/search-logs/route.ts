@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
 
 type LogKind = 'disease' | 'symptom' | 'symptom_refine';
@@ -32,9 +33,36 @@ interface MergedLog {
  *   두 테이블에서 필터 적용 후 각각 최대 PAGE_POOL_MAX 건씩 가져와서
  *   서버에서 병합 + 정렬 + 슬라이스. 현재 데이터 규모 (~150 건) 에는
  *   충분히 안전하며, VIEW / UNION 보다 스키마 변경에 유연.
+ *
+ * 성능 주의:
+ *   메모리 병합 특성상 몇 페이지를 보든 서버는 매번 동일한 풀을 조회/정렬함
+ *   (total count 계산에도 전체 풀 필요). 1페이지와 10페이지 서버 비용 같음.
+ *   풀이 PERF_WARN_THRESHOLD 넘어가면 Sentry 로 경고 — DB VIEW / UNION
+ *   도입 시점 판단용.
  */
 const PAGE_SIZE = 30;
 const PAGE_POOL_MAX = 1000; // 각 테이블에서 최대 조회 건수
+const PERF_WARN_THRESHOLD = 800; // 병합 결과 800 건 초과 시 Sentry 경고
+
+/**
+ * pet_type 정규화. DB 에 enum 제약이 없으므로 대소문자나 공백 변형에
+ * 대비해서 소문자 + trim 적용. 'DOG', ' dog ' 모두 'dog' 로 수렴.
+ */
+function normalizePetType(raw: unknown): 'dog' | 'cat' | null {
+  if (typeof raw !== 'string') return null;
+  const v = raw.toLowerCase().trim();
+  return v === 'dog' || v === 'cat' ? v : null;
+}
+
+/**
+ * symptoms 필드 정규화. 현재는 string 로만 들어오지만, 미래에 배열
+ * (다중 증상 선택) 로 바뀔 가능성 대비. 배열이면 comma-join, 객체/기타는 ''
+ */
+function normalizeSymptoms(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) return raw.filter((s): s is string => typeof s === 'string').join(', ');
+  return '';
+}
 
 export async function GET(request: Request) {
   const { error } = await verifyAdmin(request);
@@ -89,8 +117,8 @@ export async function GET(request: Request) {
       merged.push({
         id: row.id,
         user_id: row.user_id,
-        query: row.query ?? '',
-        pet_type: (row.pet_type === 'dog' || row.pet_type === 'cat') ? row.pet_type : null,
+        query: typeof row.query === 'string' ? row.query : '',
+        pet_type: normalizePetType(row.pet_type),
         kind: 'disease',
         created_at: row.created_at,
       });
@@ -112,13 +140,12 @@ export async function GET(request: Request) {
       .range(0, PAGE_POOL_MAX - 1);
 
     for (const row of data || []) {
-      const details = (row.details ?? {}) as { symptoms?: string; petType?: string };
-      const petTypeRaw = details.petType;
+      const details = (row.details ?? {}) as Record<string, unknown>;
       merged.push({
         id: row.id,
         user_id: row.user_id,
-        query: details.symptoms ?? '',
-        pet_type: (petTypeRaw === 'dog' || petTypeRaw === 'cat') ? petTypeRaw : null,
+        query: normalizeSymptoms(details.symptoms),
+        pet_type: normalizePetType(details.petType),
         kind: row.action === 'symptom.refine' ? 'symptom_refine' : 'symptom',
         created_at: row.created_at,
       });
@@ -134,6 +161,16 @@ export async function GET(request: Request) {
   });
 
   const total = merged.length;
+
+  // 성능 경고: 풀이 임계값 넘어가면 Sentry 에 알려서 DB VIEW 전환 시점 판단
+  if (total >= PERF_WARN_THRESHOLD) {
+    Sentry.captureMessage('Admin search-logs merged pool is large', {
+      level: 'warning',
+      tags: { feature: 'admin', action: 'search-logs-merge' },
+      extra: { total, poolMax: PAGE_POOL_MAX, type, from, to },
+    });
+  }
+
   const slice = merged.slice(offset, offset + PAGE_SIZE);
 
   // 4. 프로필 조인
