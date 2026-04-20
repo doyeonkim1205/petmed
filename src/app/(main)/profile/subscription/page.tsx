@@ -38,7 +38,9 @@ interface RefundCheck {
 const planOrder: PlanType[] = ['free', 'plus'];
 
 interface FeatureItem {
-  label: string; key: string;
+  label: string;
+  sublabel?: string;
+  key: string;
   format: (plan: PlanType) => string;
   unavailable?: (plan: PlanType) => boolean;
 }
@@ -68,7 +70,8 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '건강 통계', key: 'cost', format: (p) => PLANS[p].costStatsMonths === 12 ? '최근 1년' : `최근 ${PLANS[p].costStatsMonths}개월` },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
-        label: '푸시 알림 (투약·예약·퇴원)',
+        label: '푸시 알림',
+        sublabel: '투약·예약·퇴원',
         key: 'push',
         format: (p) => p === 'free' ? '-' : '앱 전용 기능',
         unavailable: (p) => p === 'free',
@@ -341,7 +344,12 @@ export default function SubscriptionPage() {
                     </tr>
                     {group.features.map((feat) => (
                       <tr key={feat.key} className="border-t border-gray-100 bg-white">
-                        <td className="py-2.5 px-3 text-gray-600">{feat.label}</td>
+                        <td className="py-2.5 px-3 text-gray-600">
+                          <div>{feat.label}</div>
+                          {feat.sublabel && (
+                            <div className="text-[10px] text-gray-400 mt-0.5">{feat.sublabel}</div>
+                          )}
+                        </td>
                         {planOrder.map((p) => {
                           const isUnavailable = feat.unavailable?.(p);
                           const isBetter = p !== 'free' && !isUnavailable;

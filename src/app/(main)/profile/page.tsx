@@ -759,7 +759,7 @@ const REASON_OPTIONS: { value: string; label: string }[] = [
   { value: 'expectation_gap', label: '서비스가 기대와 달라요' },
   { value: 'price', label: '가격이 부담돼요' },
   { value: 'low_usage', label: '사용 빈도가 낮아요' },
-  { value: 'switching', label: '다른 앱으로 갈아타요' },
+  { value: 'switching', label: '다른 앱으로 전환해요' },
   { value: 'privacy', label: '개인정보가 걱정돼요' },
   { value: 'other', label: '기타' },
 ];

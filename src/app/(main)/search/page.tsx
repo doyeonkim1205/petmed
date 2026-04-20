@@ -417,7 +417,18 @@ function SearchContent() {
           <div className="flex bg-gray-100 rounded-full p-0.5">
             <button
               type="button"
-              onClick={() => { setSearchMode('disease'); setQuery(''); }}
+              onClick={() => {
+                // 탭 전환 시 이전 검색 상태 완전 초기화:
+                // 안 하면 usePubMedSearch 가 이전 searchTerm 으로 재실행되면서
+                // 유저가 누른 적 없는 검색이 자동 실행되는 버그가 생김.
+                setSearchMode('disease');
+                setQuery('');
+                setSymptomQuery(null);
+                setSymptomResult(null);
+                setSymptomError('');
+                setRefineLimit(null);
+                setIsRefining(false);
+              }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
               }`}
@@ -427,7 +438,12 @@ function SearchContent() {
             </button>
             <button
               type="button"
-              onClick={() => { setSearchMode('symptom'); setQuery(''); }}
+              onClick={() => {
+                setSearchMode('symptom');
+                setQuery('');
+                setSearchTerm(null);
+                setCachedPubmed(null);
+              }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
               }`}
@@ -531,7 +547,7 @@ function SearchContent() {
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
-                      <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
+                      <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
                     </div>
                     <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
                     <button
@@ -547,6 +563,24 @@ function SearchContent() {
 
             {symptomResult && (
               <>
+                {/* Emergency Signs — 맨 위 배치: 위급 증상은 최우선 가시 */}
+                {symptomResult.emergency_signs.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
+                      <ShieldAlert size={14} />
+                      이런 증상이면 즉시 병원으로
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {symptomResult.emergency_signs.map((sign, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
+                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
+                          {sign}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Disease Cards */}
                 {symptomResult.diseases.map((disease, idx) => {
                   const sev = severityConfig[disease.severity] || severityConfig['관찰'];
@@ -610,24 +644,6 @@ function SearchContent() {
                     </div>
                   );
                 })}
-
-                {/* Emergency Signs */}
-                {symptomResult.emergency_signs.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
-                      <ShieldAlert size={14} />
-                      이런 증상이면 즉시 병원으로
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {symptomResult.emergency_signs.map((sign, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
-                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
-                          {sign}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
 
                 {/* Interactive Follow-up Questions */}
                 {symptomResult.followup_questions.length > 0 && !refineLimit && (
@@ -735,6 +751,19 @@ function SearchContent() {
                 <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">
                   AI 예측은 참고용이며, 정확한 진단은 수의사와 상담하세요.
                 </p>
+
+                {/* Upgrade banner (증상 분석 결과 하단 — 논문 검색과 동일 패턴) */}
+                {!isPaid && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Crown size={13} className="text-purple-500" />
+                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -815,7 +844,7 @@ function SearchContent() {
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
-                      <p className="text-sm font-bold text-gray-700">업그레이드하기</p>
+                      <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
                     </div>
                     <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
                     <button
@@ -838,7 +867,7 @@ function SearchContent() {
                   <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">구독하고 더 많이 이용하기</p>
+                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
                       더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
