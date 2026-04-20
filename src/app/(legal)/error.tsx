@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
+import * as Sentry from '@sentry/nextjs';
 
 export default function LegalError({
   error,
@@ -12,6 +13,7 @@ export default function LegalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error);
     console.error('Legal page error:', error);
   }, [error]);
 

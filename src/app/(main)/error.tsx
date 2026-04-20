@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { RefreshCw, Home } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 
 export default function MainError({
   error,
@@ -13,6 +14,7 @@ export default function MainError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error);
     console.error('App error:', error);
   }, [error]);
 
