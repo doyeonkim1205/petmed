@@ -153,10 +153,13 @@ export async function GET(request: Request) {
   }
 
   // 3. 정렬 (created_at DESC, id 보조)
+  // new Date().getTime() 기반 숫자 비교: 문자열 비교는 타임존 오프셋이
+  // 섞이면 꼬일 수 있음. Supabase 는 현재 UTC (+00) 만 반환하지만
+  // 포맷 변경에도 안전하도록 숫자 비교 채택.
   merged.sort((a, b) => {
-    if (a.created_at !== b.created_at) {
-      return a.created_at < b.created_at ? 1 : -1;
-    }
+    const at = new Date(a.created_at).getTime();
+    const bt = new Date(b.created_at).getTime();
+    if (at !== bt) return bt - at; // DESC
     return a.id < b.id ? 1 : -1;
   });
 

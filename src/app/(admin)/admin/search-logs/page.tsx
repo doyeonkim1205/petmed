@@ -183,10 +183,17 @@ export default function SearchLogsPage() {
                           {new Date(log.created_at).toLocaleString('ko-KR')}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {actor ?? (
-                            <span className="text-xs text-gray-400 font-mono">
-                              {log.user_id?.slice(0, 8)}
+                          {actor ? (
+                            actor
+                          ) : log.user_id ? (
+                            // 프로필은 없는데 user_id 는 있음 = 탈퇴한 유저
+                            <span className="text-xs text-gray-400">
+                              탈퇴 유저
+                              <span className="ml-1 font-mono text-[10px]">({log.user_id.slice(0, 8)})</span>
                             </span>
+                          ) : (
+                            // user_id 자체가 null — 스키마상 불가하지만 방어
+                            <span className="text-xs text-gray-400">비회원</span>
                           )}
                         </TableCell>
                         <TableCell>

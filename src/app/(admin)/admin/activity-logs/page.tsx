@@ -163,7 +163,11 @@ export default function ActivityLogsPage() {
                               {target && <div className="text-xs text-blue-500">→ 대상: {target}</div>}
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400 font-mono">{log.user_id?.slice(0, 8)}</span>
+                            // 프로필은 없는데 user_id 는 있음 = 탈퇴한 유저
+                            <span className="text-xs text-gray-400">
+                              탈퇴 유저
+                              <span className="ml-1 font-mono text-[10px]">({log.user_id?.slice(0, 8)})</span>
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
