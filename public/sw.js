@@ -1,11 +1,19 @@
-// PawDex Service Worker v16
-const CACHE_NAME = 'pawdex-v16';
+// PawDex Service Worker v17
+const CACHE_NAME = 'pawdex-v17';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
+// 저가형 기기에서 QuotaExceededError 발생해도 SW 설치 자체는 성공하도록 try-catch
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.addAll(PRECACHE_URLS);
+      } catch (err) {
+        console.warn('SW precache failed (continuing without):', err?.name || err);
+      }
+    })()
   );
   self.skipWaiting();
 });
@@ -50,9 +58,15 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.ok && url.pathname.match(/\.(js|css|png|jpg|svg|woff2?|ico)$/)) {
+        if (response.ok && url.pathname.match(/\.(js|css|png|jpg|svg|webp|woff2?|ico)$/)) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, clone))
+            .catch((err) => {
+              // QuotaExceededError on low-storage devices — 캐시 저장만 건너뜀
+              console.warn('SW cache put failed:', err?.name || err);
+            });
         }
         return response;
       })
@@ -66,16 +80,16 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'PawDex';
 
   // 카테고리별 오른쪽 큰 아이콘 매핑 (data.category 기준)
-  let categoryIcon = '/icons/alarm.png';  // 기본: 관리자/일반 알림
+  let categoryIcon = '/icons/alarm.webp';  // 기본: 관리자/일반 알림
   switch (data.category) {
     case 'medication':
-      categoryIcon = '/icons/med.png';
+      categoryIcon = '/icons/med.webp';
       break;
     case 'appointment':
-      categoryIcon = '/icons/cal.png';
+      categoryIcon = '/icons/cal.webp';
       break;
     case 'hospitalization':
-      categoryIcon = '/icons/hos.png';
+      categoryIcon = '/icons/hos.webp';
       break;
   }
 
