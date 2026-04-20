@@ -12,6 +12,10 @@ import { Sparkles, X } from 'lucide-react';
  *   - [지금 적용] 클릭 → postMessage({type: 'SKIP_WAITING'}) → controllerchange → reload
  *   - waiting 상태는 유저 액션까지 지속되므로 race condition 없음
  *
+ * TWA 에서는 pull-to-refresh 가 막혀 있고 SPA 네비게이션은 UpdateToast 를
+ * unmount 하지 않기 때문에 자동 dismiss 타이머 없이 유저가 X 또는
+ * [지금 적용] 을 누를 때까지 유지.
+ *
  * 첫 SW 설치 (기존 controller 없음) 에는 토스트 안 보임.
  */
 export function UpdateToast() {
@@ -23,13 +27,9 @@ export function UpdateToast() {
     // 첫 설치 (컨트롤러 없음) → 업데이트 아님
     if (!navigator.serviceWorker.controller) return;
 
-    let dismissTimer: ReturnType<typeof setTimeout>;
-
     const reveal = (sw: ServiceWorker) => {
       setWaitingSW(sw);
       setShow(true);
-      clearTimeout(dismissTimer);
-      dismissTimer = setTimeout(() => setShow(false), 10000);
     };
 
     const attachTo = (reg: ServiceWorkerRegistration) => {
@@ -53,10 +53,6 @@ export function UpdateToast() {
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg) attachTo(reg);
     });
-
-    return () => {
-      clearTimeout(dismissTimer);
-    };
   }, []);
 
   const applyUpdate = () => {
@@ -77,7 +73,7 @@ export function UpdateToast() {
 
   return (
     <div className="fixed bottom-20 left-3 right-3 z-[80] max-w-md mx-auto">
-      <div className="bg-blue-600 text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
+      <div className="bg-blue-600/90 backdrop-blur-md text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
         <Sparkles size={18} className="flex-shrink-0" />
         <span className="text-xs font-medium flex-1">새 버전이 준비됐어요</span>
         <button
