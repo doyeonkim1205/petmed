@@ -1,5 +1,5 @@
-// PawDex Service Worker v13
-const CACHE_NAME = 'pawdex-v13';
+// PawDex Service Worker v14
+const CACHE_NAME = 'pawdex-v14';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -82,7 +82,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || '',
     icon: categoryIcon,
-    badge: '/icons/icon-192x192.png',
+    badge: '/icons/notification-icon.png',
     data: { url: data.url || '/' },
   };
   event.waitUntil(self.registration.showNotification(title, options));
