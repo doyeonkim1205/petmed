@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -230,6 +231,10 @@ export async function GET(request: NextRequest) {
         .eq('id', sub.id);
     }
   }
+
+  await logActivityServer(null, 'cron.push_notifications', {
+    details: { time: currentTime, date: todayKST, sent: totalSent, failed: totalFailed },
+  });
 
   return NextResponse.json({
     time: currentTime,

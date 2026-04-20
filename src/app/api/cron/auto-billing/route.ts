@@ -5,6 +5,7 @@ import webpush from 'web-push';
 import { chargeBilling, classifyBillingError, type TossBillingError } from '@/lib/toss-billing';
 import { getProductById } from '@/lib/products';
 import { decrypt } from '@/lib/encryption';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -233,6 +234,10 @@ export async function GET(request: NextRequest) {
       failed++;
     }
   }
+
+  await logActivityServer(null, 'cron.auto_billing', {
+    details: { processed, succeeded, failed, time: now.toISOString() },
+  });
 
   return NextResponse.json({
     time: now.toISOString(),
