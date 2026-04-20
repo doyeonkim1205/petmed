@@ -51,6 +51,7 @@ function formatUser(p: LogProfile | null | undefined) {
 // 필터 옵션: 특정 action 또는 카테고리(prefix) 선택
 const filterOptions: { value: string; label: string }[] = [
   { value: '', label: '전체' },
+  { value: 'category:deleted_user', label: '🗑 탈퇴 유저만' },
   { value: 'category:cron', label: '시스템 (cron)' },
   { value: 'category:admin', label: '관리자 액션' },
   { value: 'category:auth', label: '인증 (로그인/가입)' },

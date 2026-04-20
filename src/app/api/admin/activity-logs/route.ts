@@ -46,7 +46,15 @@ export async function GET(request: Request) {
   if (to) query = query.lte('created_at', `${to}T23:59:59`);
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
   if (action) query = query.eq('action', action);
-  else if (category) query = query.like('action', `${category}.%`);
+  else if (category === 'deleted_user') {
+    // 탈퇴 유저 필터: profiles 에 없는 user_id 만
+    const { data: liveProfiles } = await supabase.from('profiles').select('id');
+    const liveIds = (liveProfiles ?? []).map((p) => p.id);
+    query = query.not('user_id', 'is', null);
+    if (liveIds.length > 0) {
+      query = query.not('user_id', 'in', `(${liveIds.join(',')})`);
+    }
+  } else if (category) query = query.like('action', `${category}.%`);
 
   const { data, count } = await query
     .order('created_at', { ascending: false })

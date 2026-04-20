@@ -115,8 +115,11 @@ export async function POST(request: Request) {
     await adminClient.from('active_sessions').delete().eq('user_id', userId);
     await adminClient.from('push_subscriptions').delete().eq('user_id', userId);
 
-    // -- activity logs + profile (last, as other tables may FK to these)
-    await adminClient.from('activity_logs').delete().eq('user_id', userId);
+    // -- profile 만 삭제 (last, as other tables may FK to these)
+    //    activity_logs 는 감사 / 서비스 통계용으로 보존. 프로필이 삭제되면
+    //    user_id (UUID) 는 유사-가명 상태가 되고, 관리자 UI 에서는
+    //    "탈퇴 유저 (uuid8)" 로만 표시됨 (식별 불가).
+    //    개인정보 처리방침에 이 비식별 보관 규정 명시 필요.
     await adminClient.from('profiles').delete().eq('id', userId);
 
     // Delete uploaded files from storage (best-effort)

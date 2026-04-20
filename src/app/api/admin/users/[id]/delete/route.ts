@@ -40,7 +40,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await supabaseAdmin.from('search_logs').delete().eq('user_id', userId);
     await supabaseAdmin.from('active_sessions').delete().eq('user_id', userId);
     await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId);
-    await supabaseAdmin.from('activity_logs').delete().eq('user_id', userId);
+    // activity_logs 는 감사 추적용으로 보존 (profile 삭제로 비식별화).
+    // UI 에선 "탈퇴 유저 (uuid8)" 로 표시됨.
     await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
     // Delete storage files
