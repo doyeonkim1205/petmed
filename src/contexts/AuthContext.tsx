@@ -191,8 +191,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!mounted) return;
           if (isSignIn) {
             try { await ensureProfile(authUser); } catch {}
-            const provider = authUser.app_metadata?.provider || 'unknown';
-            logActivity(authUser.id, 'auth.login', { details: { method: provider } });
+            // 중복 방지: 같은 세션 안에서 SIGNED_IN 이 여러 번 fire 되는 경우
+            // (탭 포커스, 페이지 새로고침 등) 에 대비. sessionStorage 키를
+            // session.access_token 의 일부로 구성해서 같은 세션당 1회만.
+            try {
+              const fingerprint = newSession.access_token?.slice(-24) ?? authUser.id;
+              const key = `authLoginLogged_${fingerprint}`;
+              if (!sessionStorage.getItem(key)) {
+                sessionStorage.setItem(key, '1');
+                const provider = authUser.app_metadata?.provider || 'unknown';
+                logActivity(authUser.id, 'auth.login', { details: { method: provider } });
+              }
+            } catch {
+              // sessionStorage 접근 불가 (privacy mode 등) 시 기존대로
+              const provider = authUser.app_metadata?.provider || 'unknown';
+              logActivity(authUser.id, 'auth.login', { details: { method: provider } });
+            }
           }
           // Always register device session first (prevents race with API calls)
           try {
@@ -243,7 +257,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (data.user) logActivity(data.user.id, 'auth.login', { details: { method: 'email' } });
+      // 이 시점에 logActivity 호출하면 onAuthStateChange 의 SIGNED_IN 핸들러
+      // 와 중복됨 (로그 2건). sessionStorage dedupe 가 onAuthStateChange 에
+      // 있으므로 여기선 제거.
+      void data;
       return { error: null };
     } catch (error) {
       return { error: error as Error };
