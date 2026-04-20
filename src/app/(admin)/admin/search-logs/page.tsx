@@ -6,8 +6,38 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
+type SearchType = 'all' | 'disease' | 'symptom';
+type LogKind = 'disease' | 'symptom' | 'symptom_refine';
+
+interface MergedLog {
+  id: string;
+  user_id: string | null;
+  query: string;
+  pet_type: 'dog' | 'cat' | null;
+  kind: LogKind;
+  created_at: string;
+  profile: { email: string; nickname: string | null } | null;
+}
+
+const kindConfig: Record<LogKind, { label: string; className: string }> = {
+  disease: { label: '질병 검색', className: 'bg-blue-50 text-blue-600' },
+  symptom: { label: '증상 분석', className: 'bg-orange-50 text-orange-600' },
+  symptom_refine: { label: '증상 재분석', className: 'bg-rose-50 text-rose-600' },
+};
+
+const typeTabs: { id: SearchType; label: string }[] = [
+  { id: 'all', label: '전체' },
+  { id: 'disease', label: '질병 검색' },
+  { id: 'symptom', label: '증상 분석' },
+];
+
+function formatUser(p: MergedLog['profile']) {
+  if (!p) return null;
+  return p.nickname ? `${p.email} (${p.nickname})` : p.email;
+}
+
 export default function SearchLogsPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<MergedLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -15,6 +45,7 @@ export default function SearchLogsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState(today);
   const [userId, setUserId] = useState('');
+  const [type, setType] = useState<SearchType>('all');
   const [loading, setLoading] = useState(true);
   const [datesReady, setDatesReady] = useState(false);
 
@@ -24,7 +55,9 @@ export default function SearchLogsPage() {
         const res = await authFetch('/api/admin/activity-logs/date-range');
         const data = await res.json();
         if (data.from) setFrom(data.from);
-      } catch {}
+      } catch {
+        /* noop */
+      }
       setDatesReady(true);
     }
     initDates();
@@ -33,7 +66,7 @@ export default function SearchLogsPage() {
   const fetchLogs = useCallback(async () => {
     if (!datesReady) return;
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page) });
+    const params = new URLSearchParams({ page: String(page), type });
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     if (userId.trim()) params.set('userId', userId.trim());
@@ -44,9 +77,11 @@ export default function SearchLogsPage() {
     setTotal(data.total || 0);
     setTotalPages(data.totalPages || 1);
     setLoading(false);
-  }, [page, from, to, userId, datesReady]);
+  }, [page, from, to, userId, type, datesReady]);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +89,34 @@ export default function SearchLogsPage() {
     fetchLogs();
   };
 
+  const handleTypeChange = (next: SearchType) => {
+    setType(next);
+    setPage(1);
+  };
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">검색 로그</h1>
+      <h1 className="text-2xl font-bold mb-2">검색 로그</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        질병 검색 (PubMed 논문) + 증상 분석 (AI) 통합 뷰
+      </p>
+
+      {/* 종류 탭 */}
+      <div className="flex gap-2 mb-4">
+        {typeTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => handleTypeChange(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              type === t.id
+                ? 'bg-gray-900 text-white'
+                : 'bg-white border text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       <Card className="mb-6">
         <CardContent className="pt-6">
@@ -75,7 +135,18 @@ export default function SearchLogsPage() {
             </div>
             <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">검색</button>
             {(from || to || userId) && (
-              <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFrom('');
+                  setTo('');
+                  setUserId('');
+                  setPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50"
+              >
+                초기화
+              </button>
             )}
           </form>
         </CardContent>
@@ -97,30 +168,58 @@ export default function SearchLogsPage() {
                   <TableRow>
                     <TableHead>시간</TableHead>
                     <TableHead>사용자</TableHead>
+                    <TableHead>종류</TableHead>
                     <TableHead>검색어</TableHead>
                     <TableHead>동물</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log: any) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString('ko-KR')}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {log.profiles?.email || log.user_id?.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">{log.query}</TableCell>
-                      <TableCell className="text-sm">
-                        <span className={`px-1.5 py-0.5 rounded text-xs ${log.pet_type === 'dog' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
-                          {log.pet_type === 'dog' ? '강아지' : '고양이'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {logs.map((log) => {
+                    const actor = formatUser(log.profile);
+                    const kind = kindConfig[log.kind];
+                    return (
+                      <TableRow key={`${log.kind}-${log.id}`}>
+                        <TableCell className="text-sm text-gray-500 whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('ko-KR')}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {actor ?? (
+                            <span className="text-xs text-gray-400 font-mono">
+                              {log.user_id?.slice(0, 8)}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${kind.className}`}>
+                            {kind.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium max-w-[400px]">
+                          <span className="block truncate" title={log.query}>
+                            {log.query || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {log.pet_type ? (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-xs ${
+                                log.pet_type === 'dog' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'
+                              }`}
+                            >
+                              {log.pet_type === 'dog' ? '강아지' : '고양이'}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {logs.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-gray-400 py-8">로그가 없습니다.</TableCell>
+                      <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                        로그가 없습니다.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
