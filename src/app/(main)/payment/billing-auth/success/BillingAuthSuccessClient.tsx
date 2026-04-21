@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
@@ -176,13 +175,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
 
   return (
     <div className="max-w-sm mx-auto px-4 py-12 text-center">
-      {/* PawDex 로고 */}
-      <div className="flex items-center justify-center gap-1.5 mb-8">
-        <Image src="/icons/icon-192x192.png" alt="PawDex" width={24} height={24} />
-        <span className="text-sm font-bold text-gray-700">PawDex</span>
-      </div>
-
-      {/* 🎉 타이틀 */}
+      {/* 🎉 타이틀 — (main) 레이아웃 헤더에 이미 PawDex 로고 있어서 중복 제거 */}
       <h1 className="text-lg font-bold text-gray-900 mb-6 leading-snug">
         {title}
       </h1>
