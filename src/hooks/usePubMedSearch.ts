@@ -101,10 +101,12 @@ async function checkSearchLimit(): Promise<{
     if (!res.ok) return { allowed: true };
     const data = await res.json();
     if (!data.unlimited && data.remaining <= 0) {
+      // 메시지는 `\n` 기준 두 줄 — 서버 /api/search-usage POST 와 동일 형식.
+      // 클라이언트 렌더에서 split 후 둘째 줄을 작게 표시.
       return {
         allowed: false,
         plan: data.plan,
-        reason: `🔍 오늘의 검색 횟수(${data.limit}회)를 모두 사용했습니다.${data.plan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 검색을 이용하세요.'}`,
+        reason: `오늘의 검색 횟수(${data.limit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
       };
     }
     return { allowed: true, plan: data.plan };
