@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Copy, X, Check } from 'lucide-react';
+import { Smartphone, Copy, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
 
@@ -88,8 +88,8 @@ export function InAppBrowserHint() {
       >
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
-              <AlertCircle size={20} className="text-orange-500" />
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+              <Smartphone size={20} className="text-blue-600" />
             </div>
             <h3 className="text-base font-bold text-gray-900">Safari 에서 열어주세요</h3>
           </div>
