@@ -47,6 +47,20 @@ export default function MapPage() {
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  // 로딩 피드백 단계: 0 = 기본, 1 = 2초 이후 (SDK 설명), 2 = 5초 이후 (사유 + 힌트).
+  // Safari / 저사양 모바일에서 카카오맵 SDK + 위치 권한이 5~15초까지
+  // 걸리는 케이스가 있어, 유저에게 "멈춘 게 아니라 진행 중" 임을 점진적으로 알림.
+  const [loadingPhase, setLoadingPhase] = useState<0 | 1 | 2>(0);
+
+  useEffect(() => {
+    if (mapReady) return;
+    const t1 = setTimeout(() => setLoadingPhase(1), 2000);
+    const t2 = setTimeout(() => setLoadingPhase(2), 5000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [mapReady]);
 
   // Resize handler — fix map when devtools or keyboard opens
   useEffect(() => {
@@ -420,10 +434,20 @@ export default function MapPage() {
       )}
 
       {!error && !mapReady && (
-        <div className="absolute inset-0 bg-white flex items-center justify-center z-20">
-          <div className="flex flex-col items-center gap-2">
+        <div className="absolute inset-0 bg-white flex items-center justify-center z-20 px-6">
+          <div className="flex flex-col items-center gap-2 max-w-xs text-center">
             <Loader2 size={32} className="animate-spin text-blue-600" />
-            <p className="text-sm text-gray-500">지도 로딩 중...</p>
+            <p className="text-sm text-gray-600 font-medium">지도 로딩 중...</p>
+            {loadingPhase >= 1 && (
+              <p className="text-xs text-gray-400">카카오맵 SDK를 준비하고 있어요</p>
+            )}
+            {loadingPhase >= 2 && (
+              <div className="mt-4 space-y-1.5 text-[11px] text-gray-500 leading-relaxed">
+                <p className="font-medium text-gray-700">평소보다 시간이 걸리네요</p>
+                <p>📶 네트워크 상태에 따라 최대 15초 정도 걸릴 수 있어요</p>
+                <p>📍 위치 권한을 허용하면 더 빠르게 불러올 수 있어요</p>
+              </div>
+            )}
           </div>
         </div>
       )}
