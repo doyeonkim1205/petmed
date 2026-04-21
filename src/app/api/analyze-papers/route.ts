@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -95,6 +96,14 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+
+    // 분 단위 burst 방어 (일일 한도와 별개)
+    if (!checkRateLimit(`${userId}:analyze-papers`, 10, 60_000)) {
+      return NextResponse.json(
+        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 },
+      );
+    }
 
     if (!OPENAI_API_KEY) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });

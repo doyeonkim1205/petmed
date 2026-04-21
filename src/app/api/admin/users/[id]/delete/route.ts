@@ -34,6 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await supabaseAdmin.from('medications').delete().eq('user_id', userId);
     await supabaseAdmin.from('record_files').delete().eq('user_id', userId);
     await supabaseAdmin.from('health_records').delete().eq('user_id', userId);
+    await supabaseAdmin.from('weight_logs').delete().eq('user_id', userId);
     await supabaseAdmin.from('pets').delete().eq('user_id', userId);
     await supabaseAdmin.from('saved_analyses').delete().eq('user_id', userId);
     await supabaseAdmin.from('saved_papers').delete().eq('user_id', userId);
@@ -44,11 +45,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // UI 에선 "탈퇴 유저 (uuid8)" 로 표시됨.
     await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
-    // Delete storage files
+    // Delete storage files — 파일 경로는 {userId}/{recordId}/{fileName} 3 레벨이라
+    // list(userId) 는 recordId 폴더만 반환. 실제 파일까지 닿으려면 각 폴더를
+    // 한 번 더 내려가서 나열한 뒤 전부 remove 에 넘겨야 함.
     try {
-      const { data: files } = await supabaseAdmin.storage.from('medical-files').list(userId);
-      if (files && files.length > 0) {
-        await supabaseAdmin.storage.from('medical-files').remove(files.map(f => `${userId}/${f.name}`));
+      const { data: recordFolders } = await supabaseAdmin.storage.from('medical-files').list(userId);
+      if (recordFolders && recordFolders.length > 0) {
+        const allFilePaths: string[] = [];
+        for (const folder of recordFolders) {
+          const { data: files } = await supabaseAdmin.storage
+            .from('medical-files')
+            .list(`${userId}/${folder.name}`);
+          if (files) {
+            for (const file of files) {
+              allFilePaths.push(`${userId}/${folder.name}/${file.name}`);
+            }
+          }
+        }
+        if (allFilePaths.length > 0) {
+          await supabaseAdmin.storage.from('medical-files').remove(allFilePaths);
+        }
       }
     } catch { /* best-effort */ }
 

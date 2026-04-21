@@ -4,6 +4,7 @@ import { diseaseMap } from '@/data/diseaseMap';
 import { checkBannedWords } from '@/data/bannedWords';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -27,6 +28,14 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+
+    // 분 단위 burst 방어 (line 67 아래 기존 30/hour DB 체크는 유지 — 두 단계 방어)
+    if (!checkRateLimit(`${userId}:validate-and-translate`, 10, 60_000)) {
+      return NextResponse.json(
+        { valid: false, reason: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 429 },
+      );
+    }
 
     const { query, petType } = await request.json();
     if (!query || query.trim().length < 1 || query.length > 200) {

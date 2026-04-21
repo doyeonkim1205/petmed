@@ -77,7 +77,11 @@ export async function uploadFile(
   const uploadTarget = isImageType(file.type) ? await compressImage(file) : file;
 
   const ext = uploadTarget.type === 'image/webp' ? 'webp' : file.name.split('.').pop();
-  const fileName = `${Date.now()}.${ext}`;
+  // 파일명에 crypto.randomUUID() 포함 — URL 예측 가능성 제거.
+  // 기존 Date.now() 는 업로드 시각 대략 알면 수백만 가지로 좁혀져서
+  // userId + recordId UUID 를 안다는 전제에서 취약. UUID 로 바꿔 완전 무작위화.
+  // medical-files 버킷이 public 이라도 URL 추측 불가 → 사실상 signed URL 수준 안전.
+  const fileName = `${crypto.randomUUID()}.${ext}`;
   const filePath = `${userId}/${recordId}/${fileName}`;
 
   const { error } = await supabase.storage
