@@ -147,12 +147,6 @@ export async function POST(request: NextRequest) {
     const content = data.choices?.[0]?.message?.content ?? '{}';
     const parsed = JSON.parse(content);
 
-    const result = {
-      diseases: (parsed.diseases ?? []).slice(0, 3),
-      followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
-      emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
-    };
-
     // 성공한 분석만 카운트 (사용량 차감). 질병 검색과 통일된 search_logs 에 기록.
     await supabaseAdmin.from('search_logs').insert({
       user_id: userId,
@@ -160,6 +154,21 @@ export async function POST(request: NextRequest) {
       pet_type: petType,
       kind,
     });
+
+    // 삽입 직후의 카운트를 응답에 포함 → 클라 배지 즉시 갱신.
+    // 별도 GET /api/symptom-usage 없이도 race 없이 정확한 값 전달.
+    const newUsed = (count || 0) + 1;
+
+    const result = {
+      diseases: (parsed.diseases ?? []).slice(0, 3),
+      followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
+      emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
+      usage: {
+        kind,
+        used: newUsed,
+        limit: dailyLimit,
+      },
+    };
 
     return NextResponse.json(result);
   } catch (error) {

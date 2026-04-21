@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
     .eq('kind', 'disease')
     .gte('created_at', startOfDayKST().toISOString());
 
-  if (dailyLimit > 0 && (count || 0) >= dailyLimit) {
+  const unlimited = dailyLimit === 0;
+  const currentUsed = count || 0;
+
+  if (dailyLimit > 0 && currentUsed >= dailyLimit) {
     // 메시지는 `\n` 기준으로 두 줄 구성.
     // 첫 줄: 한도 안내, 둘째 줄: 리셋 시각.
     // 클라이언트가 split 해서 첫 줄은 일반 폰트, 둘째 줄은 작게 렌더.
@@ -85,6 +88,9 @@ export async function POST(request: NextRequest) {
       allowed: false,
       reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
       plan,
+      used: currentUsed,
+      limit: dailyLimit,
+      unlimited,
     });
   }
 
@@ -96,5 +102,13 @@ export async function POST(request: NextRequest) {
     kind: 'disease',
   });
 
-  return NextResponse.json({ allowed: true, plan });
+  // 클라가 별도 GET 없이 즉시 배지 갱신하도록 방금 삽입된 카운트를 응답에 포함.
+  // race condition 없는 "서버 진실" — optimistic 업데이트의 correction 용.
+  return NextResponse.json({
+    allowed: true,
+    plan,
+    used: currentUsed + 1,
+    limit: dailyLimit,
+    unlimited,
+  });
 }

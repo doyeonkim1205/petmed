@@ -25,6 +25,11 @@ export interface UsePubMedSearchResult {
   plan?: string;
   diseaseDescription: DiseaseDescription | null;
   isCached: boolean;
+  // 카운트 동기화용:
+  // - pendingCount: logSearch POST 가 비행 중이면 true. 배지에 +1 optimistic 표시용.
+  // - lastLogResult: 서버가 INSERT 직후 돌려준 { used, limit }. race 없는 진실값.
+  pendingCount: boolean;
+  lastLogResult: { used: number; limit: number } | null;
 }
 
 /**
@@ -116,17 +121,29 @@ async function checkSearchLimit(): Promise<{
 }
 
 /**
- * Log a successful search (count deduction)
+ * Log a successful search (count deduction).
+ * 서버 응답에 { used, limit } 포함 → 클라이언트 배지를 race 없이 정확히 갱신.
+ * 실패 시 null 반환 — 호출자는 optimistic 업데이트 rollback 여부 판단.
  */
-async function logSearch(query: string, petType: string): Promise<void> {
+async function logSearch(
+  query: string,
+  petType: string,
+): Promise<{ used: number; limit: number } | null> {
   try {
     const { authFetch } = await import('@/lib/authFetch');
-    await authFetch('/api/search-usage', {
+    const res = await authFetch('/api/search-usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, petType }),
     });
-  } catch {}
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.allowed === false) return null;
+    if (typeof data.used !== 'number' || typeof data.limit !== 'number') return null;
+    return { used: data.used, limit: data.limit };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -166,6 +183,20 @@ export function usePubMedSearch(
   const [plan, setPlan] = useState<string | undefined>();
   const [diseaseDescription, setDiseaseDescription] = useState<DiseaseDescription | null>(null);
   const [isCached, setIsCached] = useState(false);
+  const [pendingCount, setPendingCount] = useState(false);
+  const [lastLogResult, setLastLogResult] = useState<{ used: number; limit: number } | null>(null);
+
+  // logSearch wrapper — optimistic flag + 서버 응답으로 확정값 세팅.
+  const runLogSearch = useCallback(async (query: string, pet: string) => {
+    setPendingCount(true);
+    try {
+      const r = await logSearch(query, pet);
+      if (r) setLastLogResult(r);
+      return r;
+    } finally {
+      setPendingCount(false);
+    }
+  }, []);
 
   const fetchArticles = useCallback(async () => {
     if (!diseaseName) {
@@ -180,6 +211,8 @@ export function usePubMedSearch(
       setLoading(false);
       setAnalysisLoading(false);
       setStep('idle');
+      setPendingCount(false);
+      // lastLogResult 는 탭 전환해도 유지 — 배지값이 갑자기 리셋되는 걸 방지.
       return;
     }
 
@@ -222,8 +255,9 @@ export function usePubMedSearch(
       setIsCached(true);
       setLoading(false);
       setStep('done');
-      // 캐시 hit도 검색으로 카운트 (성공이니까)
-      logSearch(diseaseName, petType);
+      // 캐시 hit도 검색으로 카운트 (성공이니까). runLogSearch 가 서버 응답으로
+      // lastLogResult 업데이트 → 페이지 useEffect 가 usageInfo 갱신.
+      runLogSearch(diseaseName, petType);
       return;
     }
 
@@ -319,8 +353,9 @@ export function usePubMedSearch(
         if (relevantIndices.length >= 1) {
           // 캐시에 저장 (백그라운드, 에러 무시)
           saveCache(diseaseName, petType, finalArticles, finalAnalysis, desc);
-          // 검색 성공 시에만 카운트 차감
-          logSearch(diseaseName, petType);
+          // 검색 성공 시에만 카운트 차감. runLogSearch 내부에서 pendingCount
+          // 토글 + 서버 응답으로 lastLogResult 세팅.
+          runLogSearch(diseaseName, petType);
         }
       } catch (aiErr) {
         Sentry.captureException(aiErr, {
@@ -347,7 +382,7 @@ export function usePubMedSearch(
       setLoading(false);
       setStep('done');
     }
-  }, [diseaseName, petType, searchKey]);
+  }, [diseaseName, petType, searchKey, runLogSearch]);
 
   useEffect(() => {
     fetchArticles();
@@ -365,5 +400,7 @@ export function usePubMedSearch(
     plan,
     diseaseDescription,
     isCached,
+    pendingCount,
+    lastLogResult,
   };
 }

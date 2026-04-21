@@ -68,19 +68,32 @@ function SearchContent() {
   const maxSymptomLen = planConfig.maxSymptomLength;
   const storageKey = user ? `recentSearches_${user.id}` : null;
 
+  // 세션 캐시 복원 규칙:
+  // 1) searchedAt 이 30분 이내 (오래된 결과는 버림)
+  // 2) URL ?q= 이 있으면 캐시의 query 와 일치해야 함 (외부 이동→복귀, 재하이드레이션 등)
+  //    → 일치 시 재검색 스킵 (OpenAI 비용/10초 대기 모두 절약)
+  //    → 불일치면 캐시 무시하고 새 검색
+  // 3) URL ?q= 이 없으면 캐시 무조건 복원 (일반 진입)
+  const CACHE_MAX_AGE = 30 * 60 * 1000;
   const [cached] = useState(() => {
-    if (initialQuery) return null;
     try {
       const raw = sessionStorage.getItem('searchCache');
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      if (!c.searchedAt || Date.now() - c.searchedAt > CACHE_MAX_AGE) return null;
+      if (initialQuery && initialMode === 'disease' && c.query !== initialQuery) return null;
+      return c;
     } catch { return null; }
   });
 
   const [cachedSymptom] = useState(() => {
-    if (initialQuery && initialMode === 'symptom') return null;
     try {
       const raw = sessionStorage.getItem('symptomCache');
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      if (!c.searchedAt || Date.now() - c.searchedAt > CACHE_MAX_AGE) return null;
+      if (initialQuery && initialMode === 'symptom' && c.query !== initialQuery) return null;
+      return c;
     } catch { return null; }
   });
 
@@ -121,6 +134,8 @@ function SearchContent() {
     retry: () => { setCachedPubmed(null); },
     diseaseDescription: cachedPubmed.diseaseDescription || null,
     isCached: false,
+    pendingCount: false,
+    lastLogResult: null,
   } : pubmed;
 
   // Init bookmarks for cached results
@@ -130,36 +145,52 @@ function SearchContent() {
     }
   }, [cachedPubmed]);
 
-  // Fetch usage info on mount and after search
+  // 논문 검색 배지 초기값 — 마운트 시 1회만 서버에서 가져옴.
+  // 이후 갱신은 usePubMedSearch 의 logSearch 응답으로 처리 (race 없음).
   useEffect(() => {
-    const fetchUsage = async () => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
       try {
         const { authFetch } = await import('@/lib/authFetch');
         const res = await authFetch('/api/search-usage');
-        if (res.ok) {
+        if (alive && res.ok) {
           const data = await res.json();
           setUsageInfo({ used: data.used, limit: data.limit, plan: data.plan });
         }
       } catch {}
-    };
-    fetchUsage();
-  }, [pubmed.step]);
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
 
-  // Fetch symptom usage info
+  // 훅이 logSearch 응답으로 받은 "서버 진실" 카운트를 배지에 반영.
+  // 이 시점에는 실제 INSERT 가 완료된 상태라 한 번만 덮어쓰면 일관성 OK.
   useEffect(() => {
-    if (searchMode !== 'symptom') return;
-    const fetchSymptomUsage = async () => {
+    if (pubmed.lastLogResult) {
+      setUsageInfo(prev => prev
+        ? { ...prev, used: pubmed.lastLogResult!.used, limit: pubmed.lastLogResult!.limit }
+        : { used: pubmed.lastLogResult!.used, limit: pubmed.lastLogResult!.limit, plan: 'free' }
+      );
+    }
+  }, [pubmed.lastLogResult]);
+
+  // 증상 분석 배지 초기값 — 마운트 시 1회.
+  // 이후 갱신은 /api/symptom-analysis 응답의 data.usage 로 처리.
+  useEffect(() => {
+    if (searchMode !== 'symptom' || !user) return;
+    let alive = true;
+    (async () => {
       try {
         const { authFetch } = await import('@/lib/authFetch');
         const res = await authFetch('/api/symptom-usage');
-        if (res.ok) {
+        if (alive && res.ok) {
           const data = await res.json();
           setSymptomUsageInfo(data);
         }
       } catch {}
-    };
-    fetchSymptomUsage();
-  }, [searchMode, symptomResult, isRefining]);
+    })();
+    return () => { alive = false; };
+  }, [searchMode, user?.id]);
 
   useEffect(() => {
     if (!storageKey) { setRecentSearches([]); return; }
@@ -190,6 +221,7 @@ function SearchContent() {
           articles: pubmed.articles,
           analysis: pubmed.analysis,
           diseaseDescription: pubmed.diseaseDescription,
+          searchedAt: Date.now(),  // 복원 시 stale 체크용
         }));
       } catch {}
     }
@@ -203,15 +235,23 @@ function SearchContent() {
           query: symptomQuery,
           petType,
           result: symptomResult,
+          searchedAt: Date.now(),
         }));
       } catch {}
     }
   }, [symptomResult, symptomQuery, petType]);
 
   useEffect(() => {
-    if (initialQuery) {
-      // (main) 레이아웃이 미인증 유저를 /login 으로 리다이렉트하므로 여기선 user 가 항상 있음
-      setSearchTerm(initialQuery);
+    if (!initialQuery) return;
+
+    // 캐시가 이미 같은 쿼리로 복원된 상태면 재검색 불필요.
+    // 외부 링크 다녀온 뒤 복귀하거나 모바일 브라우저가 페이지를 re-hydrate 한 경우
+    // 이 가드가 없으면 검색이 한 번 더 트리거되며 OpenAI 검증에서 REJECT 받고
+    // "반려동물 질병이나 증상과 관련된 검색어를 입력해주세요" 화면이 뜸.
+    const diseaseHit = initialMode === 'disease' && cached?.searchTerm === initialQuery;
+    const symptomHit = initialMode === 'symptom' && cachedSymptom?.query === initialQuery;
+    if (diseaseHit || symptomHit) {
+      // state 는 캐시로 이미 초기화되어 있음. 최근 검색어 동기화만 해주고 종료.
       if (storageKey) {
         try {
           const saved = localStorage.getItem(storageKey);
@@ -221,13 +261,26 @@ function SearchContent() {
           setRecentSearches(updated);
         } catch {}
       }
-      if (initialMode === 'symptom') {
-        setSymptomQuery(initialQuery);
-        handleSymptomSearch(initialQuery);
-      } else {
-        const found = mockDiseases.find(d => d.name.includes(initialQuery));
-        setMockResult(found || null);
-      }
+      return;
+    }
+
+    // (main) 레이아웃이 미인증 유저를 /login 으로 리다이렉트하므로 여기선 user 가 항상 있음
+    setSearchTerm(initialQuery);
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        const existing: string[] = saved ? JSON.parse(saved) : [];
+        const updated = [initialQuery, ...existing.filter(s => s !== initialQuery)].slice(0, 10);
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+        setRecentSearches(updated);
+      } catch {}
+    }
+    if (initialMode === 'symptom') {
+      setSymptomQuery(initialQuery);
+      handleSymptomSearch(initialQuery);
+    } else {
+      const found = mockDiseases.find(d => d.name.includes(initialQuery));
+      setMockResult(found || null);
     }
   }, [initialQuery, user, storageKey]);
 
@@ -271,6 +324,16 @@ function SearchContent() {
       const data = await res.json();
       setSymptomResult(data);
       setFollowupAnswers({});
+      // 서버가 응답에 끼워준 최신 사용량으로 배지 즉시 갱신.
+      // 별도 GET /api/symptom-usage race 없이 정확한 값.
+      if (data.usage && symptomUsageInfo) {
+        const u = data.usage as { kind: string; used: number; limit: number };
+        if (u.kind === 'symptom_refine') {
+          setSymptomUsageInfo(prev => prev ? { ...prev, refine: { used: u.used, limit: u.limit } } : prev);
+        } else {
+          setSymptomUsageInfo(prev => prev ? { ...prev, search: { used: u.used, limit: u.limit } } : prev);
+        }
+      }
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'symptom', action: 'analyze' },
@@ -521,19 +584,24 @@ function SearchContent() {
           </div>
         )}
         {/* Usage count badge */}
-        {searchMode === 'disease' && usageInfo && (
-          <div className="max-w-sm mx-auto mt-2 flex justify-center">
-            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
-            }`}>
-              {isPaid ? (
-                <><Sparkles size={10} /> Plus {usageInfo.used}/{usageInfo.limit}</>
-              ) : (
-                <>Free {usageInfo.used}/{usageInfo.limit}</>
-              )}
-            </span>
-          </div>
-        )}
+        {searchMode === 'disease' && usageInfo && (() => {
+          // Optimistic 표시: logSearch POST 가 비행 중이면 +1 즉시 반영.
+          // 서버 응답이 오면 useEffect [lastLogResult] 가 usageInfo.used 를 확정값으로 덮어씀.
+          const displayUsed = usageInfo.used + (pubmed.pendingCount ? 1 : 0);
+          return (
+            <div className="max-w-sm mx-auto mt-2 flex justify-center">
+              <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+                isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+              }`}>
+                {isPaid ? (
+                  <><Sparkles size={10} /> Plus {displayUsed}/{usageInfo.limit}</>
+                ) : (
+                  <>Free {displayUsed}/{usageInfo.limit}</>
+                )}
+              </span>
+            </div>
+          );
+        })()}
         {searchMode === 'symptom' && symptomUsageInfo && (
           <div className="max-w-sm mx-auto mt-2 flex justify-center">
             <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
