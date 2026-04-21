@@ -16,17 +16,22 @@ const nextConfig: NextConfig = {
     //   'unsafe-inline' / 'unsafe-eval' 은 Next.js 런타임 + Toss SDK 요구 — 제거 불가.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://t1.daumcdn.net https://js.tosspayments.com https://*.sentry.io",
-      "style-src 'self' 'unsafe-inline'",
+      // Toss SDK는 js.tosspayments.com 외에도 event/stsevent/static 서브도메인에서 스크립트 로드 →
+      // *.tosspayments.com 와일드카드로 포괄.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://t1.daumcdn.net https://*.tosspayments.com https://*.toss.im https://*.sentry.io",
+      "style-src 'self' 'unsafe-inline' https://*.tosspayments.com",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.kakao.com https://dapi.kakao.com https://kapi.kakao.com https://t1.daumcdn.net https://api.tosspayments.com https://api.openai.com https://*.sentry.io https://*.ingest.sentry.io https://eutils.ncbi.nlm.nih.gov https://pubmed.ncbi.nlm.nih.gov",
-      "frame-src 'self' https://js.tosspayments.com https://*.tosspayments.com",
+      "font-src 'self' data: https://*.tosspayments.com",
+      // 빌링 등록 시 카드사 인증 flow 가 *.tosspayments.com + *.toss.im 여러 서브도메인을 거침 →
+      // 와일드카드 필수. 안 그러면 "알 수 없는 에러 / 호출에 실패" 로 뜸.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.kakao.com https://dapi.kakao.com https://kapi.kakao.com https://t1.daumcdn.net https://*.tosspayments.com https://*.toss.im https://api.openai.com https://*.sentry.io https://*.ingest.sentry.io https://eutils.ncbi.nlm.nih.gov https://pubmed.ncbi.nlm.nih.gov",
+      // 빌링 auth 팝업/리다이렉트 — 카드 3D-Secure 등 카드사 도메인까지 열어둠.
+      "frame-src 'self' https://*.tosspayments.com https://*.toss.im",
       "worker-src 'self' blob:",
       "manifest-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
+      "form-action 'self' https://*.tosspayments.com https://*.toss.im",
       "frame-ancestors 'none'",
     ].join('; ');
 
