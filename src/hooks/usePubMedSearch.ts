@@ -161,10 +161,13 @@ async function validateAndTranslate(query: string, petType: 'cat' | 'dog'): Prom
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, petType }),
     });
-    if (!res.ok) return { valid: false, reason: '검색어 검증에 실패했습니다.' };
+    // 네트워크 / 서버 5xx / OpenAI quota 등 어느 실패든 유저 입장에선 "논문 검색이 안 됨" 이므로
+    // 외부 catch(aiErr) 와 동일한 2줄 문구로 통일. 타이밍(초기 validate 실패 vs 후반 검색 실패)과
+    // 무관하게 같은 메시지/아이콘이 보여서 혼란 감소.
+    if (!res.ok) return { valid: false, reason: '논문 검색에 실패했습니다.\n네트워크 연결을 확인해주세요.' };
     return await res.json();
   } catch {
-    return { valid: false, reason: '검색어 검증에 실패했습니다. 다시 시도해주세요.' };
+    return { valid: false, reason: '논문 검색에 실패했습니다.\n네트워크 연결을 확인해주세요.' };
   }
 }
 
