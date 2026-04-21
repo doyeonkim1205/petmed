@@ -11,7 +11,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -86,7 +86,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
-  const isPaidUser = profile?.plan && profile.plan !== 'free';
+  const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setExistingFiles(existingFiles.filter((f) => f.id !== fileId));
   };
 
-  const maxAttachments = getPlanConfig(profile?.plan || 'free').attachmentsPerRecord;
+  const maxAttachments = getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord;
   const activeFileCount = existingFiles.length + newFiles.length;
   const maxNewFiles = maxAttachments - existingFiles.length;
 

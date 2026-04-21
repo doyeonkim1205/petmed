@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Search as SearchIcon, Stethoscope } from 'lucide-react';
 import { PawIcon } from '@/components/icons/PawIcon';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
+import { TrialBanner } from '@/components/TrialBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -40,13 +41,16 @@ export default function HomePage() {
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
-      <SamsungBrowserHint />
-      {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
-        <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
-        PawDex
-      </h1>
+    <div className="flex flex-col bg-white min-h-[calc(100vh-8rem)]">
+      {/* 트라이얼 안내 카드 — 하루 1번 */}
+      <TrialBanner />
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <SamsungBrowserHint />
+        {/* Logo */}
+        <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
+          <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
+          PawDex
+        </h1>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
@@ -103,7 +107,7 @@ export default function HomePage() {
           </button>
         </div>
       </form>
-
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { PLANS, type PlanType } from '@/lib/plans';
+import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
 
@@ -199,15 +199,37 @@ export default function SubscriptionPage() {
       </div>
 
       <div className="px-4 pt-5">
+        {/* ── Trial 안내 카드 (트라이얼 기간 중에만 표시) ── */}
+        {isTrialActive() && (
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5 mb-5 text-center">
+            <div className="text-3xl mb-2">🎉</div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">3주 무료 체험 중이에요</h3>
+            <p className="text-xs text-gray-600 mb-4">모든 Plus 기능을 자유롭게 이용하세요</p>
+            <div className="bg-white/70 rounded-xl px-4 py-3">
+              <p className="text-[11px] text-gray-500 mb-0.5">무료 체험 종료</p>
+              <p className="text-sm font-bold text-gray-800">
+                2026. 05. 13 · {trialDaysLeft()}일 남음
+              </p>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-3">
+              종료 후 유료 플랜 선택이 활성화됩니다
+            </p>
+          </div>
+        )}
+
         {/* ── 1. Plan Card ── */}
-        <div className={`rounded-2xl border p-4 mb-5 ${isPaid ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
+        <div className={`rounded-2xl border p-4 mb-5 ${isPaid || isTrialActive() ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                {isPaid ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
-                <span className={`text-lg font-bold ${isPaid ? 'text-blue-700' : 'text-gray-700'}`}>{isPaid ? 'Plus' : 'Free'}</span>
+                {isPaid || isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
+                <span className={`text-lg font-bold ${isPaid || isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
+                  {isPaid ? 'Plus' : isTrialActive() ? 'Plus (무료 체험)' : 'Free'}
+                </span>
               </div>
-              <p className="text-xs text-gray-500">{isPaid ? '모든 기능을 제한 없이' : '기본 기능 무료 이용'}</p>
+              <p className="text-xs text-gray-500">
+                {isPaid ? '모든 기능을 제한 없이' : isTrialActive() ? '3주 무료 체험 기간 적용 중' : '기본 기능 무료 이용'}
+              </p>
             </div>
             {hasSub && (
               <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -227,7 +249,7 @@ export default function SubscriptionPage() {
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
-              <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
+              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
@@ -274,7 +296,7 @@ export default function SubscriptionPage() {
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
-              <PlanBtn onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
+              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
@@ -300,7 +322,7 @@ export default function SubscriptionPage() {
 
             {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
-              <PlanBtn onClick={() => router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
+              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
                 title="월간 구독으로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
             )}

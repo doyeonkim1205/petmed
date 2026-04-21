@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { logActivity } from '@/lib/activityLog';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -135,10 +135,10 @@ function PetModal({
       .select('plan')
       .eq('id', userId)
       .single();
-    const config = getPlanConfig(profile?.plan || 'free');
+    const effectivePlan = getEffectivePlan(profile?.plan);
+    const config = getPlanConfig(effectivePlan);
     if (config.maxPets > 0 && pets.length >= config.maxPets) {
-      const plan = profile?.plan || 'free';
-      const suffix = plan !== 'free' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
+      const suffix = effectivePlan !== 'free' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
       alert(`🐾 반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
       return;
     }
@@ -904,7 +904,7 @@ export default function ProfilePage() {
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
-  const canUseAlarm = isPWA && profile?.plan && profile.plan !== 'free';
+  const canUseAlarm = isPWA && getEffectivePlan(profile?.plan) === 'plus';
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
@@ -1015,7 +1015,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
-          {profile?.plan === 'plus' ? (
+          {getEffectivePlan(profile?.plan) === 'plus' ? (
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
               <Crown size={10} /> Plus
             </span>
@@ -1168,7 +1168,7 @@ export default function ProfilePage() {
 
       {/* 알림 기능 안내 팝업 — 상황별 문구 */}
       {showAlarmUpgrade && (() => {
-        const isFree = !profile?.plan || profile.plan === 'free';
+        const isFree = getEffectivePlan(profile?.plan) === 'free';
         const needApp = !isPWA;
         const needPlus = isFree;
 

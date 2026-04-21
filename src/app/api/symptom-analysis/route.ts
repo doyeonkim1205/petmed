@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
 import { startOfDayKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       .select('plan')
       .eq('id', userId)
       .single();
-    const plan = profile?.plan || 'free';
+    const plan = getEffectivePlan(profile?.plan);
     const config = getPlanConfig(plan);
 
     // Plan-based character limit

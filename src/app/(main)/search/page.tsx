@@ -9,7 +9,7 @@ import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/useP
 import { PaperSection } from '@/components/PaperSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 
 type SearchMode = 'disease' | 'symptom';
 
@@ -63,8 +63,9 @@ function SearchContent() {
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
   const { user, profile } = useAuth();
-  const isPaid = profile?.plan !== 'free';
-  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const effectivePlan = getEffectivePlan(profile?.plan);
+  const isPaid = effectivePlan === 'plus';
+  const planConfig = getPlanConfig(effectivePlan);
   const maxSymptomLen = planConfig.maxSymptomLength;
   const storageKey = user ? `recentSearches_${user.id}` : null;
 

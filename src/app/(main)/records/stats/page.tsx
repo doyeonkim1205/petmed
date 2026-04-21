@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 
 type StatsTab = 'cost' | 'weight';
@@ -133,7 +133,7 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
 export default function StatsPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
   const maxMonths = planConfig.costStatsMonths;
 
   const [tab, setTab] = useState<StatsTab>('cost');

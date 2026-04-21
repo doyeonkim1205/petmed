@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
@@ -84,7 +84,7 @@ export default function RecordAddPage() {
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
-  const isPaidUser = profile?.plan && profile.plan !== 'free';
+  const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
@@ -751,7 +751,7 @@ export default function RecordAddPage() {
                 setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
               }
             }}
-            maxFiles={getPlanConfig(profile?.plan || 'free').attachmentsPerRecord}
+            maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
             placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
           />
           <div ref={fileEndRef} />

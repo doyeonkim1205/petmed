@@ -23,7 +23,8 @@ export async function POST(request: Request) {
     .eq('id', user!.id)
     .single();
 
-  if (!profile || profile.plan === 'free') {
+  const { getEffectivePlan } = await import('@/lib/plans');
+  if (getEffectivePlan(profile?.plan) === 'free') {
     return NextResponse.json({ error: '유료 플랜 사용자만 알림을 등록할 수 있습니다.' }, { status: 403 });
   }
 

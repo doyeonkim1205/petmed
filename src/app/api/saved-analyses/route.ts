@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
     .eq('id', userId)
     .single();
 
-  const plan = profile?.plan || 'free';
+  const { getEffectivePlan } = await import('@/lib/plans');
+  const plan = getEffectivePlan(profile?.plan);
   if (plan === 'free') {
     return NextResponse.json(
       { error: '유료 구독자만 분석을 저장할 수 있습니다.' },
@@ -146,13 +147,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (remaining <= 0) {
-      const suffix = plan !== 'free'
-        ? '추가 용량이 필요하시면 문의해 주세요.'
-        : '업그레이드하여 더 많은 논문을 저장하세요.';
+      // 여기는 plan === 'plus' 일 때만 도달 (free 는 위에서 이미 403).
       return NextResponse.json({
         ...data,
         savedPaperCount: 0,
-        warning: `📌 논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. ${suffix}`,
+        warning: `📌 논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`,
       });
     }
 

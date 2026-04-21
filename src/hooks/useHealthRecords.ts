@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 import { supabase, HealthRecord } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -106,15 +106,15 @@ export function useHealthRecords(petId?: string) {
       .select('plan')
       .eq('id', user.id)
       .single();
-    const config = getPlanConfig(profile?.plan || 'free');
+    const effectivePlan = getEffectivePlan(profile?.plan);
+    const config = getPlanConfig(effectivePlan);
     if (config.maxRecords > 0) {
       const { count } = await supabase
         .from('health_records')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       if ((count || 0) >= config.maxRecords) {
-        const plan = profile?.plan || 'free';
-        const suffix = plan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 기록을 추가하세요.';
+        const suffix = effectivePlan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 기록을 추가하세요.';
         throw new Error(`📋 기록 한도(${config.maxRecords}개)에 도달했습니다.${suffix}`);
       }
     }
