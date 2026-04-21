@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
@@ -36,6 +36,7 @@ interface SuccessData {
  */
 export default function BillingAuthSuccessClient({ authKey, customerKey, productId, mode }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const calledRef = useRef(false);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState('');
@@ -44,6 +45,38 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
   useEffect(() => {
     if (calledRef.current) return;
     calledRef.current = true;
+
+    // 프리뷰 모드 — 실제 결제 없이 UI 확인용.
+    // ?preview=register|enable|error|loading&period=month|year
+    // 자동 리다이렉트는 걸지 않아서 계속 화면에 머무름.
+    const preview = searchParams.get('preview');
+    if (preview) {
+      const period = (searchParams.get('period') as 'month' | 'year') || 'month';
+      if (preview === 'register' || preview === 'enable') {
+        // 다음 결제일은 "오늘 + 기간" 으로 자동 계산 (감 잡기용)
+        const next = new Date();
+        if (period === 'year') next.setFullYear(next.getFullYear() + 1);
+        else next.setDate(next.getDate() + 30);
+        setData({
+          mode: preview,
+          productName: period === 'year' ? 'PawDex Plus 연간' : 'PawDex Plus 월간',
+          period,
+          nextBillingAt: next.toISOString(),
+          amount: period === 'year' ? 40000 : 3500,
+        });
+        setStatus('success');
+        return;
+      }
+      if (preview === 'error') {
+        setStatus('error');
+        setError('프리뷰 — 처리 중 오류가 발생했다고 가정한 화면입니다');
+        return;
+      }
+      if (preview === 'loading') {
+        // 로딩 화면 유지
+        return;
+      }
+    }
 
     if (!authKey || !customerKey) {
       setStatus('error');
@@ -85,6 +118,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         setStatus('success');
 
         // 2.5초 후 구독 관리 페이지로 이동. 유저가 정보 카드 읽을 시간 확보.
+        // 프리뷰 모드에선 위 early-return 으로 여기까지 안 옴 → 자동 리다이렉트 X.
         setTimeout(() => router.push('/profile/subscription'), 2500);
       } catch (err) {
         Sentry.captureException(err, {
@@ -95,7 +129,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         setError(err instanceof Error ? err.message : '처리 중 오류가 발생했습니다');
       }
     })();
-  }, [authKey, customerKey, productId, mode, router]);
+  }, [authKey, customerKey, productId, mode, router, searchParams]);
 
   if (status === 'loading') {
     return (
