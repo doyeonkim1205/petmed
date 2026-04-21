@@ -132,6 +132,8 @@ function SearchContent() {
   const [followupAnswers, setFollowupAnswers] = useState<Record<number, string>>({});
   const [isRefining, setIsRefining] = useState(false);
   const [refineLimit, setRefineLimit] = useState<string | null>(null);
+  // 증상 분석 에러 UI 아이콘 분기용: true 면 자물쇠(한도 초과), false 면 ⚠️(네트워크/기타).
+  const [symptomLimitReached, setSymptomLimitReached] = useState(false);
 
   // symptom 탭 활성 중엔 훅에 null 을 넘겨서 pet 토글 같은 외부 deps 변화가
   // 유발하는 백그라운드 disease fetch 를 완전 차단. (예: 증상 탭에서 pet 을
@@ -317,6 +319,7 @@ function SearchContent() {
       setSymptomResult(null);
       setFollowupAnswers({});
       setRefineLimit(null);
+      setSymptomLimitReached(false);  // 새 시도 시작 시 리셋
     }
     try {
       const { authFetch } = await import('@/lib/authFetch');
@@ -337,9 +340,11 @@ function SearchContent() {
             setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
           } else {
             setSymptomError(errData.error || '증상 분석 횟수를 초과했습니다.');
+            setSymptomLimitReached(true);  // 한도 초과 → 자물쇠 아이콘
           }
         } else if (!isRefine) {
-          setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
+          // 네트워크/서버 에러: 2줄 한글 메시지로 정규화.
+          setSymptomError('증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요.');
         }
         return;
       }
@@ -361,7 +366,7 @@ function SearchContent() {
         tags: { feature: 'symptom', action: 'analyze' },
         extra: { isRefine },
       });
-      if (!isRefine) setSymptomError('증상 분석에 실패했습니다.');
+      if (!isRefine) setSymptomError('증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요.');
     } finally {
       setSymptomLoading(false);
       setIsRefining(false);
@@ -648,7 +653,12 @@ function SearchContent() {
             {symptomError && (
               <div className="text-center py-10">
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Lock size={24} className="text-gray-400" />
+                  {/* 한도 초과 = 자물쇠, 네트워크/기타 에러 = ⚠️ — 논문 검색과 아이콘 기준 통일 */}
+                  {symptomLimitReached ? (
+                    <Lock size={24} className="text-gray-400" />
+                  ) : (
+                    <AlertTriangle size={24} className="text-gray-400" />
+                  )}
                 </div>
                 {(() => {
                   const lines = symptomError.split('\n');
@@ -661,7 +671,8 @@ function SearchContent() {
                     </>
                   );
                 })()}
-                {!isPaid && (
+                {/* 업그레이드 배너는 한도 초과일 때만 (네트워크 오류엔 부적절) */}
+                {symptomLimitReached && !isPaid && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
@@ -993,7 +1004,17 @@ function SearchContent() {
             ) : displayPubmed.error && displayPubmed.step === 'done' ? (
               <div className="text-center py-12">
                 <AlertTriangle size={32} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm text-gray-500">{displayPubmed.error}</p>
+                {(() => {
+                  const lines = (displayPubmed.error || '').split('\n');
+                  return (
+                    <>
+                      <p className="text-sm text-gray-500 font-medium">{lines[0]}</p>
+                      {lines[1] && (
+                        <p className="text-xs text-gray-400 mt-1">{lines[1]}</p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <>
@@ -1010,12 +1031,20 @@ function SearchContent() {
                 )}
 
                 {aiFailed && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-                    <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs leading-relaxed">
-                      <p className="font-medium text-amber-700">AI 분석을 불러오지 못했어요.</p>
-                      <p className="text-amber-600 mt-0.5">아래 논문 원문을 직접 확인해주세요. 검색 횟수는 차감되지 않았습니다.</p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div className="text-xs leading-relaxed flex-1">
+                        <p className="font-medium text-amber-700">AI 분석을 불러오지 못했어요.</p>
+                        <p className="text-amber-600 mt-0.5">검색 횟수는 차감되지 않았으니 재검색해주세요.</p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => displayPubmed.retry()}
+                      className="mt-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition-colors"
+                    >
+                      다시 검색하기
+                    </button>
                   </div>
                 )}
 

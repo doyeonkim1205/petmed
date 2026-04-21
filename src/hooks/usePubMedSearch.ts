@@ -375,9 +375,10 @@ export function usePubMedSearch(
         tags: { feature: 'pubmed', action: 'search' },
         extra: { diseaseName, petType },
       });
-      const message =
-        err instanceof Error ? err.message : 'PubMed 검색에 실패했습니다.';
-      setError(message);
+      // 'Failed to fetch' 같은 브라우저 원문 메시지가 유저에게 그대로 노출되던
+      // 문제. 네트워크 절단이 대부분이므로 2줄 한글로 고정 (`\n` 으로 구분 →
+      // 페이지에서 split 해서 둘째 줄은 작게 렌더).
+      setError('논문 검색에 실패했습니다.\n네트워크 연결을 확인해주세요.');
       setArticles([]);
       setLoading(false);
       setStep('done');
