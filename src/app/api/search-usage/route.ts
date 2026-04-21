@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig } from '@/lib/plans';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,15 +28,13 @@ export async function GET(request: NextRequest) {
   const isApp = request.headers.get('x-platform') === 'app';
   const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
 
-  // Count today's searches
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
+  // Count today's searches (KST 기준 자정부터 + 질병 검색만)
   const { count } = await supabaseAdmin
     .from('search_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .gte('created_at', startOfDay.toISOString());
+    .eq('kind', 'disease')
+    .gte('created_at', startOfDayKST().toISOString());
 
   const used = count || 0;
   const unlimited = dailyLimit === 0;
@@ -70,15 +69,13 @@ export async function POST(request: NextRequest) {
   const isApp = request.headers.get('x-platform') === 'app';
   const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
 
-  // Count today's searches
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
+  // Count today's searches (KST 기준 자정부터 + 질병 검색만)
   const { count } = await supabaseAdmin
     .from('search_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .gte('created_at', startOfDay.toISOString());
+    .eq('kind', 'disease')
+    .gte('created_at', startOfDayKST().toISOString());
 
   if (dailyLimit > 0 && (count || 0) >= dailyLimit) {
     return NextResponse.json({
@@ -88,11 +85,12 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Log the search
+  // Log the search (명시적으로 kind='disease' 지정. DEFAULT 'disease' 라 생략해도 되지만 의도 명확히)
   await supabaseAdmin.from('search_logs').insert({
     user_id: userId,
     query: query || '',
     pet_type: petType || 'dog',
+    kind: 'disease',
   });
 
   return NextResponse.json({ allowed: true, plan });

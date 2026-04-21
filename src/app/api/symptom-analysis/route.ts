@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -45,8 +46,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = startOfDayKST();
 
     // Rate limit check
     const kind = isRefinement ? 'symptom_refine' : 'symptom';

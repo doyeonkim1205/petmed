@@ -563,24 +563,6 @@ function SearchContent() {
 
             {symptomResult && (
               <>
-                {/* Emergency Signs — 맨 위 배치: 위급 증상은 최우선 가시 */}
-                {symptomResult.emergency_signs.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
-                      <ShieldAlert size={14} />
-                      이런 증상이면 즉시 병원으로
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {symptomResult.emergency_signs.map((sign, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
-                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
-                          {sign}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 {/* Disease Cards */}
                 {symptomResult.diseases.map((disease, idx) => {
                   const sev = severityConfig[disease.severity] || severityConfig['관찰'];
@@ -644,6 +626,37 @@ function SearchContent() {
                     </div>
                   );
                 })}
+
+                {/* Upgrade banner (질병 카드 직후) */}
+                {!isPaid && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Crown size={13} className="text-purple-500" />
+                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
+                    </p>
+                  </div>
+                )}
+
+                {/* Emergency Signs — 배너 다음 */}
+                {symptomResult.emergency_signs.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
+                      <ShieldAlert size={14} />
+                      이런 증상이면 즉시 병원으로
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {symptomResult.emergency_signs.map((sign, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
+                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
+                          {sign}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Interactive Follow-up Questions */}
                 {symptomResult.followup_questions.length > 0 && !refineLimit && (
@@ -751,19 +764,6 @@ function SearchContent() {
                 <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">
                   AI 예측은 참고용이며, 정확한 진단은 수의사와 상담하세요.
                 </p>
-
-                {/* Upgrade banner (증상 분석 결과 하단 — 논문 검색과 동일 패턴) */}
-                {!isPaid && (
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
-                    </div>
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
-                      더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
-                    </p>
-                  </div>
-                )}
               </>
             )}
           </div>

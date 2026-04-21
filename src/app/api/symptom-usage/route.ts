@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig } from '@/lib/plans';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,8 +23,7 @@ export async function GET(request: NextRequest) {
   const plan = profile?.plan || 'free';
   const config = getPlanConfig(plan);
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfDayKST();
 
   const [searchCount, refineCount] = await Promise.all([
     supabaseAdmin
