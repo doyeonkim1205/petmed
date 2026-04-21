@@ -84,8 +84,8 @@ export function IosInstallPrompt() {
               <Smartphone size={18} className="text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900">✨ PawDex를 앱처럼 사용해 보세요.</p>
-              <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요.</p>
+              <p className="text-xs font-semibold text-gray-900">✨ PawDex를 앱처럼 사용해 보세요</p>
+              <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요</p>
             </div>
             <button
               onClick={() => setShowModal(true)}
@@ -130,7 +130,7 @@ export function IosInstallPrompt() {
             </div>
 
             <p className="text-xs text-gray-500 mb-5 leading-relaxed">
-              PawDex 를 앱처럼 빠르게 열고 알림까지 받아보세요.
+              PawDex 를 앱처럼 빠르게 열고 알림까지 받아보세요
             </p>
 
             <ol className="space-y-4 mb-5">
@@ -168,7 +168,7 @@ export function IosInstallPrompt() {
 
             <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 mb-5">
               <p className="text-[11px] text-blue-700 leading-relaxed">
-                💡 알림을 받으려면 iOS 16.4 이상에서 홈 화면에 추가해야 해요.
+                💡 알림을 받으려면 iOS 16.4 이상에서 홈 화면에 추가해야 해요
               </p>
             </div>
 

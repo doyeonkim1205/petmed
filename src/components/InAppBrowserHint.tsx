@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Copy, ExternalLink, X, Check } from 'lucide-react';
+import { AlertCircle, Copy, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
 
@@ -66,17 +66,6 @@ export function InAppBrowserHint() {
     }
   };
 
-  const handleOpenSafari = () => {
-    // x-safari-https:// 시도. 실패해도 앱 크래시 없음.
-    // iOS 9+ 일부 환경에서 작동, 대부분은 차단되지만 시도하는 게 손해 없음.
-    try {
-      const url = window.location.origin.replace(/^https:/, 'x-safari-https:');
-      window.location.href = url;
-    } catch {
-      /* noop — 유저가 직접 복사해서 Safari 로 가야 함 */
-    }
-  };
-
   const dismiss = () => {
     setShow(false);
     try {
@@ -113,33 +102,20 @@ export function InAppBrowserHint() {
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-          현재 브라우저에서는 PawDex 의 홈 화면 추가와 알림 기능을 사용할 수
-          없어요. Safari 에서 열어주세요.
-        </p>
-
-        <div className="space-y-2 mb-4">
-          <button
-            onClick={handleCopy}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            {copied ? (
-              <>
-                <Check size={16} /> 복사됨! Safari 를 열어 붙여넣어 주세요
-              </>
-            ) : (
-              <>
-                <Copy size={16} /> 주소 복사하기
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleOpenSafari}
-            className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-          >
-            <ExternalLink size={14} /> Safari 로 바로 이동 시도
-          </button>
-        </div>
+        <button
+          onClick={handleCopy}
+          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 mb-4"
+        >
+          {copied ? (
+            <>
+              <Check size={16} /> 복사됨! Safari 를 열어 붙여넣어 주세요
+            </>
+          ) : (
+            <>
+              <Copy size={16} /> 주소 복사하기
+            </>
+          )}
+        </button>
 
         <div className="rounded-lg bg-gray-50 px-3 py-2.5">
           <p className="text-[11px] font-semibold text-gray-700 mb-1.5">

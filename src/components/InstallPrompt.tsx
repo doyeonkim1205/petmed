@@ -103,7 +103,7 @@ export function InstallPrompt() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-gray-900">✨ PawDex 앱 설치하고 더 빠르게!</p>
-          <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요.</p>
+          <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요</p>
         </div>
         <button
           onClick={handleInstall}
