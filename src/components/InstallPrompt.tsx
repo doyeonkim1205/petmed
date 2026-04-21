@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, Smartphone } from 'lucide-react';
 import { isRunningInInstalledApp, isTwaAppInstalled } from '@/lib/installState';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -96,21 +96,28 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-50">
-      <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-4 flex items-center gap-3">
-        <div className="flex-1">
-          <p className="font-medium text-sm">PawDex 앱 설치</p>
-          <p className="text-xs text-gray-500">홈 화면에 추가하여 더 빠르게 이용하세요</p>
+    <div className="fixed bottom-20 left-3 right-3 z-[75] max-w-md mx-auto">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Smartphone size={18} className="text-blue-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-900">✨ PawDex 앱 설치하고 더 빠르게!</p>
+          <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요.</p>
         </div>
         <button
           onClick={handleInstall}
-          className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shrink-0"
+          className="flex items-center gap-1 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
         >
-          <Download size={14} />
+          <Download size={12} />
           설치
         </button>
-        <button onClick={() => setDismissed(true)} className="p-1 text-gray-400 hover:text-gray-600 shrink-0">
-          <X size={18} />
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+          aria-label="닫기"
+        >
+          <X size={16} />
         </button>
       </div>
     </div>

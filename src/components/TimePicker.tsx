@@ -156,28 +156,22 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
 
       <span className="text-gray-400 font-bold">:</span>
 
-      {/* 분: 기본은 입력, 투약(step=15)은 프리셋 버튼 */}
+      {/* 분: 기본은 입력, 투약(step=15)은 네이티브 select 드롭다운 */}
       {isSteppedPreset ? (
-        <div className="grid grid-cols-2 gap-1">
+        <select
+          value={minute}
+          onChange={(e) => pickMinutePreset(Number(e.target.value))}
+          className="py-1 px-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+        >
           {[0, 15, 30, 45].map((m) => {
             const mStr = String(m).padStart(2, '0');
-            const selected = minute === mStr;
             return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => pickMinutePreset(m)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                  selected
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
+              <option key={m} value={mStr}>
                 {mStr}
-              </button>
+              </option>
             );
           })}
-        </div>
+        </select>
       ) : (
         <div className="flex flex-col items-center">
           <button type="button" onClick={() => bumpMinute(1)} className="p-0.5 text-gray-400 hover:text-blue-600">

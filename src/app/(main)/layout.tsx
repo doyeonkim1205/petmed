@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { IosInstallPrompt } from '@/components/IosInstallPrompt';
 import { InAppBrowserHint } from '@/components/InAppBrowserHint';
+import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -51,6 +52,7 @@ export default function MainLayout({
         <InstallPrompt />
         <IosInstallPrompt />
         <InAppBrowserHint />
+        <AndroidInAppBrowserHint />
       </div>
     </div>
   );

@@ -84,8 +84,8 @@ export function IosInstallPrompt() {
               <Smartphone size={18} className="text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900">앱처럼 사용하기</p>
-              <p className="text-[11px] text-gray-500">홈 화면에 추가하면 더 편해요</p>
+              <p className="text-xs font-semibold text-gray-900">✨ PawDex를 앱처럼 사용해 보세요.</p>
+              <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요.</p>
             </div>
             <button
               onClick={() => setShowModal(true)}
