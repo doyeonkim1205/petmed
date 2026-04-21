@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import {
   searchPubMed,
@@ -186,6 +186,12 @@ export function usePubMedSearch(
   const [pendingCount, setPendingCount] = useState(false);
   const [lastLogResult, setLastLogResult] = useState<{ used: number; limit: number } | null>(null);
 
+  // 같은 (diseaseName, petType, searchKey) 조합으로 이미 fetch 한 적 있는지 추적.
+  // 탭 전환으로 인해 useCallback 이 동일 deps 로 재생성돼도 useEffect 에서
+  // 자동 재검색이 돌지 않게 차단. 재검색이 필요하면 searchKey 를 증가시키거나
+  // retry() 로 ref 를 비우고 호출.
+  const lastFetchRef = useRef<string | null>(null);
+
   // logSearch wrapper — optimistic flag + 서버 응답으로 확정값 세팅.
   const runLogSearch = useCallback(async (query: string, pet: string) => {
     setPendingCount(true);
@@ -199,22 +205,16 @@ export function usePubMedSearch(
   }, []);
 
   const fetchArticles = useCallback(async () => {
-    if (!diseaseName) {
-      // 탭 전환 등으로 검색어가 사라진 경우 훅 내부 상태를 완전히 비움.
-      // 안 그러면 이전 검색 결과가 다음 렌더에 유령처럼 남음.
-      setArticles([]);
-      setAnalysis(null);
-      setDiseaseDescription(null);
-      setError(null);
-      setLimitReached(false);
-      setIsCached(false);
-      setLoading(false);
-      setAnalysisLoading(false);
-      setStep('idle');
-      setPendingCount(false);
-      // lastLogResult 는 탭 전환해도 유지 — 배지값이 갑자기 리셋되는 걸 방지.
-      return;
-    }
+    // diseaseName 이 null 이면 훅이 "유휴" 상태. 이전 결과(articles 등)는
+    // 보존해야 탭 전환 후 돌아왔을 때 사용자가 전에 본 결과를 그대로 볼 수 있음.
+    if (!diseaseName) return;
+
+    // Dedup: 같은 조합으로 이미 fetch 했으면 skip. 이게 없으면 탭 전환으로
+    // 유발된 useEffect 재실행이 search_cache hit → logSearch 이중 호출 →
+    // 카운트 중복 차감으로 이어짐.
+    const combo = `${diseaseName}|${petType}|${searchKey}`;
+    if (lastFetchRef.current === combo) return;
+    lastFetchRef.current = combo;
 
     setLoading(true);
     setError(null);
@@ -384,6 +384,13 @@ export function usePubMedSearch(
     }
   }, [diseaseName, petType, searchKey, runLogSearch]);
 
+  // retry: dedup ref 를 비우고 fetchArticles 를 강제 재실행.
+  // fetchArticles 를 그대로 retry 로 넘기면 dedup 때문에 재실행이 안 됨.
+  const retry = useCallback(() => {
+    lastFetchRef.current = null;
+    return fetchArticles();
+  }, [fetchArticles]);
+
   useEffect(() => {
     fetchArticles();
   }, [fetchArticles]);
@@ -392,7 +399,7 @@ export function usePubMedSearch(
     articles,
     loading,
     error,
-    retry: fetchArticles,
+    retry,
     analysis,
     analysisLoading,
     step,

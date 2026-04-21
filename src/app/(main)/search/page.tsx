@@ -97,7 +97,18 @@ function SearchContent() {
     } catch { return null; }
   });
 
-  const [query, setQuery] = useState(cached?.query || initialQuery);
+  // 각 탭이 독립된 입력창 state 를 가짐 — 탭 전환 시 서로 영향 없음.
+  // 초기값: (1) 해당 탭 캐시에 쿼리가 있으면 그대로, (2) URL ?q= 이 있고 현재 탭 모드와 일치하면 그 값, (3) 없으면 공백.
+  const [diseaseInput, setDiseaseInput] = useState<string>(() => {
+    if (cached?.query) return cached.query;
+    if (initialMode === 'disease' && initialQuery) return initialQuery;
+    return '';
+  });
+  const [symptomInput, setSymptomInput] = useState<string>(() => {
+    if (cachedSymptom?.query) return cachedSymptom.query;
+    if (initialMode === 'symptom' && initialQuery) return initialQuery;
+    return '';
+  });
   const [petType, setPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
   const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || null);
   const [mockResult, setMockResult] = useState<Disease | null>(cached?.mockResult || null);
@@ -122,7 +133,16 @@ function SearchContent() {
   const [isRefining, setIsRefining] = useState(false);
   const [refineLimit, setRefineLimit] = useState<string | null>(null);
 
-  const pubmed = usePubMedSearch(cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null), petType, searchKey);
+  // symptom 탭 활성 중엔 훅에 null 을 넘겨서 pet 토글 같은 외부 deps 변화가
+  // 유발하는 백그라운드 disease fetch 를 완전 차단. (예: 증상 탭에서 pet 을
+  // 바꿨다고 disease 가 몰래 재검색 + 카운트 차감되는 사고 방지)
+  // disease 탭으로 돌아오면 훅 내부 dedup(lastFetchRef) 이 이전 결과에 대한
+  // 중복 fetch 를 막으므로 articles state 는 그대로 보존됨.
+  const pubmed = usePubMedSearch(
+    cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null),
+    petType,
+    searchKey,
+  );
 
   const displayPubmed: UsePubMedSearchResult = cachedPubmed ? {
     articles: cachedPubmed.articles,
@@ -217,7 +237,9 @@ function SearchContent() {
     if (pubmed.step === 'done' && searchTerm && pubmed.articles.length > 0) {
       try {
         sessionStorage.setItem('searchCache', JSON.stringify({
-          query, petType, searchTerm, mockResult, saved,
+          // cache.query 는 "이 캐시가 어떤 검색에 속하는가" 식별자 — searchTerm 과 같게 유지.
+          query: searchTerm,
+          petType, searchTerm, mockResult, saved,
           articles: pubmed.articles,
           analysis: pubmed.analysis,
           diseaseDescription: pubmed.diseaseDescription,
@@ -225,7 +247,7 @@ function SearchContent() {
         }));
       } catch {}
     }
-  }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, query, petType, searchTerm, mockResult, saved]);
+  }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, petType, searchTerm, mockResult, saved]);
 
   // Cache symptom results in sessionStorage
   useEffect(() => {
@@ -372,8 +394,10 @@ function SearchContent() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    const q = query.trim();
+    // 현재 탭의 입력값을 사용. 각 탭이 독립 state 라 반대 탭 값은 안 건드림.
+    const rawInput = searchMode === 'disease' ? diseaseInput : symptomInput;
+    if (!rawInput.trim()) return;
+    const q = rawInput.trim();
     const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 10);
     saveHistory(updated);
 
@@ -385,7 +409,7 @@ function SearchContent() {
 
     setCachedPubmed(null);
     setSaved(false);
-    const found = mockDiseases.find(d => d.name.includes(query));
+    const found = mockDiseases.find(d => d.name.includes(q));
     setMockResult(found || null);
     setSearchTerm(q);
     setSearchKey(k => k + 1);
@@ -396,7 +420,14 @@ function SearchContent() {
   };
 
   const clickSearchTerm = (term: string) => {
-    setQuery(term);
+    // 최근 검색어 칩 클릭: 현재 탭 모드에 맞춰 해당 탭에서 새 검색 실행.
+    if (searchMode === 'symptom') {
+      setSymptomInput(term);
+      setSymptomQuery(term);
+      handleSymptomSearch(term);
+      return;
+    }
+    setDiseaseInput(term);
     setCachedPubmed(null);
     setSaved(false);
     const found = mockDiseases.find(d => d.name.includes(term));
@@ -481,27 +512,13 @@ function SearchContent() {
             <button
               type="button"
               onClick={() => {
-                // 탭 전환 시 양쪽 상태를 모두 초기화:
-                // query/searchTerm/cachedPubmed 중 하나라도 남아있으면
-                // usePubMedSearch 가 이전 값으로 재실행되거나
-                // 이전에 입력한 텍스트가 반대 탭 입력창에 그대로 노출됨.
+                // 각 탭이 독립된 input/result state 를 가지므로 탭 전환 시
+                // 상태를 건드리지 않아도 된다. 이전에 있던 대량 클리어 로직은
+                // "입력창 공유 구조" 에서 나왔던 회피 코드였고, 이번에 state
+                // 를 분리하면서 원천 제거됨.
+                // 자동 재검색도 훅의 lastFetchRef dedup 이 막음.
                 if (searchMode === 'disease') return;
                 setSearchMode('disease');
-                setQuery('');
-                setSearchTerm(null);
-                setCachedPubmed(null);
-                setMockResult(null);
-                setSaved(false);
-                setSaveWarning(null);
-                setBookmarkedPapers(new Set());
-                setSymptomQuery(null);
-                setSymptomResult(null);
-                setSymptomError(null);
-                setSymptomLoading(false);
-                setRefineLimit(null);
-                setIsRefining(false);
-                setFollowupAnswers({});
-                try { sessionStorage.removeItem('symptomCache'); } catch {}
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
@@ -515,21 +532,6 @@ function SearchContent() {
               onClick={() => {
                 if (searchMode === 'symptom') return;
                 setSearchMode('symptom');
-                setQuery('');
-                setSearchTerm(null);
-                setCachedPubmed(null);
-                setMockResult(null);
-                setSaved(false);
-                setSaveWarning(null);
-                setBookmarkedPapers(new Set());
-                setSymptomQuery(null);
-                setSymptomResult(null);
-                setSymptomError(null);
-                setSymptomLoading(false);
-                setRefineLimit(null);
-                setIsRefining(false);
-                setFollowupAnswers({});
-                try { sessionStorage.removeItem('searchCache'); } catch {}
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
@@ -556,10 +558,14 @@ function SearchContent() {
             </button>
             <input
               type="text"
-              value={query}
+              value={searchMode === 'disease' ? diseaseInput : symptomInput}
               onChange={(e) => {
-                if (searchMode === 'symptom' && e.target.value.length > maxSymptomLen) return;
-                setQuery(e.target.value);
+                if (searchMode === 'symptom') {
+                  if (e.target.value.length > maxSymptomLen) return;
+                  setSymptomInput(e.target.value);
+                } else {
+                  setDiseaseInput(e.target.value);
+                }
               }}
               maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
               placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
@@ -576,10 +582,10 @@ function SearchContent() {
           </div>
         </form>
         {/* Symptom character count */}
-        {searchMode === 'symptom' && query.length > 0 && (
+        {searchMode === 'symptom' && symptomInput.length > 0 && (
           <div className="max-w-sm mx-auto mt-1 flex justify-end pr-2">
-            <span className={`text-[10px] ${query.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
-              {query.length}/{maxSymptomLen}자
+            <span className={`text-[10px] ${symptomInput.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
+              {symptomInput.length}/{maxSymptomLen}자
             </span>
           </div>
         )}
