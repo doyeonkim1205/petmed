@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Share, Plus, X, Smartphone } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
+import { isRunningInInstalledApp } from '@/lib/installState';
 
 const DISMISS_KEY = 'iosInstallDismissedAt';
 const DISMISS_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h
@@ -31,6 +32,9 @@ export function IosInstallPrompt() {
     if (!device) return false;
     if (!device.isIosSafari) return false;
     if (device.isStandalone) return false;
+    // TWA 는 Android 라 iOS 체크에서 이미 걸러지지만, referrer 캐시 기반
+    // 컨텍스트 감지로 한 번 더 방어 (이상 환경에서 false-positive 방지).
+    if (isRunningInInstalledApp()) return false;
 
     try {
       const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);

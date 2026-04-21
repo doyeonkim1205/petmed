@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, Copy, ExternalLink, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
+import { isRunningInInstalledApp } from '@/lib/installState';
 
 const DISMISS_KEY = 'inAppBrowserHintDismissedAt';
 const DISMISS_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — 더 짧게 (Safari 전환이 중요)
@@ -25,6 +26,9 @@ export function InAppBrowserHint() {
   useEffect(() => {
     const device = detectDevice();
     if (!device || !device.needsSafariTransition || device.isStandalone) return;
+    // TWA / PWA 컨텍스트에선 hint 전혀 불필요 (설치된 앱 안에선 이미
+    // 원하는 브라우저로 돌고 있음). referrer 캐시 기반으로 한 번 더 방어.
+    if (isRunningInInstalledApp()) return;
 
     try {
       const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);
