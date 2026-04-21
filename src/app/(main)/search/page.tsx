@@ -500,7 +500,17 @@ function SearchContent() {
   const hasSearched = searchMode === 'disease' ? searchTerm !== null : (symptomQuery !== null);
   const hasResults = displayPubmed.articles.length > 0 && displayPubmed.step === 'done';
   const desc = displayPubmed.diseaseDescription;
-  const showBottomBar = hasResults && isPaid && searchMode === 'disease';
+  // AI 분석 실패 감지: 검색은 끝났고 논문은 있는데 analysis 가 비어있음.
+  // usePubMedSearch 의 catch(aiErr) 경로에서 setArticles 만 하고 analysis 를 세팅
+  // 못 하는 케이스 (비행기 모드 / OpenAI 타임아웃 등). 이 상태에서 "분석 중..."
+  // 같은 유령 메시지가 계속 보이면 혼란스러우므로 명시적 배너로 바꿈.
+  const aiFailed =
+    displayPubmed.step === 'done' &&
+    displayPubmed.articles.length > 0 &&
+    !displayPubmed.analysisLoading &&
+    !displayPubmed.analysis;
+  // AI 실패 시엔 북마크 보관 UI 도 의미 없음 (저장할 AI 분석이 없음)
+  const showBottomBar = hasResults && isPaid && searchMode === 'disease' && !aiFailed;
 
   return (
     <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
@@ -999,16 +1009,27 @@ function SearchContent() {
                   </div>
                 )}
 
+                {aiFailed && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                    <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs leading-relaxed">
+                      <p className="font-medium text-amber-700">AI 분석을 불러오지 못했어요.</p>
+                      <p className="text-amber-600 mt-0.5">아래 논문 원문을 직접 확인해주세요. 검색 횟수는 차감되지 않았습니다.</p>
+                    </div>
+                  </div>
+                )}
+
                 <PaperSection
                   pubmed={displayPubmed}
                   diseaseName={searchTerm || ''}
                   diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
                   bookmarkedPapers={bookmarkedPapers}
                   onToggleBookmark={toggleBookmark}
-                  showBookmarks={isPaid && !saved}
+                  showBookmarks={isPaid && !saved && !aiFailed}
                 />
 
-                {/* AI Analysis sections */}
+                {/* AI Analysis sections — 실패 시엔 숨김 (유령 "분석 중" 메시지 방지) */}
+                {!aiFailed && (
                 <div>
                   <section>
                     <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
@@ -1073,6 +1094,7 @@ function SearchContent() {
                     </div>
                   </section>
                 </div>
+                )}
               </>
             )}
           </div>

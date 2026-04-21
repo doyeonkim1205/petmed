@@ -148,16 +148,36 @@ export async function POST(request: NextRequest) {
     const parsed = JSON.parse(content);
 
     // 성공한 분석만 카운트 (사용량 차감). 질병 검색과 통일된 search_logs 에 기록.
-    await supabaseAdmin.from('search_logs').insert({
-      user_id: userId,
-      query: symptoms,
-      pet_type: petType,
-      kind,
-    });
+    //
+    // Dedup: 비행기 모드 등으로 클라가 응답을 못 받고 재시도할 때, 서버 쪽에선
+    // 1차 요청이 이미 OpenAI 호출 + INSERT 까지 완료한 상태일 수 있음. 재요청
+    // 은 이걸 모르고 또 INSERT → 카운트 중복 차감. 최근 60초 내 같은
+    // (user_id, kind, query) 로그가 있으면 INSERT 를 스킵해서 보호.
+    // OpenAI 호출은 어쨌든 2번 일어나지만 (유저 결과 보장용) 내부 비용일 뿐.
+    const sixtySecAgo = new Date(Date.now() - 60_000).toISOString();
+    const { data: recentDupe } = await supabaseAdmin
+      .from('search_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('kind', kind)
+      .eq('query', symptoms)
+      .gte('created_at', sixtySecAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (!recentDupe) {
+      await supabaseAdmin.from('search_logs').insert({
+        user_id: userId,
+        query: symptoms,
+        pet_type: petType,
+        kind,
+      });
+    }
 
     // 삽입 직후의 카운트를 응답에 포함 → 클라 배지 즉시 갱신.
     // 별도 GET /api/symptom-usage 없이도 race 없이 정확한 값 전달.
-    const newUsed = (count || 0) + 1;
+    // dedup 이 걸렸으면 count 그대로, 아니면 +1.
+    const newUsed = recentDupe ? (count || 0) : (count || 0) + 1;
 
     const result = {
       diseases: (parsed.diseases ?? []).slice(0, 3),

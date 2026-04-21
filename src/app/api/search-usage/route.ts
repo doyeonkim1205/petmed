@@ -94,20 +94,39 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Log the search (명시적으로 kind='disease' 지정. DEFAULT 'disease' 라 생략해도 되지만 의도 명확히)
-  await supabaseAdmin.from('search_logs').insert({
-    user_id: userId,
-    query: query || '',
-    pet_type: petType || 'dog',
-    kind: 'disease',
-  });
+  // Dedup: 비행기 모드 재시도 / 재시도 버튼 연타 / 캐시 hit 재호출 등으로
+  // 같은 쿼리가 짧은 시간 내에 여러 번 들어올 때 이중 차감 방지.
+  // 최근 60초 내 같은 (user_id, kind='disease', query) 로그 있으면 INSERT 스킵.
+  const sixtySecAgo = new Date(Date.now() - 60_000).toISOString();
+  const { data: recentDupe } = await supabaseAdmin
+    .from('search_logs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('kind', 'disease')
+    .eq('query', query || '')
+    .gte('created_at', sixtySecAgo)
+    .limit(1)
+    .maybeSingle();
 
-  // 클라가 별도 GET 없이 즉시 배지 갱신하도록 방금 삽입된 카운트를 응답에 포함.
+  if (!recentDupe) {
+    // Log the search (명시적으로 kind='disease' 지정. DEFAULT 'disease' 라 생략해도 되지만 의도 명확히)
+    await supabaseAdmin.from('search_logs').insert({
+      user_id: userId,
+      query: query || '',
+      pet_type: petType || 'dog',
+      kind: 'disease',
+    });
+  }
+
+  // 클라가 별도 GET 없이 즉시 배지 갱신하도록 현재 카운트를 응답에 포함.
   // race condition 없는 "서버 진실" — optimistic 업데이트의 correction 용.
+  // dedup 걸리면 currentUsed 그대로, 신규 INSERT 면 +1.
+  const finalUsed = recentDupe ? currentUsed : currentUsed + 1;
+
   return NextResponse.json({
     allowed: true,
     plan,
-    used: currentUsed + 1,
+    used: finalUsed,
     limit: dailyLimit,
     unlimited,
   });
