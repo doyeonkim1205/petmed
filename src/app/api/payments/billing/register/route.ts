@@ -144,11 +144,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      mode: 'register',
       plan: product.plan,
       productId: product.id,
+      productName: product.name,
+      period: product.period,
       periodEnd: periodEnd.toISOString(),
       nextBillingAt: nextBillingAt.toISOString(),
       billingType: 'recurring',
+      amount: charged.totalAmount,
     });
   } catch (error) {
     Sentry.captureException(error, {
