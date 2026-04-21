@@ -50,7 +50,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
     title: '일일 한도',
     features: [
       { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/일` },
-      { label: '증상 검색', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
+      { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
       { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
     ],
   },

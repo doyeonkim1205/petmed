@@ -41,7 +41,7 @@ export default function RefundPage() {
         <p>다음 중 하나라도 사용한 경우 유료 서비스를 이용한 것으로 간주합니다.</p>
         <ul>
           <li>AI 논문 분석</li>
-          <li>증상 검색</li>
+          <li>증상 분석</li>
           <li>건강 기록 작성</li>
           <li>논문 저장</li>
           <li>푸시 알림 설정</li>

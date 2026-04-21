@@ -168,7 +168,20 @@ export function usePubMedSearch(
   const [isCached, setIsCached] = useState(false);
 
   const fetchArticles = useCallback(async () => {
-    if (!diseaseName) return;
+    if (!diseaseName) {
+      // 탭 전환 등으로 검색어가 사라진 경우 훅 내부 상태를 완전히 비움.
+      // 안 그러면 이전 검색 결과가 다음 렌더에 유령처럼 남음.
+      setArticles([]);
+      setAnalysis(null);
+      setDiseaseDescription(null);
+      setError(null);
+      setLimitReached(false);
+      setIsCached(false);
+      setLoading(false);
+      setAnalysisLoading(false);
+      setStep('idle');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -301,11 +314,14 @@ export function usePubMedSearch(
         setArticles(finalArticles);
         setAnalysis(finalAnalysis);
 
-        // 캐시에 저장 (백그라운드, 에러 무시)
-        saveCache(diseaseName, petType, finalArticles, finalAnalysis, desc);
-
-        // 검색 성공 시에만 카운트 차감
-        logSearch(diseaseName, petType);
+        // AI 가 관련 논문을 한 편도 못 찾았으면 "결과 없음" 으로 간주 — 카운트 차감 X, 캐시 저장 X.
+        // (논문 자체는 화면에 띄우지만 실질적 검색 결과가 아니므로 차감하지 않는다.)
+        if (relevantIndices.length >= 1) {
+          // 캐시에 저장 (백그라운드, 에러 무시)
+          saveCache(diseaseName, petType, finalArticles, finalAnalysis, desc);
+          // 검색 성공 시에만 카운트 차감
+          logSearch(diseaseName, petType);
+        }
       } catch (aiErr) {
         Sentry.captureException(aiErr, {
           tags: { feature: 'pubmed', action: 'ai-analysis' },

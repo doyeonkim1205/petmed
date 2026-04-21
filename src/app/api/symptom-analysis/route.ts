@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .gte('created_at', startOfDay.toISOString());
 
     if ((count || 0) >= dailyLimit) {
-      const label = isRefinement ? '재분석' : '증상 검색';
+      const label = isRefinement ? '재분석' : '증상 분석';
       // `\n` 기준 두 줄 구성 — 클라이언트가 split 해서 둘째 줄은 작게 렌더.
       return NextResponse.json({
         error: `오늘의 ${label} 횟수(${dailyLimit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,

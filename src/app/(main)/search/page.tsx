@@ -261,7 +261,7 @@ function SearchContent() {
           if (isRefine) {
             setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
           } else {
-            setSymptomError(errData.error || '증상 검색 횟수를 초과했습니다.');
+            setSymptomError(errData.error || '증상 분석 횟수를 초과했습니다.');
           }
         } else if (!isRefine) {
           setSymptomError('증상 분석에 실패했습니다. 다시 시도해주세요.');
@@ -418,16 +418,27 @@ function SearchContent() {
             <button
               type="button"
               onClick={() => {
-                // 탭 전환 시 이전 검색 상태 완전 초기화:
-                // 안 하면 usePubMedSearch 가 이전 searchTerm 으로 재실행되면서
-                // 유저가 누른 적 없는 검색이 자동 실행되는 버그가 생김.
+                // 탭 전환 시 양쪽 상태를 모두 초기화:
+                // query/searchTerm/cachedPubmed 중 하나라도 남아있으면
+                // usePubMedSearch 가 이전 값으로 재실행되거나
+                // 이전에 입력한 텍스트가 반대 탭 입력창에 그대로 노출됨.
+                if (searchMode === 'disease') return;
                 setSearchMode('disease');
                 setQuery('');
+                setSearchTerm(null);
+                setCachedPubmed(null);
+                setMockResult(null);
+                setSaved(false);
+                setSaveWarning(null);
+                setBookmarkedPapers(new Set());
                 setSymptomQuery(null);
                 setSymptomResult(null);
-                setSymptomError('');
+                setSymptomError(null);
+                setSymptomLoading(false);
                 setRefineLimit(null);
                 setIsRefining(false);
+                setFollowupAnswers({});
+                try { sessionStorage.removeItem('symptomCache'); } catch {}
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
@@ -439,10 +450,23 @@ function SearchContent() {
             <button
               type="button"
               onClick={() => {
+                if (searchMode === 'symptom') return;
                 setSearchMode('symptom');
                 setQuery('');
                 setSearchTerm(null);
                 setCachedPubmed(null);
+                setMockResult(null);
+                setSaved(false);
+                setSaveWarning(null);
+                setBookmarkedPapers(new Set());
+                setSymptomQuery(null);
+                setSymptomResult(null);
+                setSymptomError(null);
+                setSymptomLoading(false);
+                setRefineLimit(null);
+                setIsRefining(false);
+                setFollowupAnswers({});
+                try { sessionStorage.removeItem('searchCache'); } catch {}
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
