@@ -542,7 +542,17 @@ function SearchContent() {
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock size={24} className="text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-600 font-medium mb-1">{symptomError}</p>
+                {(() => {
+                  const lines = symptomError.split('\n');
+                  return (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{lines[0]}</p>
+                      {lines[1] && (
+                        <p className="text-[11px] text-gray-400 mt-1">{lines[1]}</p>
+                      )}
+                    </>
+                  );
+                })()}
                 {!isPaid && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
@@ -746,19 +756,25 @@ function SearchContent() {
                 )}
 
                 {/* Refine limit reached */}
-                {refineLimit && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                    <p className="text-xs text-gray-600 font-medium">{refineLimit}</p>
-                    {!isPaid && (
-                      <button
-                        onClick={() => window.location.href = '/profile/subscription'}
-                        className="mt-2 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
-                      >
-                        요금제 보기
-                      </button>
-                    )}
-                  </div>
-                )}
+                {refineLimit && (() => {
+                  const lines = refineLimit.split('\n');
+                  return (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                      <p className="text-xs text-gray-600 font-medium">{lines[0]}</p>
+                      {lines[1] && (
+                        <p className="text-[10px] text-gray-400 mt-1">{lines[1]}</p>
+                      )}
+                      {!isPaid && (
+                        <button
+                          onClick={() => window.location.href = '/profile/subscription'}
+                          className="mt-2 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
+                        >
+                          요금제 보기
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Disclaimer */}
                 <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">
@@ -839,7 +855,17 @@ function SearchContent() {
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock size={24} className="text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-600 font-medium mb-1">{displayPubmed.error}</p>
+                {(() => {
+                  const lines = (displayPubmed.error || '').split('\n');
+                  return (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{lines[0]}</p>
+                      {lines[1] && (
+                        <p className="text-[11px] text-gray-400 mt-1">{lines[1]}</p>
+                      )}
+                    </>
+                  );
+                })()}
                 {!isPaid && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">

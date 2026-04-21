@@ -78,9 +78,12 @@ export async function POST(request: NextRequest) {
     .gte('created_at', startOfDayKST().toISOString());
 
   if (dailyLimit > 0 && (count || 0) >= dailyLimit) {
+    // 메시지는 `\n` 기준으로 두 줄 구성.
+    // 첫 줄: 한도 안내, 둘째 줄: 리셋 시각.
+    // 클라이언트가 split 해서 첫 줄은 일반 폰트, 둘째 줄은 작게 렌더.
     return NextResponse.json({
       allowed: false,
-      reason: `🔍 오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.${plan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 검색을 이용하세요.'}`,
+      reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
       plan,
     });
   }
