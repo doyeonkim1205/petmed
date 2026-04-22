@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert } from 'lucide-react';
@@ -140,6 +140,8 @@ function SearchContent() {
   const [refineLimit, setRefineLimit] = useState<string | null>(null);
   // 증상 분석 에러 UI 아이콘 분기용: true 면 자물쇠(한도 초과), false 면 ⚠️(네트워크/기타).
   const [symptomLimitReached, setSymptomLimitReached] = useState(false);
+  // 증상 분석 결과 카드 래퍼 — 새 검색/재분석 성공 시 이 위치로 스크롤.
+  const symptomResultsRef = useRef<HTMLDivElement>(null);
 
   // symptom 탭 활성 중엔 훅에 null 을 넘겨서 pet 토글 같은 외부 deps 변화가
   // 유발하는 백그라운드 disease fetch 를 완전 차단. (예: 증상 탭에서 pet 을
@@ -358,6 +360,12 @@ function SearchContent() {
       const data = await res.json();
       setSymptomResult(data);
       setFollowupAnswers({});
+      // 재분석 시 결과 카드가 입력창 아래 멀리 있으면 사용자가 변화를 놓침 →
+      // 결과 카드 상단으로 부드럽게 스크롤. 다음 렌더 커밋 후 스크롤되도록
+      // requestAnimationFrame 으로 한 프레임 지연.
+      requestAnimationFrame(() => {
+        symptomResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
       // 서버가 응답에 끼워준 최신 사용량으로 배지 즉시 갱신.
       // 별도 GET /api/symptom-usage race 없이 정확한 값.
       if (data.usage && symptomUsageInfo) {
@@ -658,7 +666,7 @@ function SearchContent() {
       <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>
         {/* Symptom Mode Results */}
         {searchMode === 'symptom' && (symptomLoading || symptomResult || symptomError) ? (
-          <div className="max-w-sm mx-auto space-y-4">
+          <div ref={symptomResultsRef} className="max-w-sm mx-auto space-y-4 scroll-mt-4">
             {symptomLoading && (
               <div className="flex items-center gap-2.5 p-4 rounded-xl bg-purple-50">
                 <Loader2 size={16} className="animate-spin text-purple-500 flex-shrink-0" />
