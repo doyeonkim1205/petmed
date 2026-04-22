@@ -646,8 +646,12 @@ function SearchContent() {
           );
         })()}
         {searchMode === 'symptom' && (symptomUsageInfo || symptomInput.length > 0) && (
-          <div className="max-w-sm mx-auto mt-2 flex items-center justify-between gap-2 px-1">
-            {symptomUsageInfo ? (
+          // 글자수 카운터는 입력 중일 때만 등장. 입력 전에는 배지만 가운데,
+          // 입력 중에는 justify-between 으로 양쪽 배치.
+          <div className={`max-w-sm mx-auto mt-2 flex items-center gap-2 px-1 ${
+            symptomInput.length > 0 ? 'justify-between' : 'justify-center'
+          }`}>
+            {symptomUsageInfo && (
               <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
                 isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
               }`}>
@@ -657,7 +661,7 @@ function SearchContent() {
                   <>Free {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
                 )}
               </span>
-            ) : <span />}
+            )}
             {symptomInput.length > 0 && (
               <span className={`text-[10px] ${symptomInput.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
                 {symptomInput.length}/{maxSymptomLen}자
