@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
+import { usePushNotification } from '@/hooks/usePushNotification';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
@@ -57,6 +58,9 @@ export default function RecordAddPage() {
   const { user, profile } = useAuth();
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
+  // 약 알림 ON 인 약을 저장할 때 푸시 구독이 안 되어 있으면 자동 구독 시도.
+  // 사용자가 마이페이지에서 별도로 토글을 켜지 않아도 되게 통합.
+  const { isSubscribed: pushSubscribed, subscribe: pushSubscribe } = usePushNotification();
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
 
@@ -253,6 +257,20 @@ export default function RecordAddPage() {
     const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
     if (badMed) {
       showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+    }
+
+    // 알림 ON 인 약이 있고 아직 푸시 미구독이면 저장 전에 구독 시도.
+    // 권한 거부 시 저장을 중단하고 alarm 토글을 모두 OFF 로 낮춰서 사용자가
+    // "알림 없이 저장" 의 의도로 다시 저장을 누를 수 있게 함.
+    const needsPushSubscribe = canUseAlarm && !pushSubscribed
+      && medications.some(m => m.name.trim() && m.alarm_enabled);
+    if (needsPushSubscribe) {
+      const ok = await pushSubscribe();
+      if (!ok) {
+        setMedications(prev => prev.map(m => ({ ...m, alarm_enabled: false })));
+        showError('알림 권한이 허용되지 않았습니다. 알림 없이 저장하려면 다시 저장 버튼을 눌러주세요.');
+        return;
+      }
     }
 
     setSaving(true);
