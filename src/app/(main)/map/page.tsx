@@ -47,6 +47,7 @@ export default function MapPage() {
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  const [retryingLocation, setRetryingLocation] = useState(false);
   // 로딩 피드백 단계: 0 = 기본, 1 = 2초 이후 (SDK 설명), 2 = 5초 이후 (사유 + 힌트).
   // Safari / 저사양 모바일에서 카카오맵 SDK + 위치 권한이 5~15초까지
   // 걸리는 케이스가 있어, 유저에게 "멈춘 게 아니라 진행 중" 임을 점진적으로 알림.
@@ -296,6 +297,30 @@ export default function MapPage() {
     searchNearby(center.getLat(), center.getLng());
   };
 
+  // 위치 권한 재시도 — 사용자가 OS 설정에서 권한을 허용한 뒤 새로고침 없이
+  // 다시 위치를 잡을 수 있게 함. 웹/PWA 에선 권한 창을 직접 못 열어주므로
+  // 사용자가 설정 → 우리 앱으로 돌아와서 이 버튼을 누르는 시나리오.
+  const retryLocation = useCallback(() => {
+    if (!navigator.geolocation || !mapInstance.current || retryingLocation) return;
+    setRetryingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        myLatLng.current = { lat, lng };
+        const latLng = new window.kakao.maps.LatLng(lat, lng);
+        mapInstance.current.setCenter(latLng);
+        showMyLocationMarker(mapInstance.current, lat, lng);
+        searchNearby(lat, lng);
+        setLocationFailed(false);
+        setRetryingLocation(false);
+      },
+      () => {
+        setRetryingLocation(false);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }, [retryingLocation, searchNearby, showMyLocationMarker]);
+
   // Filter places
   useEffect(() => {
     let result = places;
@@ -511,6 +536,18 @@ export default function MapPage() {
             <p className="text-xs text-orange-600 flex-1">
               현재 위치를 가져올 수 없어 기본 위치로 표시됩니다. 위치 권한을 허용해주세요.
             </p>
+            <button
+              onClick={retryLocation}
+              disabled={retryingLocation}
+              className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 disabled:opacity-60 px-2 py-0.5 rounded-full flex-shrink-0"
+            >
+              {retryingLocation ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <RefreshCw size={11} />
+              )}
+              다시 시도
+            </button>
             <button
               onClick={() => setLocationFailed(false)}
               className="text-orange-400 hover:text-orange-600 flex-shrink-0"
