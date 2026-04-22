@@ -62,6 +62,15 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
+  // Rate limit: 분당 저장 스팸 방어 (500편 상한과 별개의 burst 방어선)
+  const { checkRateLimit } = await import('@/lib/rateLimit');
+  if (!checkRateLimit(`${userId}:save-analysis`, 10, 60_000)) {
+    return NextResponse.json(
+      { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+      { status: 429 },
+    );
+  }
+
   // Check plan — only paid users can save
   const { data: profile } = await supabaseAdmin
     .from('profiles')

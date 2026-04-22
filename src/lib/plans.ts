@@ -45,7 +45,9 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     symptomSearchPerDay: 10,
     symptomRefinePerDay: 5,
     aiAnalysis: 'full',
-    maxSavedAnalyses: 0,
+    // 평균 유저는 평생 100편 내외 저장. 500편 상한은 매크로 스팸 방어용.
+    // 유저가 도달하면 경고 메시지 + CS 문의로 상향 가능 (내부 규칙).
+    maxSavedAnalyses: 500,
     costStatsMonths: 12,
     maxPets: 0,
     attachmentsPerRecord: 5,

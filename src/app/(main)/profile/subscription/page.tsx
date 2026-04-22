@@ -99,6 +99,9 @@ export default function SubscriptionPage() {
   const [cancelWithRefund, setCancelWithRefund] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [showComingSoon, setShowComingSoon] = useState(false);
+  // 트라이얼 기간 중 정기 결제 버튼 누르면 뜨는 안내 모달.
+  // "나중에 진행" 닫기 / "이어서 진행" 실제 결제창. 유저 실수 결제 방지 + 토스 심사 경로 확보.
+  const [trialConfirmTarget, setTrialConfirmTarget] = useState<string | null>(null);
   // billingPeriod and billingMode removed — replaced by 3 direct buttons
 
   const fetchData = async () => {
@@ -249,7 +252,7 @@ export default function SubscriptionPage() {
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
-              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push('/payment/billing-auth?productId=plus_monthly')}
+              <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
@@ -296,7 +299,7 @@ export default function SubscriptionPage() {
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
                 sub="한번만 결제하고 30일 동안 이용" />
-              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push('/payment/billing-auth?productId=plus_monthly')}
+              <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
@@ -322,7 +325,7 @@ export default function SubscriptionPage() {
 
             {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
-              <PlanBtn onClick={() => isTrialActive() ? setShowComingSoon(true) : router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
+              <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget(`/payment/billing-auth?productId=plus_monthly&mode=enable`) : router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
                 title="월간 구독으로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
             )}
@@ -487,6 +490,50 @@ export default function SubscriptionPage() {
               <button onClick={() => setShowComingSoon(false)} className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium">
                 확인
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Trial Confirm Modal (무료 체험 중 정기 결제 시도할 때) ── */}
+      {/* 실수 결제 방지 + 토스 심사 경로 확보. "이어서 진행" 누르면 실제 billing-auth 이동. */}
+      {trialConfirmTarget && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={() => setTrialConfirmTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-xs w-full p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="text-3xl mb-2">🎁</div>
+              <h3 className="text-sm font-bold text-gray-800 mb-1.5">
+                지금은 Plus 기능을 무료로 이용하실 수 있어요
+              </h3>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                2026. 05. 13 까지 모든 기능이 무료에요.<br />
+                체험 기간에 결제하시면 Plus 혜택이<br />
+                이어서 적용됩니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTrialConfirmTarget(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50"
+                >
+                  나중에 진행
+                </button>
+                <button
+                  onClick={() => {
+                    const target = trialConfirmTarget;
+                    setTrialConfirmTarget(null);
+                    if (target) router.push(target);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+                >
+                  이어서 진행
+                </button>
+              </div>
             </div>
           </div>
         </div>
