@@ -151,9 +151,29 @@ export default function RecordAddPage() {
           }
         }
       });
-    // 최근 병원명 localStorage에서 로드 (최대 10개)
-    const saved: string[] = JSON.parse(localStorage.getItem('recentHospitals') || '[]');
-    setHospitalSuggestions(saved);
+    // 최근 병원명 DB 에서 로드 (기기 간 동기화). 기존 localStorage 값이 있으면
+    // 한 번만 DB 로 올리고 로컬 삭제하는 one-shot 마이그레이션 수행.
+    (async () => {
+      try {
+        const { authFetch } = await import('@/lib/authFetch');
+        const legacy: string[] = (() => {
+          try { return JSON.parse(localStorage.getItem('recentHospitals') || '[]'); } catch { return []; }
+        })();
+        if (legacy.length > 0) {
+          await authFetch('/api/recent-hospitals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ names: legacy }),
+          });
+          localStorage.removeItem('recentHospitals');
+        }
+        const res = await authFetch('/api/recent-hospitals');
+        if (res.ok) {
+          const names: string[] = await res.json();
+          setHospitalSuggestions(names);
+        }
+      } catch {}
+    })();
   }, [user]);
 
   const addMedicationRow = () => {
@@ -345,12 +365,18 @@ export default function RecordAddPage() {
         }
       }
 
-      // 병원명 저장 시 최근 목록에 추가 (최대 10개)
+      // 병원명 저장 시 최근 목록(DB) 갱신 — last_used_at 만 바뀌어도 자동완성
+      // 상단에 뜨도록. 실패해도 기록 저장은 성공했으니 조용히 무시.
       const hn = hospitalName.trim();
       if (hn) {
-        const prev: string[] = JSON.parse(localStorage.getItem('recentHospitals') || '[]');
-        const updated = [hn, ...prev.filter(h => h !== hn)].slice(0, 10);
-        localStorage.setItem('recentHospitals', JSON.stringify(updated));
+        try {
+          const { authFetch } = await import('@/lib/authFetch');
+          await authFetch('/api/recent-hospitals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: hn }),
+          });
+        } catch {}
       }
 
       // 저장 성공 → dirty 해제 후 이동
@@ -589,10 +615,17 @@ export default function RecordAddPage() {
                         <button
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            const updated = hospitalSuggestions.filter(h => h !== name);
-                            setHospitalSuggestions(updated);
-                            localStorage.setItem('recentHospitals', JSON.stringify(updated));
+                          onClick={async () => {
+                            // 낙관적 업데이트: UI 먼저 제거 → DB 실패해도 사용자가 기다리지 않음.
+                            setHospitalSuggestions(prev => prev.filter(h => h !== name));
+                            try {
+                              const { authFetch } = await import('@/lib/authFetch');
+                              await authFetch('/api/recent-hospitals', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name }),
+                              });
+                            } catch {}
                           }}
                           className="px-3 py-2.5 text-gray-300 hover:text-red-400"
                         >

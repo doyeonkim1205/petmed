@@ -120,6 +120,7 @@ export async function POST(request: Request) {
     // -- session / notification related
     await adminClient.from('active_sessions').delete().eq('user_id', userId);
     await adminClient.from('push_subscriptions').delete().eq('user_id', userId);
+    await adminClient.from('recent_hospitals').delete().eq('user_id', userId);
 
     // -- profile 만 삭제 (last, as other tables may FK to these)
     //    activity_logs 는 감사 / 서비스 통계용으로 보존. 프로필이 삭제되면
