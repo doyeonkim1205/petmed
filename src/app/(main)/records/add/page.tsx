@@ -469,8 +469,6 @@ export default function RecordAddPage() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
             autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
@@ -603,8 +601,6 @@ export default function RecordAddPage() {
                   onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
                   maxLength={50}
                   autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
@@ -700,8 +696,6 @@ export default function RecordAddPage() {
                   value={med.name}
                   onChange={(e) => updateMedication(i, 'name', e.target.value)}
                   autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <input
@@ -709,8 +703,6 @@ export default function RecordAddPage() {
                   value={med.dosage}
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
                   autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <div>

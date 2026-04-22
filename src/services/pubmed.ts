@@ -1,4 +1,8 @@
-const BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+// 이 모듈은 클라이언트에서 사용되며, NCBI API 를 직접 때리지 않고 서버
+// 프록시(/api/pubmed) 경유로 호출한다. NCBI_API_KEY 가 서버에 숨겨지고,
+// 429 재시도 로직을 서버에서 흡수해서 UI 안정성이 올라감.
+//
+// MeSH 동물 필터와 3단계 폴백 쿼리 구성은 여기(클라) 에서 그대로 유지.
 
 export interface ArticleSummary {
   pmid: string;
@@ -10,10 +14,26 @@ export interface ArticleSummary {
 }
 
 /**
+ * 서버 프록시를 통해 PubMed 를 호출한다. 클라이언트에서 authFetch 로 인증 헤더를 붙여야 함.
+ */
+async function pubmedProxy(body: Record<string, unknown>): Promise<any> {
+  const { authFetch } = await import('@/lib/authFetch');
+  const res = await authFetch('/api/pubmed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`pubmed proxy failed: ${res.status}`);
+  }
+  return await res.json();
+}
+
+/**
  * PubMed esearch — 검색어로 PMID 목록 조회
  *
  * 검색 전략:
- * - MeSH 동물 필터 사용 ("Cats"[Mesh] / "Dogs"[Mesh]) — 정확한 종 분류
+ * - MeSH 동물 필터 사용 ("Cats"[Mesh] / "Dogs"[Mesh]) — 정확한 종 분류 (사람 논문 제외)
  * - 질병명에서 feline/canine 접두어 자동 제거 (MeSH가 종을 필터링하므로 불필요)
  * - 3단계 폴백: Title → Title/Abstract → 자유 텍스트
  */
@@ -54,23 +74,14 @@ export async function searchPubMed(
   return ids;
 }
 
-/** PubMed esearch 단일 호출 */
+/** PubMed esearch 단일 호출 (서버 프록시 경유) */
 async function esearch(query: string, maxResults: number): Promise<string[]> {
-  const url = `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}&sort=relevance&term=${encodeURIComponent(query)}`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.esearchresult?.idlist ?? [];
-}
-
-/** 중복 없이 두 배열 합치기 */
-function deduplicateMerge(a: string[], b: string[], max: number): string[] {
-  const set = new Set(a);
-  for (const id of b) {
-    if (set.size >= max) break;
-    set.add(id);
+  try {
+    const data = await pubmedProxy({ action: 'search', query, maxResults });
+    return data.ids ?? [];
+  } catch {
+    return [];
   }
-  return [...set];
 }
 
 /**
@@ -81,11 +92,7 @@ export async function fetchArticleSummaries(
 ): Promise<ArticleSummary[]> {
   if (pmids.length === 0) return [];
 
-  const url = `${BASE}/esummary.fcgi?db=pubmed&retmode=json&id=${pmids.join(',')}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`esummary failed: ${res.status}`);
-
-  const data = await res.json();
+  const data = await pubmedProxy({ action: 'summary', pmids });
   const result = data.result ?? {};
 
   return pmids.map((id) => {
@@ -109,11 +116,8 @@ export async function fetchArticleSummaries(
  * PubMed efetch — 단일 PMID의 초록(abstract) 조회 (XML 파싱)
  */
 export async function fetchAbstract(pmid: string): Promise<string> {
-  const url = `${BASE}/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=${pmid}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`efetch failed: ${res.status}`);
-
-  const xml = await res.text();
+  const data = await pubmedProxy({ action: 'abstract', pmid });
+  const xml: string = data.xml ?? '';
 
   // XML에서 <AbstractText> 추출
   const abstractTexts: string[] = [];

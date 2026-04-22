@@ -61,8 +61,6 @@ function NicknameModal({
           onChange={e => setNickname(e.target.value)}
           placeholder="새 닉네임 (2자 이상)"
           autoComplete="nickname"
-          autoCorrect="off"
-          spellCheck={false}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
         />
         {errorMsg && (
@@ -211,8 +209,6 @@ function PetModal({
                 value={newPet.name}
                 onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
                 autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <div className="flex gap-2">
@@ -239,8 +235,6 @@ function PetModal({
                 value={newPet.breed}
                 onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
                 autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <div>

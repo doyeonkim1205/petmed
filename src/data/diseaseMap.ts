@@ -60,16 +60,19 @@ export const diseaseMap: Record<string, string> = {
   // 호흡기
   '기관 허탈': 'tracheal collapse',
   '기침': 'cough',
-  // '천식' — GPT가 petType에 따라 feline asthma vs canine 특화 용어로 번역
+  // '천식' — 종별 특화 번역은 OpenAI 에 1차 시도, 실패 시 diseaseMap 의 일반 MeSH 로 폴백.
+  // PubMed 단에서 MeSH 동물 필터 (Cats[Mesh] / Dogs[Mesh]) 가 종 필터링을 담당하므로
+  // 번역이 general 이어도 결과는 종 특화로 나옴 (강아지+천식 → 강아지 천식 논문만).
+  '천식': 'asthma',
   '상부 호흡기 감염': 'upper respiratory infection',
 
   // 심혈관
   '심장사상충': 'heartworm disease',
-  // '심장병' — GPT가 petType에 따라 feline/canine 특화 용어로 번역
+  '심장병': 'heart disease',
 
   // 간
   '지방간': 'hepatic lipidosis',
-  // '간질환' — GPT가 petType에 따라 특화 용어로 번역
+  '간질환': 'liver disease',
 
   // 신경
   '간질': 'epilepsy',

@@ -600,7 +600,7 @@ function SearchContent() {
                 를 풀어줘서 폰트 크기 확대 시에도 submit 버튼이 바깥으로 밀리지 않음. */}
             <div className="relative flex-1 min-w-0">
               <input
-                type="text"
+                type="search"
                 value={searchMode === 'disease' ? diseaseInput : symptomInput}
                 onChange={(e) => {
                   if (searchMode === 'symptom') {
@@ -613,9 +613,8 @@ function SearchContent() {
                 maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
                 placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
                 autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
+                enterKeyHint="search"
+                className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden"
               />
               <button
                 type="submit"
@@ -879,8 +878,6 @@ function SearchContent() {
                                 onChange={(e) => setFollowupAnswers(prev => ({ ...prev, [i]: e.target.value }))}
                                 placeholder="답변을 입력하세요"
                                 autoComplete="off"
-                                autoCorrect="off"
-                                spellCheck={false}
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 bg-white"
                               />
                             )}

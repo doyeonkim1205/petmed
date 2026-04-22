@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
-      signal: AbortSignal.timeout(8000),
+      // 12s — 가끔 OpenAI 응답이 8s 를 살짝 넘길 때 false negative 가 생겨서 여유를 둠.
+      // Vercel serverless 60s 상한 한참 안쪽.
+      signal: AbortSignal.timeout(12000),
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         temperature: 0,
@@ -96,35 +98,39 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `너는 수의학 전문 검색 필터 겸 PubMed MeSH 용어 번역가야.
+            content: `너는 수의학 전문 PubMed MeSH 용어 번역가야.
 현재 검색 대상 동물: ${petLabel}
 
-사용자 입력이 ${petLabel}의 질병, 증상, 건강 문제, 수의학 용어인지 판단하고,
-유효하면 PubMed MeSH(Medical Subject Headings) 표준 용어로 번역해.
+사용자 입력이 의학/수의학/건강 관련 용어면 MeSH 표준 영문 용어로 번역해.
+(PubMed 검색 단에서 "Cats"[Mesh] / "Dogs"[Mesh] 필터가 종을 분리하므로
+ 번역어 자체는 사람 의학 용어와 동일해도 상관없음.)
 
 반드시 JSON으로만 응답:
 - 유효: {"valid": true, "englishQuery": "MeSH 표준 영문 용어"}
 - 무효: {"valid": false}
 
-valid: true 기준 (허용):
-- 동물 질병명, 증상, 의학/수의학 용어, 건강 관련 키워드
+valid: true 기준 (관대하게 허용):
+- 모든 의학 용어, 질병명, 증상, 건강 관련 키워드
+- 사람 의학 용어여도 OK (종 특화 용어 생각나지 않으면 사람 의학 일반 MeSH 도 가능)
+- ${petLabel}에서 흔하지 않은 질병이어도 의학 용어면 valid:true
 
 valid: false 기준 (차단):
 - 의미 없는 글자 (ㅋㅋ, ㅎㅎ, asdf, 데레렛)
-- 반려동물 건강과 무관한 주제
-- 인사/대화 (안녕, 뭐해, 뭐하냐)
-- 욕설, 비속어, 오타
-
-확실히 동물 건강/의학 관련일 때만 valid: true. 애매하면 false.
+- 인사/대화 (안녕, 뭐해, 반가워)
+- 욕설, 비속어
+- 의학과 명백히 무관한 주제 (음식 메뉴, 게임, 연예 등)
 
 englishQuery 번역 규칙:
-- ${petLabel}에서 가장 흔한/관련성 높은 정확한 질병명으로 번역
+- ${petLabel} 에서 흔한 구체적 MeSH 용어가 있으면 우선 사용
   예시: 고양이+심장병→"Hypertrophic Cardiomyopathy", 강아지+심장병→"Mitral Valve Disease"
   예시: 고양이+감기→"Upper Respiratory Infection", 강아지+감기→"Kennel Cough"
+- 종 특화가 애매하면 일반 MeSH 용어로 번역 (사람 의학 용어 사용 가능)
+  예시: 강아지+천식→"Asthma" (강아지에 흔하지 않아도 번역은 해줌)
 - PubMed MeSH에 등재된 공식 용어 사용
 - feline/canine 접두어 붙이지 마 (PubMed 검색에서 자동으로 동물종 필터링함)
-- 포괄적 용어보다 ${petLabel}에서 흔한 구체적 질병명 우선
-- 약어보다 정식 명칭 우선`,
+- 약어보다 정식 명칭 우선
+
+핵심: 의학 용어면 일단 translate & valid:true. 쓸모없는 잡담/쓰레기일 때만 false.`,
           },
           {
             role: 'user',
