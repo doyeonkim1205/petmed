@@ -36,24 +36,9 @@ export default function MainLayout({
     }
   }, [loading, user, router]);
 
-  // 세션 확인 전 or 미인증 상태 — 빈 화면에 legal 푸터만 표시.
-  // Google OAuth 검증 봇이 pawdex.store/ 루트 방문 시 privacy 링크를 발견할 수
-  // 있어야 홈페이지 요구사항 (개인정보처리방침으로의 링크) 통과. 클라이언트에서
-  // useEffect 가 /login 으로 리다이렉트하지만 SSR 단계 HTML 에 링크가 있어야
-  // 스크래퍼가 인식.
+  // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기 (빈 화면)
   if (loading || !user) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <div className="flex-1" />
-        <footer className="text-center text-[11px] text-gray-400 py-6 px-4 space-x-2">
-          <a href="/privacy" className="underline hover:text-gray-600">개인정보처리방침</a>
-          <span>·</span>
-          <a href="/terms" className="underline hover:text-gray-600">이용약관</a>
-          <span>·</span>
-          <a href="/business" className="underline hover:text-gray-600">사업자 정보</a>
-        </footer>
-      </div>
-    );
+    return <div className="min-h-screen bg-white" />;
   }
 
   return (
