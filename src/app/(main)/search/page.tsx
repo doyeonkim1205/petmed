@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert } from 'lucide-react';
@@ -140,8 +140,6 @@ function SearchContent() {
   const [refineLimit, setRefineLimit] = useState<string | null>(null);
   // 증상 분석 에러 UI 아이콘 분기용: true 면 자물쇠(한도 초과), false 면 ⚠️(네트워크/기타).
   const [symptomLimitReached, setSymptomLimitReached] = useState(false);
-  // 증상 분석 결과 카드 래퍼 — 새 검색/재분석 성공 시 이 위치로 스크롤.
-  const symptomResultsRef = useRef<HTMLDivElement>(null);
 
   // symptom 탭 활성 중엔 훅에 null 을 넘겨서 pet 토글 같은 외부 deps 변화가
   // 유발하는 백그라운드 disease fetch 를 완전 차단. (예: 증상 탭에서 pet 을
@@ -361,20 +359,28 @@ function SearchContent() {
       setSymptomResult(data);
       setFollowupAnswers({});
       // 재분석 시 결과 카드가 입력창 아래 멀리 있으면 사용자가 변화를 놓침 →
-      // 결과 카드 상단으로 부드럽게 스크롤. 다음 렌더 커밋 후 스크롤되도록
-      // requestAnimationFrame 으로 한 프레임 지연.
+      // 페이지 맨 위로 스크롤. scrollIntoView 는 sticky 헤더(top-14)가 덮어서
+      // 결과가 중간에 걸려보이는 문제가 있어 window.scrollTo 로 교체.
       requestAnimationFrame(() => {
-        symptomResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       // 서버가 응답에 끼워준 최신 사용량으로 배지 즉시 갱신.
       // 별도 GET /api/symptom-usage race 없이 정확한 값.
-      if (data.usage && symptomUsageInfo) {
+      // symptomUsageInfo 가 아직 null 일 수 있으므로 prev null 도 받아서 초기화
+      // (홈에서 바로 mode=symptom&q=... 로 진입한 경우 초기 GET 보다 POST 가
+      //  먼저 돌아올 수 있음 — 논문 검색 쪽과 같은 패턴으로 처리).
+      if (data.usage) {
         const u = data.usage as { kind: string; used: number; limit: number };
-        if (u.kind === 'symptom_refine') {
-          setSymptomUsageInfo(prev => prev ? { ...prev, refine: { used: u.used, limit: u.limit } } : prev);
-        } else {
-          setSymptomUsageInfo(prev => prev ? { ...prev, search: { used: u.used, limit: u.limit } } : prev);
-        }
+        setSymptomUsageInfo(prev => {
+          if (u.kind === 'symptom_refine') {
+            return prev
+              ? { ...prev, refine: { used: u.used, limit: u.limit } }
+              : { plan: 'free', search: { used: 0, limit: 0 }, refine: { used: u.used, limit: u.limit } };
+          }
+          return prev
+            ? { ...prev, search: { used: u.used, limit: u.limit } }
+            : { plan: 'free', search: { used: u.used, limit: u.limit }, refine: { used: 0, limit: 0 } };
+        });
       }
     } catch (err) {
       Sentry.captureException(err, {
@@ -620,15 +626,7 @@ function SearchContent() {
             </div>
           </div>
         </form>
-        {/* Symptom character count */}
-        {searchMode === 'symptom' && symptomInput.length > 0 && (
-          <div className="max-w-sm mx-auto mt-1 flex justify-end pr-2">
-            <span className={`text-[10px] ${symptomInput.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
-              {symptomInput.length}/{maxSymptomLen}자
-            </span>
-          </div>
-        )}
-        {/* Usage count badge */}
+        {/* Usage count badge (+ symptom 모드 글자수). 한 줄에 왼쪽 카운트 · 오른쪽 글자수 배치로 헤더 세로공간 절약. */}
         {searchMode === 'disease' && usageInfo && (() => {
           // Optimistic 표시: logSearch POST 가 비행 중이면 +1 즉시 반영.
           // 서버 응답이 오면 useEffect [lastLogResult] 가 usageInfo.used 를 확정값으로 덮어씀.
@@ -647,17 +645,24 @@ function SearchContent() {
             </div>
           );
         })()}
-        {searchMode === 'symptom' && symptomUsageInfo && (
-          <div className="max-w-sm mx-auto mt-2 flex justify-center">
-            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
-            }`}>
-              {isPaid ? (
-                <><Sparkles size={10} /> Plus {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
-              ) : (
-                <>Free {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
-              )}
-            </span>
+        {searchMode === 'symptom' && (symptomUsageInfo || symptomInput.length > 0) && (
+          <div className="max-w-sm mx-auto mt-2 flex items-center justify-between gap-2 px-1">
+            {symptomUsageInfo ? (
+              <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+                isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+              }`}>
+                {isPaid ? (
+                  <><Sparkles size={10} /> Plus {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
+                ) : (
+                  <>Free {symptomUsageInfo.search.used}/{symptomUsageInfo.search.limit}</>
+                )}
+              </span>
+            ) : <span />}
+            {symptomInput.length > 0 && (
+              <span className={`text-[10px] ${symptomInput.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
+                {symptomInput.length}/{maxSymptomLen}자
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -666,7 +671,7 @@ function SearchContent() {
       <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>
         {/* Symptom Mode Results */}
         {searchMode === 'symptom' && (symptomLoading || symptomResult || symptomError) ? (
-          <div ref={symptomResultsRef} className="max-w-sm mx-auto space-y-4 scroll-mt-4">
+          <div className="max-w-sm mx-auto space-y-4">
             {symptomLoading && (
               <div className="flex items-center gap-2.5 p-4 rounded-xl bg-purple-50">
                 <Loader2 size={16} className="animate-spin text-purple-500 flex-shrink-0" />

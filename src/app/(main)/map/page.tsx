@@ -300,11 +300,23 @@ export default function MapPage() {
   // 위치 권한 재시도 — 사용자가 OS 설정에서 권한을 허용한 뒤 새로고침 없이
   // 다시 위치를 잡을 수 있게 함. 웹/PWA 에선 권한 창을 직접 못 열어주므로
   // 사용자가 설정 → 우리 앱으로 돌아와서 이 버튼을 누르는 시나리오.
+  //
+  // 일부 브라우저/PWA 는 권한 거부 상태에서 getCurrentPosition 콜백이 영원히
+  // 안 돌아오고 timeout 옵션도 무시한다. safety 타이머로 12초 후 강제 리셋.
+  // enableHighAccuracy: false + maximumAge: 0 → GPS 대신 네트워크 측위 우선,
+  // 항상 새 측정 (캐시 무시). 재시도 시 속도가 더 중요하므로 정확도는 양보.
   const retryLocation = useCallback(() => {
     if (!navigator.geolocation || !mapInstance.current || retryingLocation) return;
     setRetryingLocation(true);
+    let done = false;
+    const finish = () => { done = true; setRetryingLocation(false); };
+    const safety = setTimeout(() => {
+      if (!done) finish();
+    }, 12000);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (done) return;
+        clearTimeout(safety);
         const { latitude: lat, longitude: lng } = pos.coords;
         myLatLng.current = { lat, lng };
         const latLng = new window.kakao.maps.LatLng(lat, lng);
@@ -312,12 +324,14 @@ export default function MapPage() {
         showMyLocationMarker(mapInstance.current, lat, lng);
         searchNearby(lat, lng);
         setLocationFailed(false);
-        setRetryingLocation(false);
+        finish();
       },
       () => {
-        setRetryingLocation(false);
+        if (done) return;
+        clearTimeout(safety);
+        finish();
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 10000, enableHighAccuracy: false, maximumAge: 0 }
     );
   }, [retryingLocation, searchNearby, showMyLocationMarker]);
 
