@@ -98,6 +98,9 @@ export default function HomePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             />
             <button

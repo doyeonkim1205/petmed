@@ -468,6 +468,9 @@ export default function RecordAddPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
@@ -487,6 +490,7 @@ export default function RecordAddPage() {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+              autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -598,6 +602,9 @@ export default function RecordAddPage() {
                   onFocus={() => setShowHospitalSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
                   maxLength={50}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
@@ -648,6 +655,7 @@ export default function RecordAddPage() {
                 placeholder="0"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+                autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -691,12 +699,18 @@ export default function RecordAddPage() {
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedication(i, 'name', e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <input
                   placeholder="용량 (예: 1정)"
                   value={med.dosage}
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <div>

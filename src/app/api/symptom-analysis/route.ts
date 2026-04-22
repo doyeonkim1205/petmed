@@ -161,17 +161,28 @@ export async function POST(request: NextRequest) {
     //
     // Dedup: 비행기 모드 등으로 클라가 응답을 못 받고 재시도할 때, 서버 쪽에선
     // 1차 요청이 이미 OpenAI 호출 + INSERT 까지 완료한 상태일 수 있음. 재요청
-    // 은 이걸 모르고 또 INSERT → 카운트 중복 차감. 최근 60초 내 같은
-    // (user_id, kind, query) 로그가 있으면 INSERT 를 스킵해서 보호.
-    // OpenAI 호출은 어쨌든 2번 일어나지만 (유저 결과 보장용) 내부 비용일 뿐.
-    const sixtySecAgo = new Date(Date.now() - 60_000).toISOString();
+    // 은 이걸 모르고 또 INSERT → 카운트 중복 차감. 최근 (user_id, kind, query,
+    // pet_type) 로그가 있으면 INSERT 를 스킵해서 보호.
+    //
+    // dedup 키 선택:
+    //  - pet_type 포함: 같은 증상을 강아지/고양이 양쪽으로 돌리는 의도적
+    //    재검색이 deduped 되던 버그 수정.
+    //  - symptom_refine 은 window 를 5초로 단축: 사용자가 답변을 바꿔서
+    //    재분석 누르는 데 최소 15-30초 걸림 → 5초면 네트워크 재시도만 잡고
+    //    의도적 재분석은 카운트 됨. query(=원증상)는 같지만 answer 는 다른
+    //    refine 을 구분할 방법이 DB 컬럼에 없어 window 단축으로 우회.
+    //  - symptom (최초 분석) 은 기존 60초 유지 — 같은 증상을 60초 안에 다시
+    //    치는 건 거의 네트워크 재시도.
+    const dedupWindowMs = isRefinement ? 5_000 : 60_000;
+    const windowStart = new Date(Date.now() - dedupWindowMs).toISOString();
     const { data: recentDupe } = await supabaseAdmin
       .from('search_logs')
       .select('id')
       .eq('user_id', userId)
       .eq('kind', kind)
       .eq('query', symptoms)
-      .gte('created_at', sixtySecAgo)
+      .eq('pet_type', petType)
+      .gte('created_at', windowStart)
       .limit(1)
       .maybeSingle();
 

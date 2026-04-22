@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
 
   // Dedup: 비행기 모드 재시도 / 재시도 버튼 연타 / 캐시 hit 재호출 등으로
   // 같은 쿼리가 짧은 시간 내에 여러 번 들어올 때 이중 차감 방지.
-  // 최근 60초 내 같은 (user_id, kind='disease', query) 로그 있으면 INSERT 스킵.
+  // 최근 60초 내 같은 (user_id, kind='disease', query, pet_type) 로그 있으면 INSERT 스킵.
+  // pet_type 까지 매치해야 강아지 → 고양이 토글 후 재검색이 의도대로 카운트됨.
   const sixtySecAgo = new Date(Date.now() - 60_000).toISOString();
   const { data: recentDupe } = await supabaseAdmin
     .from('search_logs')
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
     .eq('user_id', userId)
     .eq('kind', 'disease')
     .eq('query', query || '')
+    .eq('pet_type', petType || 'dog')
     .gte('created_at', sixtySecAgo)
     .limit(1)
     .maybeSingle();

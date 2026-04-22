@@ -48,6 +48,12 @@ export default function MapPage() {
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
   const [retryingLocation, setRetryingLocation] = useState(false);
+  // 'unknown' = 미확인 (Permissions API 미지원 or 아직 쿼리 안 함)
+  // 'prompt'  = 권한 미결정 → getCurrentPosition 시 네이티브 팝업 뜸
+  // 'denied'  = 거부된 상태 → 팝업 강제 불가, OS/앱 설정으로만 복구 가능
+  // 'granted' = 이미 허용
+  const [locationPermission, setLocationPermission] = useState<'unknown' | 'prompt' | 'denied' | 'granted'>('unknown');
+  const [showPermissionGuide, setShowPermissionGuide] = useState(false);
   // 로딩 피드백 단계: 0 = 기본, 1 = 2초 이후 (SDK 설명), 2 = 5초 이후 (사유 + 힌트).
   // Safari / 저사양 모바일에서 카카오맵 SDK + 위치 권한이 5~15초까지
   // 걸리는 케이스가 있어, 유저에게 "멈춘 게 아니라 진행 중" 임을 점진적으로 알림.
@@ -62,6 +68,23 @@ export default function MapPage() {
       clearTimeout(t2);
     };
   }, [mapReady]);
+
+  // Permissions API 로 현재 위치 권한 상태 조회.
+  // Chromium / Firefox 지원. Safari 는 미지원이므로 'unknown' 상태 유지
+  // (기존 흐름: getCurrentPosition 호출 → 시스템이 알아서 팝업/거부 처리).
+  // 상태가 변경되면(allow 를 눌러주면) listener 가 받아서 locationPermission
+  // 을 갱신 → UI 도 실시간으로 반응.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    const update = () => { if (status) setLocationPermission(status.state as any); };
+    navigator.permissions.query({ name: 'geolocation' as PermissionName }).then(s => {
+      status = s;
+      update();
+      s.addEventListener('change', update);
+    }).catch(() => {});
+    return () => { status?.removeEventListener('change', update); };
+  }, []);
 
   // Resize handler — fix map when devtools or keyboard opens
   useEffect(() => {
@@ -297,9 +320,15 @@ export default function MapPage() {
     searchNearby(center.getLat(), center.getLng());
   };
 
-  // 위치 권한 재시도 — 사용자가 OS 설정에서 권한을 허용한 뒤 새로고침 없이
-  // 다시 위치를 잡을 수 있게 함. 웹/PWA 에선 권한 창을 직접 못 열어주므로
-  // 사용자가 설정 → 우리 앱으로 돌아와서 이 버튼을 누르는 시나리오.
+  // 위치 권한 재시도.
+  //
+  // Permissions API 로 분기:
+  //   'denied' → 브라우저/OS 가 팝업 강제 띄우는 걸 막아놨음. getCurrentPosition
+  //              를 불러봤자 즉시 error 만 뜨고 사용자에게 복구 방법 안내가
+  //              안 됨. 대신 가이드 모달을 띄워서 설정 경로를 알려준다.
+  //   'prompt' / 'unknown' / 'granted' → getCurrentPosition 호출. prompt 면
+  //              네이티브 팝업이 뜨고, granted 면 즉시 좌표 반환, unknown
+  //              (Safari 등 미지원) 도 그냥 호출해서 시스템이 알아서 처리.
   //
   // 일부 브라우저/PWA 는 권한 거부 상태에서 getCurrentPosition 콜백이 영원히
   // 안 돌아오고 timeout 옵션도 무시한다. safety 타이머로 12초 후 강제 리셋.
@@ -307,6 +336,11 @@ export default function MapPage() {
   // 항상 새 측정 (캐시 무시). 재시도 시 속도가 더 중요하므로 정확도는 양보.
   const retryLocation = useCallback(() => {
     if (!navigator.geolocation || !mapInstance.current || retryingLocation) return;
+    // 거부 상태면 브라우저가 팝업을 절대 안 띄우므로 사용자가 설정을 열어야 함.
+    if (locationPermission === 'denied') {
+      setShowPermissionGuide(true);
+      return;
+    }
     setRetryingLocation(true);
     let done = false;
     const finish = () => { done = true; setRetryingLocation(false); };
@@ -330,10 +364,14 @@ export default function MapPage() {
         if (done) return;
         clearTimeout(safety);
         finish();
+        // getCurrentPosition 이 실패하는 대부분은 권한 문제.
+        // Permissions API 가 'prompt' 였더라도 사용자가 시스템 팝업을
+        // 거부했을 수 있으므로 다음 클릭부턴 가이드를 띄우게 한다.
+        setShowPermissionGuide(true);
       },
       { timeout: 10000, enableHighAccuracy: false, maximumAge: 0 }
     );
-  }, [retryingLocation, searchNearby, showMyLocationMarker]);
+  }, [retryingLocation, searchNearby, showMyLocationMarker, locationPermission]);
 
   // Filter places
   useEffect(() => {
@@ -501,6 +539,9 @@ export default function MapPage() {
               placeholder="병원명 또는 지역 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full text-sm outline-none bg-transparent"
             />
             <button type="submit" className="ml-1 text-blue-600 flex-shrink-0">
@@ -548,10 +589,12 @@ export default function MapPage() {
           <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-center gap-2">
             <span className="text-orange-500 text-xs">📍</span>
             <p className="text-xs text-orange-600 flex-1">
-              현재 위치를 가져올 수 없어 기본 위치로 표시됩니다. 위치 권한을 허용해주세요.
+              {locationPermission === 'denied'
+                ? '위치 권한이 차단되어 있어요. 설정에서 허용해주세요.'
+                : '현재 위치를 가져올 수 없어 기본 위치로 표시됩니다.'}
             </p>
             <button
-              onClick={retryLocation}
+              onClick={locationPermission === 'denied' ? () => setShowPermissionGuide(true) : retryLocation}
               disabled={retryingLocation}
               className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 disabled:opacity-60 px-2 py-0.5 rounded-full flex-shrink-0"
             >
@@ -560,7 +603,7 @@ export default function MapPage() {
               ) : (
                 <RefreshCw size={11} />
               )}
-              다시 시도
+              {locationPermission === 'denied' ? '허용 방법' : '다시 시도'}
             </button>
             <button
               onClick={() => setLocationFailed(false)}
@@ -640,6 +683,56 @@ export default function MapPage() {
             >
               <Search size={16} /> 상세
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* 위치 권한 가이드 모달 — 'denied' 상태에서 "다시 시도" 로는 복구 불가,
+          사용자가 OS / 앱 설정에서 직접 풀어야 함. 단계별 경로 안내. */}
+      {showPermissionGuide && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPinOff size={20} className="text-orange-500" />
+                <h3 className="text-base font-bold text-gray-800">위치 권한 허용하기</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                주변 동물병원을 찾으려면 위치 권한이 필요해요.
+                기기별 설정 경로를 안내해드릴게요.
+              </p>
+              <div className="space-y-3 text-xs">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="font-semibold text-gray-700 mb-1.5">📱 Android — 앱 설치한 경우</p>
+                  <p className="text-gray-500 leading-relaxed">
+                    설정 → 앱 → <span className="font-medium text-gray-700">PawDex</span> → 권한 → 위치 → <span className="font-medium text-gray-700">허용</span>
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="font-semibold text-gray-700 mb-1.5">🌐 Android — 크롬 브라우저</p>
+                  <p className="text-gray-500 leading-relaxed">
+                    주소창 왼쪽 🔒 아이콘 → 권한 → 위치 → <span className="font-medium text-gray-700">허용</span>
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="font-semibold text-gray-700 mb-1.5">🍎 iPhone — Safari</p>
+                  <p className="text-gray-500 leading-relaxed">
+                    설정 → Safari → 위치 → <span className="font-medium text-gray-700">허용</span>
+                  </p>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+                허용 후 이 창을 닫고 <b>다시 시도</b> 를 눌러주세요.
+              </p>
+            </div>
+            <div className="border-t border-gray-100 p-3">
+              <button
+                onClick={() => setShowPermissionGuide(false)}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -451,6 +451,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
@@ -465,6 +468,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               type="text"
               inputMode="decimal"
               placeholder="예: 3.5"
+              autoComplete="off"
               value={weight}
               onChange={(e) => {
                 const v = e.target.value;
@@ -577,6 +581,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
                 maxLength={50}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -591,6 +598,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 pattern="[0-9]*"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+                autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -635,10 +643,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <input
                   placeholder="용량 (예: 1정)"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={med.dosage}
                   onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
