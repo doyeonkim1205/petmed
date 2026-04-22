@@ -111,6 +111,11 @@ function SearchContent() {
     return '';
   });
   const [petType, setPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
+  // searchedPetType: 실제 검색에 사용된 pet (commit 값). petType 은 UI 토글의
+  // pending 값. 토글만 바꿔도 자동 재검색되며 카운트가 빠지던 버그 때문에 분리.
+  // handleSearch / clickSearchTerm 에서만 searchedPetType 을 업데이트 → 이때만
+  // 훅의 deps 가 변경되어 재검색이 트리거됨.
+  const [searchedPetType, setSearchedPetType] = useState<'cat' | 'dog'>(cached?.petType || initialPet);
   const [searchTerm, setSearchTerm] = useState<string | null>(cached?.searchTerm || null);
   const [mockResult, setMockResult] = useState<Disease | null>(cached?.mockResult || null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -143,7 +148,7 @@ function SearchContent() {
   // 중복 fetch 를 막으므로 articles state 는 그대로 보존됨.
   const pubmed = usePubMedSearch(
     cachedPubmed ? null : (searchMode === 'disease' ? searchTerm : null),
-    petType,
+    searchedPetType,
     searchKey,
   );
 
@@ -242,7 +247,8 @@ function SearchContent() {
         sessionStorage.setItem('searchCache', JSON.stringify({
           // cache.query 는 "이 캐시가 어떤 검색에 속하는가" 식별자 — searchTerm 과 같게 유지.
           query: searchTerm,
-          petType, searchTerm, mockResult, saved,
+          // 실제 검색에 쓰인 searchedPetType 을 저장해야 복귀 시 UI 토글과 결과가 일치.
+          petType: searchedPetType, searchTerm, mockResult, saved,
           articles: pubmed.articles,
           analysis: pubmed.analysis,
           diseaseDescription: pubmed.diseaseDescription,
@@ -250,7 +256,7 @@ function SearchContent() {
         }));
       } catch {}
     }
-  }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, petType, searchTerm, mockResult, saved]);
+  }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, searchedPetType, searchTerm, mockResult, saved]);
 
   // Cache symptom results in sessionStorage
   useEffect(() => {
@@ -258,13 +264,13 @@ function SearchContent() {
       try {
         sessionStorage.setItem('symptomCache', JSON.stringify({
           query: symptomQuery,
-          petType,
+          petType: searchedPetType,
           result: symptomResult,
           searchedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [symptomResult, symptomQuery, petType]);
+  }, [symptomResult, symptomQuery, searchedPetType]);
 
   useEffect(() => {
     if (!initialQuery) return;
@@ -408,6 +414,7 @@ function SearchContent() {
     saveHistory(updated);
 
     if (searchMode === 'symptom') {
+      setSearchedPetType(petType);
       handleSymptomSearch(q);
       setSymptomQuery(q);
       return;
@@ -417,6 +424,7 @@ function SearchContent() {
     setSaved(false);
     const found = mockDiseases.find(d => d.name.includes(q));
     setMockResult(found || null);
+    setSearchedPetType(petType);
     setSearchTerm(q);
     setSearchKey(k => k + 1);
   };
@@ -430,6 +438,7 @@ function SearchContent() {
     if (searchMode === 'symptom') {
       setSymptomInput(term);
       setSymptomQuery(term);
+      setSearchedPetType(petType);
       handleSymptomSearch(term);
       return;
     }
@@ -438,6 +447,7 @@ function SearchContent() {
     setSaved(false);
     const found = mockDiseases.find(d => d.name.includes(term));
     setMockResult(found || null);
+    setSearchedPetType(petType);
     setSearchTerm(term);
     setSearchKey(k => k + 1);
   };
