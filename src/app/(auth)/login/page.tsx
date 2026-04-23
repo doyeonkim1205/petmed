@@ -22,7 +22,7 @@ export default function LoginPage() {
     setInApp(isInAppBrowser());
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
-      setError('다른 기기에서 로그인하여 현재 세션이 종료되었습니다.');
+      setError('다른 기기에서 로그인하여 이 기기는 자동 로그아웃됐어요. 다시 로그인해주세요.');
     }
   }, []);
 

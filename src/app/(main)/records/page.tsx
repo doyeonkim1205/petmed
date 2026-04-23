@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X, BellOff, Settings } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -57,17 +57,6 @@ export default function RecordsPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  // /records/add 에서 약 알림 권한 거부로 알람 OFF 저장된 경우 한번만 안내.
-  const [showAlarmNotice, setShowAlarmNotice] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem('alarmDeniedNotice')) {
-        sessionStorage.removeItem('alarmDeniedNotice');
-        setShowAlarmNotice(true);
-      }
-    } catch {}
-  }, []);
 
   const handleAddPet = async () => {
     if (!user || !newPet.name.trim()) return;
@@ -191,29 +180,6 @@ export default function RecordsPage() {
 
   return (
     <div className="bg-white min-h-full pb-20 relative">
-      {showAlarmNotice && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 max-w-sm mx-auto">
-          <div className="flex items-start gap-2">
-            <BellOff size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 text-xs text-amber-700 leading-snug">
-              <p>알림 권한이 꺼져 있어 약 알림 없이 저장됐어요.</p>
-              <button
-                onClick={() => router.push('/profile')}
-                className="inline-flex items-center gap-1 mt-1 text-amber-800 underline font-medium"
-              >
-                <Settings size={11} />
-                마이페이지에서 알림 켜기
-              </button>
-            </div>
-            <button
-              onClick={() => setShowAlarmNotice(false)}
-              className="text-amber-400 hover:text-amber-600 flex-shrink-0"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
       <div className="sticky top-14 z-30 bg-white">
         <PetSelector key={petRefreshKey} selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
         <div className="flex max-w-sm mx-auto">

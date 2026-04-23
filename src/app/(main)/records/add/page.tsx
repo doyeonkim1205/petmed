@@ -9,6 +9,7 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { usePushNotification } from '@/hooks/usePushNotification';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
+import Link from 'next/link';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
@@ -58,9 +59,12 @@ export default function RecordAddPage() {
   const { user, profile } = useAuth();
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
-  // 약 알림 ON 인 약을 저장할 때 푸시 구독이 안 되어 있으면 자동 구독 시도.
-  // 사용자가 마이페이지에서 별도로 토글을 켜지 않아도 되게 통합.
-  const { isSubscribed: pushSubscribed, subscribe: pushSubscribe } = usePushNotification();
+  // 저장할 때는 구독 상태만 조회하고 자동 subscribe 는 하지 않음.
+  // 약 알림 토글 옆에 "마이페이지에서 푸시 알림 켜야 알림 옵니다" 안내용.
+  // 이전 버전에선 여기서 pushSubscribe 를 강제 호출했는데 약 추가 흐름
+  // 중간에 권한 팝업이 뜨는 게 부자연스러워서 롤백 — 사용자가 원할 때
+  // /profile 에서 켜게 두고, alarm_enabled DB 플래그는 그대로 저장됨.
+  const { isSubscribed: pushSubscribed } = usePushNotification();
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
 
@@ -279,23 +283,6 @@ export default function RecordAddPage() {
       showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
     }
 
-    // 알림 ON 인 약이 있고 아직 푸시 미구독이면 저장 전에 구독 시도.
-    // 권한 거부 시: 사용자한테 "다시 저장 누르세요" 시키지 않고 그냥 alarm
-    // OFF 로 다운그레이드해서 저장 진행. 저장 후 /records 페이지에서 토스트로
-    // "알림이 꺼진 채로 저장됐어요. 마이페이지 → 알림에서 켤 수 있어요" 안내.
-    let medsToSave = medications;
-    let pushDenied = false;
-    const needsPushSubscribe = canUseAlarm && !pushSubscribed
-      && medications.some(m => m.name.trim() && m.alarm_enabled);
-    if (needsPushSubscribe) {
-      const ok = await pushSubscribe();
-      if (!ok) {
-        medsToSave = medications.map(m => ({ ...m, alarm_enabled: false }));
-        setMedications(medsToSave);
-        pushDenied = true;
-      }
-    }
-
     setSaving(true);
     setError('');
 
@@ -345,7 +332,7 @@ export default function RecordAddPage() {
         }
       }
 
-      for (const med of medsToSave) {
+      for (const med of medications) {
         if (!med.name.trim()) continue;
         try {
           await addMedication({
@@ -385,11 +372,6 @@ export default function RecordAddPage() {
       // 저장 성공 → dirty 해제 후 이동
       setIsDirty(false);
       guardPushedRef.current = false;
-      // 푸시 권한 거부로 알람 꺼진 채 저장된 경우 /records 페이지에서 안내
-      // 표시하도록 sessionStorage 플래그 세팅 (한번만 보여주고 자동 클리어)
-      if (pushDenied) {
-        try { sessionStorage.setItem('alarmDeniedNotice', '1'); } catch {}
-      }
       router.push('/records');
     } catch (err) {
       Sentry.captureException(err, {
@@ -477,6 +459,7 @@ export default function RecordAddPage() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
             autoComplete="off"
+            name="record-title"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
@@ -554,6 +537,7 @@ export default function RecordAddPage() {
               placeholder="상세 내용을 입력하세요"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
           </div>
@@ -575,6 +559,7 @@ export default function RecordAddPage() {
                 placeholder="상세 내용을 입력하세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
             </div>
@@ -592,6 +577,8 @@ export default function RecordAddPage() {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+                autoComplete="off"
+                name="pet-weight-kg"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -609,6 +596,7 @@ export default function RecordAddPage() {
                   onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
                   maxLength={50}
                   autoComplete="off"
+                  name="hospital-name"
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
@@ -704,6 +692,7 @@ export default function RecordAddPage() {
                   value={med.name}
                   onChange={(e) => updateMedication(i, 'name', e.target.value)}
                   autoComplete="off"
+                  name={`medication-name-${i}`}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <input
@@ -711,6 +700,7 @@ export default function RecordAddPage() {
                   value={med.dosage}
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
                   autoComplete="off"
+                  name={`medication-dosage-${i}`}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 />
                 <div>
@@ -769,6 +759,21 @@ export default function RecordAddPage() {
                     {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
                     투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
                   </button>
+                  {/* 알림 ON 이지만 아직 푸시 구독 안 했으면 안내.
+                      저장은 정상 진행되고 마이페이지에서 푸시 토글을 켜면 이후
+                      스케줄된 약 알림부터 푸시로 도달. */}
+                  {canUseAlarm && med.alarm_enabled && !pushSubscribed && i === 0 && (
+                    <div className="flex items-start gap-1.5 px-1 py-1.5 bg-amber-50 border border-amber-100 rounded-md text-[11px] text-amber-700 leading-snug">
+                      <Bell size={11} className="flex-shrink-0 mt-0.5" />
+                      <p>
+                        푸시 알림을 받으려면{' '}
+                        <Link href="/profile" className="font-semibold underline">
+                          마이페이지
+                        </Link>
+                        에서 알림을 켜주세요.
+                      </p>
+                    </div>
+                  )}
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
                       {med.alarm_times.map((time, ti) => (
