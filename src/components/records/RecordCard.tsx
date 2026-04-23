@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { HealthRecord } from '@/lib/supabase';
 import { Stethoscope, AlertCircle, FileEdit, Building2 } from 'lucide-react';
 
@@ -9,6 +10,8 @@ interface RecordCardProps {
   selectMode?: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
+  /** 카드를 길게 누르면 호출 — 부모가 selectMode 진입 + 해당 카드 선택 처리 */
+  onLongPress?: (id: string) => void;
 }
 
 const typeConfig = {
@@ -18,7 +21,13 @@ const typeConfig = {
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
 };
 
-export function RecordCard({ record, onClick, selectMode, selected, onSelect }: RecordCardProps) {
+// 500ms = Material Design 의 표준 long-press 시간. 짧은 탭과 명확히 구분되면서
+// 사용자가 답답함을 못 느끼는 임계점.
+const LONG_PRESS_MS = 500;
+// 손가락이 5px 이상 움직이면 스크롤 의도로 판단해 long-press 취소.
+const MOVE_THRESHOLD = 5;
+
+export function RecordCard({ record, onClick, selectMode, selected, onSelect, onLongPress }: RecordCardProps) {
   const config = typeConfig[record.record_type] || typeConfig.manual;
   const Icon = config.icon;
 
@@ -38,10 +47,68 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect }: 
     }
   };
 
+  // long-press 상태:
+  // - timerRef: 발화 예약 타이머
+  // - firedRef: long-press 발화됐는지 (true 면 뒤따르는 click 무시)
+  // - startRef: 시작 좌표 (이동 임계 비교용)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedRef = useRef(false);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  const startLongPress = (x: number, y: number) => {
+    if (selectMode || !onLongPress) return;
+    startRef.current = { x, y };
+    firedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true;
+      // 햅틱 피드백 (지원 기기에서만 — Android Chrome / TWA OK, iOS Safari 미지원)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+      onLongPress(record.id);
+    }, LONG_PRESS_MS);
+  };
+
+  const cancelLongPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const moveLongPress = (x: number, y: number) => {
+    if (!startRef.current) return;
+    const dx = Math.abs(x - startRef.current.x);
+    const dy = Math.abs(y - startRef.current.y);
+    if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) cancelLongPress();
+  };
+
   return (
     <div
-      onClick={handleClick}
-      className={`rounded-xl p-4 border cursor-pointer transition-colors ${
+      onClick={(e) => {
+        // long-press 가 발화됐으면 click 은 무시 (의도가 선택이지 진입이 아님).
+        if (firedRef.current) {
+          firedRef.current = false;
+          e.preventDefault();
+          return;
+        }
+        handleClick();
+      }}
+      onTouchStart={(e) => {
+        const t = e.touches[0];
+        startLongPress(t.clientX, t.clientY);
+      }}
+      onTouchMove={(e) => {
+        const t = e.touches[0];
+        moveLongPress(t.clientX, t.clientY);
+      }}
+      onTouchEnd={cancelLongPress}
+      onTouchCancel={cancelLongPress}
+      onMouseDown={(e) => startLongPress(e.clientX, e.clientY)}
+      onMouseMove={(e) => moveLongPress(e.clientX, e.clientY)}
+      onMouseUp={cancelLongPress}
+      onMouseLeave={cancelLongPress}
+      className={`rounded-xl p-4 border cursor-pointer transition-colors select-none ${
         selectMode && selected
           ? 'border-blue-400 bg-blue-50'
           : 'border-gray-100 hover:bg-gray-50'

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X, BellOff, Settings } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -11,6 +11,7 @@ import { PetSelector } from '@/components/records/PetSelector';
 import { RecordCard } from '@/components/records/RecordCard';
 import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
@@ -54,6 +55,19 @@ export default function RecordsPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // /records/add 에서 약 알림 권한 거부로 알람 OFF 저장된 경우 한번만 안내.
+  const [showAlarmNotice, setShowAlarmNotice] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('alarmDeniedNotice')) {
+        sessionStorage.removeItem('alarmDeniedNotice');
+        setShowAlarmNotice(true);
+      }
+    } catch {}
+  }, []);
 
   const handleAddPet = async () => {
     if (!user || !newPet.name.trim()) return;
@@ -126,7 +140,11 @@ export default function RecordsPage() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`${selectedIds.size}개의 기록을 삭제하시겠습니까?`)) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setShowDeleteConfirm(false);
     setDeleting(true);
     try {
       await deleteRecords(Array.from(selectedIds));
@@ -137,10 +155,17 @@ export default function RecordsPage() {
         extra: { userId: user?.id, count: selectedIds.size },
       });
       console.error('Bulk delete error:', err);
-      alert('삭제 중 오류가 발생했습니다.');
+      setDeleteError('삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleting(false);
     }
+  };
+
+  // long-press 핸들러: 카드를 길게 누르면 selectMode 진입 + 그 카드 선택.
+  const handleLongPress = (id: string) => {
+    if (selectMode) return;
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
   };
 
   if (authLoading) {
@@ -166,6 +191,29 @@ export default function RecordsPage() {
 
   return (
     <div className="bg-white min-h-full pb-20 relative">
+      {showAlarmNotice && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 max-w-sm mx-auto">
+          <div className="flex items-start gap-2">
+            <BellOff size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-xs text-amber-700 leading-snug">
+              <p>알림 권한이 꺼져 있어 약 알림 없이 저장됐어요.</p>
+              <button
+                onClick={() => router.push('/profile')}
+                className="inline-flex items-center gap-1 mt-1 text-amber-800 underline font-medium"
+              >
+                <Settings size={11} />
+                마이페이지에서 알림 켜기
+              </button>
+            </div>
+            <button
+              onClick={() => setShowAlarmNotice(false)}
+              className="text-amber-400 hover:text-amber-600 flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
       <div className="sticky top-14 z-30 bg-white">
         <PetSelector key={petRefreshKey} selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
         <div className="flex max-w-sm mx-auto">
@@ -365,6 +413,7 @@ export default function RecordsPage() {
                   selectMode={selectMode}
                   selected={selectedIds.has(record.id)}
                   onSelect={toggleSelect}
+                  onLongPress={handleLongPress}
                 />
               ))}
             </>
@@ -404,6 +453,27 @@ export default function RecordsPage() {
           </button>
         )
       )}
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title={`${selectedIds.size}개의 기록을 삭제할까요?`}
+        message="삭제된 기록은 복구할 수 없어요."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <ConfirmModal
+        open={!!deleteError}
+        title="삭제 실패"
+        message={deleteError || ''}
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setDeleteError(null)}
+        onCancel={() => setDeleteError(null)}
+      />
     </div>
   );
 }

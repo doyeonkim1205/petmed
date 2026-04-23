@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
@@ -23,6 +24,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   const [record, setRecord] = useState<HealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -46,8 +48,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleDelete = async () => {
-    if (!record || !confirm('정말 이 기록을 삭제하시겠습니까?')) return;
+  const handleDelete = () => {
+    if (!record) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!record) return;
+    setShowDeleteConfirm(false);
     try {
       await deleteRecord(record.id);
       router.push('/records');
@@ -304,6 +312,16 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title="이 기록을 삭제할까요?"
+        message="삭제된 기록은 복구할 수 없어요."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

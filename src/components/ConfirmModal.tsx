@@ -9,6 +9,8 @@ interface Props {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'default' | 'danger';
+  /** true 면 취소 버튼 숨김 (단일 알림용 — alert() 대체) */
+  hideCancel?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -20,6 +22,7 @@ export function ConfirmModal({
   confirmLabel = '확인',
   cancelLabel = '취소',
   variant = 'default',
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -68,12 +71,14 @@ export function ConfirmModal({
         )}
 
         <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
-          >
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             onClick={onConfirm}
             className={`flex-1 py-2.5 text-xs font-bold rounded-full ${confirmClass}`}

@@ -280,16 +280,19 @@ export default function RecordAddPage() {
     }
 
     // 알림 ON 인 약이 있고 아직 푸시 미구독이면 저장 전에 구독 시도.
-    // 권한 거부 시 저장을 중단하고 alarm 토글을 모두 OFF 로 낮춰서 사용자가
-    // "알림 없이 저장" 의 의도로 다시 저장을 누를 수 있게 함.
+    // 권한 거부 시: 사용자한테 "다시 저장 누르세요" 시키지 않고 그냥 alarm
+    // OFF 로 다운그레이드해서 저장 진행. 저장 후 /records 페이지에서 토스트로
+    // "알림이 꺼진 채로 저장됐어요. 마이페이지 → 알림에서 켤 수 있어요" 안내.
+    let medsToSave = medications;
+    let pushDenied = false;
     const needsPushSubscribe = canUseAlarm && !pushSubscribed
       && medications.some(m => m.name.trim() && m.alarm_enabled);
     if (needsPushSubscribe) {
       const ok = await pushSubscribe();
       if (!ok) {
-        setMedications(prev => prev.map(m => ({ ...m, alarm_enabled: false })));
-        showError('알림 권한이 허용되지 않았습니다. 알림 없이 저장하려면 다시 저장 버튼을 눌러주세요.');
-        return;
+        medsToSave = medications.map(m => ({ ...m, alarm_enabled: false }));
+        setMedications(medsToSave);
+        pushDenied = true;
       }
     }
 
@@ -342,7 +345,7 @@ export default function RecordAddPage() {
         }
       }
 
-      for (const med of medications) {
+      for (const med of medsToSave) {
         if (!med.name.trim()) continue;
         try {
           await addMedication({
@@ -382,6 +385,11 @@ export default function RecordAddPage() {
       // 저장 성공 → dirty 해제 후 이동
       setIsDirty(false);
       guardPushedRef.current = false;
+      // 푸시 권한 거부로 알람 꺼진 채 저장된 경우 /records 페이지에서 안내
+      // 표시하도록 sessionStorage 플래그 세팅 (한번만 보여주고 자동 클리어)
+      if (pushDenied) {
+        try { sessionStorage.setItem('alarmDeniedNotice', '1'); } catch {}
+      }
       router.push('/records');
     } catch (err) {
       Sentry.captureException(err, {
