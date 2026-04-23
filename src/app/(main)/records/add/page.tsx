@@ -7,9 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
-import { usePushNotification } from '@/hooks/usePushNotification';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
-import Link from 'next/link';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
@@ -59,12 +57,9 @@ export default function RecordAddPage() {
   const { user, profile } = useAuth();
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
-  // 저장할 때는 구독 상태만 조회하고 자동 subscribe 는 하지 않음.
-  // 약 알림 토글 옆에 "마이페이지에서 푸시 알림 켜야 알림 옵니다" 안내용.
-  // 이전 버전에선 여기서 pushSubscribe 를 강제 호출했는데 약 추가 흐름
-  // 중간에 권한 팝업이 뜨는 게 부자연스러워서 롤백 — 사용자가 원할 때
-  // /profile 에서 켜게 두고, alarm_enabled DB 플래그는 그대로 저장됨.
-  const { isSubscribed: pushSubscribed } = usePushNotification();
+  // alarm_enabled 는 그냥 DB 에 저장. 실제 푸시 발송 여부는 서버 cron 이
+  // push_subscriptions 엔드포인트 유무로 판단. 사용자는 원할 때 마이페이지
+  // 에서 푸시 알림 토글로 구독을 켠다 (이전 흐름).
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
 
@@ -454,13 +449,15 @@ export default function RecordAddPage() {
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
           </label>
           <input
+            type="search"
             placeholder={recordType === 'symptom' ? '예: 구토, 설사' : recordType === 'hospitalization' ? '예: 슬개골 수술, 장염 치료' : '예: 건강검진, 예방접종'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
             autoComplete="off"
+            enterKeyHint="next"
             name="record-title"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
 
@@ -589,6 +586,7 @@ export default function RecordAddPage() {
               </label>
               <div className="relative">
                 <input
+                  type="search"
                   placeholder="병원명을 입력하세요"
                   value={hospitalName}
                   onChange={(e) => { setHospitalName(e.target.value); setShowHospitalSuggestions(true); }}
@@ -596,8 +594,9 @@ export default function RecordAddPage() {
                   onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
                   maxLength={50}
                   autoComplete="off"
+                  enterKeyHint="next"
                   name="hospital-name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -688,20 +687,24 @@ export default function RecordAddPage() {
             {medications.map((med, i) => (
               <div key={i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
+                  type="search"
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedication(i, 'name', e.target.value)}
                   autoComplete="off"
+                  enterKeyHint="next"
                   name={`medication-name-${i}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <input
+                  type="search"
                   placeholder="용량 (예: 1정)"
                   value={med.dosage}
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
                   autoComplete="off"
+                  enterKeyHint="next"
                   name={`medication-dosage-${i}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
@@ -759,21 +762,6 @@ export default function RecordAddPage() {
                     {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
                     투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
                   </button>
-                  {/* 알림 ON 이지만 아직 푸시 구독 안 했으면 안내.
-                      저장은 정상 진행되고 마이페이지에서 푸시 토글을 켜면 이후
-                      스케줄된 약 알림부터 푸시로 도달. */}
-                  {canUseAlarm && med.alarm_enabled && !pushSubscribed && i === 0 && (
-                    <div className="flex items-start gap-1.5 px-1 py-1.5 bg-amber-50 border border-amber-100 rounded-md text-[11px] text-amber-700 leading-snug">
-                      <Bell size={11} className="flex-shrink-0 mt-0.5" />
-                      <p>
-                        푸시 알림을 받으려면{' '}
-                        <Link href="/profile" className="font-semibold underline">
-                          마이페이지
-                        </Link>
-                        에서 알림을 켜주세요.
-                      </p>
-                    </div>
-                  )}
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
                       {med.alarm_times.map((time, ti) => (

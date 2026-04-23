@@ -448,11 +448,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
           </label>
           <input
+            type="search"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
             autoComplete="off"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            enterKeyHint="next"
+            name="record-title"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
 
@@ -576,11 +579,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 병원명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <input
+                type="search"
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
                 maxLength={50}
                 autoComplete="off"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                enterKeyHint="next"
+                name="hospital-name"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
               />
             </div>
 
@@ -636,18 +642,24 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {medications.map((med, i) => (
               <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
+                  type="search"
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
                   autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  enterKeyHint="next"
+                  name={`medication-name-${i}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <input
+                  type="search"
                   placeholder="용량 (예: 1정)"
                   autoComplete="off"
+                  enterKeyHint="next"
+                  name={`medication-dosage-${i}`}
                   value={med.dosage}
                   onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {/* Frequency selector */}
                 <div>
