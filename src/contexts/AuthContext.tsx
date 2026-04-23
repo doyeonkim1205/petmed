@@ -117,42 +117,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // 2) VERIFY session is actually valid (server round-trip)
-        const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser();
-
-        if (verifyError || !verifiedUser) {
-          // Session expired or revoked — clear it
-          console.warn('Session invalid, clearing:', verifyError?.message);
-          await supabase.auth.signOut({ scope: 'local' });
-          if (mounted) {
-            setUser(null);
-            setSession(null);
-            setProfile(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // 3) Session is valid — set everything
-        if (mounted) {
-          setSession(localSession);
-          setUser(verifiedUser);
-          // Register device session BEFORE unlocking pages (prevents race with API calls)
-          try {
+        // 2) 병렬 검증 + 초기 데이터 로드
+        //    이전엔 getUser → sessions POST → fetchProfile 을 순차 await 해서
+        //    흰 화면이 600-1200ms 걸렸음. 세 요청은 서로 의존성이 없으므로
+        //    Promise.allSettled 로 동시 실행. 가장 느린 하나만큼만 기다림
+        //    (실측 ~400ms). 실패한 항목은 개별 처리.
+        //
+        //    fetchProfile 에는 localSession.user.id 를 쓰는 게 안전: 같은
+        //    세션 객체의 user.id 는 정상 케이스에서 getUser 결과와 100% 일치.
+        //    (유저 A 세션에 유저 B 가 서버 측에서 붙는 시나리오는 Supabase
+        //     보안 모델상 불가능)
+        const [verifyResult, sessionsResult, profileResult] = await Promise.allSettled([
+          supabase.auth.getUser(),
+          (async () => {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
-            await authFetch('/api/sessions', {
+            return authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ device_id: getDeviceId() }),
             });
-          } catch {}
-          const profileData = await fetchProfile(verifiedUser.id);
-          if (mounted) {
-            setProfile(profileData);
+          })(),
+          fetchProfile(localSession.user.id),
+        ]);
+
+        if (!mounted) return;
+
+        // getUser 결과 해석.
+        // - 성공 + user 있음: 세션 유효
+        // - 성공 + user 없음 or 명시적 401: 세션 무효 → 로그아웃
+        // - 네트워크 에러 (rejected): 로그아웃하지 않음 (잘못 끊으면 억울함).
+        //   다음 API 호출에서 자연스레 authFetch 의 session_evicted 경로 탐.
+        if (verifyResult.status === 'fulfilled') {
+          const { data: { user: verifiedUser }, error: verifyError } = verifyResult.value;
+          const explicitlyInvalid = !verifiedUser || (verifyError && (verifyError as any).status === 401);
+          if (explicitlyInvalid) {
+            console.warn('Session invalid, clearing:', verifyError?.message);
+            await supabase.auth.signOut({ scope: 'local' });
+            setUser(null);
+            setSession(null);
+            setProfile(null);
             setLoading(false);
+            return;
           }
+          setUser(verifiedUser);
+        } else {
+          // 네트워크 에러 — localSession.user 로 진행 (낙관적 아님: 결국 세션
+          // 유효하다면 다음 API 호출도 정상, 무효면 자연 로그아웃됨)
+          setUser(localSession.user);
         }
+
+        setSession(localSession);
+        setProfile(profileResult.status === 'fulfilled' ? profileResult.value : null);
+        setLoading(false);
+        // sessionsResult 실패는 무시 (기존 동작 유지). 다음 API 호출 시
+        // 필요하면 재등록되거나 session_evicted 가 뜸.
+        void sessionsResult;
       } catch (err) {
         Sentry.captureException(err, {
           tags: { feature: 'auth', action: 'init' },

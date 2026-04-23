@@ -8,6 +8,7 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 import { IosInstallPrompt } from '@/components/IosInstallPrompt';
 import { InAppBrowserHint } from '@/components/InAppBrowserHint';
 import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -36,8 +37,14 @@ export default function MainLayout({
     }
   }, [loading, user, router]);
 
-  // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기 (빈 화면)
-  if (loading || !user) {
+  // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
+  // - loading 중: LoadingScreen (로고 + 스피너) 표시
+  // - 미인증 (loading 끝났는데 user 없음): 위 useEffect 가 /login 으로 리다이렉트
+  //   중이므로 깜빡임 방지 차 빈 흰 화면 유지
+  if (loading) {
+    return <LoadingScreen />;
+  }
+  if (!user) {
     return <div className="min-h-screen bg-white" />;
   }
 
