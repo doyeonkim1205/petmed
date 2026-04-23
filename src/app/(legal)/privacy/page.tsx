@@ -94,7 +94,77 @@ export default function PrivacyPage() {
         </table>
       </Section>
 
-      <Section title="6. 개인정보의 파기 절차 및 방법">
+      <Section title="6. Google 사용자 데이터 처리 (Google User Data Handling)">
+        <p>
+          PawDex 는 Google OAuth 2.0 을 통한 로그인 기능을 제공하며,
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-blue-500" target="_blank" rel="noopener noreferrer"> Google API Services User Data Policy</a>
+          {' '}(Limited Use 요건 포함) 를 준수합니다.
+        </p>
+
+        <p className="mt-3"><strong>6.1 수집하는 Google 사용자 데이터 (Data Accessed)</strong></p>
+        <ul>
+          <li><strong>이메일 주소</strong> (Google OAuth scope: <code>email</code>) — 계정 식별자로 사용</li>
+          <li><strong>프로필 이름</strong> (scope: <code>profile</code>) — 앱 내 닉네임 기본값</li>
+          <li><strong>프로필 사진 URL</strong> (scope: <code>profile</code>, 선택) — 앱 내 프로필 이미지</li>
+        </ul>
+        <p>
+          그 외 어떤 Google 사용자 데이터에도 접근하지 않습니다. Gmail, Google Drive,
+          Google Calendar, Contacts, Photos 등 <strong>민감한 scope 는 요청하지 않으며 접근도 하지 않습니다</strong>.
+        </p>
+
+        <p className="mt-3"><strong>6.2 사용 목적 (Data Usage / Purpose)</strong></p>
+        <ul>
+          <li>회원 계정 생성 및 고유 식별</li>
+          <li>로그인 인증 (매 세션마다 Google 을 통한 본인 확인)</li>
+          <li>앱 내 프로필 표시 (닉네임, 프로필 사진)</li>
+        </ul>
+        <p>
+          위 세 가지 용도 외에는 Google 사용자 데이터를 사용하지 않습니다.
+        </p>
+
+        <p className="mt-3"><strong>6.3 처리 및 저장 (Data Processing and Storage)</strong></p>
+        <ul>
+          <li>전송 구간 전체 HTTPS / TLS 1.2+ 암호화</li>
+          <li>Supabase Auth 데이터베이스에 저장 (서버 위치: 일본 도쿄)</li>
+          <li>이메일은 사용자 식별자로만 사용하며 외부로 노출되지 않음</li>
+          <li>프로필 사진은 Google 이 제공하는 URL 을 참조만 하며 당사 서버에 복사 저장하지 않음</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.4 데이터 공유 및 판매 (Data Sharing)</strong></p>
+        <ul>
+          <li>Google 사용자 데이터를 <strong>제3자와 공유하거나 판매하지 않습니다</strong></li>
+          <li>광고 목적으로 사용하지 않습니다</li>
+          <li>AI / 머신러닝 모델 학습에 사용하지 않습니다 (OpenAI 에 전송되는 데이터에도 포함되지 않음)</li>
+          <li>데이터 중개(brokering) 또는 재판매하지 않습니다</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.5 Limited Use 준수 선언</strong></p>
+        <p>
+          PawDex 의 Google 사용자 데이터 사용은 Google API Services User Data Policy 의
+          Limited Use 요건을 완전히 준수합니다:
+        </p>
+        <ul>
+          <li>앱 사용자에게 직접적으로 가시적인 기능을 제공하기 위한 목적으로만 사용</li>
+          <li>AI/ML 모델 학습 및 개선에 사용하지 않음</li>
+          <li>광고 또는 마케팅 목적으로 사용하지 않음</li>
+          <li>제3자에게 전송/판매/공유하지 않음 (법령 요구 시 제외)</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.6 보존 및 삭제 (Data Retention and Deletion)</strong></p>
+        <ul>
+          <li>회원이 서비스를 이용하는 동안 Google 사용자 데이터를 보관합니다</li>
+          <li>회원 탈퇴 요청 시 <strong>즉시 삭제</strong>합니다 (앱 내 설정 → 회원 탈퇴 메뉴)</li>
+          <li>탈퇴 시 Supabase Auth 의 Google OAuth 연결도 서버 측에서 자동 해제됩니다</li>
+          <li>사용자는 언제든 Google 계정 설정 (<a href="https://myaccount.google.com/permissions" className="text-blue-500" target="_blank" rel="noopener noreferrer">myaccount.google.com/permissions</a>) 에서 PawDex 의 접근 권한을 직접 해제할 수 있습니다</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.7 문의</strong></p>
+        <p>
+          Google 사용자 데이터 관련 문의는 개인정보 보호책임자(<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>) 로 연락해주세요.
+        </p>
+      </Section>
+
+      <Section title="7. 개인정보의 파기 절차 및 방법">
         <ul>
           <li><strong>파기 절차:</strong> 회원 탈퇴 요청 시 즉시 파기하며, 법령에 따라 보관이 필요한 정보는 별도 분리하여 보관 후 기간 만료 시 파기합니다.</li>
           <li><strong>파기 방법:</strong> 전자적 파일은 복구 불가능한 방법으로 삭제하며, 종이 문서는 분쇄 또는 소각합니다.</li>
@@ -110,7 +180,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="7. 정보주체의 권리·의무 및 행사 방법">
+      <Section title="8. 정보주체의 권리·의무 및 행사 방법">
         <p>이용자는 언제든지 다음 권리를 행사할 수 있습니다.</p>
         <ul>
           <li>개인정보 열람 요구</li>
@@ -121,7 +191,7 @@ export default function PrivacyPage() {
         <p>권리 행사는 앱 내 프로필 설정 또는 이메일(<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>)을 통해 가능합니다.</p>
       </Section>
 
-      <Section title="8. 개인정보 침해사고 대응">
+      <Section title="9. 개인정보 침해사고 대응">
         <p>서비스는 개인정보 침해사고 발생 시 다음과 같이 대응합니다.</p>
         <ul>
           <li><strong>24시간 이내:</strong> 침해사고 탐지 및 차단 조치</li>
@@ -131,7 +201,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="9. 개인정보 보호책임자">
+      <Section title="10. 개인정보 보호책임자">
         <ul>
           <li>담당자: 김도연 (디와이랩스 대표)</li>
           <li>이메일: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
@@ -143,7 +213,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="10. 개인정보의 안전성 확보 조치">
+      <Section title="11. 개인정보의 안전성 확보 조치">
         <p>서비스는 개인정보의 안전성 확보를 위해 다음 조치를 취하고 있습니다.</p>
         <ul>
           <li>모든 데이터 전송 시 HTTPS(TLS) 암호화 적용</li>
@@ -154,11 +224,11 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="11. 개인정보처리방침의 변경">
+      <Section title="12. 개인정보처리방침의 변경">
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 23일 (개정 — Google 사용자 데이터 처리 섹션 추가)</p>
     </article>
   );
 }
