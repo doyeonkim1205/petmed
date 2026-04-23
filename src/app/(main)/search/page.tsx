@@ -10,6 +10,7 @@ import { PaperSection } from '@/components/PaperSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
+import { TextField } from '@/components/TextField';
 
 type SearchMode = 'disease' | 'symptom';
 
@@ -872,12 +873,10 @@ function SearchContent() {
                               </div>
                             )}
                             {qType === 'text' && (
-                              <input
-                                type="text"
+                              <TextField
                                 value={followupAnswers[i] || ''}
                                 onChange={(e) => setFollowupAnswers(prev => ({ ...prev, [i]: e.target.value }))}
                                 placeholder="답변을 입력하세요"
-                                autoComplete="off"
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 bg-white"
                               />
                             )}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TextField } from '@/components/TextField';
 import { Send, Users, Crown, UserCheck } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
@@ -86,7 +87,7 @@ export default function NotificationsPage() {
           <CardContent className="space-y-3">
             <div>
               <label className="text-xs text-gray-500 block mb-1">제목</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="알림 제목"
+              <TextField value={title} onChange={(e) => setTitle(e.target.value)} placeholder="알림 제목"
                 className="w-full px-3 py-2 border rounded-lg text-sm" />
             </div>
             <div>
@@ -96,7 +97,7 @@ export default function NotificationsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">클릭 시 이동 URL</label>
-              <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/"
+              <TextField value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/"
                 className="w-full px-3 py-2 border rounded-lg text-sm" />
             </div>
 

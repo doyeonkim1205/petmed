@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { TextField } from '@/components/TextField';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -55,8 +56,7 @@ function NicknameModal({
           <h3 className="text-sm font-bold text-gray-700">닉네임 변경</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
-        <input
-          type="text"
+        <TextField
           value={nickname}
           onChange={e => setNickname(e.target.value)}
           placeholder="새 닉네임 (2자 이상)"
@@ -203,12 +203,10 @@ function PetModal({
 
           {showAddForm && (
             <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
-              <input
-                type="text"
+              <TextField
                 placeholder="이름"
                 value={newPet.name}
                 onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
-                autoComplete="off"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <div className="flex gap-2">
@@ -229,12 +227,10 @@ function PetModal({
                   <Cat size={14} /> 고양이
                 </button>
               </div>
-              <input
-                type="text"
+              <TextField
                 placeholder="품종 (선택)"
                 value={newPet.breed}
                 onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
-                autoComplete="off"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <div>
@@ -854,8 +850,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
             ))}
           </div>
           {reason === 'other' && (
-            <input
-              type="text"
+            <TextField
               value={reasonDetail}
               onChange={(e) => setReasonDetail(e.target.value.slice(0, 100))}
               placeholder="자세한 사유를 입력해주세요 (선택)"
@@ -866,8 +861,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 
         <div className="mb-4">
           <p className="text-[11px] text-gray-400 mb-1.5">확인을 위해 <span className="font-bold text-gray-600">&quot;탈퇴합니다&quot;</span>를 입력해주세요.</p>
-          <input
-            type="text"
+          <TextField
             value={confirmText}
             onChange={e => setConfirmText(e.target.value)}
             placeholder="탈퇴합니다"

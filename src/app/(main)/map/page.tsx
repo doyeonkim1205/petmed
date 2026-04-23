@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
+import { TextField } from '@/components/TextField';
 
 declare global {
   interface Window {
@@ -484,12 +485,11 @@ export default function MapPage() {
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="flex-1 bg-white rounded-lg shadow-md flex items-center px-3 py-2.5">
             <Search size={18} className="text-gray-400 mr-2 flex-shrink-0" />
-            <input
-              type="text"
+            <TextField
               placeholder="병원명 또는 지역 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              autoComplete="off"
+              enterKeyHint="search"
               className="w-full text-sm outline-none bg-transparent"
             />
             <button type="submit" className="ml-1 text-blue-600 flex-shrink-0">

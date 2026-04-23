@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { TextField } from '@/components/TextField';
 
 type SearchType = 'all' | 'disease' | 'symptom';
 type LogKind = 'disease' | 'symptom' | 'symptom_refine';
@@ -131,7 +132,7 @@ export default function SearchLogsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">사용자</label>
-              <input type="text" placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
+              <TextField placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
             </div>
             <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">검색</button>
             {(from || to || userId) && (

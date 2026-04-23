@@ -12,6 +12,7 @@ import { RecordCard } from '@/components/records/RecordCard';
 import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { TextField } from '@/components/TextField';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
@@ -270,8 +271,7 @@ export default function RecordsPage() {
           </p>
 
           <div className="w-full max-w-sm space-y-3">
-            <input
-              type="text"
+            <TextField
               placeholder="이름"
               value={newPet.name}
               onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
@@ -297,8 +297,7 @@ export default function RecordsPage() {
                 <Cat size={14} /> 고양이
               </button>
             </div>
-            <input
-              type="text"
+            <TextField
               placeholder="품종 (선택)"
               value={newPet.breed}
               onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}

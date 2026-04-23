@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { TextField } from '@/components/TextField';
 
 const actionLabels: Record<string, string> = {
   'auth.signup': '회원가입',
@@ -223,7 +224,7 @@ export default function ActivityLogsPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">사용자</label>
-              <input type="text" placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
+              <TextField placeholder="이메일 또는 UUID" value={userId} onChange={(e) => setUserId(e.target.value)} className="px-3 py-2 border rounded-lg text-sm w-52" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">행동</label>
