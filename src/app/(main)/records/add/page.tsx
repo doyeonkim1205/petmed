@@ -1024,16 +1024,19 @@ export default function RecordAddPage() {
       {/* Soft-prompt: 알림 권한 'default' 상태에서 알림 토글 ON 시도 시.
           requestPermission 호출 전 컨텍스트 안내 → 사용자가 [받을게요] 누른
           직후에만 실제 OS 팝업이 뜸. [취소] 누르면 OS 팝업 아예 안 뜸 → default
-          유지 → 나중에 다시 시도 가능. */}
+          유지 → 나중에 다시 시도 가능.
+          아이콘/배경은 마이페이지 denied 모달과 통일 (Bell + orange-50). */}
       <ConfirmModal
         open={pendingPushIdx !== null}
         title="약 알림을 보내드릴게요"
+        icon={<Bell size={16} className="text-orange-500" />}
+        bgClassName="bg-orange-50"
         message={
           <>
-            <p>약 시간 / 예약일 / 퇴원일 알림을 받으려면</p>
-            <p className="mt-1">브라우저 알림 권한 허용이 필요해요.</p>
+            <p>투약 시간 / 예약일 / 퇴원일 알림을 받으려면</p>
+            <p className="mt-1">브라우저 알림 권한 허용이 필요해요</p>
             <p className="mt-2 text-[10px] text-gray-400">
-              [받을게요] 를 누르면 시스템 권한 창이 떠요.
+              [받을게요] 를 누르면 시스템 권한 창이 떠요
             </p>
           </>
         }

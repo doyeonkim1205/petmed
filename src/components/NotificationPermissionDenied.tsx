@@ -54,9 +54,9 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
               현재 <span className="font-bold text-gray-700">삼성 브라우저의 일부 설정</span>으로 인해
-              알림 수신이 원활하지 않을 수 있습니다.
+              알림 수신이 원활하지 않을 수 있어요
               <br /><br />
-              중요한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">크롬(Chrome) 브라우저</span>를 이용해 주세요.
+              중요한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">크롬(Chrome) 브라우저</span>를 이용해 주세요
             </p>
 
             <div className="flex flex-col gap-2">
@@ -77,12 +77,12 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
         ) : (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              🔒 알림이 차단되어 있어 권한 요청이 막혀 있어요.
+              🔒 알림이 차단되어 있어 권한 요청이 막혀 있어요
               <br /><br />
               사용 중인 <span className="font-bold text-gray-700">브라우저 앱의 설정</span>에서
-              알림 <span className="font-bold text-gray-700">허용</span>으로 변경 후 다시 시도해주세요.
+              알림 <span className="font-bold text-gray-700">허용</span>으로 변경 후 다시 시도해주세요
               <br /><br />
-              <span className="text-gray-400">설정 변경 후 앱을 재실행해주세요.</span>
+              <span className="text-gray-400">설정 변경 후 앱을 재실행해주세요</span>
             </p>
 
             <button
