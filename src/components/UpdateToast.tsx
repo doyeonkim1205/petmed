@@ -73,14 +73,22 @@ export function UpdateToast() {
   const applyUpdate = () => {
     if (!waitingSW) return;
 
-    // 새 SW 가 활성화되면 자동으로 새 URL 로 navigate (controllerchange 이후).
-    // iOS Safari 가 reload() 를 BFCache 에서 살리는 quirk 우회: URL 에
-    // timestamp 쿼리를 붙여 replace 하면 BFCache 키와 안 맞아서 fresh load.
+    // controllerchange 이후 페이지 갱신.
+    // - iOS Safari: reload() 를 BFCache 에서 살리는 quirk 가 있어 URL 에
+    //   timestamp 쿼리를 붙여 replace → BFCache 키 미스로 fresh load 강제.
+    // - 그 외 (안드 TWA / Chrome / Firefox): plain reload(). TWA 는 _v
+    //   replace 시 SW 활성화 직후의 fetch 가 hang 걸려 offline.html 노출.
     const onControllerChange = () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-      const url = new URL(window.location.href);
-      url.searchParams.set('_v', String(Date.now()));
-      window.location.replace(url.toString());
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
+      if (isIOS) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('_v', String(Date.now()));
+        window.location.replace(url.toString());
+      } else {
+        window.location.reload();
+      }
     };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
