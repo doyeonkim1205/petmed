@@ -28,11 +28,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '유료 플랜 사용자만 알림을 등록할 수 있습니다.' }, { status: 403 });
   }
 
+  // onConflict: 'endpoint' — endpoint 는 글로벌 유니크 (20260424020000 migration).
+  // 같은 기기에 다른 user 가 로그인해서 구독하면 기존 row 의 user_id 가 새 user
+  // 로 덮어쓰기됨. 기기 소유권 자동 이전 → 이전 계정 알림이 새 계정 기기로 배달
+  // 되는 문제 방지.
   const { error: dbError } = await supabase
     .from('push_subscriptions')
     .upsert(
       { user_id: user!.id, endpoint, keys_p256dh, keys_auth },
-      { onConflict: 'user_id,endpoint' }
+      { onConflict: 'endpoint' }
     );
 
   if (dbError) {
