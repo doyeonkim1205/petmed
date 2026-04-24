@@ -25,9 +25,6 @@ export async function GET(request: NextRequest) {
   const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const currentHour = String(kstDate.getUTCHours()).padStart(2, '0');
   const currentMinute = kstDate.getUTCMinutes();
-  // Round to nearest 15-min window: 0-14 → "00", 15-29 → "15", 30-44 → "30", 45-59 → "45"
-  const windowStart = Math.floor(currentMinute / 15) * 15;
-  const windowEnd = windowStart + 14;
   const currentTime = `${currentHour}:${String(currentMinute).padStart(2, '0')}`;
   const todayKST = kstDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -63,10 +60,12 @@ export async function GET(request: NextRequest) {
     const times = med.alarm_times as string[] | null;
     if (!times) continue;
 
-    // Match within 15-min window (e.g., cron at 13:30 matches "13:30", "13:35", etc.)
+    // Exact match: cron runs every minute (Option A). 투약 시간 드롭다운이
+    // 15분 단위(00/15/30/45)라 cron 도 그 분에만 트리거 — 1분 단위 cron
+    // 덕분에 지연 평균 ~30초.
     const hasMatch = times.some((t: string) => {
       const [h, m] = t.split(':').map(Number);
-      return String(h).padStart(2, '0') === currentHour && m >= windowStart && m <= windowEnd;
+      return String(h).padStart(2, '0') === currentHour && m === currentMinute;
     });
 
     if (hasMatch) {
@@ -96,10 +95,10 @@ export async function GET(request: NextRequest) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 
-  // 예약/퇴원 알림은 매일 KST 07:00-07:14 구간의 cron 한 번만 발송.
-  // 기존 `currentHour === '07'` 만 쓰면 07:00/07:15/07:30/07:45 네 번 cron 이
-  // 전부 매칭돼서 같은 알림이 4배로 중복 발송되던 버그 수정.
-  if (currentHour === '07' && currentMinute < 15) {
+  // 예약/퇴원/결제 알림은 매일 KST 07:00 정각 1회만 발송.
+  // cron 이 1분 단위로 돌기 때문에 `currentMinute === 0` 으로 엄격히 한정해
+  // 07:00~07:59 내내 60번 중복 발송되는 걸 방지.
+  if (currentHour === '07' && currentMinute === 0) {
     const { data: appointments } = await supabaseAdmin
       .from('health_records')
       .select('user_id, title, next_appointment_date')

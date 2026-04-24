@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Check } from 'lucide-react';
 
 interface Props {
   value: string;           // "HH:MM" (24h format)
@@ -35,6 +35,32 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
   // 안 그러면 emit 안 해도 부모의 다른 상태 변화로 value prop 이 재계산되어
   // 로컬을 덮어쓰는 엣지 케이스가 생김.
   const editingRef = useRef(false);
+
+  // 분 커스텀 드롭다운 (minuteStep=15 일 때만 사용)
+  const [minuteOpen, setMinuteOpen] = useState(false);
+  const minuteTriggerRef = useRef<HTMLButtonElement>(null);
+  const minutePanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!minuteOpen) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node;
+      if (minuteTriggerRef.current?.contains(t)) return;
+      if (minutePanelRef.current?.contains(t)) return;
+      setMinuteOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMinuteOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [minuteOpen]);
 
   useEffect(() => {
     if (editingRef.current) return;
@@ -156,22 +182,56 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
 
       <span className="text-gray-400 font-bold">:</span>
 
-      {/* 분: 기본은 입력, 투약(step=15)은 네이티브 select 드롭다운 */}
+      {/* 분: 기본은 입력, 투약(step=15)은 커스텀 드롭다운 (네이티브 select 전체화면 휠 UX 회피) */}
       {isSteppedPreset ? (
-        <select
-          value={minute}
-          onChange={(e) => pickMinutePreset(Number(e.target.value))}
-          className="py-1 px-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-        >
-          {[0, 15, 30, 45].map((m) => {
-            const mStr = String(m).padStart(2, '0');
-            return (
-              <option key={m} value={mStr}>
-                {mStr}
-              </option>
-            );
-          })}
-        </select>
+        <div className="relative">
+          <button
+            ref={minuteTriggerRef}
+            type="button"
+            onClick={() => setMinuteOpen((o) => !o)}
+            aria-haspopup="listbox"
+            aria-expanded={minuteOpen}
+            className="flex items-center gap-1 py-1.5 pl-3 pr-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none min-w-[60px] justify-between cursor-pointer"
+          >
+            <span className="font-medium tabular-nums text-gray-800">{minute}</span>
+            <ChevronDown
+              size={14}
+              className={`text-gray-400 transition-transform ${minuteOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {minuteOpen && (
+            <div
+              ref={minutePanelRef}
+              role="listbox"
+              className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden min-w-full animate-in fade-in-0 zoom-in-95 duration-100"
+            >
+              {[0, 15, 30, 45].map((m) => {
+                const mStr = String(m).padStart(2, '0');
+                const selected = mStr === minute;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      pickMinutePreset(m);
+                      setMinuteOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-sm flex items-center justify-between gap-3 tabular-nums transition-colors ${
+                      selected
+                        ? 'bg-blue-50 text-blue-700 font-medium'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{mStr}</span>
+                    {selected && <Check size={14} className="text-blue-600" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex flex-col items-center">
           <button type="button" onClick={() => bumpMinute(1)} className="p-0.5 text-gray-400 hover:text-blue-600">
