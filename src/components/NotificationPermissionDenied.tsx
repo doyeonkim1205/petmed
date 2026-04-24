@@ -46,7 +46,7 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
             <Bell size={16} className="text-orange-500" />
           </div>
           <p className="text-sm font-bold text-gray-800">
-            {isSamsung ? '알림 수신이 어려워요' : '알림이 차단되어 있어요'}
+            {isSamsung ? '알림 수신이 어려워요' : '알림 권한이 꺼져있어요'}
           </p>
         </div>
 
@@ -77,12 +77,9 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
         ) : (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              🔒 알림이 차단되어 있어 권한 요청이 막혀 있어요
-              <br /><br />
-              사용 중인 <span className="font-bold text-gray-700">브라우저 앱의 설정</span>에서
-              알림 <span className="font-bold text-gray-700">허용</span>으로 변경 후 다시 시도해주세요
-              <br /><br />
-              <span className="text-gray-400">설정 변경 후 앱을 재실행해주세요</span>
+              🔒 브라우저 설정에서 알림이 차단되어 소식을 전해드릴 수 없어요
+              <br />
+              알림을 <span className="font-bold text-gray-700">[허용]</span>으로 변경한 뒤 앱을 다시 실행해 주세요!
             </p>
 
             <button

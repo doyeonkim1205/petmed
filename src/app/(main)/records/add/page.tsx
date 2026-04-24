@@ -1028,13 +1028,12 @@ export default function RecordAddPage() {
           아이콘/배경은 마이페이지 denied 모달과 통일 (Bell + orange-50). */}
       <ConfirmModal
         open={pendingPushIdx !== null}
-        title="약 알림을 보내드릴게요"
+        title="알림을 켜시겠어요?"
         icon={<Bell size={16} className="text-orange-500" />}
         bgClassName="bg-orange-50"
         message={
           <>
-            <p>투약 시간 / 예약일 / 퇴원일 알림을 받으려면</p>
-            <p className="mt-1">브라우저 알림 권한 허용이 필요해요</p>
+            <p>투약 시간 / 예약일 / 퇴원일 잊지 않게 푸시 알림 보내드려요!</p>
             <p className="mt-2 text-[10px] text-gray-400">
               [받을게요] 를 누르면 시스템 권한 창이 떠요
             </p>
