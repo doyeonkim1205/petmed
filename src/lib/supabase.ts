@@ -32,6 +32,10 @@ export interface Profile {
   plan: UserPlan;
   role: UserRole;
   created_at: string;
+  // 푸시 알림 수신 의사. null = 미결정 (신규 or 아직 토글 안 건드린 유저),
+  // true = 마이페이지에서 ON, false = 마이페이지에서 명시적 OFF.
+  // auto-resubscribe 로직이 false 면 스킵해서 사용자 의사 존중.
+  is_push_enabled?: boolean | null;
 }
 
 export interface SearchLog {

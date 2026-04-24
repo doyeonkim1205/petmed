@@ -86,12 +86,21 @@ export default function RecordAddPage() {
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
+  // 브라우저 알림 권한 상태: 'default' (미결정), 'granted' (허용), 'denied' (차단), null (미지원)
+  // 알림 토글 ON 클릭 시 이 값으로 분기.
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
+  // Soft-prompt 모달: permission='default' 상태에서 알림 토글 ON 클릭 시 표시.
+  // requestPermission 호출 전에 "받을게요 / 취소" 로 사용자 의사 확인 → default→denied 영구차단 리스크 완화.
+  const [pendingPushIdx, setPendingPushIdx] = useState<number | null>(null);
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    if (typeof Notification !== 'undefined') {
+      setNotifPermission(Notification.permission);
+    }
   }, []);
 
   // 유형 전환 시 입력값 캐시 (돌아왔을 때 복원)
@@ -205,7 +214,40 @@ export default function RecordAddPage() {
   };
 
   const toggleMedAlarm = (index: number) => {
-    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: !m.alarm_enabled } : m)));
+    const turningOn = !medications[index].alarm_enabled;
+    // OFF → ON 이고 브라우저 권한이 미결정 상태면 soft-prompt 먼저.
+    // (permission=default 에서 바로 requestPermission 을 호출하면 사용자가
+    // 당황해서 "허용 안 함" 누를 위험 → 영구 차단. 컨텍스트 모달로 완화.)
+    if (turningOn && canUseAlarm && notifPermission === 'default') {
+      setPendingPushIdx(index);
+      return;
+    }
+    // granted / denied / 이미 ON → OFF 등은 즉시 토글 (denied 면 인라인 안내 알아서 노출됨)
+    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: turningOn } : m)));
+  };
+
+  // Soft-prompt 모달에서 [받을게요] 클릭: 브라우저 권한 요청 → 허용/거부 결과로 분기.
+  const handlePushPromptAllow = async () => {
+    const idx = pendingPushIdx;
+    setPendingPushIdx(null);
+    if (idx === null || typeof Notification === 'undefined') return;
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      // 허용이든 거부든 약 토글은 ON 으로 (사용자 의도 반영). 거부면 인라인 안내가 보이게 됨.
+      setMedications(prev => prev.map((m, i) => (i === idx ? { ...m, alarm_enabled: true } : m)));
+      // 허용됐으면 AuthContext 의 auto-resub 가 subscription 자동 생성.
+      // (여기서도 직접 subscribe 가능하지만 한 곳에서 관리하기 위해 AuthContext 에 위임)
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'push', action: 'soft-prompt' } });
+    }
+  };
+
+  // Soft-prompt 모달에서 [취소] 클릭: requestPermission 호출 X → permission=default 유지.
+  // 나중에 사용자가 마음 바뀌면 다시 토글 시도 가능.
+  const handlePushPromptCancel = () => {
+    setPendingPushIdx(null);
+    // 토글은 OFF 로 유지 (flip 안 함)
   };
 
   const removeMedication = (index: number) => {
@@ -762,6 +804,19 @@ export default function RecordAddPage() {
                     {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
                     투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
                   </button>
+                  {/* 알림 ON 인데 브라우저 권한이 'denied' (차단) 면 인라인 안내.
+                      DB 에 alarm_enabled=true 는 저장되지만 실제로 푸시 안 옴 →
+                      사용자한테 명확히 알려주고 복구 경로(기기 설정) 링크 제공. */}
+                  {canUseAlarm && med.alarm_enabled && notifPermission === 'denied' && i === 0 && (
+                    <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
+                      <BellOff size={11} className="flex-shrink-0 mt-0.5" />
+                      <p>
+                        브라우저 알림이 차단돼 있어요.{' '}
+                        <span className="font-semibold underline">기기 설정 → 앱 → PawDex → 알림</span>{' '}
+                        에서 허용 후 저장해주세요.
+                      </p>
+                    </div>
+                  )}
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
                       {med.alarm_times.map((time, ti) => (
@@ -869,6 +924,28 @@ export default function RecordAddPage() {
         variant="danger"
         onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); guardPushedRef.current = false; window.history.go(-2); }}
         onCancel={() => setShowExitConfirm(false)}
+      />
+
+      {/* Soft-prompt: 알림 권한 'default' 상태에서 알림 토글 ON 시도 시.
+          requestPermission 호출 전 컨텍스트 안내 → 사용자가 [받을게요] 누른
+          직후에만 실제 OS 팝업이 뜸. [취소] 누르면 OS 팝업 아예 안 뜸 → default
+          유지 → 나중에 다시 시도 가능. */}
+      <ConfirmModal
+        open={pendingPushIdx !== null}
+        title="약 알림을 보내드릴게요"
+        message={
+          <>
+            <p>약 시간 / 예약일 / 퇴원일 알림을 받으려면</p>
+            <p className="mt-1">브라우저 알림 권한 허용이 필요해요.</p>
+            <p className="mt-2 text-[10px] text-gray-400">
+              [받을게요] 를 누르면 시스템 권한 창이 떠요.
+            </p>
+          </>
+        }
+        confirmLabel="받을게요"
+        cancelLabel="나중에"
+        onConfirm={handlePushPromptAllow}
+        onCancel={handlePushPromptCancel}
       />
     </div>
   );

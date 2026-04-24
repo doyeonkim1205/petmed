@@ -400,6 +400,11 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           }
         }
         setPushEnabled(true);
+        // DB 에 의사 기록 (기기 간 sync 용). 실패해도 구독 자체는 성공이라 무시.
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', u.id);
+        } catch {}
         log('DONE: subscribed');
       } else {
         log('Unsubscribe flow');
@@ -417,6 +422,11 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           await sub.unsubscribe();
         }
         setPushEnabled(false);
+        // DB 에 명시적 OFF 기록 (auto-resub 가 다시 켜지 않도록).
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) await supabase.from('profiles').update({ is_push_enabled: false }).eq('id', u.id);
+        } catch {}
         log('DONE: unsubscribed');
       }
     } catch (err) {

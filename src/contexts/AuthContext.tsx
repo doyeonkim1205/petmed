@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/nextjs';
 import { supabase, Profile } from '@/lib/supabase';
 import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
+import { getEffectivePlan } from '@/lib/plans';
 
 interface AuthContextType {
   user: User | null;
@@ -263,6 +264,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // ── 푸시 알림 자동 재구독 (silent) ──
+  //
+  // 조건이 모두 맞으면 사용자한테 아무것도 안 묻고 조용히 구독을 만들어 둔다:
+  //   1) user / profile 로드 완료
+  //   2) profile.is_push_enabled !== false  (사용자가 명시적으로 OFF 한 적 없음)
+  //   3) effective plan === 'plus'          (무료는 서버가 어차피 거부)
+  //   4) Notification.permission === 'granted'  (과거에 허용한 적 있음)
+  //   5) getSubscription() === null          (실제 구독이 없음 → "유령 상태" 감지)
+  //
+  // 왜 필요:
+  //   - SW 캐시 bump / TWA 재설치 등으로 구독이 무효화됐지만 permission 은
+  //     granted 로 남아있는 유저들을 자동 복구 (self-healing).
+  //   - cron 이 410/404 응답 받으면 DB row 삭제 → 다음 앱 방문 시 이 로직이
+  //     getSubscription()=null 을 감지하고 새 구독 생성.
+  //
+  // 안전장치:
+  //   - 모든 실패는 Sentry 로만 로깅. 앱 로딩 차단 X.
+  //   - 이미 구독 있으면 early return → 네트워크 호출 0 (반복 호출 무해).
+  //   - cancelled flag 로 unmount 후 DB 업데이트 방지.
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (profile.is_push_enabled === false) return;
+    if (getEffectivePlan(profile.plan) !== 'plus') return;
+    if (typeof window === 'undefined') return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (cancelled) return;
+        const existingSub = await reg.pushManager.getSubscription();
+        if (cancelled || existingSub) return; // 이미 구독 있음
+
+        // VAPID public key → Uint8Array 변환 (urlsafe base64 decode)
+        const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+        const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: arr,
+        });
+        if (cancelled) return;
+
+        const json = sub.toJSON();
+        const { authFetch } = await import('@/lib/authFetch');
+        await authFetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: json.endpoint,
+            keys_p256dh: json.keys?.p256dh,
+            keys_auth: json.keys?.auth,
+          }),
+        });
+        if (cancelled) return;
+
+        // null → true 로 업데이트 (다음 앱 로드 시 이 로직 불필요하게 안 돌게).
+        // true 였으면 스킵 (DB 쓰기 아낌).
+        if (profile.is_push_enabled !== true) {
+          await supabase.from('profiles')
+            .update({ is_push_enabled: true })
+            .eq('id', user.id);
+        }
+      } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'push', action: 'auto-resub' } });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user, profile]);
 
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
