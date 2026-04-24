@@ -95,6 +95,8 @@ function PetModal({
   const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  // 등록 한도 초과 안내 모달 (기존 native alert 대체)
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
@@ -140,7 +142,7 @@ function PetModal({
     const config = getPlanConfig(effectivePlan);
     if (config.maxPets > 0 && pets.length >= config.maxPets) {
       const suffix = effectivePlan !== 'free' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
-      alert(`🐾 반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
+      setLimitMsg(`반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
       return;
     }
 
@@ -281,6 +283,15 @@ function PetModal({
           setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmModal
+        open={limitMsg !== null}
+        title="등록 한도에 도달했어요"
+        message={limitMsg}
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setLimitMsg(null)}
+        onCancel={() => setLimitMsg(null)}
       />
     </div>
   );
