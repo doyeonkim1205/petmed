@@ -296,28 +296,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     // 핵심 auto-resub 로직. 권한 체크 포함 (외부에서 호출 시마다 최신 권한 읽음).
+    //
+    // "유령 구독" 대응: 브라우저는 getSubscription() 으로 살아있다고 응답하지만
+    // cron 이 410/404 로 DB 에서 삭제한 경우. 기존 로직은 `existingSub` 있으면
+    // early return 이라 DB 복구가 안 됐음. 이제는 existingSub 가 있어도 DB 에
+    // upsert (idempotent) 해서 동기화.
     const runAutoResub = async () => {
       if (cancelled) return;
       if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
       try {
         const reg = await navigator.serviceWorker.ready;
         if (cancelled) return;
-        const existingSub = await reg.pushManager.getSubscription();
-        if (cancelled || existingSub) return; // 이미 구독 있음
 
-        // VAPID public key → Uint8Array 변환 (urlsafe base64 decode)
-        const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
-        const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw = atob(base64);
-        const arr = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: arr,
-        });
+        let sub = await reg.pushManager.getSubscription();
         if (cancelled) return;
 
+        if (!sub) {
+          // VAPID public key → Uint8Array 변환 (urlsafe base64 decode)
+          const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+          const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+          const raw = atob(base64);
+          const arr = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: arr,
+          });
+          if (cancelled) return;
+        }
+
+        // DB 에 upsert (새 구독이든 기존 유령 구독이든). /api/push/subscribe 는
+        // (user_id, endpoint) unique constraint upsert 라 중복 호출 안전.
         const json = sub.toJSON();
         const { authFetch } = await import('@/lib/authFetch');
         await authFetch('/api/push/subscribe', {
