@@ -462,6 +462,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ device_id: getDeviceId() }),
         });
       } catch {}
+
+      // 푸시 구독 해제 — 로그아웃한 기기에 이전 계정 알림이 계속 배달되는
+      // 문제 방지. 브라우저 레벨에서 unsubscribe + DB row 삭제.
+      // 네트워크/브라우저 에러가 로그아웃 흐름을 차단하지 않도록 try/catch 로 감쌈.
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          const sub = await reg?.pushManager.getSubscription();
+          if (sub) {
+            const endpoint = sub.endpoint;
+            // DB row 먼저 삭제 (토큰 아직 유효한 동안)
+            try {
+              const { authFetch } = await import('@/lib/authFetch');
+              await authFetch('/api/push/subscribe', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint }),
+              });
+            } catch {}
+            // 브라우저 레벨 해제 — 이후 이 기기엔 push 이벤트 자체가 안 옴
+            await sub.unsubscribe();
+          }
+        }
+      } catch {}
     }
 
     // 1) Clear React state immediately
