@@ -285,7 +285,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         if (token) {
           const storage = await checkStorageLimit(token);
           if (!storage.canUpload) {
-            showError(`저장 용량(${storage.limitMB}MB)을 초과했습니다. 기존 파일을 삭제하거나 플랜을 업그레이드하세요.`);
+            showError(
+              getEffectivePlan(profile?.plan) === 'plus'
+                ? `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리한 뒤 다시 시도해 주세요.`
+                : `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리하거나 Plus로 용량을 늘려보세요!`,
+            );
             setSaving(false);
             return;
           }
@@ -850,6 +854,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 }
               }}
               maxFiles={maxNewFiles}
+              showPlusUpsell={getEffectivePlan(profile?.plan) === 'free'}
               placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             />
           )}

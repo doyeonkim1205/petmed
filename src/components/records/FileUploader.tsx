@@ -8,9 +8,11 @@ interface FileUploaderProps {
   onFilesChange: (files: File[]) => void;
   maxFiles?: number;
   placeholder?: string;
+  /** 한도 도달 시 "Plus 확인" 유도 문구 노출 여부. Plus 유저는 false. */
+  showPlusUpsell?: boolean;
 }
 
-export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '파일을 첨부하세요' }: FileUploaderProps) {
+export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '파일을 첨부하세요', showPlusUpsell = true }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,8 +59,12 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
         <Upload className="mx-auto mb-2 text-gray-400" size={24} />
         {files.length >= maxFiles ? (
           <>
-            <p className="text-sm text-orange-600 font-medium">첨부파일 한도({maxFiles}개)에 도달했습니다.</p>
-            <p className="text-xs text-gray-400 mt-1">기존 파일을 삭제하거나 플랜을 업그레이드하세요.</p>
+            <p className="text-sm text-orange-600 font-medium">첨부파일 한도({maxFiles}개)에 도달했습니다</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {showPlusUpsell
+                ? '여러 장을 올리고 싶다면 Plus 플랜을 확인해 보세요!'
+                : '기존 파일을 정리한 뒤 다시 시도해 주세요.'}
+            </p>
           </>
         ) : (
           <>

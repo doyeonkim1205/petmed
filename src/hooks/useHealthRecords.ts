@@ -114,8 +114,10 @@ export function useHealthRecords(petId?: string) {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       if ((count || 0) >= config.maxRecords) {
-        const suffix = effectivePlan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 기록을 추가하세요.';
-        throw new Error(`📋 기록 한도(${config.maxRecords}개)에 도달했습니다.${suffix}`);
+        const msg = effectivePlan !== 'free'
+          ? `📋 기록 한도(${config.maxRecords}개)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`
+          : `📋 기록 한도(${config.maxRecords}개)에 도달했습니다! Plus로 업그레이드하고 소중한 기록을 계속 남겨보세요`;
+        throw new Error(msg);
       }
     }
 
