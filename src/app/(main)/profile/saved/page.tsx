@@ -79,7 +79,7 @@ export default function SavedAnalysesPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-gray-300" />
+        <Loader2 size={28} className="animate-spin text-blue-400 motion-reduce:animate-none" aria-label="로딩 중" />
       </div>
     );
   }
