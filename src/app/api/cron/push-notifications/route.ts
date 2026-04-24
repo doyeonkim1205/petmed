@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { logActivityServer } from '@/lib/activityLogServer';
+import { isTrialActive } from '@/lib/plans';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -159,14 +160,20 @@ export async function GET(request: NextRequest) {
     ...expiringSoon.map((r) => r.user_id),
   ]);
 
+  // 트라이얼 중엔 전체 유저를 plus 로 취급 (getEffectivePlan 과 동일 규칙).
+  // 트라이얼 종료 후엔 실제 plan 이 'plus' 인 유저만.
   const paidSet = new Set<string>();
   if (allTargetUserIds.size > 0) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles')
-      .select('id, plan')
-      .in('id', Array.from(allTargetUserIds));
-    for (const p of profiles || []) {
-      if (p.plan && p.plan !== 'free') paidSet.add(p.id);
+    if (isTrialActive()) {
+      for (const uid of allTargetUserIds) paidSet.add(uid);
+    } else {
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, plan')
+        .in('id', Array.from(allTargetUserIds));
+      for (const p of profiles || []) {
+        if (p.plan && p.plan !== 'free') paidSet.add(p.id);
+      }
     }
   }
 
