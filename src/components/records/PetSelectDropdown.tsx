@@ -65,12 +65,7 @@ export function PetSelectDropdown({
         className="w-full flex items-center justify-between gap-2 px-4 py-3 border border-gray-200 rounded-lg bg-white text-sm hover:border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
       >
         {selected ? (
-          <span className="text-gray-800">
-            {selected.name}
-            <span className="ml-1.5 text-xs text-gray-400">
-              {selected.type === 'dog' ? '강아지' : '고양이'}
-            </span>
-          </span>
+          <span className="text-gray-800">{selected.name}</span>
         ) : (
           <span className="text-gray-400">{placeholder}</span>
         )}
@@ -103,12 +98,7 @@ export function PetSelectDropdown({
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <span>
-                  {pet.name}
-                  <span className="ml-1.5 text-xs text-gray-400">
-                    {pet.type === 'dog' ? '강아지' : '고양이'}
-                  </span>
-                </span>
+                <span>{pet.name}</span>
                 {isSelected && <Check size={16} className="text-blue-600 flex-shrink-0" />}
               </button>
             );
