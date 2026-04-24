@@ -68,12 +68,20 @@ export async function POST(request: Request) {
     }
   }
 
-  // 관리자 발송 기록
+  // 관리자 발송 기록 — target='user' 일 땐 resolved 이메일도 기록 (감사 추적).
+  // 관리자가 이메일 오타로 엉뚱한 사람한테 발송했는지 나중에 검증 가능.
   await supabase.from('activity_logs').insert({
     user_id: user!.id,
     action: 'admin.push_send',
     resource_type: 'push',
-    details: { title, body, target: target || 'all', sent, failed },
+    details: {
+      title,
+      body,
+      target: target || 'all',
+      sent,
+      failed,
+      ...(target === 'user' && userEmail ? { targetEmail: userEmail } : {}),
+    },
   });
 
   return NextResponse.json({ sent, failed });
