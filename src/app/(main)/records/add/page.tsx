@@ -101,6 +101,43 @@ export default function RecordAddPage() {
     if (typeof Notification !== 'undefined') {
       setNotifPermission(Notification.permission);
     }
+
+    // 권한 상태 변경 실시간 감지.
+    // 사용자가 OS/브라우저 설정에서 알림 권한을 바꿔도 페이지 리로드 없이
+    // UI 가 갱신되도록 Permissions API 의 change 이벤트 구독.
+    // Safari/구 브라우저는 query 자체가 없거나 'notifications' 지원 안 해서 catch 로 흘림.
+    let status: PermissionStatus | null = null;
+    const update = () => {
+      if (!status) return;
+      // Permissions API 는 'prompt' / 'granted' / 'denied' 반환.
+      // Notification.permission 은 'default' / 'granted' / 'denied'.
+      // 'prompt' → 'default' 로 매핑해서 NotificationPermission 타입 맞춤.
+      const mapped: NotificationPermission =
+        status.state === 'granted' ? 'granted' :
+        status.state === 'denied' ? 'denied' : 'default';
+      setNotifPermission(mapped);
+    };
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName }).then(s => {
+        status = s;
+        update();
+        s.addEventListener('change', update);
+      }).catch(() => {});
+    }
+
+    // 백업: 탭 가시성 변경 시 한 번 더 동기화 (설정 앱 갔다 돌아올 때).
+    // Permissions API 가 change 이벤트 놓치는 엣지 케이스 방어.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && typeof Notification !== 'undefined') {
+        setNotifPermission(Notification.permission);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      status?.removeEventListener('change', update);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   // 유형 전환 시 입력값 캐시 (돌아왔을 때 복원)
@@ -811,9 +848,7 @@ export default function RecordAddPage() {
                     <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
                       <BellOff size={11} className="flex-shrink-0 mt-0.5" />
                       <p>
-                        브라우저 알림이 차단돼 있어요.{' '}
-                        <span className="font-semibold underline">기기 설정 → 앱 → PawDex → 알림</span>{' '}
-                        에서 허용 후 저장해주세요.
+                        브라우저 알림이 차단되어 있어요! 브라우저 앱 설정에서 알림 허용으로 변경 후 다시 시도해주세요.
                       </p>
                     </div>
                   )}

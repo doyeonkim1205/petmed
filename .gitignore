@@ -52,3 +52,4 @@ next-env.d.ts
 .env*.local
 tmp-banner-preview.html
 tmp-loading-preview.html
+tmp-soft-prompt-preview.html

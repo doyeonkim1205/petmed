@@ -290,12 +290,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (getEffectivePlan(profile.plan) !== 'plus') return;
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidKey) return;
 
     let cancelled = false;
-    (async () => {
+
+    // 핵심 auto-resub 로직. 권한 체크 포함 (외부에서 호출 시마다 최신 권한 읽음).
+    const runAutoResub = async () => {
+      if (cancelled) return;
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
       try {
         const reg = await navigator.serviceWorker.ready;
         if (cancelled) return;
@@ -338,9 +341,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         Sentry.captureException(err, { tags: { feature: 'push', action: 'auto-resub' } });
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
+    // 초기 실행
+    runAutoResub();
+
+    // 권한 변경 실시간 감지 — 사용자가 설정에서 "차단" → "허용" 으로 바꾼 경우
+    // 앱 재시작 없이 자동 재구독 시도.
+    let permStatus: PermissionStatus | null = null;
+    const onPermChange = () => {
+      if (permStatus && permStatus.state === 'granted') runAutoResub();
+    };
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName }).then(s => {
+        permStatus = s;
+        s.addEventListener('change', onPermChange);
+      }).catch(() => {});
+    }
+
+    // 백업: 탭이 다시 활성화될 때 한 번 더 시도 (설정 앱 다녀온 경우).
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') runAutoResub();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      permStatus?.removeEventListener('change', onPermChange);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [user, profile]);
 
   const signUp = async (email: string, password: string, nickname: string) => {
