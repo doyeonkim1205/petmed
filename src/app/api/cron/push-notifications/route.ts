@@ -8,6 +8,29 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
+// 동시 webpush 호출 제한 — 너무 많이 병렬 쏘면 FCM 이 429 로 응답.
+// 10 이면 유저 1000명×2기기 = 2000콜이 ~200 청크로 나눠져 실행.
+const PUSH_CONCURRENCY = 10;
+
+/** 작업 배열을 동시성 limit 로 병렬 실행. p-limit 외부 의존성 없이 가벼운 구현. */
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await worker(items[i]);
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
@@ -28,24 +51,25 @@ export async function GET(request: NextRequest) {
   const currentTime = `${currentHour}:${String(currentMinute).padStart(2, '0')}`;
   const todayKST = kstDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
+  // Idempotency 가드: pg_net 재시도 등으로 같은 분 cron 이 겹치면 이미 기록된
+  // activity_logs 가 있는지 확인하고 early return. 정상 케이스에선 매 분 새로
+  // 기록되므로 문제없음.
+  const windowStart = new Date(now.getTime() - 45 * 1000).toISOString();
+  const { data: recentRun } = await supabaseAdmin
+    .from('activity_logs')
+    .select('id')
+    .eq('action', 'cron.push_notifications')
+    .gte('created_at', windowStart)
+    .filter('details->>time', 'eq', currentTime)
+    .limit(1);
+  if (recentRun && recentRun.length > 0) {
+    return NextResponse.json({ skipped: 'duplicate-minute', time: currentTime });
+  }
+
   let totalSent = 0;
   let totalFailed = 0;
 
-  // Helper: check if user is on a paid plan
-  const paidUserCache = new Map<string, boolean>();
-  async function isPaidUser(userId: string): Promise<boolean> {
-    if (paidUserCache.has(userId)) return paidUserCache.get(userId)!;
-    const { data } = await supabaseAdmin
-      .from('profiles')
-      .select('plan')
-      .eq('id', userId)
-      .single();
-    const paid = !!data && data.plan !== 'free';
-    paidUserCache.set(userId, paid);
-    return paid;
-  }
-
-  // 1. Medication alarms - check alarm_times for current hour
+  // 1. Medication alarms - check alarm_times for current minute (exact)
   const { data: medications } = await supabaseAdmin
     .from('medications')
     .select('user_id, name, alarm_times, start_date, end_date')
@@ -59,15 +83,10 @@ export async function GET(request: NextRequest) {
   for (const med of medications || []) {
     const times = med.alarm_times as string[] | null;
     if (!times) continue;
-
-    // Exact match: cron runs every minute (Option A). 투약 시간 드롭다운이
-    // 15분 단위(00/15/30/45)라 cron 도 그 분에만 트리거 — 1분 단위 cron
-    // 덕분에 지연 평균 ~30초.
     const hasMatch = times.some((t: string) => {
       const [h, m] = t.split(':').map(Number);
       return String(h).padStart(2, '0') === currentHour && m === currentMinute;
     });
-
     if (hasMatch) {
       medUserIds.add(med.user_id);
       const msgs = medMessages.get(med.user_id) || [];
@@ -76,130 +95,174 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Send medication notifications (paid users only)
-  for (const userId of medUserIds) {
-    if (!(await isPaidUser(userId))) continue;
-    const names = medMessages.get(userId) || [];
-    const result = await sendPushToUser(userId, {
-      title: '💊 투약 알림',
-      body: `${names.join(', ')} 투약 시간입니다.`,
-      url: '/records',
-      category: 'medication',
-    });
-    totalSent += result.sent;
-    totalFailed += result.failed;
+  // 예약/퇴원/결제 대상 user_id 수집 (07:00 block 에서만 채움)
+  const apptTomorrow: Array<{ user_id: string; title: string }> = [];
+  const dischargeTomorrow: Array<{ user_id: string; title: string }> = [];
+  const apptToday: Array<{ user_id: string; title: string }> = [];
+  const dischargeToday: Array<{ user_id: string; title: string }> = [];
+  let expiringSoon: Array<{
+    id: string;
+    user_id: string;
+    plan: string;
+    status: string;
+    period_end: string;
+    billing_type: string | null;
+    product_id: string | null;
+  }> = [];
+
+  if (currentHour === '07' && currentMinute === 0) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+
+    const [apptsT, dischT, apptsToday2, dischToday2, expiring] = await Promise.all([
+      supabaseAdmin
+        .from('health_records')
+        .select('user_id, title, next_appointment_date')
+        .eq('next_appointment_date', tomorrowKST),
+      supabaseAdmin
+        .from('health_records')
+        .select('user_id, title, discharge_date')
+        .eq('discharge_date', tomorrowKST),
+      supabaseAdmin
+        .from('health_records')
+        .select('user_id, title, next_appointment_date')
+        .eq('next_appointment_date', todayKST),
+      supabaseAdmin
+        .from('health_records')
+        .select('user_id, title, discharge_date')
+        .eq('discharge_date', todayKST),
+      supabaseAdmin
+        .from('subscriptions')
+        .select('id, user_id, plan, status, period_end, billing_type, product_id')
+        .in('status', ['active', 'canceled'])
+        .gte('period_end', new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString())
+        .lt('period_end', new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString())
+        .is('reminder_3day_sent_at', null),
+    ]);
+
+    for (const r of apptsT.data || []) apptTomorrow.push({ user_id: r.user_id, title: r.title });
+    for (const r of dischT.data || []) dischargeTomorrow.push({ user_id: r.user_id, title: r.title });
+    for (const r of apptsToday2.data || []) apptToday.push({ user_id: r.user_id, title: r.title });
+    for (const r of dischToday2.data || []) dischargeToday.push({ user_id: r.user_id, title: r.title });
+    expiringSoon = expiring.data || [];
   }
 
-  // 2. Appointment reminders - check for tomorrow's appointments
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  // paid user 프리페치 — N+1 쿼리 제거.
+  // 투약/예약/퇴원/결제 대상 user_id 를 전부 모아 profiles 한 번에 조회.
+  const allTargetUserIds = new Set<string>([
+    ...medUserIds,
+    ...apptTomorrow.map((r) => r.user_id),
+    ...dischargeTomorrow.map((r) => r.user_id),
+    ...apptToday.map((r) => r.user_id),
+    ...dischargeToday.map((r) => r.user_id),
+    ...expiringSoon.map((r) => r.user_id),
+  ]);
 
-  // 예약/퇴원/결제 알림은 매일 KST 07:00 정각 1회만 발송.
-  // cron 이 1분 단위로 돌기 때문에 `currentMinute === 0` 으로 엄격히 한정해
-  // 07:00~07:59 내내 60번 중복 발송되는 걸 방지.
-  if (currentHour === '07' && currentMinute === 0) {
-    const { data: appointments } = await supabaseAdmin
-      .from('health_records')
-      .select('user_id, title, next_appointment_date')
-      .eq('next_appointment_date', tomorrowKST);
+  const paidSet = new Set<string>();
+  if (allTargetUserIds.size > 0) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, plan')
+      .in('id', Array.from(allTargetUserIds));
+    for (const p of profiles || []) {
+      if (p.plan && p.plan !== 'free') paidSet.add(p.id);
+    }
+  }
 
-    for (const appt of appointments || []) {
-      if (!(await isPaidUser(appt.user_id))) continue;
-      const result = await sendPushToUser(appt.user_id, {
+  // 발송 작업 큐 구성 — 전부 모아서 동시성 제한으로 한 번에 병렬 발송.
+  type SendTask = {
+    userId: string;
+    notification: { title: string; body: string; url: string; category?: string };
+    // 발송 성공/실패 무관하게 호출 (예: reminder_3day_sent_at 기록 — 스팸 방지 용도).
+    afterSend?: () => Promise<void>;
+  };
+  const tasks: SendTask[] = [];
+
+  // 1) 투약
+  for (const userId of medUserIds) {
+    if (!paidSet.has(userId)) continue;
+    const names = medMessages.get(userId) || [];
+    tasks.push({
+      userId,
+      notification: {
+        title: '💊 투약 알림',
+        body: `${names.join(', ')} 투약 시간입니다.`,
+        url: '/records',
+        category: 'medication',
+      },
+    });
+  }
+
+  // 2) 예약/퇴원 (07:00)
+  for (const r of apptTomorrow) {
+    if (!paidSet.has(r.user_id)) continue;
+    tasks.push({
+      userId: r.user_id,
+      notification: {
         title: '📅 예약일 알림',
-        body: `내일 "${appt.title}" 예약이 있습니다.`,
+        body: `내일 "${r.title}" 예약이 있습니다.`,
         url: '/records',
         category: 'appointment',
-      });
-      totalSent += result.sent;
-      totalFailed += result.failed;
-    }
-
-    // 3. Discharge date reminders - check for tomorrow's discharge
-    const { data: discharges } = await supabaseAdmin
-      .from('health_records')
-      .select('user_id, title, discharge_date')
-      .eq('discharge_date', tomorrowKST);
-
-    for (const d of discharges || []) {
-      if (!(await isPaidUser(d.user_id))) continue;
-      const result = await sendPushToUser(d.user_id, {
+      },
+    });
+  }
+  for (const r of dischargeTomorrow) {
+    if (!paidSet.has(r.user_id)) continue;
+    tasks.push({
+      userId: r.user_id,
+      notification: {
         title: '🏥 퇴원일 알림',
-        body: `내일 "${d.title}" 퇴원 예정입니다.`,
+        body: `내일 "${r.title}" 퇴원 예정입니다.`,
         url: '/records',
         category: 'hospitalization',
-      });
-      totalSent += result.sent;
-      totalFailed += result.failed;
-    }
-
-    // 4. Today's appointments
-    const { data: todayAppts } = await supabaseAdmin
-      .from('health_records')
-      .select('user_id, title, next_appointment_date')
-      .eq('next_appointment_date', todayKST);
-
-    for (const appt of todayAppts || []) {
-      if (!(await isPaidUser(appt.user_id))) continue;
-      const result = await sendPushToUser(appt.user_id, {
+      },
+    });
+  }
+  for (const r of apptToday) {
+    if (!paidSet.has(r.user_id)) continue;
+    tasks.push({
+      userId: r.user_id,
+      notification: {
         title: '📅 오늘 예약',
-        body: `오늘 "${appt.title}" 예약이 있습니다.`,
+        body: `오늘 "${r.title}" 예약이 있습니다.`,
         url: '/records',
         category: 'appointment',
-      });
-      totalSent += result.sent;
-      totalFailed += result.failed;
-    }
-
-    // 5. Today's discharges
-    const { data: todayDischarges } = await supabaseAdmin
-      .from('health_records')
-      .select('user_id, title, discharge_date')
-      .eq('discharge_date', todayKST);
-
-    for (const d of todayDischarges || []) {
-      if (!(await isPaidUser(d.user_id))) continue;
-      const result = await sendPushToUser(d.user_id, {
+      },
+    });
+  }
+  for (const r of dischargeToday) {
+    if (!paidSet.has(r.user_id)) continue;
+    tasks.push({
+      userId: r.user_id,
+      notification: {
         title: '🏥 오늘 퇴원',
-        body: `오늘 "${d.title}" 퇴원 예정입니다.`,
+        body: `오늘 "${r.title}" 퇴원 예정입니다.`,
         url: '/records',
         category: 'hospitalization',
-      });
-      totalSent += result.sent;
-      totalFailed += result.failed;
+      },
+    });
+  }
+
+  // 3) 3일 전 결제/만료 안내 — product price 프리페치 후 메시지 분기
+  if (expiringSoon.length > 0) {
+    const productIds = Array.from(
+      new Set(expiringSoon.map((s) => s.product_id).filter((id): id is string => !!id)),
+    );
+    const priceMap = new Map<string, number>();
+    if (productIds.length > 0) {
+      const { data: products } = await supabaseAdmin
+        .from('payment_products')
+        .select('id, price')
+        .in('id', productIds);
+      for (const p of products || []) {
+        if (typeof p.price === 'number') priceMap.set(p.id, p.price);
+      }
     }
 
-    // 6. Subscription billing/expiration reminders (3 days before period_end)
-    //    Runs once per day at 9 AM KST. Idempotent via reminder_3day_sent_at column.
-    //    Message branches based on billing_type:
-    //    - recurring active: "3일 후 자동 결제됩니다 (3,900원)"
-    //    - one_time active: "3일 후 만료됩니다, 재결제 필요"
-    //    - canceled: "3일 후 무료 플랜으로 전환됩니다"
-    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
-
-    const { data: expiringSoon } = await supabaseAdmin
-      .from('subscriptions')
-      .select('id, user_id, plan, status, period_end, billing_type, product_id')
-      .in('status', ['active', 'canceled'])
-      .gte('period_end', threeDaysFromNow.toISOString())
-      .lt('period_end', fourDaysFromNow.toISOString())
-      .is('reminder_3day_sent_at', null);
-
-    for (const sub of expiringSoon || []) {
+    for (const sub of expiringSoon) {
       if (sub.plan === 'free') continue;
-
-      // Look up product price for recurring billing notice
-      let priceText = '';
-      if (sub.billing_type === 'recurring' && sub.product_id) {
-        const { data: product } = await supabaseAdmin
-          .from('payment_products')
-          .select('price')
-          .eq('id', sub.product_id)
-          .single();
-        if (product?.price) priceText = ` (${product.price.toLocaleString()}원)`;
-      }
+      if (!paidSet.has(sub.user_id)) continue;
 
       let notification: { title: string; body: string; url: string };
       if (sub.status === 'canceled') {
@@ -209,6 +272,8 @@ export async function GET(request: NextRequest) {
           url: '/profile/subscription',
         };
       } else if (sub.billing_type === 'recurring') {
+        const price = sub.product_id ? priceMap.get(sub.product_id) : null;
+        const priceText = price ? ` (${price.toLocaleString()}원)` : '';
         notification = {
           title: '🔄 자동 결제 안내',
           body: `3일 후 PawDex Plus가 자동 결제됩니다${priceText}. 해지를 원하시면 요금제 페이지에서 자동 갱신을 끄세요.`,
@@ -222,15 +287,28 @@ export async function GET(request: NextRequest) {
         };
       }
 
-      const result = await sendPushToUser(sub.user_id, notification);
-      totalSent += result.sent;
-      totalFailed += result.failed;
-
-      await supabaseAdmin
-        .from('subscriptions')
-        .update({ reminder_3day_sent_at: new Date().toISOString() })
-        .eq('id', sub.id);
+      tasks.push({
+        userId: sub.user_id,
+        notification,
+        afterSend: async () => {
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({ reminder_3day_sent_at: new Date().toISOString() })
+            .eq('id', sub.id);
+        },
+      });
     }
+  }
+
+  // 병렬 발송 (동시성 제한). 각 task 는 한 유저의 모든 기기에 발송.
+  const results = await runWithConcurrency(tasks, PUSH_CONCURRENCY, async (task) => {
+    const result = await sendPushToUser(task.userId, task.notification);
+    if (task.afterSend) await task.afterSend();
+    return result;
+  });
+  for (const r of results) {
+    totalSent += r.sent;
+    totalFailed += r.failed;
   }
 
   await logActivityServer(null, 'cron.push_notifications', {
@@ -258,28 +336,36 @@ async function sendPushToUser(
   let sent = 0;
   let failed = 0;
 
-  for (const sub of subs || []) {
-    try {
-      // urgency 'high' + TTL 5분: FCM 에게 "즉시 전달, 5분 안에 전달 못 하면
-      // 폐기" 힌트. Android 배터리 세이버 / Doze 모드 지연을 최소화 (투약
-      // 시간 알림은 지나면 의미가 없음).
-      await webpush.sendNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
-        },
-        payload,
-        { urgency: 'high', TTL: 300 },
-      );
-      sent++;
-    } catch (err: any) {
-      failed++;
-      // 410 Gone / 404 Not Found 만 영구 삭제 — 그 외 (5xx, 네트워크 오류 등) 는 일시적 실패라 유지
-      const statusCode = err?.statusCode;
-      if (statusCode === 410 || statusCode === 404) {
-        await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+  // 한 유저의 여러 기기는 병렬로 발송 (보통 1-3개라 전부 Promise.all).
+  const deliveries = await Promise.all(
+    (subs || []).map(async (sub) => {
+      try {
+        // urgency 'high' + TTL 5분: FCM 에게 "즉시 전달, 5분 안에 전달 못 하면
+        // 폐기" 힌트. Android 배터리 세이버 / Doze 모드 지연을 최소화.
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
+          },
+          payload,
+          { urgency: 'high', TTL: 300 },
+        );
+        return { ok: true as const };
+      } catch (err: any) {
+        const statusCode = err?.statusCode;
+        // 410 Gone / 404 Not Found 만 영구 삭제.
+        // 429 rate limit / 5xx / 네트워크 오류는 일시적 실패로 유지 → 다음 cron 재시도.
+        if (statusCode === 410 || statusCode === 404) {
+          await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+        }
+        return { ok: false as const };
       }
-    }
+    }),
+  );
+
+  for (const d of deliveries) {
+    if (d.ok) sent++;
+    else failed++;
   }
 
   return { sent, failed };
