@@ -1,11 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TextField } from '@/components/TextField';
-import { Send, Users, Crown, UserCheck } from 'lucide-react';
+import { Send, Users, Crown, UserCheck, History, AlertCircle } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+
+type TargetKey = 'all' | 'plus' | 'free';
+interface RecentSend {
+  id: string;
+  created_at: string;
+  details: { title?: string; body?: string; target?: string; sent?: number; failed?: number };
+}
+interface Stats {
+  subscriberCounts: Record<TargetKey, { total: number; subscribed: number }>;
+  recentSends: RecentSend[];
+}
 
 export default function NotificationsPage() {
   const [target, setTarget] = useState<'all' | 'plus' | 'free' | 'user'>('all');
@@ -15,6 +26,16 @@ export default function NotificationsPage() {
   const [url, setUrl] = useState('/');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/admin/notifications/stats');
+      if (res.ok) setStats(await res.json());
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
 
   const handleSend = async () => {
     if (!title || !body) { setResult('제목과 내용을 입력해주세요.'); return; }
@@ -31,9 +52,15 @@ export default function NotificationsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setResult(`✅ 발송 완료: ${data.sent}건 성공, ${data.failed}건 실패`);
+      if ((data.sent ?? 0) === 0 && (data.failed ?? 0) === 0) {
+        setResult('⚠️ 대상자 중 알림을 켠 사용자가 없어 아무에게도 발송되지 않았어요');
+      } else {
+        setResult(`✅ 발송 완료: ${data.sent}건 성공, ${data.failed}건 실패`);
+      }
       setTitle('');
       setBody('');
+      // 발송 직후 내역 + 구독자 수 리로드
+      loadStats();
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'admin', action: 'push-send' },
@@ -45,12 +72,23 @@ export default function NotificationsPage() {
     }
   };
 
+  const subscriberDesc = (key: TargetKey): string => {
+    if (!stats) return '';
+    const { total, subscribed } = stats.subscriberCounts[key];
+    return `${total}명 중 ${subscribed}명 구독`;
+  };
+
   const targets = [
-    { value: 'all', label: '전체', icon: Users, desc: '모든 사용자' },
-    { value: 'plus', label: 'Plus', icon: Crown, desc: '유료 사용자만' },
-    { value: 'free', label: 'Free', icon: UserCheck, desc: '무료 사용자만' },
+    { value: 'all', label: '전체', icon: Users, desc: stats ? subscriberDesc('all') : '모든 사용자' },
+    { value: 'plus', label: 'Plus', icon: Crown, desc: stats ? subscriberDesc('plus') : '유료 사용자만' },
+    { value: 'free', label: 'Free', icon: UserCheck, desc: stats ? subscriberDesc('free') : '무료 사용자만' },
     { value: 'user', label: '특정 사용자', icon: Send, desc: '이메일로 지정' },
   ];
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
 
   return (
     <div>
@@ -120,6 +158,72 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 최근 발송 내역 */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <History size={14} className="text-gray-400" />
+            최근 발송 내역 {stats && <span className="text-xs text-gray-400 font-normal">({stats.recentSends.length}건)</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!stats && <p className="text-sm text-gray-400">로딩 중...</p>}
+          {stats && stats.recentSends.length === 0 && (
+            <p className="text-sm text-gray-400">아직 발송 내역이 없어요</p>
+          )}
+          {stats && stats.recentSends.length > 0 && (
+            <div className="space-y-3">
+              {stats.recentSends.map((row) => {
+                const d = row.details || {};
+                const zero = (d.sent ?? 0) === 0 && (d.failed ?? 0) === 0;
+                const targetLabel =
+                  d.target === 'all' ? '전체' :
+                  d.target === 'plus' ? 'Plus' :
+                  d.target === 'free' ? 'Free' :
+                  d.target === 'user' ? '개별' : (d.target || '-');
+                return (
+                  <div key={row.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                          {targetLabel}
+                        </span>
+                        <p className="text-sm font-bold text-gray-800 truncate">
+                          {d.title || '(제목 없음)'}
+                        </p>
+                      </div>
+                      <span className="text-[11px] text-gray-400 flex-shrink-0">{formatDate(row.created_at)}</span>
+                    </div>
+                    {d.body && (
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-2">{d.body}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-[11px]">
+                      {zero ? (
+                        <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <AlertCircle size={11} />
+                          구독자 없음 — 아무에게도 전달 안 됨
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            성공 {d.sent ?? 0}건
+                          </span>
+                          {(d.failed ?? 0) > 0 && (
+                            <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                              실패 {d.failed}건
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

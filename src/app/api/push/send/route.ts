@@ -51,9 +51,11 @@ export async function POST(request: Request) {
 
   for (const sub of subs || []) {
     try {
+      // urgency high + TTL 5분 — 즉시 전달 힌트 (배터리 세이버/Doze 우회)
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
         payload,
+        { urgency: 'high', TTL: 300 },
       );
       sent++;
     } catch (err: any) {

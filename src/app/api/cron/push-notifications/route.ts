@@ -96,8 +96,10 @@ export async function GET(request: NextRequest) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 
-  // Only run appointment check at 9 AM KST
-  if (currentHour === '07') {
+  // 예약/퇴원 알림은 매일 KST 07:00-07:14 구간의 cron 한 번만 발송.
+  // 기존 `currentHour === '07'` 만 쓰면 07:00/07:15/07:30/07:45 네 번 cron 이
+  // 전부 매칭돼서 같은 알림이 4배로 중복 발송되던 버그 수정.
+  if (currentHour === '07' && currentMinute < 15) {
     const { data: appointments } = await supabaseAdmin
       .from('health_records')
       .select('user_id, title, next_appointment_date')
@@ -259,12 +261,16 @@ async function sendPushToUser(
 
   for (const sub of subs || []) {
     try {
+      // urgency 'high' + TTL 5분: FCM 에게 "즉시 전달, 5분 안에 전달 못 하면
+      // 폐기" 힌트. Android 배터리 세이버 / Doze 모드 지연을 최소화 (투약
+      // 시간 알림은 지나면 의미가 없음).
       await webpush.sendNotification(
         {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
         },
         payload,
+        { urgency: 'high', TTL: 300 },
       );
       sent++;
     } catch (err: any) {
