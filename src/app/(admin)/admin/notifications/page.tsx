@@ -59,7 +59,7 @@ export default function NotificationsPage() {
       }
       setTitle('');
       setBody('');
-      // 발송 직후 내역 + 구독자 수 리로드
+      // 발송 직후 내역 + 알림 켠 사용자 수 리로드
       loadStats();
     } catch (err) {
       Sentry.captureException(err, {
@@ -75,7 +75,7 @@ export default function NotificationsPage() {
   const subscriberDesc = (key: TargetKey): string => {
     if (!stats) return '';
     const { total, subscribed } = stats.subscriberCounts[key];
-    return `${total}명 중 ${subscribed}명 구독`;
+    return `${total}명 중 ${subscribed}명 알림 켬`;
   };
 
   const targets = [
@@ -202,7 +202,7 @@ export default function NotificationsPage() {
                       {zero ? (
                         <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                           <AlertCircle size={11} />
-                          구독자 없음 — 아무에게도 전달 안 됨
+                          알림 켠 사람 없음 — 아무에게도 전달 안 됨
                         </span>
                       ) : (
                         <>

@@ -14,6 +14,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { PetChipList } from '@/components/records/PetChipList';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -568,18 +569,16 @@ export default function RecordAddPage() {
         {/* Pet Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
-          <select
-            value={petId}
-            onChange={(e) => setPetId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-          >
-            {pets.length !== 1 && <option value="">선택해주세요</option>}
-            {pets.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.name} ({pet.type === 'dog' ? '강아지' : '고양이'})
-              </option>
-            ))}
-          </select>
+          {pets.length > 0 ? (
+            <PetChipList
+              pets={pets}
+              value={petId || null}
+              onChange={(id) => setPetId(id ?? '')}
+              showAll={false}
+            />
+          ) : (
+            <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
+          )}
         </div>
 
         {/* Title */}

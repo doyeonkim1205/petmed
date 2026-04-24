@@ -15,6 +15,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { PetChipList } from '@/components/records/PetChipList';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -472,17 +473,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
-          <select
-            value={petId}
-            onChange={(e) => setPetId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-          >
-            {pets.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.name} ({pet.type === 'dog' ? '강아지' : '고양이'})
-              </option>
-            ))}
-          </select>
+          {pets.length > 0 ? (
+            <PetChipList
+              pets={pets}
+              value={petId || null}
+              onChange={(id) => setPetId(id ?? '')}
+              showAll={false}
+            />
+          ) : (
+            <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
+          )}
         </div>
 
         <div className="space-y-2">
