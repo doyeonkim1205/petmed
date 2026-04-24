@@ -53,15 +53,34 @@ export function UpdateToast() {
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg) attachTo(reg);
     });
+
+    // iOS Safari BFCache 폴백: 페이지가 BFCache 에서 복원되면 React state 가
+    // 옛날 그대로 살아있어서 토스트가 사라지지 않는 케이스 방어. 복원 감지 시
+    // SW 상태 재확인 후 waiting 없으면 토스트 정리.
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg?.waiting) {
+          setShow(false);
+          setWaitingSW(null);
+        }
+      });
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
   const applyUpdate = () => {
     if (!waitingSW) return;
 
-    // 새 SW 가 활성화되면 자동으로 reload (controllerchange 이후)
+    // 새 SW 가 활성화되면 자동으로 새 URL 로 navigate (controllerchange 이후).
+    // iOS Safari 가 reload() 를 BFCache 에서 살리는 quirk 우회: URL 에
+    // timestamp 쿼리를 붙여 replace 하면 BFCache 키와 안 맞아서 fresh load.
     const onControllerChange = () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-      window.location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.set('_v', String(Date.now()));
+      window.location.replace(url.toString());
     };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
