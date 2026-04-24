@@ -306,13 +306,61 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
     }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
-    if (supported) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          setPushEnabled(!!sub);
-        });
-      });
-    }
+    if (!supported) return;
+
+    // 모달 오픈 시 self-healing:
+    //   permission='granted' + 구독 없음 → 그 자리에서 조용히 subscribe 시도.
+    //   AuthContext 의 auto-resub 가 타이밍 race / 일시 실패로 놓친 케이스를
+    //   여기서 복구 → 사용자가 "토글이 OFF 로 보이는데 분명 허용했는데?" 경험 제거.
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+
+        if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (vapidKey) {
+            const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+            const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            const arr = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            try {
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: arr,
+              });
+              // 서버에 endpoint 등록. 실패 시 sub 롤백.
+              const json = sub.toJSON();
+              const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+              if (session) {
+                const res = await fetch('/api/push/subscribe', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
+                });
+                if (!res.ok) {
+                  await sub.unsubscribe();
+                  sub = null;
+                } else {
+                  // 의사 기록도 true 로 동기화 (auto-resub 가 놓친 케이스 보완)
+                  try {
+                    const { data: { user: u } } = await supabase.auth.getUser();
+                    if (u) await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', u.id);
+                  } catch {}
+                }
+              }
+            } catch {
+              // 권한 관련 에러 등 — 무시하고 기존 sub 상태 유지
+            }
+          }
+        }
+
+        setPushEnabled(!!sub);
+      } catch {
+        // SW 접근 실패 등 — 초기 상태 유지
+      }
+    })();
   }, [open]);
 
   if (!open) return null;
