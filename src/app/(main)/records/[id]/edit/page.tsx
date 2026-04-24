@@ -287,8 +287,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           if (!storage.canUpload) {
             showError(
               getEffectivePlan(profile?.plan) === 'plus'
-                ? `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리한 뒤 다시 시도해 주세요.`
-                : `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리하거나 Plus로 용량을 늘려보세요!`,
+                ? `저장 공간이 부족해요(${storage.limitMB}MB) 추가 용량이 필요하시면 문의해 주세요`
+                : `저장 공간이 부족해요(${storage.limitMB}MB) Plus로 업그레이드하여 용량을 늘려보세요!`,
             );
             setSaving(false);
             return;
@@ -854,13 +854,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 }
               }}
               maxFiles={maxNewFiles}
-              showPlusUpsell={getEffectivePlan(profile?.plan) === 'free'}
               placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             />
           )}
           <div ref={fileEndRef} />
           {activeFileCount >= maxAttachments && (
-            <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다.</p>
+            <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다</p>
           )}
         </div>
       </form>

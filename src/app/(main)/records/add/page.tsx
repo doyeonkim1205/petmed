@@ -375,8 +375,8 @@ export default function RecordAddPage() {
           if (!storage.canUpload) {
             showError(
               isPaidUser
-                ? `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리한 뒤 다시 시도해 주세요.`
-                : `저장 공간이 부족해요(${storage.limitMB}MB) 기존 파일을 정리하거나 Plus로 용량을 늘려보세요!`,
+                ? `저장 공간이 부족해요(${storage.limitMB}MB) 추가 용량이 필요하시면 문의해 주세요`
+                : `저장 공간이 부족해요(${storage.limitMB}MB) Plus로 업그레이드하여 용량을 늘려보세요!`,
             );
             setSaving(false);
             return;
@@ -948,19 +948,25 @@ export default function RecordAddPage() {
         </div>
 
         <div className="space-y-2">
-          <FileUploader
-            files={files}
-            onFilesChange={(newFiles) => {
-              const added = newFiles.length > files.length;
-              setFiles(newFiles);
-              if (added) {
-                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-              }
-            }}
-            maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
-            showPlusUpsell={getEffectivePlan(profile?.plan) === 'free'}
-            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-          />
+          {files.length < getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord && (
+            <FileUploader
+              files={files}
+              onFilesChange={(newFiles) => {
+                const added = newFiles.length > files.length;
+                setFiles(newFiles);
+                if (added) {
+                  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+                }
+              }}
+              maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
+              placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+            />
+          )}
+          {files.length >= getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord && (
+            <p className="text-xs text-gray-400 text-center">
+              최대 {getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}개 파일까지 첨부 가능합니다
+            </p>
+          )}
           <div ref={fileEndRef} />
         </div>
       </form>
