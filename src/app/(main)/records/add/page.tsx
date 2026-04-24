@@ -265,17 +265,38 @@ export default function RecordAddPage() {
     // OFF → ON 이고 브라우저 권한이 미결정 상태면 soft-prompt 먼저.
     // (permission=default 에서 바로 requestPermission 을 호출하면 사용자가
     // 당황해서 "허용 안 함" 누를 위험 → 영구 차단. 컨텍스트 모달로 완화.)
-    if (turningOn && canUseAlarm && notifPermission === 'default') {
-      setPendingPushIdx(index);
-      return;
+    //
+    // 단, iOS Safari PWA 에서 Notification.permission 이 'default' 로
+    // 잘못 리턴되는 quirk 가 있어, 실제 구독 존재 시엔 granted 로 간주하고
+    // soft-prompt 스킵 → 마이페이지로 ON 한 유저가 records/add 에서
+    // 매번 "받을게요" 모달 뜨는 문제 방지.
+    // "subscribe 진행해야 할지" 판별 — 실제 구독 존재 여부로 결정 (iOS Safari
+    // PWA 에서 Notification.permission 이 'default' 로 잘못 리턴돼도 정확히 동작).
+    let shouldSubscribe = false;
+    if (turningOn && canUseAlarm) {
+      const browserGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+      let hasExistingSub = false;
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        hasExistingSub = !!(await reg?.pushManager.getSubscription());
+      } catch {}
+
+      if (browserGranted || hasExistingSub) {
+        // 권한 있음 (또는 iOS quirk: 구독은 있는데 permission 이 default 로 보임)
+        shouldSubscribe = true;
+      } else if (notifPermission === 'default') {
+        // 진짜 처음 — soft-prompt 먼저 (default→denied 영구차단 리스크 완화)
+        setPendingPushIdx(index);
+        return;
+      }
+      // denied 는 인라인 안내가 알아서 뜸 (setMedications 로 토글은 진행)
     }
+
     // 즉시 UI 반영
     setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: turningOn } : m)));
 
-    // permission=granted 인데 ON 으로 켜는 경우, user-gesture 콜스택 안에서
-    // 즉시 subscribe 시도 (iOS Safari 의 user-gesture 요구사항 만족).
-    // 이미 구독 있으면 헬퍼가 no-op + DB upsert (멱등).
-    if (turningOn && canUseAlarm && notifPermission === 'granted' && user) {
+    // user-gesture 콜스택 안에서 즉시 subscribe (iOS Safari 요구사항). 멱등.
+    if (shouldSubscribe && user) {
       setSubscribingIdx(index);
       try {
         const result = await ensurePushSubscribed(user.id);
@@ -284,6 +305,11 @@ export default function RecordAddPage() {
             tags: { feature: 'push', action: 'toggle-subscribe' },
             extra: { reason: result.reason },
           });
+        } else {
+          // iOS quirk 로 notifPermission 이 default 였다면 이제 granted 로 동기화
+          if (notifPermission !== 'granted' && typeof Notification !== 'undefined') {
+            setNotifPermission(Notification.permission);
+          }
         }
       } finally {
         setSubscribingIdx(-1);

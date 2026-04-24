@@ -77,8 +77,11 @@ export default function SavedAnalysesPage() {
   };
 
   if (loading) {
+    // min-h-[calc(100vh-8rem)]: Header(56px) + Footer 영역 제외해서
+    // 실제 보이는 영역의 정확한 중앙에 스피너 위치. min-h-screen 쓰면
+    // 컨테이너가 100vh 로 overflow 되어 스피너가 헤더 높이만큼 아래 치우침.
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-[calc(100vh-8rem)] bg-white flex items-center justify-center">
         <Loader2 size={28} className="animate-spin text-blue-400 motion-reduce:animate-none" aria-label="로딩 중" />
       </div>
     );
