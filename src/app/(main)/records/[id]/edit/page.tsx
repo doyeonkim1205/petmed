@@ -842,25 +842,20 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
 
-          {/* New file upload */}
-          {activeFileCount < maxAttachments && (
-            <FileUploader
-              files={newFiles}
-              onFilesChange={(files) => {
-                const added = files.length > newFiles.length;
-                setNewFiles(files);
-                if (added) {
-                  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-                }
-              }}
-              maxFiles={maxNewFiles}
-              placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-            />
-          )}
+          {/* New file upload — 한도 도달 시 FileUploader 내부에서 안내 표시 */}
+          <FileUploader
+            files={newFiles}
+            onFilesChange={(files) => {
+              const added = files.length > newFiles.length;
+              setNewFiles(files);
+              if (added) {
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+              }
+            }}
+            maxFiles={Math.max(maxNewFiles, 0)}
+            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+          />
           <div ref={fileEndRef} />
-          {activeFileCount >= maxAttachments && (
-            <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다</p>
-          )}
         </div>
       </form>
 

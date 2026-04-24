@@ -43,29 +43,38 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
     return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
   };
 
+  const atLimit = files.length >= maxFiles;
+
   return (
     <div className="space-y-3">
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-        onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-          dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-        } ${files.length >= maxFiles ? 'opacity-50 pointer-events-none' : ''}`}
-      >
-        <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-        <p className="text-sm text-gray-600">{placeholder}</p>
-        <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)</p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-          className="hidden"
-        />
-      </div>
+      {atLimit ? (
+        // 한도 도달: 업로드 영역 대신 안내 문구만 (파일 리스트는 아래 유지)
+        <p className="text-xs text-gray-400 text-center py-2">
+          최대 {maxFiles}개 파일까지 첨부 가능합니다
+        </p>
+      ) : (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+          onClick={() => inputRef.current?.click()}
+          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+            dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <Upload className="mx-auto mb-2 text-gray-400" size={24} />
+          <p className="text-sm text-gray-600">{placeholder}</p>
+          <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)</p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            multiple
+            onChange={(e) => handleFiles(e.target.files)}
+            className="hidden"
+          />
+        </div>
+      )}
 
       {files.length > 0 && (
         <div className="space-y-2">

@@ -948,25 +948,18 @@ export default function RecordAddPage() {
         </div>
 
         <div className="space-y-2">
-          {files.length < getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord && (
-            <FileUploader
-              files={files}
-              onFilesChange={(newFiles) => {
-                const added = newFiles.length > files.length;
-                setFiles(newFiles);
-                if (added) {
-                  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-                }
-              }}
-              maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
-              placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-            />
-          )}
-          {files.length >= getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord && (
-            <p className="text-xs text-gray-400 text-center">
-              최대 {getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}개 파일까지 첨부 가능합니다
-            </p>
-          )}
+          <FileUploader
+            files={files}
+            onFilesChange={(newFiles) => {
+              const added = newFiles.length > files.length;
+              setFiles(newFiles);
+              if (added) {
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+              }
+            }}
+            maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
+            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+          />
           <div ref={fileEndRef} />
         </div>
       </form>
