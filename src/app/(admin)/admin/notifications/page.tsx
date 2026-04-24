@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TextField } from '@/components/TextField';
-import { Send, Users, Crown, UserCheck, History, AlertCircle } from 'lucide-react';
+import { Send, Users, Crown, UserCheck, History, AlertCircle, Activity, Smartphone } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
 type TargetKey = 'all' | 'plus' | 'free';
@@ -13,9 +13,15 @@ interface RecentSend {
   created_at: string;
   details: { title?: string; body?: string; target?: string; sent?: number; failed?: number };
 }
+interface Diagnostics {
+  cron24h: { runs: number; sent: number; failed: number };
+  providerCounts: { fcm: number; apple: number; mozilla: number; other: number };
+  ghostCandidates: Array<{ id: string; email: string | null }>;
+}
 interface Stats {
   subscriberCounts: Record<TargetKey, { total: number; subscribed: number }>;
   recentSends: RecentSend[];
+  diagnostics?: Diagnostics;
 }
 
 export default function NotificationsPage() {
@@ -224,6 +230,85 @@ export default function NotificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 진단 카드 — 푸시 시스템 건강 */}
+      {stats?.diagnostics && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Activity size={14} className="text-gray-400" />
+              푸시 시스템 진단
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* cron 24시간 통계 */}
+            <div>
+              <p className="text-xs text-gray-500 mb-2">최근 24시간 cron 실행</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-gray-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-gray-400">실행 횟수</p>
+                  <p className="text-sm font-bold text-gray-700">{stats.diagnostics.cron24h.runs.toLocaleString()}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-green-600">성공</p>
+                  <p className="text-sm font-bold text-green-700">{stats.diagnostics.cron24h.sent.toLocaleString()}</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-red-600">실패</p>
+                  <p className="text-sm font-bold text-red-700">{stats.diagnostics.cron24h.failed.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 제공자별 분포 */}
+            <div>
+              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                <Smartphone size={12} />
+                구독 기기 분포 (현재)
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="bg-blue-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-blue-600">FCM (안드/크롬)</p>
+                  <p className="text-sm font-bold text-blue-700">{stats.diagnostics.providerCounts.fcm}</p>
+                </div>
+                <div className="bg-gray-100 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-gray-600">Apple (iOS/Mac)</p>
+                  <p className="text-sm font-bold text-gray-700">{stats.diagnostics.providerCounts.apple}</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-orange-600">Mozilla</p>
+                  <p className="text-sm font-bold text-orange-700">{stats.diagnostics.providerCounts.mozilla}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-2 text-center">
+                  <p className="text-[11px] text-gray-500">기타</p>
+                  <p className="text-sm font-bold text-gray-600">{stats.diagnostics.providerCounts.other}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 유령 후보 */}
+            <div>
+              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
+                <AlertCircle size={12} className={stats.diagnostics.ghostCandidates.length > 0 ? 'text-amber-500' : 'text-gray-300'} />
+                알림 켰지만 구독 없음
+                <span className="text-[11px] text-gray-400 font-normal">— 유령 상태 의심 (앱 다시 열면 자동 복구)</span>
+              </p>
+              {stats.diagnostics.ghostCandidates.length === 0 ? (
+                <p className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 text-center">없음 ✅</p>
+              ) : (
+                <div className="space-y-1">
+                  {stats.diagnostics.ghostCandidates.map((g) => (
+                    <div key={g.id} className="text-xs bg-amber-50 border border-amber-100 rounded-md px-3 py-2 flex items-center justify-between gap-2">
+                      <span className="text-amber-700 truncate">{g.email || g.id}</span>
+                      <span className="text-[10px] text-amber-500 flex-shrink-0">유령 의심</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

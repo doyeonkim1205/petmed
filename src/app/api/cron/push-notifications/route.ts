@@ -1,6 +1,27 @@
+/**
+ * 푸시 알림 cron — pg_cron(매분) → pg_net HTTP → 이 엔드포인트.
+ *
+ * ⚠️ 수정 시 체크리스트 (회귀 방어):
+ *   1. paidSet 계산이 isTrialActive() 분기 거치는가?
+ *      → free 유저도 트라이얼 중엔 plus 취급해서 받아야 함.
+ *   2. 매칭 로직이 1분 단위 cron 가정에 맞는가? (m === currentMinute)
+ *      → 15분 윈도우 매칭 쓰면 1분 cron 이 15번 중복 발송.
+ *   3. 시간 분기 (예: 07:00 발송) 가 currentMinute === 0 으로 정확히
+ *      한 번만 트리거되는가? (1분 cron 에서 60번 중복 방지)
+ *   4. 새 알림 종류 추가 시:
+ *      - allTargetUserIds 에 user_id 포함시키기
+ *      - tasks 배열에 push (paidSet 필터 후)
+ *      - 메시지에 emoji + 명확한 본문
+ *   5. webpush 호출 후 410/404 받으면 push_subscriptions row 삭제됨.
+ *      브라우저는 여전히 구독 상태라 믿는 "유령 상태" 발생 →
+ *      AuthContext auto-resub 가 다음 앱 로드 시 upsert 로 복구함.
+ *   6. Sentry warning 임계값 (실패율 > 50%) — 회귀 시 알림.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import * as Sentry from '@sentry/nextjs';
 import { logActivityServer } from '@/lib/activityLogServer';
 import { isTrialActive } from '@/lib/plans';
 
@@ -316,6 +337,27 @@ export async function GET(request: NextRequest) {
   for (const r of results) {
     totalSent += r.sent;
     totalFailed += r.failed;
+  }
+
+  // Sentry 모니터링: 실패율 비정상적으로 높을 때만 warning.
+  // - 5건 이상 시도(작은 수치 노이즈 무시) AND 실패가 성공보다 많을 때
+  // - 410/404 (정상적인 dead sub 정리) 도 failed 로 카운트되므로 적당한 임계값
+  const totalAttempts = totalSent + totalFailed;
+  if (totalAttempts >= 5 && totalFailed > totalSent) {
+    Sentry.captureMessage(
+      `cron.push_notifications: high failure rate ${totalFailed}/${totalAttempts}`,
+      {
+        level: 'warning',
+        tags: { feature: 'cron', action: 'push_send' },
+        extra: {
+          time: currentTime,
+          date: todayKST,
+          sent: totalSent,
+          failed: totalFailed,
+          taskCount: tasks.length,
+        },
+      },
+    );
   }
 
   await logActivityServer(null, 'cron.push_notifications', {

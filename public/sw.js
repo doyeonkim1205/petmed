@@ -1,5 +1,5 @@
-// PawDex Service Worker v22
-const CACHE_NAME = 'pawdex-v22';
+// PawDex Service Worker v23
+const CACHE_NAME = 'pawdex-v23';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -84,31 +84,52 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Push notification
+//
+// ⚠️ try/catch 필수: push 이벤트가 showNotification 없이 끝나면 브라우저가
+// "spam" 으로 판단해 일정 횟수 후 푸시 권한을 자동 회수한다 (특히 iOS).
+// payload 파싱이나 어떤 이유로 실패해도 fallback 알림을 반드시 띄워야 함.
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'PawDex';
+  event.waitUntil((async () => {
+    try {
+      const data = event.data ? event.data.json() : {};
+      const title = data.title || 'PawDex';
 
-  // 카테고리별 오른쪽 큰 아이콘 매핑 (data.category 기준)
-  let categoryIcon = '/icons/alarm.webp';  // 기본: 관리자/일반 알림
-  switch (data.category) {
-    case 'medication':
-      categoryIcon = '/icons/med.webp';
-      break;
-    case 'appointment':
-      categoryIcon = '/icons/cal.webp';
-      break;
-    case 'hospitalization':
-      categoryIcon = '/icons/hos.webp';
-      break;
-  }
+      // 카테고리별 오른쪽 큰 아이콘 매핑 (data.category 기준)
+      let categoryIcon = '/icons/alarm.webp';  // 기본: 관리자/일반 알림
+      switch (data.category) {
+        case 'medication':
+          categoryIcon = '/icons/med.webp';
+          break;
+        case 'appointment':
+          categoryIcon = '/icons/cal.webp';
+          break;
+        case 'hospitalization':
+          categoryIcon = '/icons/hos.webp';
+          break;
+      }
 
-  const options = {
-    body: data.body || '',
-    icon: categoryIcon,
-    badge: '/icons/notification-icon.png',
-    data: { url: data.url || '/' },
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+      const options = {
+        body: data.body || '',
+        icon: categoryIcon,
+        badge: '/icons/notification-icon.png',
+        data: { url: data.url || '/' },
+      };
+      await self.registration.showNotification(title, options);
+    } catch (err) {
+      // showNotification 자체가 실패해도 권한 보호를 위해 폴백 시도.
+      console.error('[sw.js] push handler error:', err);
+      try {
+        await self.registration.showNotification('PawDex', {
+          body: '새 알림이 도착했어요',
+          icon: '/icons/alarm.webp',
+          badge: '/icons/notification-icon.png',
+          data: { url: '/' },
+        });
+      } catch (fallbackErr) {
+        console.error('[sw.js] fallback notification also failed:', fallbackErr);
+      }
+    }
+  })());
 });
 
 // Notification click
