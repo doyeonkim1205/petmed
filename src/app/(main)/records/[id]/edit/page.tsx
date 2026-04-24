@@ -198,9 +198,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   const addMedicationRow = () => {
+    // add 페이지와 일관성 유지: 새 약 행은 항상 alarm_enabled=false 로 시작.
+    // 사용자가 직접 토글해야만 알림 ON 으로 설정됨.
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!canUseAlarm, alarm_times: ['09:00'], isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: false, alarm_times: ['09:00'], isNew: true },
     ]);
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
   };
@@ -374,6 +376,46 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
+
+      // records/add 와 동일한 silent subscribe 체크. 편집으로 새 약 추가하면서
+      // alarm ON 으로 저장한 경우, 과거 OFF 눌러서 sub 없던 사용자도 자동 복구.
+      // 자세한 주석은 records/add/page.tsx 의 동일 블록 참조.
+      const anyAlarmOn = medications.some(m => m.name.trim() && m.alarm_enabled);
+      if (canUseAlarm && anyAlarmOn && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const existingSub = await reg.pushManager.getSubscription();
+          if (!existingSub) {
+            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (vapidKey) {
+              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+              const raw = atob(base64);
+              const arr = new Uint8Array(raw.length);
+              for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+              const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: arr,
+              });
+              const json = sub.toJSON();
+              const { authFetch } = await import('@/lib/authFetch');
+              await authFetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  endpoint: json.endpoint,
+                  keys_p256dh: json.keys?.p256dh,
+                  keys_auth: json.keys?.auth,
+                }),
+              });
+            }
+          }
+          await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', user.id);
+        } catch (err) {
+          Sentry.captureException(err, { tags: { feature: 'push', action: 'save-silent-subscribe' } });
+        }
+      }
+
       // 저장 성공 → dirty 해제 (popstate guard 가 가로채지 않도록)
       const hadGuard = guardPushedRef.current;
       setIsDirty(false);

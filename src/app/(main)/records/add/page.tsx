@@ -222,9 +222,14 @@ export default function RecordAddPage() {
   }, [user]);
 
   const addMedicationRow = () => {
+    // alarm_enabled 디폴트 false: 사용자의 명시적 opt-in 요구. 이전에는
+    // canUseAlarm(=TWA+Plus) 이면 자동 ON 이었는데, 그러면 저장 순간 사용자
+    // 의사와 무관하게 알림 ON 상태로 저장되는 케이스가 있었다. 지금은 사용자가
+    // 직접 토글을 ON 으로 눌러야만 alarm=true 가 되고, 그 행위를 "알림 받겠다"
+    // 는 명시적 의사로 해석해 저장 시 silent subscribe 까지 연결한다.
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!canUseAlarm, alarm_times: ['09:00'] },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: false, alarm_times: ['09:00'] },
     ]);
     setTimeout(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -441,6 +446,61 @@ export default function RecordAddPage() {
             body: JSON.stringify({ name: hn }),
           });
         } catch {}
+      }
+
+      // ── 저장 시 silent subscribe 체크 ──
+      //
+      // 사용자가 약을 alarm_enabled=true 로 저장한 건 "알림을 받겠다" 는
+      // 명시적 의사 표명. 저장 직후 조용히 점검:
+      //   1) permission 이 granted 가 아니면 스킵 (denied 는 인라인 안내가
+      //      이미 보였을 것, default 는 토글 단계 soft-prompt 가 처리)
+      //   2) 이미 구독 있으면 스킵 (정상 상태)
+      //   3) 구독 없으면 조용히 생성 + 서버 등록
+      //   4) profiles.is_push_enabled = true 로 덮어쓰기
+      //
+      // 이 4번이 "의사 재표명" 의 핵심:
+      //   과거에 마이페이지 토글로 OFF 눌렀던 유저 (is_push_enabled=false)
+      //   라도, 약 추가에서 알림 ON 으로 저장하는 순간 DB 값을 true 로 갱신 →
+      //   AuthContext auto-resub 의 skip 조건에서 벗어남 → 다음 로드 시 자동
+      //   복구 포함해 sync 됨.
+      //
+      // 실패는 Sentry 로만 로깅. 사용자 UI 방해 없음. 기록 저장 자체는 이미
+      // 완료된 상태라 이 단계 실패가 전체 저장을 롤백하지 않음.
+      const anyAlarmOn = medications.some(m => m.name.trim() && m.alarm_enabled);
+      if (canUseAlarm && anyAlarmOn && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const existingSub = await reg.pushManager.getSubscription();
+          if (!existingSub) {
+            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (vapidKey) {
+              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+              const raw = atob(base64);
+              const arr = new Uint8Array(raw.length);
+              for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+              const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: arr,
+              });
+              const json = sub.toJSON();
+              const { authFetch } = await import('@/lib/authFetch');
+              await authFetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  endpoint: json.endpoint,
+                  keys_p256dh: json.keys?.p256dh,
+                  keys_auth: json.keys?.auth,
+                }),
+              });
+            }
+          }
+          // 의사 재표명 — is_push_enabled 가 false 였어도 true 로 갱신.
+          await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', user.id);
+        } catch (err) {
+          Sentry.captureException(err, { tags: { feature: 'push', action: 'save-silent-subscribe' } });
+        }
       }
 
       // 저장 성공 → dirty 해제 후 이동
