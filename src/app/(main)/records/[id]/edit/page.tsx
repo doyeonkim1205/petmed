@@ -16,6 +16,8 @@ import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
+import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { Loader2 } from 'lucide-react';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -86,6 +88,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
+  // 토글 ON 시 subscribe 진행 중 표시 (-1 = 없음)
+  const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
@@ -228,8 +232,32 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     }));
   };
 
-  const toggleMedAlarm = (index: number) => {
-    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: !m.alarm_enabled } : m)));
+  const toggleMedAlarm = async (index: number) => {
+    const turningOn = !medications[index].alarm_enabled;
+    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: turningOn } : m)));
+
+    // ON 으로 토글 + 권한 granted 면 user-gesture 콜스택 안에서 즉시 subscribe
+    // (iOS Safari 의 user-gesture 요구 만족). 멱등 — 이미 구독 있으면 no-op.
+    if (
+      turningOn &&
+      canUseAlarm &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      user
+    ) {
+      setSubscribingIdx(index);
+      try {
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`ensurePushSubscribed failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'edit-toggle-subscribe' },
+            extra: { reason: result.reason },
+          });
+        }
+      } finally {
+        setSubscribingIdx(-1);
+      }
+    }
   };
 
   const removeMedication = (index: number) => {
@@ -382,42 +410,17 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
 
-      // records/add 와 동일한 silent subscribe 체크. 편집으로 새 약 추가하면서
-      // alarm ON 으로 저장한 경우, 과거 OFF 눌러서 sub 없던 사용자도 자동 복구.
-      // 자세한 주석은 records/add/page.tsx 의 동일 블록 참조.
+      // 저장 시점 silent subscribe — 토글 시점에 이미 처리됐을 가능성 높지만 백업.
+      // 헬퍼는 멱등이라 반복 호출 안전. iOS Safari 는 user-gesture 만료로
+      // 실패 가능 → 토글 시점 처리가 우선.
       const anyAlarmOn = medications.some(m => m.name.trim() && m.alarm_enabled);
       if (canUseAlarm && anyAlarmOn && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        try {
-          const reg = await navigator.serviceWorker.ready;
-          const existingSub = await reg.pushManager.getSubscription();
-          if (!existingSub) {
-            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (vapidKey) {
-              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
-              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-              const raw = atob(base64);
-              const arr = new Uint8Array(raw.length);
-              for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-              const sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: arr,
-              });
-              const json = sub.toJSON();
-              const { authFetch } = await import('@/lib/authFetch');
-              await authFetch('/api/push/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  endpoint: json.endpoint,
-                  keys_p256dh: json.keys?.p256dh,
-                  keys_auth: json.keys?.auth,
-                }),
-              });
-            }
-          }
-          await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', user.id);
-        } catch (err) {
-          Sentry.captureException(err, { tags: { feature: 'push', action: 'save-silent-subscribe' } });
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`save-silent-subscribe failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'save-silent-subscribe' },
+            extra: { reason: result.reason },
+          });
         }
       }
 
@@ -752,12 +755,19 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   <button
                     type="button"
                     onClick={() => canUseAlarm ? toggleMedAlarm(i) : setShowAlarmUpgrade(true)}
-                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                    disabled={subscribingIdx === i}
+                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
                       med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
                     }`}
                   >
-                    {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                    투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
+                    {subscribingIdx === i ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : med.alarm_enabled ? (
+                      <Bell size={14} />
+                    ) : (
+                      <BellOff size={14} />
+                    )}
+                    {subscribingIdx === i ? '알림 켜는 중...' : `투약 알림 ${med.alarm_enabled ? 'ON' : 'OFF'}`}
                   </button>
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2 } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2 } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -15,6 +15,7 @@ import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUp
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
+import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -93,6 +94,9 @@ export default function RecordAddPage() {
   // Soft-prompt 모달: permission='default' 상태에서 알림 토글 ON 클릭 시 표시.
   // requestPermission 호출 전에 "받을게요 / 취소" 로 사용자 의사 확인 → default→denied 영구차단 리스크 완화.
   const [pendingPushIdx, setPendingPushIdx] = useState<number | null>(null);
+  // 토글 ON 시 subscribe 진행 중 인디케이터. iOS 에선 ~1-2초 걸려 사용자에게
+  // "처리 중" 표시 필요. -1 = 아무 토글도 진행 안 함.
+  const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
@@ -256,7 +260,7 @@ export default function RecordAddPage() {
     }));
   };
 
-  const toggleMedAlarm = (index: number) => {
+  const toggleMedAlarm = async (index: number) => {
     const turningOn = !medications[index].alarm_enabled;
     // OFF → ON 이고 브라우저 권한이 미결정 상태면 soft-prompt 먼저.
     // (permission=default 에서 바로 requestPermission 을 호출하면 사용자가
@@ -265,8 +269,26 @@ export default function RecordAddPage() {
       setPendingPushIdx(index);
       return;
     }
-    // granted / denied / 이미 ON → OFF 등은 즉시 토글 (denied 면 인라인 안내 알아서 노출됨)
+    // 즉시 UI 반영
     setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: turningOn } : m)));
+
+    // permission=granted 인데 ON 으로 켜는 경우, user-gesture 콜스택 안에서
+    // 즉시 subscribe 시도 (iOS Safari 의 user-gesture 요구사항 만족).
+    // 이미 구독 있으면 헬퍼가 no-op + DB upsert (멱등).
+    if (turningOn && canUseAlarm && notifPermission === 'granted' && user) {
+      setSubscribingIdx(index);
+      try {
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`ensurePushSubscribed failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'toggle-subscribe' },
+            extra: { reason: result.reason },
+          });
+        }
+      } finally {
+        setSubscribingIdx(-1);
+      }
+    }
   };
 
   // Soft-prompt 모달에서 [받을게요] 클릭: 브라우저 권한 요청 → 허용/거부 결과로 분기.
@@ -274,15 +296,27 @@ export default function RecordAddPage() {
     const idx = pendingPushIdx;
     setPendingPushIdx(null);
     if (idx === null || typeof Notification === 'undefined') return;
+    setSubscribingIdx(idx);
     try {
       const permission = await Notification.requestPermission();
       setNotifPermission(permission);
       // 허용이든 거부든 약 토글은 ON 으로 (사용자 의도 반영). 거부면 인라인 안내가 보이게 됨.
       setMedications(prev => prev.map((m, i) => (i === idx ? { ...m, alarm_enabled: true } : m)));
-      // 허용됐으면 AuthContext 의 auto-resub 가 subscription 자동 생성.
-      // (여기서도 직접 subscribe 가능하지만 한 곳에서 관리하기 위해 AuthContext 에 위임)
+      // 권한 받자마자 같은 user-gesture 콜스택에서 subscribe (iOS 요구사항).
+      // AuthContext auto-resub 에 위임하면 [user, profile] 의존이라 재실행 안 돼서 누락됨.
+      if (permission === 'granted' && user) {
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`ensurePushSubscribed failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'soft-prompt-subscribe' },
+            extra: { reason: result.reason },
+          });
+        }
+      }
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'push', action: 'soft-prompt' } });
+    } finally {
+      setSubscribingIdx(-1);
     }
   };
 
@@ -471,40 +505,18 @@ export default function RecordAddPage() {
       //
       // 실패는 Sentry 로만 로깅. 사용자 UI 방해 없음. 기록 저장 자체는 이미
       // 완료된 상태라 이 단계 실패가 전체 저장을 롤백하지 않음.
+      // 저장 시점 silent subscribe — 토글 시점에서 이미 처리됐을 가능성 높지만
+      // 백업으로 한 번 더 시도 (헬퍼는 멱등).
+      // 단 iOS Safari 는 user-gesture 만료로 subscribe 거부될 수 있음 →
+      // 토글 시점 처리가 중요. 이 백업은 Android 위주로 안전망 역할.
       const anyAlarmOn = medications.some(m => m.name.trim() && m.alarm_enabled);
       if (canUseAlarm && anyAlarmOn && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        try {
-          const reg = await navigator.serviceWorker.ready;
-          const existingSub = await reg.pushManager.getSubscription();
-          if (!existingSub) {
-            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (vapidKey) {
-              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
-              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-              const raw = atob(base64);
-              const arr = new Uint8Array(raw.length);
-              for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-              const sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: arr,
-              });
-              const json = sub.toJSON();
-              const { authFetch } = await import('@/lib/authFetch');
-              await authFetch('/api/push/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  endpoint: json.endpoint,
-                  keys_p256dh: json.keys?.p256dh,
-                  keys_auth: json.keys?.auth,
-                }),
-              });
-            }
-          }
-          // 의사 재표명 — is_push_enabled 가 false 였어도 true 로 갱신.
-          await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', user.id);
-        } catch (err) {
-          Sentry.captureException(err, { tags: { feature: 'push', action: 'save-silent-subscribe' } });
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`save-silent-subscribe failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'save-silent-subscribe' },
+            extra: { reason: result.reason },
+          });
         }
       }
 
@@ -892,12 +904,19 @@ export default function RecordAddPage() {
                   <button
                     type="button"
                     onClick={() => canUseAlarm ? toggleMedAlarm(i) : setShowAlarmUpgrade(true)}
-                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                    disabled={subscribingIdx === i}
+                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
                       med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
                     }`}
                   >
-                    {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                    투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
+                    {subscribingIdx === i ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : med.alarm_enabled ? (
+                      <Bell size={14} />
+                    ) : (
+                      <BellOff size={14} />
+                    )}
+                    {subscribingIdx === i ? '알림 켜는 중...' : `투약 알림 ${med.alarm_enabled ? 'ON' : 'OFF'}`}
                   </button>
                   {/* 알림 ON 인데 브라우저 권한이 'denied' (차단) 면 인라인 안내.
                       DB 에 alarm_enabled=true 는 저장되지만 실제로 푸시 안 옴 →
