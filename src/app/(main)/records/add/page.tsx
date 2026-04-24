@@ -14,7 +14,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { PetChipList } from '@/components/records/PetChipList';
+import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -570,12 +570,7 @@ export default function RecordAddPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
           {pets.length > 0 ? (
-            <PetChipList
-              pets={pets}
-              value={petId || null}
-              onChange={(id) => setPetId(id ?? '')}
-              showAll={false}
-            />
+            <PetSelectDropdown pets={pets} value={petId} onChange={setPetId} />
           ) : (
             <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
           )}

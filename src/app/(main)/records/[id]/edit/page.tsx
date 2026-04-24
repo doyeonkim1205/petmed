@@ -15,7 +15,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { PetChipList } from '@/components/records/PetChipList';
+import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -474,12 +474,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
           {pets.length > 0 ? (
-            <PetChipList
-              pets={pets}
-              value={petId || null}
-              onChange={(id) => setPetId(id ?? '')}
-              showAll={false}
-            />
+            <PetSelectDropdown pets={pets} value={petId} onChange={setPetId} />
           ) : (
             <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
           )}
