@@ -1,5 +1,5 @@
-// PawDex Service Worker v26
-const CACHE_NAME = 'pawdex-v26';
+// PawDex Service Worker v27
+const CACHE_NAME = 'pawdex-v27';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -108,11 +108,16 @@ self.addEventListener('push', (event) => {
           break;
       }
 
+      // ⚠️ tag 필수: web push spec 상 tag 가 비어있으면 기본 빈 문자열로
+      // 처리되어 같은 origin 의 다른 알림과 서로 덮어씀. 같은 분에 예약+퇴원
+      // 알림처럼 여러 push 가 도착하면 마지막 1건만 보이는 버그 발생.
+      // 서버에서 보낸 data.tag 우선, 없으면 timestamp+random 으로 unique 보장.
       const options = {
         body: data.body || '',
         icon: categoryIcon,
         badge: '/icons/notification-icon.png',
         data: { url: data.url || '/' },
+        tag: data.tag || `pawdex-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       };
       await self.registration.showNotification(title, options);
     } catch (err) {

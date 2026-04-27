@@ -126,11 +126,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 예약/퇴원/결제 대상 user_id 수집 (07:00 block 에서만 채움)
-  const apptTomorrow: Array<{ user_id: string; title: string }> = [];
-  const dischargeTomorrow: Array<{ user_id: string; title: string }> = [];
-  const apptToday: Array<{ user_id: string; title: string }> = [];
-  const dischargeToday: Array<{ user_id: string; title: string }> = [];
+  // 예약/퇴원/결제 대상 user_id 수집 (07:00 block 에서만 채움). id 는 push tag
+  // 생성에 사용 (각 알림이 OS 에서 독립적으로 표시되도록 unique tag 필요).
+  const apptTomorrow: Array<{ id: string; user_id: string; title: string }> = [];
+  const dischargeTomorrow: Array<{ id: string; user_id: string; title: string }> = [];
+  const apptToday: Array<{ id: string; user_id: string; title: string }> = [];
+  const dischargeToday: Array<{ id: string; user_id: string; title: string }> = [];
   let expiringSoon: Array<{
     id: string;
     user_id: string;
@@ -149,19 +150,19 @@ export async function GET(request: NextRequest) {
     const [apptsT, dischT, apptsToday2, dischToday2, expiring] = await Promise.all([
       supabaseAdmin
         .from('health_records')
-        .select('user_id, title, next_appointment_date')
+        .select('id, user_id, title, next_appointment_date')
         .eq('next_appointment_date', tomorrowKST),
       supabaseAdmin
         .from('health_records')
-        .select('user_id, title, discharge_date')
+        .select('id, user_id, title, discharge_date')
         .eq('discharge_date', tomorrowKST),
       supabaseAdmin
         .from('health_records')
-        .select('user_id, title, next_appointment_date')
+        .select('id, user_id, title, next_appointment_date')
         .eq('next_appointment_date', todayKST),
       supabaseAdmin
         .from('health_records')
-        .select('user_id, title, discharge_date')
+        .select('id, user_id, title, discharge_date')
         .eq('discharge_date', todayKST),
       supabaseAdmin
         .from('subscriptions')
@@ -172,10 +173,10 @@ export async function GET(request: NextRequest) {
         .is('reminder_3day_sent_at', null),
     ]);
 
-    for (const r of apptsT.data || []) apptTomorrow.push({ user_id: r.user_id, title: r.title });
-    for (const r of dischT.data || []) dischargeTomorrow.push({ user_id: r.user_id, title: r.title });
-    for (const r of apptsToday2.data || []) apptToday.push({ user_id: r.user_id, title: r.title });
-    for (const r of dischToday2.data || []) dischargeToday.push({ user_id: r.user_id, title: r.title });
+    for (const r of apptsT.data || []) apptTomorrow.push({ id: r.id, user_id: r.user_id, title: r.title });
+    for (const r of dischT.data || []) dischargeTomorrow.push({ id: r.id, user_id: r.user_id, title: r.title });
+    for (const r of apptsToday2.data || []) apptToday.push({ id: r.id, user_id: r.user_id, title: r.title });
+    for (const r of dischToday2.data || []) dischargeToday.push({ id: r.id, user_id: r.user_id, title: r.title });
     expiringSoon = expiring.data || [];
   }
 
@@ -208,15 +209,18 @@ export async function GET(request: NextRequest) {
   }
 
   // 발송 작업 큐 구성 — 전부 모아서 동시성 제한으로 한 번에 병렬 발송.
+  // tag: 각 알림이 OS 에서 독립적으로 표시되도록 unique 부여. 같은 분에 여러
+  // push 가 도착해도 서로 덮어쓰지 않음 (web push spec — 같은 tag 면 replace).
   type SendTask = {
     userId: string;
-    notification: { title: string; body: string; url: string; category?: string };
+    notification: { title: string; body: string; url: string; category?: string; tag: string };
     // 발송 성공/실패 무관하게 호출 (예: reminder_3day_sent_at 기록 — 스팸 방지 용도).
     afterSend?: () => Promise<void>;
   };
   const tasks: SendTask[] = [];
 
-  // 1) 투약
+  // 1) 투약 — 한 유저의 같은 분 여러 약은 이미 하나로 합쳐짐 (medMessages).
+  //    tag = med-{userId}-{currentTime} → 다른 분 알림과 겹침 X.
   for (const userId of medUserIds) {
     if (!paidSet.has(userId)) continue;
     const names = medMessages.get(userId) || [];
@@ -227,11 +231,13 @@ export async function GET(request: NextRequest) {
         body: `${names.join(', ')} 투약 시간입니다.`,
         url: '/records',
         category: 'medication',
+        tag: `med-${userId}-${currentTime}`,
       },
     });
   }
 
-  // 2) 예약/퇴원 (07:00)
+  // 2) 예약/퇴원 (07:00) — 각 record id 로 unique tag.
+  //    한 유저가 같은 날 예약+퇴원+오늘예약 동시 보유 시 모두 독립 표시.
   for (const r of apptTomorrow) {
     if (!paidSet.has(r.user_id)) continue;
     tasks.push({
@@ -241,6 +247,7 @@ export async function GET(request: NextRequest) {
         body: `내일 "${r.title}" 예약이 있습니다.`,
         url: '/records',
         category: 'appointment',
+        tag: `appt-tomorrow-${r.id}`,
       },
     });
   }
@@ -253,6 +260,7 @@ export async function GET(request: NextRequest) {
         body: `내일 "${r.title}" 퇴원 예정입니다.`,
         url: '/records',
         category: 'hospitalization',
+        tag: `dischg-tomorrow-${r.id}`,
       },
     });
   }
@@ -265,6 +273,7 @@ export async function GET(request: NextRequest) {
         body: `오늘 "${r.title}" 예약이 있습니다.`,
         url: '/records',
         category: 'appointment',
+        tag: `appt-today-${r.id}`,
       },
     });
   }
@@ -277,6 +286,7 @@ export async function GET(request: NextRequest) {
         body: `오늘 "${r.title}" 퇴원 예정입니다.`,
         url: '/records',
         category: 'hospitalization',
+        tag: `dischg-today-${r.id}`,
       },
     });
   }
@@ -301,12 +311,15 @@ export async function GET(request: NextRequest) {
       if (sub.plan === 'free') continue;
       if (!paidSet.has(sub.user_id)) continue;
 
-      let notification: { title: string; body: string; url: string };
+      let notification: { title: string; body: string; url: string; tag: string };
+      // tag = sub-3day-{sub.id} — 구독 1건당 1개 알림이라 record id 기반.
+      const tag = `sub-3day-${sub.id}`;
       if (sub.status === 'canceled') {
         notification = {
           title: '⏰ 구독 만료 안내',
           body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
           url: '/profile/subscription',
+          tag,
         };
       } else if (sub.billing_type === 'recurring') {
         const price = sub.product_id ? priceMap.get(sub.product_id) : null;
@@ -315,12 +328,14 @@ export async function GET(request: NextRequest) {
           title: '🔄 자동 결제 안내',
           body: `3일 후 PawDex Plus가 자동 결제됩니다${priceText}. 해지를 원하시면 요금제 페이지에서 자동 갱신을 끄세요.`,
           url: '/profile/subscription',
+          tag,
         };
       } else {
         notification = {
           title: '⏰ 구독 만료 안내',
           body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
           url: '/profile/subscription',
+          tag,
         };
       }
 
@@ -388,7 +403,7 @@ export async function GET(request: NextRequest) {
 
 async function sendPushToUser(
   userId: string,
-  notification: { title: string; body: string; url: string; category?: string },
+  notification: { title: string; body: string; url: string; category?: string; tag?: string },
 ) {
   const { data: subs } = await supabaseAdmin
     .from('push_subscriptions')

@@ -45,12 +45,21 @@ export async function POST(request: Request) {
   if (targetUserIds) query = query.in('user_id', targetUserIds);
   const { data: subs } = await query;
 
-  const payload = JSON.stringify({ title, body, url: url || '/' });
+  // tag: 관리자 발송별 unique → 같은 사용자에 여러 번 보내도 서로 안 덮어씀.
+  // user_id 까지 포함해 다른 사용자 알림과도 분리.
+  const adminTag = `admin-${Date.now()}`;
   let sent = 0;
   let failed = 0;
 
   for (const sub of subs || []) {
     try {
+      // sub.user_id 별로 tag 다르게 → 같은 발송이라도 사용자별 독립 알림.
+      const payload = JSON.stringify({
+        title,
+        body,
+        url: url || '/',
+        tag: `${adminTag}-${sub.user_id}`,
+      });
       // urgency high + TTL 5분 — 즉시 전달 힌트 (배터리 세이버/Doze 우회)
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
