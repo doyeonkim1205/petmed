@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles, X, Loader2 } from 'lucide-react';
 
 /**
  * Service Worker 가 업데이트됐을 때 하단에 표시되는 토스트.
@@ -21,6 +21,7 @@ import { Sparkles, X } from 'lucide-react';
 export function UpdateToast() {
   const [show, setShow] = useState(false);
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -71,14 +72,17 @@ export function UpdateToast() {
   }, []);
 
   const applyUpdate = () => {
-    if (!waitingSW) return;
+    if (!waitingSW || applying) return;
+    setApplying(true);
 
-    // controllerchange 이후 페이지 갱신.
-    // - iOS Safari: reload() 를 BFCache 에서 살리는 quirk 가 있어 URL 에
-    //   timestamp 쿼리를 붙여 replace → BFCache 키 미스로 fresh load 강제.
-    // - 그 외 (안드 TWA / Chrome / Firefox): plain reload(). TWA 는 _v
-    //   replace 시 SW 활성화 직후의 fetch 가 hang 걸려 offline.html 노출.
-    const onControllerChange = () => {
+    // 페이지 갱신 로직.
+    // - iOS Safari: reload() 가 BFCache 에서 복원되는 quirk → URL 에
+    //   timestamp 쿼리 붙여 replace 로 fresh load 강제.
+    // - 그 외 (안드 TWA / Chrome / Firefox): plain reload().
+    let triggered = false;
+    const performReload = () => {
+      if (triggered) return;
+      triggered = true;
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
       const isIOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
@@ -90,10 +94,17 @@ export function UpdateToast() {
         window.location.reload();
       }
     };
+
+    const onControllerChange = () => performReload();
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
     // waiting SW 에게 skipWaiting 지시
     waitingSW.postMessage({ type: 'SKIP_WAITING' });
+
+    // ⏱️ TWA / 일부 환경에서 controllerchange 가 늦게 fire 되거나 안 오는
+    // 케이스 방어 — 3초 안에 안 오면 강제 reload. SW 는 이미 skipWaiting
+    // 받아 활성화 진행 중이므로 reload 후 새 버전 로드됨.
+    setTimeout(performReload, 3000);
   };
 
   if (!show) return null;
@@ -105,13 +116,16 @@ export function UpdateToast() {
         <span className="text-xs font-medium flex-1">새 버전이 준비됐어요</span>
         <button
           onClick={applyUpdate}
-          className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
+          disabled={applying}
+          className="text-xs font-bold bg-white/20 hover:bg-white/30 disabled:opacity-70 disabled:cursor-not-allowed px-3 py-1.5 rounded-full transition-colors flex-shrink-0 flex items-center gap-1.5"
         >
-          지금 적용
+          {applying && <Loader2 size={12} className="animate-spin" />}
+          {applying ? '적용 중...' : '지금 적용'}
         </button>
         <button
           onClick={() => setShow(false)}
-          className="text-white/70 hover:text-white flex-shrink-0"
+          disabled={applying}
+          className="text-white/70 hover:text-white disabled:opacity-50 flex-shrink-0"
           aria-label="닫기"
         >
           <X size={16} />
