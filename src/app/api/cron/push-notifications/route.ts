@@ -16,6 +16,15 @@
  *      브라우저는 여전히 구독 상태라 믿는 "유령 상태" 발생 →
  *      AuthContext auto-resub 가 다음 앱 로드 시 upsert 로 복구함.
  *   6. Sentry warning 임계값 (실패율 > 50%) — 회귀 시 알림.
+ *   7. activity_logs 기록은 sent>0 || failed>0 일 때만. 빈 분(noise)
+ *      은 안 남김 → 하루 1440 → ~10 row 로 감소. cron 자체 실행 기록은
+ *      pg_cron 의 cron.job_run_details 에 항상 남아 있음 (admin 진단
+ *      카드의 cronHealth 가 이걸 사용).
+ *
+ * 미래 노트:
+ *   - 트래픽 증가 시 같은 분 중복 호출 방지를 더 단단히 할 거면 Redis 락
+ *     대신 pg_try_advisory_xact_lock(hashtext('cron-push-' || time)) 권장.
+ *     Supabase 자체 기능이라 외부 인프라 불필요.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -360,9 +369,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  await logActivityServer(null, 'cron.push_notifications', {
-    details: { time: currentTime, date: todayKST, sent: totalSent, failed: totalFailed },
-  });
+  // 빈 분 (sent=0 && failed=0) 은 noise — activity_logs 에 안 남김.
+  // pg_cron 의 cron.job_run_details 에는 모든 실행이 기록되므로
+  // "cron 살아있나?" 는 거기서 확인 가능 (admin 진단 카드 cronHealth).
+  if (totalSent > 0 || totalFailed > 0) {
+    await logActivityServer(null, 'cron.push_notifications', {
+      details: { time: currentTime, date: todayKST, sent: totalSent, failed: totalFailed },
+    });
+  }
 
   return NextResponse.json({
     time: currentTime,

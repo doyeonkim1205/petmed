@@ -113,8 +113,35 @@ export async function GET(request: Request) {
     }));
   }
 
+  // cron 실행 건강 — pg_cron 의 job_run_details 에서 마지막 실행 시각.
+  // activity_logs 와 별개로 cron 자체 기록 → 발송 0 인 빈 분도 포함.
+  // 2분 이상 지나면 lagging, 1시간 이상이면 dead 로 판정.
+  let cronHealth: { lastRunAt: string | null; status: 'healthy' | 'lagging' | 'dead' | 'unknown' } = {
+    lastRunAt: null,
+    status: 'unknown',
+  };
+  try {
+    const { data: cronRun } = await supabaseAdmin
+      .rpc('get_cron_last_run', { p_jobname: 'push-notifications' })
+      .maybeSingle<{ start_time: string; status: string }>();
+    if (cronRun?.start_time) {
+      const lastMs = new Date(cronRun.start_time).getTime();
+      const minsSince = (Date.now() - lastMs) / 60000;
+      cronHealth = {
+        lastRunAt: cronRun.start_time,
+        status: minsSince < 2 ? 'healthy' : minsSince < 60 ? 'lagging' : 'dead',
+      };
+    }
+  } catch {
+    // 함수 미존재 또는 권한 오류 — unknown 으로 남김
+  }
+
   const diagnostics = {
+    // cron24h.runs 는 이제 "발송 활동이 있었던 분(분 단위)" 의미.
+    // 빈 분은 activity_logs 에 안 남기므로 작은 숫자 정상.
+    // "cron 살아있나" 는 cronHealth 로 따로 표시.
     cron24h: { runs: cronRuns, sent: cronSent, failed: cronFailed },
+    cronHealth,
     providerCounts,
     ghostCandidates,
   };
