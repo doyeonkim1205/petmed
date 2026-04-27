@@ -165,6 +165,7 @@ export default function ActivityLogsPage() {
   const [to, setTo] = useState(today);
   const [userId, setUserId] = useState('');
   const [filter, setFilter] = useState('');
+  const [excludeCron, setExcludeCron] = useState(true);  // 기본 cron 숨김 (노이즈 제거)
   const [loading, setLoading] = useState(true);
   const [datesReady, setDatesReady] = useState(false);
 
@@ -190,6 +191,7 @@ export default function ActivityLogsPage() {
     if (userId.trim()) params.set('userId', userId.trim());
     if (filter.startsWith('category:')) params.set('category', filter.slice('category:'.length));
     else if (filter.startsWith('action:')) params.set('action', filter.slice('action:'.length));
+    if (excludeCron) params.set('excludeCron', '1');
 
     const res = await authFetch(`/api/admin/activity-logs?${params}`);
     const data = await res.json();
@@ -197,7 +199,7 @@ export default function ActivityLogsPage() {
     setTotal(data.total || 0);
     setTotalPages(data.totalPages || 1);
     setLoading(false);
-  }, [page, from, to, userId, filter, datesReady]);
+  }, [page, from, to, userId, filter, excludeCron, datesReady]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -209,7 +211,15 @@ export default function ActivityLogsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">활동 로그</h1>
+      <h1 className="text-2xl font-bold mb-2">활동 로그</h1>
+
+      {/* 보관 정책 안내 — 자동 retention 으로 오래된 로그 삭제됨을 사용자에게 명시 */}
+      <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+        🗂️ <span className="font-medium text-gray-600">보관 정책</span> · 시스템 cron <span className="text-gray-700">30일</span>
+        <span className="text-gray-300 mx-1.5">·</span> 일반 활동 <span className="text-gray-700">90일</span>
+        <span className="text-gray-300 mx-1.5">·</span> 중요 이벤트(계정삭제·관리자발송·플랜변경·일괄삭제) <span className="text-gray-700">1년</span>
+        <span className="text-gray-400 ml-1.5">— 매일 03:00 UTC 자동 정리</span>
+      </p>
 
       <Card className="mb-6">
         <CardContent className="pt-6">
@@ -246,6 +256,15 @@ export default function ActivityLogsPage() {
             {(from || to || userId || filter) && (
               <button type="button" onClick={() => { setFrom(''); setTo(''); setUserId(''); setFilter(''); setPage(1); }} className="px-4 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50">초기화</button>
             )}
+            <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none ml-auto">
+              <input
+                type="checkbox"
+                checked={excludeCron}
+                onChange={(e) => { setExcludeCron(e.target.checked); setPage(1); }}
+                className="w-3.5 h-3.5 rounded border-gray-300"
+              />
+              cron 노이즈 숨김
+            </label>
           </form>
         </CardContent>
       </Card>

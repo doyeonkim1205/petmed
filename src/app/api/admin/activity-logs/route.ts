@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   const userSearch = searchParams.get('userId') || '';
   const action = searchParams.get('action') || '';   // 단일 action (정확 매칭)
   const category = searchParams.get('category') || ''; // 카테고리 (prefix 매칭), 예: 'auth', 'cron', 'admin'
+  const excludeCron = searchParams.get('excludeCron') === '1';  // cron.* 제외
   const page = parseInt(searchParams.get('page') || '1');
   const limit = 30;
   const offset = (page - 1) * limit;
@@ -55,6 +56,12 @@ export async function GET(request: Request) {
       query = query.not('user_id', 'in', `(${liveIds.join(',')})`);
     }
   } else if (category) query = query.like('action', `${category}.%`);
+
+  // cron 제외 플래그 — action / category 필터와 동시 사용 가능. cron 카테고리
+  // 자체를 보고 있을 땐 자가모순이라 무시.
+  if (excludeCron && category !== 'cron' && !action.startsWith('cron.')) {
+    query = query.not('action', 'like', 'cron.%');
+  }
 
   const { data, count } = await query
     .order('created_at', { ascending: false })
