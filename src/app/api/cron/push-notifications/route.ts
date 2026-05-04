@@ -387,9 +387,13 @@ export async function GET(request: NextRequest) {
   const tasks: SendTask[] = [];
 
   // 1) 투약 — 펫 단위로 1 알림.
-  //    title : "💊 오후 12시 30분 살구 약" / body : "타이레놀, 비타민 시간이에요"
+  //    title : "💊 오후 12시 30분 살구의 약" / body : "타이레놀, 비타민 시간이에요"
   //    tag   : med-{userId}-{petId}-{HH:MM}
   //    펫 이름은 시간 표기로 인한 글자 압박 때문에 8자 한도 (그 외엔 12자).
+  //    title 에 조사 "의" 를 붙여 "살구의 약" 으로 → "살구 약" 의 의미 모호함
+  //    (살구 맛 약 / 살구라는 약) 회피.
+  //    body 의 3+ 케이스는 "[첫 약] 외 N-1개" 패턴으로 1/2개 케이스와 통일.
+  //    이전 "약 N개 먹을 시간" 은 title 의 "약" 과 중복 + "먹을" 이 약간 어색.
   const timeLabel = formatKoreanTime(parseInt(currentHour, 10), currentMinute);
   for (const [userId, petsMap] of medByUserPet) {
     if (!paidSet.has(userId)) continue;
@@ -403,13 +407,14 @@ export async function GET(request: NextRequest) {
       } else if (drugs.length === 2) {
         body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 시간이에요`;
       } else {
-        body = `약 ${drugs.length}개 먹을 시간이에요`;
+        // 3개+: 첫 약 노출 + 나머지 갯수
+        body = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개 시간이에요`;
       }
 
       tasks.push({
         userId,
         notification: {
-          title: `💊 ${timeLabel} ${petName} 약`,
+          title: `💊 ${timeLabel} ${petName}의 약`,
           body,
           url: '/records',
           category: 'medication',
