@@ -403,12 +403,12 @@ export async function GET(request: NextRequest) {
 
       let body: string;
       if (drugs.length === 1) {
-        body = `${truncate(drugs[0], 20, '약')} 시간이에요`;
+        body = `${truncate(drugs[0], 20, '약')} 먹을 시간이에요`;
       } else if (drugs.length === 2) {
-        body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 시간이에요`;
+        body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 먹을 시간이에요`;
       } else {
         // 3개+: 첫 약 노출 + 나머지 갯수
-        body = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개 시간이에요`;
+        body = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개 먹을 시간이에요`;
       }
 
       tasks.push({
