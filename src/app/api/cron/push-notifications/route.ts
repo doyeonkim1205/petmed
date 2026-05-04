@@ -55,8 +55,10 @@ const PUSH_CONCURRENCY = 10;
 // 알림 메시지 글자수 제한 (한글 기준).
 // title: 20자 이하 (이모지 포함) → 잠금화면 안 잘림
 // body : 45자 이하 → 한 줄 내
-// 펫 이름 12자, record title 25자 ellipsis 처리.
+// 펫 이름 일반 12자, 투약 title 만 8자 (시간 표기가 길어서 공간 절약).
+// record title 25자 ellipsis 처리.
 const PET_NAME_MAX = 12;
+const PET_NAME_TITLE_MED_MAX = 8; // 투약 title 전용 — "💊 오후 12시 30분 [petName] 약" 글자 압박
 const RECORD_TITLE_MAX = 25;
 
 /** 길이 초과 시 ellipsis. 빈 값은 fallback 으로 대체. */
@@ -65,6 +67,25 @@ function truncate(text: string | null | undefined, maxLen: number, fallback: str
   if (!t) return fallback;
   if (t.length <= maxLen) return t;
   return t.slice(0, maxLen - 1) + '…';
+}
+
+/**
+ * 24h 시각을 한국어 자연 표현으로 변환.
+ * - 정시 → "오전 9시" / "오후 1시" / "오후 12시"
+ * - 분 있음 → "오전 9시 45분" / "오후 1시 30분"
+ *
+ * 유저 입력 UI (TimePicker) 가 오전/오후 + 12시간 형식이라 알림 표기도
+ * 동일하게 맞춤. "09시" 같은 24h padded 형식은 인지 불일치 발생.
+ *
+ * 엣지 케이스:
+ *   00:00 → "오전 12시" (자정)
+ *   12:00 → "오후 12시" (정오)
+ */
+function formatKoreanTime(hour24: number, minute: number): string {
+  const ampm = hour24 < 12 ? '오전' : '오후';
+  let hour12 = hour24 % 12;
+  if (hour12 === 0) hour12 = 12;
+  return minute === 0 ? `${ampm} ${hour12}시` : `${ampm} ${hour12}시 ${minute}분`;
 }
 
 /** 작업 배열을 동시성 limit 로 병렬 실행. p-limit 외부 의존성 없이 가벼운 구현. */
@@ -366,13 +387,15 @@ export async function GET(request: NextRequest) {
   const tasks: SendTask[] = [];
 
   // 1) 투약 — 펫 단위로 1 알림.
-  //    title : "💊 8시 냥이 약" / body : "타이레놀, 비타민 시간이에요"
+  //    title : "💊 오후 12시 30분 살구 약" / body : "타이레놀, 비타민 시간이에요"
   //    tag   : med-{userId}-{petId}-{HH:MM}
+  //    펫 이름은 시간 표기로 인한 글자 압박 때문에 8자 한도 (그 외엔 12자).
+  const timeLabel = formatKoreanTime(parseInt(currentHour, 10), currentMinute);
   for (const [userId, petsMap] of medByUserPet) {
     if (!paidSet.has(userId)) continue;
     for (const [petId, drugs] of petsMap) {
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
+      const petName = truncate(pet?.name, PET_NAME_TITLE_MED_MAX, '반려동물');
 
       let body: string;
       if (drugs.length === 1) {
@@ -386,7 +409,7 @@ export async function GET(request: NextRequest) {
       tasks.push({
         userId,
         notification: {
-          title: `💊 ${currentHour}시 ${petName} 약`,
+          title: `💊 ${timeLabel} ${petName} 약`,
           body,
           url: '/records',
           category: 'medication',
