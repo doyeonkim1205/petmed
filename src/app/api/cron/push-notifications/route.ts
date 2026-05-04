@@ -21,6 +21,15 @@
  *      pg_cron 의 cron.job_run_details 에 항상 남아 있음 (admin 진단
  *      카드의 cronHealth 가 이걸 사용).
  *
+ * 통합 정책 (펫 단위):
+ *   - 같은 (user_id, pet_id, currentTime) 조합 = 1알림.
+ *   - 투약: 펫별 약 이름 합쳐서 "💊 8시 [펫이름] 약: A, B 시간이에요"
+ *   - 예약·퇴원 (07:00): 펫별 events 합쳐서 통합 메시지
+ *     · 같은 record 의 예약+퇴원 → "X 예약·퇴원이 있어요"
+ *     · 다중 mix → "예약 1건, 퇴원 1건"
+ *   - 1일전 알림 제거 (당일만). collision 방지 + UX 단순화.
+ *   - 옛 SW (v17~v26) 은 tag 처리 못해도 알림 자체가 1개라 collision X.
+ *
  * 미래 노트:
  *   - 트래픽 증가 시 같은 분 중복 호출 방지를 더 단단히 할 거면 Redis 락
  *     대신 pg_try_advisory_xact_lock(hashtext('cron-push-' || time)) 권장.
@@ -43,6 +52,21 @@ const supabaseAdmin = createClient(
 // 10 이면 유저 1000명×2기기 = 2000콜이 ~200 청크로 나눠져 실행.
 const PUSH_CONCURRENCY = 10;
 
+// 알림 메시지 글자수 제한 (한글 기준).
+// title: 20자 이하 (이모지 포함) → 잠금화면 안 잘림
+// body : 45자 이하 → 한 줄 내
+// 펫 이름 12자, record title 25자 ellipsis 처리.
+const PET_NAME_MAX = 12;
+const RECORD_TITLE_MAX = 25;
+
+/** 길이 초과 시 ellipsis. 빈 값은 fallback 으로 대체. */
+function truncate(text: string | null | undefined, maxLen: number, fallback: string): string {
+  const t = (text || '').trim();
+  if (!t) return fallback;
+  if (t.length <= maxLen) return t;
+  return t.slice(0, maxLen - 1) + '…';
+}
+
 /** 작업 배열을 동시성 limit 로 병렬 실행. p-limit 외부 의존성 없이 가벼운 구현. */
 async function runWithConcurrency<T, R>(
   items: T[],
@@ -60,6 +84,81 @@ async function runWithConcurrency<T, R>(
   });
   await Promise.all(runners);
   return results;
+}
+
+/**
+ * 펫별 예약·퇴원 이벤트로부터 통합 알림 메시지 빌드.
+ * 같은 record 안에 예약+퇴원 둘 다 있으면 "예약·퇴원" 으로 묶음.
+ * 카테고리 우선순위: 퇴원 포함 → hospitalization, 아니면 appointment.
+ */
+function buildScheduleMessage(
+  petName: string,
+  appts: Array<{ id: string; title: string }>,
+  dischs: Array<{ id: string; title: string }>,
+): { title: string; body: string; category: 'appointment' | 'hospitalization' } {
+  const apptCount = appts.length;
+  const dischCount = dischs.length;
+
+  // 같은 record 가 예약+퇴원 둘 다 가진 케이스 검출.
+  // record_type='hospitalization' 의 next_appointment_date + discharge_date 동시 설정 시.
+  const apptIds = new Set(appts.map((a) => a.id));
+  const sameRecord = dischs.find((d) => apptIds.has(d.id));
+
+  // Case 1: 같은 record 1건의 예약+퇴원 → 단일 통합 메시지
+  if (apptCount === 1 && dischCount === 1 && sameRecord) {
+    return {
+      title: `🏥 오늘 ${petName} 일정`,
+      body: `"${truncate(sameRecord.title, RECORD_TITLE_MAX, '일정')}" 예약·퇴원이 있어요`,
+      category: 'hospitalization',
+    };
+  }
+
+  // Case 2: 퇴원만
+  if (apptCount === 0 && dischCount > 0) {
+    if (dischCount === 1) {
+      return {
+        title: `🏥 오늘 ${petName} 퇴원`,
+        body: `"${truncate(dischs[0].title, RECORD_TITLE_MAX, '일정')}" 퇴원 예정이에요`,
+        category: 'hospitalization',
+      };
+    }
+    return {
+      title: `🏥 오늘 ${petName} 퇴원`,
+      body: `퇴원 ${dischCount}건이 있어요`,
+      category: 'hospitalization',
+    };
+  }
+
+  // Case 3: 예약만
+  if (dischCount === 0 && apptCount > 0) {
+    if (apptCount === 1) {
+      return {
+        title: `📅 오늘 ${petName} 예약`,
+        body: `"${truncate(appts[0].title, RECORD_TITLE_MAX, '일정')}" 일정이 있어요`,
+        category: 'appointment',
+      };
+    }
+    if (apptCount === 2) {
+      return {
+        title: `📅 오늘 ${petName} 예약`,
+        // 2건은 이름 짧게 잘라 둘 다 표시 (각 12자 제한 → 26자 + 따옴표 = 32자)
+        body: `"${truncate(appts[0].title, 12, '일정')}", "${truncate(appts[1].title, 12, '일정')}" 일정이 있어요`,
+        category: 'appointment',
+      };
+    }
+    return {
+      title: `📅 오늘 ${petName} 예약`,
+      body: `예약 ${apptCount}건이 있어요`,
+      category: 'appointment',
+    };
+  }
+
+  // Case 4: 예약+퇴원 mix (서로 다른 record 또는 다중)
+  return {
+    title: `🏥 오늘 ${petName} 일정`,
+    body: `예약 ${apptCount}건, 퇴원 ${dischCount}건 있어요`,
+    category: 'hospitalization',
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -100,16 +199,20 @@ export async function GET(request: NextRequest) {
   let totalSent = 0;
   let totalFailed = 0;
 
-  // 1. Medication alarms - check alarm_times for current minute (exact)
+  // 1. Medication alarms — pet_id 까지 JOIN.
+  // medications.record_id → health_records.pet_id (NOT NULL FK).
+  // !inner 로 INNER JOIN — health_record 없는 medication 은 제외 (있을 수 없는 케이스지만 안전).
   const { data: medications } = await supabaseAdmin
     .from('medications')
-    .select('user_id, name, alarm_times, start_date, end_date')
+    .select('user_id, name, alarm_times, start_date, end_date, health_records!inner(pet_id)')
     .eq('alarm_enabled', true)
     .lte('start_date', todayKST)
     .or(`end_date.gte.${todayKST},end_date.is.null`);
 
-  const medUserIds = new Set<string>();
-  const medMessages = new Map<string, string[]>();
+  // medByUserPet: Map<userId, Map<petId, drugNames[]>>
+  // 같은 유저의 같은 펫 같은 시각 약 = 1 알림.
+  // 다른 펫의 같은 시각 약 = 알림 분리.
+  const medByUserPet = new Map<string, Map<string, string[]>>();
 
   for (const med of medications || []) {
     const times = med.alarm_times as string[] | null;
@@ -118,20 +221,28 @@ export async function GET(request: NextRequest) {
       const [h, m] = t.split(':').map(Number);
       return String(h).padStart(2, '0') === currentHour && m === currentMinute;
     });
-    if (hasMatch) {
-      medUserIds.add(med.user_id);
-      const msgs = medMessages.get(med.user_id) || [];
-      msgs.push(med.name);
-      medMessages.set(med.user_id, msgs);
+    if (!hasMatch) continue;
+
+    // health_records 는 INNER JOIN 결과 — 단일 객체로 옴 (record_id 가 단일 FK라).
+    // Supabase 타입 시스템 한계로 array 인 척 올 수 있어 양쪽 케이스 처리.
+    const hr = (med as unknown as { health_records: { pet_id: string } | { pet_id: string }[] })
+      .health_records;
+    const petId = Array.isArray(hr) ? hr[0]?.pet_id : hr?.pet_id;
+    if (!petId) continue;
+
+    let petsMap = medByUserPet.get(med.user_id);
+    if (!petsMap) {
+      petsMap = new Map();
+      medByUserPet.set(med.user_id, petsMap);
     }
+    const drugs = petsMap.get(petId) || [];
+    drugs.push(med.name);
+    petsMap.set(petId, drugs);
   }
 
-  // 예약/퇴원/결제 대상 user_id 수집 (07:00 block 에서만 채움). id 는 push tag
-  // 생성에 사용 (각 알림이 OS 에서 독립적으로 표시되도록 unique tag 필요).
-  const apptTomorrow: Array<{ id: string; user_id: string; title: string }> = [];
-  const dischargeTomorrow: Array<{ id: string; user_id: string; title: string }> = [];
-  const apptToday: Array<{ id: string; user_id: string; title: string }> = [];
-  const dischargeToday: Array<{ id: string; user_id: string; title: string }> = [];
+  // 예약/퇴원/결제 대상 수집 (07:00 에만). 1일전 알림은 제거 — 당일만.
+  const apptToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
+  const dischargeToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
   let expiringSoon: Array<{
     id: string;
     user_id: string;
@@ -143,26 +254,14 @@ export async function GET(request: NextRequest) {
   }> = [];
 
   if (currentHour === '07' && currentMinute === 0) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowKST = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-
-    const [apptsT, dischT, apptsToday2, dischToday2, expiring] = await Promise.all([
+    const [apptsToday2, dischToday2, expiring] = await Promise.all([
       supabaseAdmin
         .from('health_records')
-        .select('id, user_id, title, next_appointment_date')
-        .eq('next_appointment_date', tomorrowKST),
-      supabaseAdmin
-        .from('health_records')
-        .select('id, user_id, title, discharge_date')
-        .eq('discharge_date', tomorrowKST),
-      supabaseAdmin
-        .from('health_records')
-        .select('id, user_id, title, next_appointment_date')
+        .select('id, user_id, pet_id, title, next_appointment_date')
         .eq('next_appointment_date', todayKST),
       supabaseAdmin
         .from('health_records')
-        .select('id, user_id, title, discharge_date')
+        .select('id, user_id, pet_id, title, discharge_date')
         .eq('discharge_date', todayKST),
       supabaseAdmin
         .from('subscriptions')
@@ -173,21 +272,48 @@ export async function GET(request: NextRequest) {
         .is('reminder_3day_sent_at', null),
     ]);
 
-    for (const r of apptsT.data || []) apptTomorrow.push({ id: r.id, user_id: r.user_id, title: r.title });
-    for (const r of dischT.data || []) dischargeTomorrow.push({ id: r.id, user_id: r.user_id, title: r.title });
-    for (const r of apptsToday2.data || []) apptToday.push({ id: r.id, user_id: r.user_id, title: r.title });
-    for (const r of dischToday2.data || []) dischargeToday.push({ id: r.id, user_id: r.user_id, title: r.title });
+    for (const r of apptsToday2.data || []) {
+      apptToday.push({ id: r.id, user_id: r.user_id, pet_id: r.pet_id, title: r.title });
+    }
+    for (const r of dischToday2.data || []) {
+      dischargeToday.push({ id: r.id, user_id: r.user_id, pet_id: r.pet_id, title: r.title });
+    }
     expiringSoon = expiring.data || [];
   }
 
+  // 예약·퇴원 펫별 그룹화: Map<userId, Map<petId, {appts[], dischs[]}>>
+  type ScheduleEvents = {
+    appts: Array<{ id: string; title: string }>;
+    dischs: Array<{ id: string; title: string }>;
+  };
+  const scheduleByUserPet = new Map<string, Map<string, ScheduleEvents>>();
+
+  const ensurePetEvents = (userId: string, petId: string): ScheduleEvents => {
+    let petsMap = scheduleByUserPet.get(userId);
+    if (!petsMap) {
+      petsMap = new Map();
+      scheduleByUserPet.set(userId, petsMap);
+    }
+    let ev = petsMap.get(petId);
+    if (!ev) {
+      ev = { appts: [], dischs: [] };
+      petsMap.set(petId, ev);
+    }
+    return ev;
+  };
+
+  for (const r of apptToday) {
+    ensurePetEvents(r.user_id, r.pet_id).appts.push({ id: r.id, title: r.title });
+  }
+  for (const r of dischargeToday) {
+    ensurePetEvents(r.user_id, r.pet_id).dischs.push({ id: r.id, title: r.title });
+  }
+
   // paid user 프리페치 — N+1 쿼리 제거.
-  // 투약/예약/퇴원/결제 대상 user_id 를 전부 모아 profiles 한 번에 조회.
+  // 투약/예약·퇴원/결제 대상 user_id 를 전부 모아 profiles 한 번에 조회.
   const allTargetUserIds = new Set<string>([
-    ...medUserIds,
-    ...apptTomorrow.map((r) => r.user_id),
-    ...dischargeTomorrow.map((r) => r.user_id),
-    ...apptToday.map((r) => r.user_id),
-    ...dischargeToday.map((r) => r.user_id),
+    ...medByUserPet.keys(),
+    ...scheduleByUserPet.keys(),
     ...expiringSoon.map((r) => r.user_id),
   ]);
 
@@ -208,87 +334,89 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // 펫 정보 일괄 프리페치 — 메시지에 펫 이름 사용.
+  // 매칭된 모든 pet_id 모음 (투약 + 예약·퇴원 양쪽).
+  const allPetIds = new Set<string>();
+  for (const petsMap of medByUserPet.values()) {
+    for (const petId of petsMap.keys()) allPetIds.add(petId);
+  }
+  for (const petsMap of scheduleByUserPet.values()) {
+    for (const petId of petsMap.keys()) allPetIds.add(petId);
+  }
+
+  const petMap = new Map<string, { name: string; type: string }>();
+  if (allPetIds.size > 0) {
+    const { data: pets } = await supabaseAdmin
+      .from('pets')
+      .select('id, name, type')
+      .in('id', Array.from(allPetIds));
+    for (const p of pets || []) {
+      petMap.set(p.id, { name: p.name, type: p.type });
+    }
+  }
+
   // 발송 작업 큐 구성 — 전부 모아서 동시성 제한으로 한 번에 병렬 발송.
-  // tag: 각 알림이 OS 에서 독립적으로 표시되도록 unique 부여. 같은 분에 여러
-  // push 가 도착해도 서로 덮어쓰지 않음 (web push spec — 같은 tag 면 replace).
+  // tag: 같은 (user, pet, time/date) 조합은 같은 tag → 같은 분 재발송 시 덮어씀.
+  //      다른 펫끼리는 다른 tag → 분리 표시.
   type SendTask = {
     userId: string;
     notification: { title: string; body: string; url: string; category?: string; tag: string };
-    // 발송 성공/실패 무관하게 호출 (예: reminder_3day_sent_at 기록 — 스팸 방지 용도).
     afterSend?: () => Promise<void>;
   };
   const tasks: SendTask[] = [];
 
-  // 1) 투약 — 한 유저의 같은 분 여러 약은 이미 하나로 합쳐짐 (medMessages).
-  //    tag = med-{userId}-{currentTime} → 다른 분 알림과 겹침 X.
-  for (const userId of medUserIds) {
+  // 1) 투약 — 펫 단위로 1 알림.
+  //    title : "💊 8시 냥이 약" / body : "타이레놀, 비타민 시간이에요"
+  //    tag   : med-{userId}-{petId}-{HH:MM}
+  for (const [userId, petsMap] of medByUserPet) {
     if (!paidSet.has(userId)) continue;
-    const names = medMessages.get(userId) || [];
-    tasks.push({
-      userId,
-      notification: {
-        title: '💊 투약 알림',
-        body: `${names.join(', ')} 투약 시간입니다.`,
-        url: '/records',
-        category: 'medication',
-        tag: `med-${userId}-${currentTime}`,
-      },
-    });
+    for (const [petId, drugs] of petsMap) {
+      const pet = petMap.get(petId);
+      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
+
+      let body: string;
+      if (drugs.length === 1) {
+        body = `${truncate(drugs[0], 20, '약')} 시간이에요`;
+      } else if (drugs.length === 2) {
+        body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 시간이에요`;
+      } else {
+        body = `약 ${drugs.length}개 먹을 시간이에요`;
+      }
+
+      tasks.push({
+        userId,
+        notification: {
+          title: `💊 ${currentHour}시 ${petName} 약`,
+          body,
+          url: '/records',
+          category: 'medication',
+          tag: `med-${userId}-${petId}-${currentTime}`,
+        },
+      });
+    }
   }
 
-  // 2) 예약/퇴원 (07:00) — 각 record id 로 unique tag.
-  //    한 유저가 같은 날 예약+퇴원+오늘예약 동시 보유 시 모두 독립 표시.
-  for (const r of apptTomorrow) {
-    if (!paidSet.has(r.user_id)) continue;
-    tasks.push({
-      userId: r.user_id,
-      notification: {
-        title: '📅 예약일 알림',
-        body: `내일 "${r.title}" 예약이 있습니다.`,
-        url: '/records',
-        category: 'appointment',
-        tag: `appt-tomorrow-${r.id}`,
-      },
-    });
-  }
-  for (const r of dischargeTomorrow) {
-    if (!paidSet.has(r.user_id)) continue;
-    tasks.push({
-      userId: r.user_id,
-      notification: {
-        title: '🏥 퇴원일 알림',
-        body: `내일 "${r.title}" 퇴원 예정입니다.`,
-        url: '/records',
-        category: 'hospitalization',
-        tag: `dischg-tomorrow-${r.id}`,
-      },
-    });
-  }
-  for (const r of apptToday) {
-    if (!paidSet.has(r.user_id)) continue;
-    tasks.push({
-      userId: r.user_id,
-      notification: {
-        title: '📅 오늘 예약',
-        body: `오늘 "${r.title}" 예약이 있습니다.`,
-        url: '/records',
-        category: 'appointment',
-        tag: `appt-today-${r.id}`,
-      },
-    });
-  }
-  for (const r of dischargeToday) {
-    if (!paidSet.has(r.user_id)) continue;
-    tasks.push({
-      userId: r.user_id,
-      notification: {
-        title: '🏥 오늘 퇴원',
-        body: `오늘 "${r.title}" 퇴원 예정입니다.`,
-        url: '/records',
-        category: 'hospitalization',
-        tag: `dischg-today-${r.id}`,
-      },
-    });
+  // 2) 예약·퇴원 — 펫 단위로 1 알림 (07:00 에만).
+  //    같은 record 의 예약+퇴원 → 통합 메시지.
+  //    tag: schedule-{userId}-{petId}-{YYYYMMDD}
+  for (const [userId, petsMap] of scheduleByUserPet) {
+    if (!paidSet.has(userId)) continue;
+    for (const [petId, ev] of petsMap) {
+      if (ev.appts.length === 0 && ev.dischs.length === 0) continue;
+      const pet = petMap.get(petId);
+      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
+      const { title, body, category } = buildScheduleMessage(petName, ev.appts, ev.dischs);
+      tasks.push({
+        userId,
+        notification: {
+          title,
+          body,
+          url: '/records',
+          category,
+          tag: `schedule-${userId}-${petId}-${todayKST.replace(/-/g, '')}`,
+        },
+      });
+    }
   }
 
   // 3) 3일 전 결제/만료 안내 — product price 프리페치 후 메시지 분기
@@ -398,6 +526,7 @@ export async function GET(request: NextRequest) {
     date: todayKST,
     sent: totalSent,
     failed: totalFailed,
+    taskCount: tasks.length,
   });
 }
 
