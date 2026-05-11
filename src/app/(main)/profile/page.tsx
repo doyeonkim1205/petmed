@@ -346,6 +346,7 @@ function PetModal({
                 placeholder="이름"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                maxLength={12}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
 
@@ -372,6 +373,7 @@ function PetModal({
                 placeholder="품종 (선택)"
                 value={form.breed}
                 onChange={e => setForm(f => ({ ...f, breed: e.target.value }))}
+                maxLength={25}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
 
@@ -431,16 +433,24 @@ function PetModal({
                 </div>
               </div>
 
-              {/* 체중 — 숫자 입력, 단위 'kg' 는 입력창 오른쪽에 표시 (가독성 ↑) */}
+              {/* 체중 — 숫자 입력, 단위 'kg' 는 입력창 오른쪽에 표시 (가독성 ↑).
+                 입력 정규식 (^\d{0,3}(\.\d{0,2})?$) 은 records/add 페이지와 동일 패턴 —
+                 정수 최대 3자리 + 소수 최대 2자리 (예: 999.99kg). inputMode=decimal 로
+                 모바일 숫자 키패드. type=number 미사용 (브라우저별 '.' 처리 차이 회피). */}
               <div>
                 <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
                 <div className="relative">
                   <TextField
-                    type="number"
                     inputMode="decimal"
                     placeholder="예: 4.2"
                     value={form.weight}
-                    onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) {
+                        setForm(f => ({ ...f, weight: v }));
+                      }
+                    }}
+                    maxLength={6}
                     className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
@@ -449,13 +459,14 @@ function PetModal({
                 </div>
               </div>
 
-              {/* 만성질환 — 쉼표 구분 자유 입력 */}
+              {/* 만성질환 — 쉼표 구분 자유 입력 (100자 한도: 평균 3~5개 질환 커버) */}
               <div>
                 <label className="text-[11px] text-gray-400 mb-1 block">만성질환 (선택, 쉼표로 구분)</label>
                 <TextField
                   placeholder="예: 신부전, 관절염"
                   value={form.chronic_conditions}
                   onChange={e => setForm(f => ({ ...f, chronic_conditions: e.target.value }))}
+                  maxLength={100}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
