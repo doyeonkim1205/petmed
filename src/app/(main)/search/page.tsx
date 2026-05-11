@@ -32,14 +32,34 @@ interface FollowupQuestion {
   options?: string[];
 }
 
+// 응급 신호 — 서버에서 정규화돼 항상 객체 배열로 옴.
+// severity 별로 UI 에서 색 분기 (즉시=빨강 / 24시간내=주황 / 경과관찰=노랑).
+interface EmergencySign {
+  sign: string;
+  severity: '즉시' | '24시간내' | '경과관찰';
+  reason?: string;
+}
+
 interface SymptomResult {
   diseases: SymptomDisease[];
   followup_questions: (string | FollowupQuestion)[];
-  emergency_signs: string[];
+  // 백워드 호환 — 옛 캐시는 string[] 일 수 있음. 정규화는 UI 단에서 처리.
+  emergency_signs: (string | EmergencySign)[];
   // 펫 컨텍스트 사용 여부 + 이름 (서버에서 채움, 옵셔널).
   // 사용 시 결과 카드 상단에 "✨ 살구의 정보 반영" 배지 노출용.
   context_used?: boolean;
   pet_name?: string;
+}
+
+/** emergency_signs 정규화 — 캐시된 옛 형식 (string[]) 도 안전하게 처리. */
+function normalizeEmergencySigns(
+  list: (string | EmergencySign)[] | undefined
+): EmergencySign[] {
+  if (!list) return [];
+  return list.map(s => {
+    if (typeof s === 'string') return { sign: s, severity: '즉시' as const };
+    return s;
+  });
 }
 
 const stepMessages: Record<SearchStep, string> = {
@@ -916,30 +936,78 @@ function SearchContent() {
                   </div>
                 )}
 
-                {/* Emergency Signs — 배너 다음 */}
-                {symptomResult.emergency_signs.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold text-red-600 mb-2">
-                      <ShieldAlert size={14} />
-                      이런 증상이면 즉시 병원으로
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {symptomResult.emergency_signs.map((sign, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-red-700">
-                          <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
-                          {sign}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {/* Emergency Signs — severity 별 색 분기.
+                   '즉시'=빨강 (대표), '24시간내'=주황, '경과관찰'=노랑.
+                   가장 심한 severity 를 카드 전체 톤으로 사용. */}
+                {symptomResult.emergency_signs.length > 0 && (() => {
+                  const signs = normalizeEmergencySigns(symptomResult.emergency_signs);
+                  if (signs.length === 0) return null;
+                  // 가장 심한 severity 결정 (즉시 > 24시간내 > 경과관찰)
+                  const severityRank: Record<EmergencySign['severity'], number> = {
+                    '즉시': 3, '24시간내': 2, '경과관찰': 1,
+                  };
+                  const topSeverity = signs.reduce<EmergencySign['severity']>(
+                    (max, s) => severityRank[s.severity] > severityRank[max] ? s.severity : max,
+                    '경과관찰',
+                  );
+                  const headerByTop: Record<EmergencySign['severity'], { bg: string; border: string; text: string; title: string }> = {
+                    '즉시': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', title: '이런 증상이면 즉시 병원으로' },
+                    '24시간내': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', title: '이런 증상이면 24시간 내 병원으로' },
+                    '경과관찰': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', title: '이런 증상이면 경과를 주의 깊게' },
+                  };
+                  const itemColorByTier: Record<EmergencySign['severity'], string> = {
+                    '즉시': 'text-red-700',
+                    '24시간내': 'text-orange-700',
+                    '경과관찰': 'text-yellow-800',
+                  };
+                  const itemBadgeByTier: Record<EmergencySign['severity'], string> = {
+                    '즉시': 'bg-red-100 text-red-700',
+                    '24시간내': 'bg-orange-100 text-orange-700',
+                    '경과관찰': 'bg-yellow-100 text-yellow-800',
+                  };
+                  const header = headerByTop[topSeverity];
+                  return (
+                    <div className={`${header.bg} border ${header.border} rounded-xl p-4`}>
+                      <h4 className={`flex items-center gap-1.5 text-xs font-bold ${header.text} mb-2`}>
+                        <ShieldAlert size={14} />
+                        {header.title}
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {signs.map((item, i) => (
+                          <li key={i} className={`flex items-start gap-2 text-xs ${itemColorByTier[item.severity]}`}>
+                            <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-1.5 flex-wrap">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${itemBadgeByTier[item.severity]}`}>
+                                  {item.severity}
+                                </span>
+                                <span className="font-medium">{item.sign}</span>
+                              </div>
+                              {item.reason && (
+                                <p className="text-[11px] opacity-80 mt-0.5">{item.reason}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
 
                 {/* Interactive Follow-up Questions */}
-                {symptomResult.followup_questions.length > 0 && !refineLimit && (
+                {symptomResult.followup_questions.length > 0 && !refineLimit && (() => {
+                  const totalQ = symptomResult.followup_questions.length;
+                  const answeredCount = symptomResult.followup_questions.filter(
+                    (_, i) => (followupAnswers[i] ?? '').trim().length > 0
+                  ).length;
+                  return (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                     <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                       <HelpCircle size={14} />
                       추가 질문에 답하면 더 정확해져요
+                      <span className="ml-auto text-[10px] font-normal text-blue-500/70">
+                        {answeredCount}/{totalQ} 답변
+                      </span>
                     </h4>
                     <div className="space-y-3">
                       {symptomResult.followup_questions.map((q, i) => {
@@ -997,8 +1065,15 @@ function SearchContent() {
                         );
                       })}
                     </div>
-                    {Object.values(followupAnswers).some(v => v.trim()) && (
+                    {answeredCount > 0 && (
                       <div className="space-y-1.5">
+                        {/* 답변 안 한 질문이 있으면 안내 — 사용자가 빠진 질문을 의도적으로
+                           스킵한 건지 확인할 기회. 빈 답변은 payload 에서 자동 제외됨. */}
+                        {answeredCount < totalQ && (
+                          <p className="text-[10px] text-gray-500 text-center">
+                            답변하지 않은 {totalQ - answeredCount}개 질문은 분석에서 제외돼요
+                          </p>
+                        )}
                         <button
                           onClick={handleRefineAnalysis}
                           disabled={isRefining}
@@ -1018,7 +1093,8 @@ function SearchContent() {
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Refine limit reached */}
                 {refineLimit && (() => {

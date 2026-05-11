@@ -147,7 +147,13 @@ export async function POST(request: NextRequest) {
       "options": ["선택지1", "선택지2"]
     }
   ],
-  "emergency_signs": ["이런 증상이 동반되면 즉시 병원에 가야 합니다"]
+  "emergency_signs": [
+    {
+      "sign": "구체적이고 측정 가능한 응급 신호 (예: 분당 호흡수 40회 이상)",
+      "severity": "즉시" | "24시간내",
+      "reason": "왜 응급인지 짧은 설명 (1문장)"
+    }
+  ]
 }
 
 규칙:
@@ -155,12 +161,28 @@ export async function POST(request: NextRequest) {
 - severity 기준: "긴급"=즉시 병원, "주의"=1-2일 내 병원, "관찰"=경과 관찰 가능
 - 추측이 아닌 수의학적 근거에 기반
 - 전문 용어 사용 시 괄호 안에 쉬운 설명 추가
-- emergency_signs는 최대 3개
-- followup_questions는 최대 3개
-- followup_questions의 type 설명:
-  - "yes_no": 예/아니오로 답할 수 있는 질문 (options 불필요)
-  - "select": 보기 중 선택하는 질문 (options에 2-5개 선택지 필수)
-  - "text": 자유 입력이 필요한 질문 (options 불필요)
+
+[응급 신호 (emergency_signs) — 최대 3개]
+- 구체적이고 측정 가능한 신호로 작성
+  · 좋은 예: "분당 호흡수 40회 이상", "24시간 이상 식음 전폐", "잇몸이 보라색/회색"
+  · 나쁜 예: "상태가 안 좋아 보일 때", "위급한 상황"
+- 보호자가 즉시 알아볼 수 있는 표현 사용
+
+[추가 질문 (followup_questions) — 최대 3개]
+질문 설계 원칙 (감별진단에 결정적인 질문 우선):
+- 의심 질병 후보들을 구분하는 데 결정적인 정보를 묻기
+- 측정 가능한 정보 우선: 시작 시점, 빈도, 지속 시간, 유발 요인, 양상
+- 양분되는 질문 우선: yes_no > select > text (text 는 정량화 어려운 경우만)
+- "혹시 다른 증상도 있나요?" 같이 추상적이고 답하기 어려운 질문 회피
+- 환자 컨텍스트가 제공된 경우:
+  · 복용 약물의 부작용 가능성을 검증하는 질문 우선
+  · 만성질환의 진행/악화 여부를 확인하는 질문 우선
+  · 품종 호발 질병을 검증하는 질문 우선
+
+type 사용 가이드:
+- "yes_no": 양분되는 명확한 질문 (options 불필요, 클라이언트가 "예/아니오/모르겠어요" 자동 제공)
+- "select": 2-5개 보기 중 하나 선택 (options 필수)
+- "text": 정량적 정보가 필요한 경우만 (options 불필요)
 - 질문 유형은 질문 내용에 맞게 적절히 선택해${isRefinement ? '\n- 이전에 했던 질문과 다른 새로운 질문을 해줘' : ''}`,
           },
           {
@@ -222,10 +244,31 @@ export async function POST(request: NextRequest) {
     // dedup 이 걸렸으면 count 그대로, 아니면 +1.
     const newUsed = recentDupe ? (count || 0) : (count || 0) + 1;
 
+    // emergency_signs 정규화 — AI 가 옛 형식 (string[]) 으로 응답하는 케이스 대비.
+    // 새 형식: { sign, severity, reason? } — UI 가 severity 별로 색 분기 가능.
+    // 옛 응답 호환: 문자열은 { sign: 문자열, severity: '즉시' } 로 변환.
+    const normalizedEmergencySigns = (parsed.emergency_signs ?? [])
+      .slice(0, 3)
+      .map((s: unknown) => {
+        if (typeof s === 'string') return { sign: s, severity: '즉시' as const };
+        if (s && typeof s === 'object' && 'sign' in s) {
+          const obj = s as { sign?: string; severity?: string; reason?: string };
+          const severity =
+            obj.severity === '24시간내' || obj.severity === '경과관찰' ? obj.severity : '즉시';
+          return {
+            sign: String(obj.sign || ''),
+            severity: severity as '즉시' | '24시간내' | '경과관찰',
+            ...(obj.reason ? { reason: String(obj.reason) } : {}),
+          };
+        }
+        return null;
+      })
+      .filter((s: { sign: string } | null): s is { sign: string; severity: '즉시' | '24시간내' | '경과관찰'; reason?: string } => s !== null && s.sign.length > 0);
+
     const result = {
       diseases: (parsed.diseases ?? []).slice(0, 3),
       followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
-      emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
+      emergency_signs: normalizedEmergencySigns,
       // 펫 컨텍스트 사용 여부 + 펫 이름 — UI 에 "✨ 살구의 정보 반영" 배지 표시용.
       // 미사용/펫 없음 케이스에선 false / undefined 로 배지 안 뜸.
       context_used: petContext != null,
