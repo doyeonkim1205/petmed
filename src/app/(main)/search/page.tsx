@@ -150,8 +150,9 @@ function SearchContent() {
   // 펫 컨텍스트 — 증상 분석 시 특정 펫 선택 시 그 펫의 의료 정보를 AI 에 자동 주입.
   // pets: 사용자 등록 펫 목록 (없으면 빈 배열).
   // selectedPetId: null = "전체"(컨텍스트 미사용, 기존 강아지/고양이 토글로 fallback).
+  // 초기값 — 캐시에 petId 있으면 복원 (다른 탭 갔다 와도 선택 유지).
   const [pets, setPets] = useState<Pet[]>([]);
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(cachedSymptom?.petId ?? null);
   const selectedPet = selectedPetId ? pets.find(p => p.id === selectedPetId) ?? null : null;
   // 효과적 종 — 펫 선택 시 그 펫의 type, 미선택 시 토글 값.
   const effectivePetType: 'cat' | 'dog' = selectedPet?.type ?? petType;
@@ -238,6 +239,9 @@ function SearchContent() {
   // 펫 목록 fetch — 증상 분석 시 펫 선택 칩에 사용. 마운트 시 1회 가져옴.
   // 미등록 유저는 빈 배열 → 칩 영역 자체가 렌더되지 않음 (기존 강아지/고양이
   // 토글만 보임 → 기존 UX 그대로 유지).
+  //
+  // 캐시된 selectedPetId 가 실제 존재하지 않으면 (펫 삭제 등) null 로 reset →
+  // 잘못된 ID 가 서버로 가지 않도록 방어.
   useEffect(() => {
     if (!user) return;
     let alive = true;
@@ -248,7 +252,11 @@ function SearchContent() {
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: true });
-        if (alive) setPets(data ?? []);
+        if (!alive) return;
+        const petList = data ?? [];
+        setPets(petList);
+        // 캐시 검증: selectedPetId 가 fetched 목록에 없으면 reset
+        setSelectedPetId(prev => (prev && petList.some(p => p.id === prev) ? prev : null));
       } catch (err) {
         Sentry.captureException(err, { tags: { feature: 'pets', action: 'search-fetch' } });
       }
@@ -294,19 +302,22 @@ function SearchContent() {
     }
   }, [pubmed.step, pubmed.articles, pubmed.analysis, pubmed.diseaseDescription, searchedPetType, searchTerm, mockResult, saved]);
 
-  // Cache symptom results in sessionStorage
+  // Cache symptom results in sessionStorage.
+  // petId 도 캐시 — 다른 탭 갔다 와도 펫 선택 유지 → 재분석 시 동일 펫 컨텍스트 적용.
+  // (캐시 빠질 때 재분석이 "전체" 로 진행되어 ✨ 배지 사라지던 버그 fix)
   useEffect(() => {
     if (symptomResult && symptomQuery) {
       try {
         sessionStorage.setItem('symptomCache', JSON.stringify({
           query: symptomQuery,
           petType: searchedPetType,
+          petId: selectedPetId,
           result: symptomResult,
           searchedAt: Date.now(),
         }));
       } catch {}
     }
-  }, [symptomResult, symptomQuery, searchedPetType]);
+  }, [symptomResult, symptomQuery, searchedPetType, selectedPetId]);
 
   useEffect(() => {
     if (!initialQuery) return;
