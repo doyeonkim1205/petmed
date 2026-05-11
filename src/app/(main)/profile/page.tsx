@@ -316,11 +316,6 @@ function PetModal({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-gray-700 truncate">{pet.name}</p>
-                    <p className="text-[11px] text-gray-400 truncate">
-                      {pet.type === 'dog' ? '강아지' : '고양이'}
-                      {pet.breed ? ` / ${pet.breed}` : ''}
-                      {pet.birth_date ? ` / ${pet.birth_date}` : ''}
-                    </p>
                   </div>
                   <button
                     onClick={() => openEditForm(pet)}
@@ -436,17 +431,22 @@ function PetModal({
                 </div>
               </div>
 
-              {/* 체중 — 숫자 입력 (kg) */}
+              {/* 체중 — 숫자 입력, 단위 'kg' 는 입력창 오른쪽에 표시 (가독성 ↑) */}
               <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">체중 (kg, 선택)</label>
-                <TextField
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="예: 4.2"
-                  value={form.weight}
-                  onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
+                <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
+                <div className="relative">
+                  <TextField
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="예: 4.2"
+                    value={form.weight}
+                    onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
+                    className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
+                    kg
+                  </span>
+                </div>
               </div>
 
               {/* 만성질환 — 쉼표 구분 자유 입력 */}
