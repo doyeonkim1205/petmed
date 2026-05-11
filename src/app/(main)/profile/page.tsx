@@ -82,6 +82,65 @@ function NicknameModal({
 }
 
 // ─── Pet Management Modal ──────────────────────────────────
+// 펫 등록·편집·삭제 모달.
+// 2026-05 확장: AI 증상 분석 컨텍스트 필드 (성별, 중성화, 체중, 만성질환) 추가.
+//   - 모두 선택 입력 — 사용자가 점진적으로 채울 수 있게.
+//   - DB 에 NULL 로 들어가도 기존 기능 영향 0 (옛 펫은 그대로 유지).
+// 편집 모드 신규: 펫 카드 옆 ✏️ 버튼으로 진입 → 같은 폼 재사용.
+type PetFormState = {
+  name: string;
+  type: 'dog' | 'cat';
+  breed: string;
+  birth_date: string;
+  sex: '' | 'male' | 'female';
+  neutered: '' | 'yes' | 'no';
+  weight: string;                  // input 은 string, 저장 시 number 변환
+  chronic_conditions: string;      // 쉼표 구분 입력, 저장 시 string[] 변환
+};
+
+const EMPTY_PET_FORM: PetFormState = {
+  name: '',
+  type: 'dog',
+  breed: '',
+  birth_date: '',
+  sex: '',
+  neutered: '',
+  weight: '',
+  chronic_conditions: '',
+};
+
+function petToForm(pet: Pet): PetFormState {
+  return {
+    name: pet.name,
+    type: pet.type,
+    breed: pet.breed || '',
+    birth_date: pet.birth_date || '',
+    sex: pet.sex || '',
+    neutered: pet.neutered === true ? 'yes' : pet.neutered === false ? 'no' : '',
+    weight: pet.weight != null ? String(pet.weight) : '',
+    chronic_conditions: (pet.chronic_conditions || []).join(', '),
+  };
+}
+
+/** form 상태 → DB payload (NULL/배열 변환). */
+function formToPayload(form: PetFormState) {
+  const weightNum = form.weight.trim() ? parseFloat(form.weight.trim()) : null;
+  const conditions = form.chronic_conditions
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  return {
+    name: form.name.trim(),
+    type: form.type,
+    breed: form.breed.trim() || null,
+    birth_date: form.birth_date || null,
+    sex: form.sex || null,
+    neutered: form.neutered === 'yes' ? true : form.neutered === 'no' ? false : null,
+    weight: weightNum,
+    chronic_conditions: conditions.length > 0 ? conditions : null,
+  };
+}
+
 function PetModal({
   open, userId, onClose,
 }: {
@@ -91,9 +150,11 @@ function PetModal({
 }) {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
+  const [showForm, setShowForm] = useState(false);
+  const [editingPetId, setEditingPetId] = useState<string | null>(null);   // null = 신규, 값 = 편집 중인 펫 id
+  const [form, setForm] = useState<PetFormState>(EMPTY_PET_FORM);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   // 등록 한도 초과 안내 모달 (기존 native alert 대체)
   const [limitMsg, setLimitMsg] = useState<React.ReactNode | null>(null);
@@ -129,10 +190,67 @@ function PetModal({
 
   if (!open) return null;
 
-  const handleAdd = async () => {
-    if (!newPet.name.trim()) return;
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingPetId(null);
+    setForm(EMPTY_PET_FORM);
+    setFormError(null);
+  };
 
-    // Check pet limit based on plan
+  const openAddForm = () => {
+    setEditingPetId(null);
+    setForm(EMPTY_PET_FORM);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEditForm = (pet: Pet) => {
+    setEditingPetId(pet.id);
+    setForm(petToForm(pet));
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    if (!form.name.trim()) {
+      setFormError('이름을 입력해주세요');
+      return;
+    }
+    // weight 입력 검증 — 양수만 허용 (DB 제약과 일치).
+    if (form.weight.trim()) {
+      const w = parseFloat(form.weight.trim());
+      if (isNaN(w) || w <= 0) {
+        setFormError('체중은 양수로 입력해주세요 (예: 4.2)');
+        return;
+      }
+    }
+
+    const payload = formToPayload(form);
+
+    if (editingPetId) {
+      // 편집 모드 — UPDATE
+      setSaving(true);
+      const { error } = await supabase
+        .from('pets')
+        .update(payload)
+        .eq('id', editingPetId)
+        .eq('user_id', userId);
+      setSaving(false);
+      if (error) {
+        Sentry.captureException(error, {
+          tags: { feature: 'pets', action: 'update' },
+        });
+        setFormError('저장에 실패했습니다. 다시 시도해주세요.');
+        return;
+      }
+      logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+      closeForm();
+      fetchPets();
+      return;
+    }
+
+    // 신규 등록 모드 — 한도 체크 + INSERT
     const { data: profile } = await supabase
       .from('profiles')
       .select('plan')
@@ -152,17 +270,21 @@ function PetModal({
     }
 
     setSaving(true);
-    const { data } = await supabase.from('pets').insert({
-      user_id: userId,
-      name: newPet.name.trim(),
-      type: newPet.type,
-      breed: newPet.breed.trim() || null,
-      birth_date: newPet.birth_date || null,
-    }).select('id').single();
-    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
-    setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
-    setShowAddForm(false);
+    const { data, error } = await supabase
+      .from('pets')
+      .insert({ user_id: userId, ...payload })
+      .select('id')
+      .single();
     setSaving(false);
+    if (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'pets', action: 'create' },
+      });
+      setFormError('등록에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
+    closeForm();
     fetchPets();
   };
 
@@ -174,7 +296,7 @@ function PetModal({
 
   return (
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-xs max-h-[80vh] flex flex-col shadow-lg">
+      <div className="bg-white rounded-2xl w-full max-w-xs max-h-[85vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between p-5 pb-3">
           <h3 className="text-sm font-bold text-gray-700">나의 반려동물</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
@@ -183,7 +305,7 @@ function PetModal({
         <div className="flex-1 overflow-y-auto px-5">
           {loading ? (
             <p className="text-gray-400 text-center py-8 text-sm">로딩 중...</p>
-          ) : pets.length === 0 && !showAddForm ? (
+          ) : pets.length === 0 && !showForm ? (
             <p className="text-gray-400 text-center py-8 text-sm">등록된 반려동물이 없습니다.</p>
           ) : (
             <div className="space-y-2">
@@ -192,15 +314,26 @@ function PetModal({
                   <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                     {pet.type === 'dog' ? <Dog size={16} /> : <Cat size={16} />}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-gray-700">{pet.name}</p>
-                    <p className="text-[11px] text-gray-400">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-gray-700 truncate">{pet.name}</p>
+                    <p className="text-[11px] text-gray-400 truncate">
                       {pet.type === 'dog' ? '강아지' : '고양이'}
                       {pet.breed ? ` / ${pet.breed}` : ''}
                       {pet.birth_date ? ` / ${pet.birth_date}` : ''}
                     </p>
                   </div>
-                  <button onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })} className="p-1 text-gray-300 hover:text-red-400 transition-colors">
+                  <button
+                    onClick={() => openEditForm(pet)}
+                    aria-label="수정"
+                    className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })}
+                    aria-label="삭제"
+                    className="p-1 text-gray-300 hover:text-red-400 transition-colors"
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -208,58 +341,142 @@ function PetModal({
             </div>
           )}
 
-          {showAddForm && (
+          {showForm && (
             <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+              <p className="text-xs font-semibold text-gray-500 mb-1">
+                {editingPetId ? '반려동물 정보 수정' : '반려동물 추가'}
+              </p>
+
               <TextField
                 placeholder="이름"
-                value={newPet.name}
-                onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+
               <div className="flex gap-2">
                 <button
-                  onClick={() => setNewPet(p => ({ ...p, type: 'dog' }))}
+                  onClick={() => setForm(f => ({ ...f, type: 'dog' }))}
                   className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    newPet.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                    form.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   <Dog size={14} /> 강아지
                 </button>
                 <button
-                  onClick={() => setNewPet(p => ({ ...p, type: 'cat' }))}
+                  onClick={() => setForm(f => ({ ...f, type: 'cat' }))}
                   className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    newPet.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                    form.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   <Cat size={14} /> 고양이
                 </button>
               </div>
+
               <TextField
                 placeholder="품종 (선택)"
-                value={newPet.breed}
-                onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
+                value={form.breed}
+                onChange={e => setForm(f => ({ ...f, breed: e.target.value }))}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+
               <div>
                 <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
                 <input
                   type="date"
-                  value={newPet.birth_date}
-                  onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-                  className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
+                  value={form.birth_date}
+                  onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+                  className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
                 />
               </div>
-              <div className="flex gap-2">
+
+              {/* 성별 — 미선택 허용 */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">성별 (선택)</label>
+                <div className="flex gap-1.5">
+                  {(['', 'male', 'female'] as const).map(s => {
+                    const labelMap: Record<'' | 'male' | 'female', string> = { '': '모름', male: '수컷', female: '암컷' };
+                    const active = form.sex === s;
+                    return (
+                      <button
+                        key={s || 'unknown'}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, sex: s }))}
+                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
+                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {labelMap[s]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 중성화 — 미선택 허용 */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">중성화 여부 (선택)</label>
+                <div className="flex gap-1.5">
+                  {(['', 'yes', 'no'] as const).map(v => {
+                    const labelMap: Record<'' | 'yes' | 'no', string> = { '': '모름', yes: '했어요', no: '안 했어요' };
+                    const active = form.neutered === v;
+                    return (
+                      <button
+                        key={v || 'unknown'}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, neutered: v }))}
+                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
+                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {labelMap[v]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 체중 — 숫자 입력 (kg) */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">체중 (kg, 선택)</label>
+                <TextField
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="예: 4.2"
+                  value={form.weight}
+                  onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+
+              {/* 만성질환 — 쉼표 구분 자유 입력 */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">만성질환 (선택, 쉼표로 구분)</label>
+                <TextField
+                  placeholder="예: 신부전, 관절염"
+                  value={form.chronic_conditions}
+                  onChange={e => setForm(f => ({ ...f, chronic_conditions: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+
+              {formError && (
+                <p className="text-xs text-red-500">{formError}</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => { setShowAddForm(false); setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' }); }}
+                  onClick={closeForm}
                   className="flex-1 h-9 border border-gray-200 rounded-full text-xs text-gray-500 hover:bg-gray-50 transition-colors"
-                >취소</button>
+                >
+                  취소
+                </button>
                 <button
-                  onClick={handleAdd}
-                  disabled={saving || !newPet.name.trim()}
+                  onClick={handleSave}
+                  disabled={saving || !form.name.trim()}
                   className="flex-1 h-9 bg-blue-600 text-[#fff] rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
                 >
-                  {saving ? '등록 중...' : '등록'}
+                  {saving ? (editingPetId ? '저장 중...' : '등록 중...') : (editingPetId ? '저장' : '등록')}
                 </button>
               </div>
             </div>
@@ -267,9 +484,9 @@ function PetModal({
         </div>
 
         <div className="p-5 pt-3">
-          {!showAddForm && (
+          {!showForm && (
             <button
-              onClick={() => setShowAddForm(true)}
+              onClick={openAddForm}
               className="w-full h-9 flex items-center justify-center gap-1.5 border border-dashed border-gray-200 rounded-full text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
             >
               <Plus size={14} /> 반려동물 추가

@@ -80,6 +80,12 @@ export interface Pet {
   type: 'dog' | 'cat';
   breed?: string;
   birth_date?: string;
+  // AI 증상 분석 컨텍스트 (2026-05 추가).
+  // 모두 NULL 허용 — 기존 펫은 미입력 상태로 유지되며 사용자가 점진적으로 채움.
+  sex?: 'male' | 'female' | null;
+  neutered?: boolean | null;
+  weight?: number | null;                   // kg
+  chronic_conditions?: string[] | null;     // 만성질환 목록 (예: ['신부전', '관절염'])
   created_at: string;
 }
 
