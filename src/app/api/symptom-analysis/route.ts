@@ -6,6 +6,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
 import { startOfDayKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -33,12 +34,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
-    const { symptoms, petType, followupAnswers } = await request.json();
+    const { symptoms, petType, petId, followupAnswers } = await request.json();
     if (!symptoms) {
       return NextResponse.json({ error: 'Missing symptoms' }, { status: 400 });
     }
 
     const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
+
+    // 펫 컨텍스트 fetch — petId 옵셔널. 다른 유저 petId 면 silent fail (null 반환).
+    // 보안: fetchPetContext 가 user_id 검증 포함.
+    const petContext = petId ? await fetchPetContext(supabaseAdmin, userId, petId) : null;
+    const petContextText = buildPetContextPrompt(petContext);
+    // 펫 컨텍스트 사용 시 species 도 그 펫 기준으로 강제 동기화.
+    // (클라이언트가 petType 따로 보내도 펫 정보가 우선)
+    const effectivePetType = petContext?.pet.type ?? petType;
+    const effectivePetName = petContext?.pet.name;
 
     // Get user plan
     const { data: profile } = await supabaseAdmin
@@ -78,7 +88,9 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    const petLabel = petType === 'cat' ? '고양이' : '강아지';
+    const petLabel = effectivePetType === 'cat' ? '고양이' : '강아지';
+    // 환자 호칭 — 펫 컨텍스트 있으면 이름 사용 ("우리 살구가"), 없으면 종 ("우리 강아지가")
+    const patientLabel = effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`;
 
     // Build follow-up context for refined analysis
     let followupContext = '';
@@ -88,6 +100,16 @@ export async function POST(request: NextRequest) {
         .join('\n');
       followupContext = `\n\n보호자가 추가 질문에 답변했습니다:\n${answersText}\n\n이 추가 정보를 반영하여 더 정확하게 분석해줘. 이전 분석을 완전히 대체하는 새로운 분석을 제공해.`;
     }
+
+    // 펫 컨텍스트 안내 블록 — 환자 정보가 있으면 user message 에 [환자 정보] 섹션
+    // 형태로 주입. NULL 필드는 buildPetContextPrompt 에서 자동 생략됨.
+    const petContextBlock = petContextText
+      ? `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘:
+- 품종 호발 질병 우선 고려
+- 만성질환과의 연관성 검토
+- 복용 약물 부작용 가능성 검토
+- 알레르기/금기 약물 회피 권고`
+      : '';
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -143,7 +165,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: 'user',
-            content: `우리 ${petLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${followupContext}`,
+            content: `${patientLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${petContextBlock}${followupContext}`,
           },
         ],
       }),
@@ -181,7 +203,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .eq('kind', kind)
       .eq('query', symptoms)
-      .eq('pet_type', petType)
+      .eq('pet_type', effectivePetType)
       .gte('created_at', windowStart)
       .limit(1)
       .maybeSingle();
@@ -190,7 +212,7 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.from('search_logs').insert({
         user_id: userId,
         query: symptoms,
-        pet_type: petType,
+        pet_type: effectivePetType,
         kind,
       });
     }
@@ -204,6 +226,10 @@ export async function POST(request: NextRequest) {
       diseases: (parsed.diseases ?? []).slice(0, 3),
       followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
       emergency_signs: (parsed.emergency_signs ?? []).slice(0, 3),
+      // 펫 컨텍스트 사용 여부 + 펫 이름 — UI 에 "✨ 살구의 정보 반영" 배지 표시용.
+      // 미사용/펫 없음 케이스에선 false / undefined 로 배지 안 뜸.
+      context_used: petContext != null,
+      pet_name: petContext?.pet.name,
       usage: {
         kind,
         used: newUsed,

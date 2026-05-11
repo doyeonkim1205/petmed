@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { TextField } from '@/components/TextField';
+import { supabase, Pet } from '@/lib/supabase';
 
 type SearchMode = 'disease' | 'symptom';
 
@@ -35,6 +36,10 @@ interface SymptomResult {
   diseases: SymptomDisease[];
   followup_questions: (string | FollowupQuestion)[];
   emergency_signs: string[];
+  // 펫 컨텍스트 사용 여부 + 이름 (서버에서 채움, 옵셔널).
+  // 사용 시 결과 카드 상단에 "✨ 살구의 정보 반영" 배지 노출용.
+  context_used?: boolean;
+  pet_name?: string;
 }
 
 const stepMessages: Record<SearchStep, string> = {
@@ -142,6 +147,15 @@ function SearchContent() {
   // 증상 분석 에러 UI 아이콘 분기용: true 면 자물쇠(한도 초과), false 면 ⚠️(네트워크/기타).
   const [symptomLimitReached, setSymptomLimitReached] = useState(false);
 
+  // 펫 컨텍스트 — 증상 분석 시 특정 펫 선택 시 그 펫의 의료 정보를 AI 에 자동 주입.
+  // pets: 사용자 등록 펫 목록 (없으면 빈 배열).
+  // selectedPetId: null = "전체"(컨텍스트 미사용, 기존 강아지/고양이 토글로 fallback).
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const selectedPet = selectedPetId ? pets.find(p => p.id === selectedPetId) ?? null : null;
+  // 효과적 종 — 펫 선택 시 그 펫의 type, 미선택 시 토글 값.
+  const effectivePetType: 'cat' | 'dog' = selectedPet?.type ?? petType;
+
   // symptom 탭 활성 중엔 훅에 null 을 넘겨서 pet 토글 같은 외부 deps 변화가
   // 유발하는 백그라운드 disease fetch 를 완전 차단. (예: 증상 탭에서 pet 을
   // 바꿨다고 disease 가 몰래 재검색 + 카운트 차감되는 사고 방지)
@@ -220,6 +234,27 @@ function SearchContent() {
     })();
     return () => { alive = false; };
   }, [searchMode, user?.id]);
+
+  // 펫 목록 fetch — 증상 분석 시 펫 선택 칩에 사용. 마운트 시 1회 가져옴.
+  // 미등록 유저는 빈 배열 → 칩 영역 자체가 렌더되지 않음 (기존 강아지/고양이
+  // 토글만 보임 → 기존 UX 그대로 유지).
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+        if (alive) setPets(data ?? []);
+      } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'pets', action: 'search-fetch' } });
+      }
+    })();
+    return () => { alive = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!storageKey) { setRecentSearches([]); return; }
@@ -337,7 +372,10 @@ function SearchContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symptoms: q,
-          petType,
+          // effectivePetType: 펫 선택 시 그 펫의 type, 미선택 시 토글 값.
+          petType: effectivePetType,
+          // petId 옵셔널 — 있으면 서버가 펫 의료 정보 fetch → 프롬프트에 주입.
+          ...(selectedPetId ? { petId: selectedPetId } : {}),
           ...(isRefine ? { followupAnswers: answers } : {}),
         }),
       });
@@ -429,7 +467,8 @@ function SearchContent() {
     saveHistory(updated);
 
     if (searchMode === 'symptom') {
-      setSearchedPetType(petType);
+      // 펫 선택 시 그 펫의 type, 아니면 토글 값. (symptomResult 캐시 키와 일관)
+      setSearchedPetType(effectivePetType);
       handleSymptomSearch(q);
       setSymptomQuery(q);
       return;
@@ -453,7 +492,7 @@ function SearchContent() {
     if (searchMode === 'symptom') {
       setSymptomInput(term);
       setSymptomQuery(term);
-      setSearchedPetType(petType);
+      setSearchedPetType(effectivePetType);
       handleSymptomSearch(term);
       return;
     }
@@ -584,19 +623,70 @@ function SearchContent() {
           </div>
         </div>
 
+        {/* 펫 칩 줄 — 증상 분석 모드 + 등록 펫 있을 때만 노출.
+            "전체"(미선택) 일 땐 기존 강아지/고양이 토글로 fallback → 펫 미등록
+            유저나 일반 질문하고 싶은 유저 UX 유지. */}
+        {searchMode === 'symptom' && pets.length > 0 && (
+          <div className="max-w-sm mx-auto mb-2 flex gap-1.5 overflow-x-auto hide-scrollbar px-1">
+            <button
+              type="button"
+              onClick={() => setSelectedPetId(null)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                selectedPetId === null
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              전체
+            </button>
+            {pets.map(pet => {
+              const active = selectedPetId === pet.id;
+              const Icon = pet.type === 'dog' ? Dog : Cat;
+              return (
+                <button
+                  key={pet.id}
+                  type="button"
+                  onClick={() => setSelectedPetId(pet.id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+                    active
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon size={12} />
+                  {pet.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <form onSubmit={handleSearch} className="max-w-sm mx-auto">
           <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
             searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-300'
           }`}>
-            <button
-              type="button"
-              onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-              className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors text-xs font-medium ${
-                searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-              }`}
-            >
-              {petType === 'dog' ? '강아지' : '고양이'} ⇄
-            </button>
+            {selectedPet ? (
+              // 펫 선택 상태 — 종 이름 + 아이콘 (토글 기능 없음, 표시만).
+              // 펫 변경하려면 위 칩 줄에서 다른 펫 선택.
+              <div
+                className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 text-xs font-medium gap-1 ${
+                  searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                }`}
+              >
+                {selectedPet.type === 'dog' ? <Dog size={12} /> : <Cat size={12} />}
+                {selectedPet.name}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
+                className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors text-xs font-medium ${
+                  searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                }`}
+              >
+                {petType === 'dog' ? '강아지' : '고양이'} ⇄
+              </button>
+            )}
             {/* input 과 돋보기 버튼을 한 묶음으로. min-w-0 가 input intrinsic min-width
                 를 풀어줘서 폰트 크기 확대 시에도 submit 버튼이 바깥으로 밀리지 않음. */}
             <div className="relative flex-1 min-w-0">
@@ -726,6 +816,18 @@ function SearchContent() {
 
             {symptomResult && (
               <>
+                {/* 펫 컨텍스트 사용 시 배지 — 분석에 펫 의료 정보가 반영됐음을 명시.
+                   유저가 "이 분석이 우리 펫에 맞춤화됐구나" 인지하도록 결과 카드 위에 배치. */}
+                {symptomResult.context_used && symptomResult.pet_name && (
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl">
+                    <Sparkles size={14} className="text-purple-600 flex-shrink-0" />
+                    <p className="text-xs text-purple-700">
+                      <span className="font-semibold">{symptomResult.pet_name}</span>
+                      의 의료 정보를 반영한 분석이에요
+                    </p>
+                  </div>
+                )}
+
                 {/* Disease Cards */}
                 {symptomResult.diseases.map((disease, idx) => {
                   const sev = severityConfig[disease.severity] || severityConfig['관찰'];
