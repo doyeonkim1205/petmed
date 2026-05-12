@@ -18,6 +18,8 @@ type SearchMode = 'disease' | 'symptom';
 interface SymptomDisease {
   name_ko: string;
   name_en: string;
+  /** 임상 분류 (옵셔널) — 예: "비뇨기 질환", "소화기 질환". AI 가 확실할 때만 채움. */
+  category?: string;
   likelihood: '높음' | '중간' | '낮음';
   severity: '긴급' | '주의' | '관찰';
   description: string;

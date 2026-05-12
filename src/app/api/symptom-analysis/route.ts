@@ -7,6 +7,7 @@ import { sanitizeForLLM } from '@/lib/sanitize';
 import { startOfDayKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
+import { lookupVetTerm } from '@/lib/vetTerms';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -130,11 +131,12 @@ export async function POST(request: NextRequest) {
 {
   "diseases": [
     {
-      "name_ko": "의심 질병명 (한국어)",
-      "name_en": "English name",
+      "name_ko": "한국어 표준 수의학 용어 (불확실하면 영문 그대로)",
+      "name_en": "학술 영문명 (약어가 일반적이면 함께 — 예: 'Chronic Kidney Disease (CKD)')",
+      "category": "임상 분류 (예: '비뇨기 질환', '소화기 질환', '피부 질환', '심혈관 질환', '내분비 질환', '호흡기 질환' — 확실할 때만)",
       "likelihood": "높음" | "중간" | "낮음",
       "severity": "긴급" | "주의" | "관찰",
-      "description": "이 질병이 의심되는 이유와 간단한 설명 (2-3문장)",
+      "description": "이 질병이 의심되는 이유와 간단한 설명 (2-3문장, 일상 용어)",
       "matching_symptoms": ["입력된 증상 중 이 질병과 일치하는 것들"],
       "additional_symptoms": ["이 질병이라면 추가로 나타날 수 있는 증상들"],
       "action": "보호자가 지금 해야 할 행동 (1-2문장)"
@@ -160,7 +162,31 @@ export async function POST(request: NextRequest) {
 - diseases는 가능성 높은 순으로 최대 3개
 - severity 기준: "긴급"=즉시 병원, "주의"=1-2일 내 병원, "관찰"=경과 관찰 가능
 - 추측이 아닌 수의학적 근거에 기반
-- 전문 용어 사용 시 괄호 안에 쉬운 설명 추가
+
+[필드 작성 규칙 — 정확성·일관성 보장 필수]
+
+▸ name_ko (한국어 질병명):
+  - 한국 수의학 표준 용어 사용 (예: "고양이 특발성 방광염", "만성 신부전")
+  - 한국어 표준 번역이 불확실하면 영문명 그대로 사용
+    (잘못된 한국어 < 영문 — 예: 모르면 "Feline Idiopathic Cystitis" 그대로)
+  - 영문 포함 X, 괄호 안 예시 X, 카테고리명 X (그건 다른 필드 담당)
+  - 잘못된 예: "모래주머니염", "소화기 질환 (예: 위염)", "위염 (Gastritis)"
+  - 올바른 예: "고양이 특발성 방광염", "위염", "Feline Idiopathic Cystitis"
+
+▸ name_en (학술 영문명):
+  - 정식 학명 사용 (예: "Feline Idiopathic Cystitis")
+  - 약어가 임상에서 일반적이면 함께 (예: "Chronic Kidney Disease (CKD)")
+  - 한국어 X (그건 name_ko)
+
+▸ category (임상 분류, 옵셔널):
+  - 신체 시스템 기준 분류만 (예: "비뇨기 질환", "소화기 질환", "내분비 질환")
+  - 확실할 때만 포함, 애매하면 생략 (필드 자체 제외)
+  - "고양이 질환" 같은 종 기준 분류 X
+
+▸ description (보호자 친화 설명):
+  - 의심 이유 + 일상 용어 (2-3문장)
+  - 학술 표기 / 영문 X (그건 name_en)
+  - 어려운 용어 처음 등장 시 풀어쓰기
 
 [응급 신호 (emergency_signs) — 최대 3개]
 - 구체적이고 측정 가능한 신호로 작성
@@ -265,8 +291,20 @@ type 사용 가이드:
       })
       .filter((s: { sign: string } | null): s is { sign: string; severity: '즉시' | '24시간내' | '경과관찰'; reason?: string } => s !== null && s.sign.length > 0);
 
+    // diseases 후처리 — name_en 이 VET_TERM_MAP 에 있으면 한국어 강제 보정.
+    // AI 의 잘못된 한국어 번역 (예: "모래주머니염") 을 표준 용어로 교체.
+    // 사전에 없는 용어는 AI 응답 그대로 (프롬프트의 "영문 우선" 가이드 따라
+    // 영문이 들어있을 수 있음 — 그대로 노출하는 게 잘못된 한국어보다 안전).
+    const correctedDiseases = (parsed.diseases ?? []).slice(0, 3).map((d: any) => {
+      const standardKo = lookupVetTerm(d?.name_en);
+      return {
+        ...d,
+        ...(standardKo ? { name_ko: standardKo } : {}),
+      };
+    });
+
     const result = {
-      diseases: (parsed.diseases ?? []).slice(0, 3),
+      diseases: correctedDiseases,
       followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
       emergency_signs: normalizedEmergencySigns,
       // 펫 컨텍스트 사용 여부 + 펫 이름 — UI 에 "✨ 살구의 정보 반영" 배지 표시용.
