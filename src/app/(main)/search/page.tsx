@@ -51,6 +51,14 @@ interface SymptomResult {
   // 사용 시 결과 카드 상단에 "✨ 살구의 정보 반영" 배지 노출용.
   context_used?: boolean;
   pet_name?: string;
+  // 보호자 불안 조절용 — 정상 가능성 평가.
+  // low  : 정상 행동 가능성 큼 — 안심 메시지 + watch_signs + disease cards 작게
+  // medium: 지켜볼 필요 — 기존 UI 톤
+  // high : 적극 진료 권장 — 응급 강조
+  // 옛 캐시는 없을 수 있어 옵셔널, 누락 시 'medium' 으로 취급.
+  concern_level?: 'low' | 'medium' | 'high';
+  reassurance?: string;
+  watch_signs?: string[];
 }
 
 /** emergency_signs 정규화 — 캐시된 옛 형식 (string[]) 도 안전하게 처리. */
@@ -859,6 +867,55 @@ function SearchContent() {
                       의 의료 정보를 반영한 분석이에요
                     </p>
                   </div>
+                )}
+
+                {/* 안심 카드 — concern_level 이 low/medium 이고 reassurance 가 있을 때.
+                   low (정상 가능성 큼) 은 녹색 톤, medium 은 파란 톤으로 부드럽게.
+                   high 일 땐 응급 신호 강조에 집중 — 안심 카드 의도적으로 생략. */}
+                {(symptomResult.concern_level === 'low' || symptomResult.concern_level === 'medium') &&
+                  symptomResult.reassurance && (
+                  <div className={`rounded-xl border p-4 ${
+                    symptomResult.concern_level === 'low'
+                      ? 'bg-green-50 border-green-100'
+                      : 'bg-blue-50 border-blue-100'
+                  }`}>
+                    <p className={`text-xs leading-relaxed ${
+                      symptomResult.concern_level === 'low' ? 'text-green-800' : 'text-blue-800'
+                    }`}>
+                      {symptomResult.concern_level === 'low' ? '😊 ' : 'ℹ️ '}
+                      {symptomResult.reassurance}
+                    </p>
+
+                    {/* watch_signs — "이런 경우엔 진료를" 신호.
+                       low/medium 에서 함께 표시되어 정상 가능성 + 주의 신호를 한 번에 전달. */}
+                    {symptomResult.watch_signs && symptomResult.watch_signs.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-current/10">
+                        <p className={`text-[11px] font-semibold mb-1.5 ${
+                          symptomResult.concern_level === 'low' ? 'text-green-700' : 'text-blue-700'
+                        }`}>
+                          🔍 이런 경우엔 진료를 고려하세요
+                        </p>
+                        <ul className="space-y-1">
+                          {symptomResult.watch_signs.map((sign, i) => (
+                            <li key={i} className={`flex items-start gap-1.5 text-[11px] ${
+                              symptomResult.concern_level === 'low' ? 'text-green-700' : 'text-blue-700'
+                            }`}>
+                              <span className="mt-1 w-1 h-1 rounded-full bg-current flex-shrink-0" />
+                              {sign}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* concern_level=low 일 때 "참고용 의심 질환" 헤더 — 톤 차분 ↓.
+                   분석 결과는 그대로 보여주되 "확정 진단 X, 참고용" 임을 명시. */}
+                {symptomResult.concern_level === 'low' && symptomResult.diseases.length > 0 && (
+                  <p className="text-[11px] text-gray-400 -mb-1">
+                    ─── 참고로 가능성 있는 질환 ───
+                  </p>
                 )}
 
                 {/* Disease Cards */}

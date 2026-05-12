@@ -155,7 +155,10 @@ export async function POST(request: NextRequest) {
       "severity": "즉시" | "24시간내",
       "reason": "왜 응급인지 짧은 설명 (1문장)"
     }
-  ]
+  ],
+  "concern_level": "low" | "medium" | "high",
+  "reassurance": "concern_level 이 low/medium 일 때만 채움. 보호자에게 안심을 주는 한국어 한두 문장 (정상 가능성 언급 등)",
+  "watch_signs": ["concern_level 이 low/medium 일 때 채움. '이런 경우엔 진료를 고려하세요' 신호 2~3개"]
 }
 
 규칙:
@@ -187,6 +190,35 @@ export async function POST(request: NextRequest) {
   - 의심 이유 + 일상 용어 (2-3문장)
   - 학술 표기 / 영문 X (그건 name_en)
   - 어려운 용어 처음 등장 시 풀어쓰기
+
+[concern_level — 보호자 불안 조절을 위한 핵심 평가]
+정상 행동 가능성을 솔직하게 평가해. 모든 증상을 "병"으로 몰지 말 것.
+
+- "low" (정상 행동 가능성 큼):
+  · 가끔 토함 (헤어볼·풀 섭취 등 흔한 원인 가능)
+  · 일상 그루밍 / 가려움 / 졸음 증가
+  · 단발성·일시적 / 산발적 증상 한두 개만
+  · 활동성·식욕은 정상
+
+- "medium" (지켜볼 필요 있음):
+  · 며칠 이상 지속되는 증상
+  · 평소와 명확히 다른 행동
+  · 가능성 있는 질환이지만 응급은 아님
+
+- "high" (적극 진료 권장):
+  · 응급 신호 동반 (호흡곤란·발작·다량 출혈·의식 저하 등)
+  · 만성질환 환자의 악화 징후
+  · 다발성·복합 증상
+
+[reassurance — concern_level 이 low/medium 일 때만 필수]
+- 한국어 1~2문장
+- "정상 행동일 가능성도 있다" / "너무 걱정하지 마세요" 류 톤
+- high 일 땐 reassurance 생략 (빈 문자열 가능)
+- 펫 이름이 환자 정보에 있으면 자연스럽게 사용 가능
+
+[watch_signs — concern_level 이 low/medium 일 때 필수]
+- "이런 경우엔 진료를 고려하세요" 신호 2~3개
+- 구체적·측정 가능한 표현 (예: "1주일 이상 지속될 때", "다른 증상이 추가될 때")
 
 [응급 신호 (emergency_signs) — 최대 3개]
 - 구체적이고 측정 가능한 신호로 작성
@@ -303,10 +335,30 @@ type 사용 가이드:
       };
     });
 
+    // concern_level 정규화 — AI 가 다른 값 보내거나 누락 시 'medium' 으로 fallback.
+    // medium = 기존 UI (가장 안전한 기본값 — 톤 조절 없이 disease cards 표시).
+    const rawConcern = parsed.concern_level;
+    const concernLevel: 'low' | 'medium' | 'high' =
+      rawConcern === 'low' || rawConcern === 'high' ? rawConcern : 'medium';
+
+    // reassurance / watch_signs — high 일 땐 의도적으로 생략 (응급 신호 강조에 집중).
+    const rawReassurance = typeof parsed.reassurance === 'string' ? parsed.reassurance.trim() : '';
+    const reassurance = concernLevel !== 'high' && rawReassurance ? rawReassurance : undefined;
+
+    const watchSigns: string[] = Array.isArray(parsed.watch_signs)
+      ? parsed.watch_signs
+          .filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
+          .map((s: string) => s.trim())
+          .slice(0, 3)
+      : [];
+
     const result = {
       diseases: correctedDiseases,
       followup_questions: (parsed.followup_questions ?? []).slice(0, 3),
       emergency_signs: normalizedEmergencySigns,
+      concern_level: concernLevel,
+      ...(reassurance ? { reassurance } : {}),
+      ...(watchSigns.length > 0 && concernLevel !== 'high' ? { watch_signs: watchSigns } : {}),
       // 펫 컨텍스트 사용 여부 + 펫 이름 — UI 에 "✨ 살구의 정보 반영" 배지 표시용.
       // 미사용/펫 없음 케이스에선 false / undefined 로 배지 안 뜸.
       context_used: petContext != null,
