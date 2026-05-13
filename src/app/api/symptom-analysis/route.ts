@@ -162,7 +162,15 @@ export async function POST(request: NextRequest) {
 }
 
 규칙:
-- diseases는 가능성 높은 순으로 최대 3개
+- diseases 는 0~3개. 강제로 3개 채우지 말 것.
+  · matching_symptoms 가 명확히 1개 이상일 때만 포함
+  · 추측·억지 매칭·연관 약한 질환 끼워넣기 금지
+  · 정상 행동일 가능성이 더 크면 빈 배열도 OK
+  · concern_level 별 권장 개수:
+      - low    : 0~1개 (대부분 비워두는 게 정상)
+      - medium : 1~3개
+      - high   : 1~3개 (응급 가능성 강조)
+  · "방구를 껴요" 같이 일상적·가벼운 증상엔 무리한 질병 매칭 금지
 - severity 기준: "긴급"=즉시 병원, "주의"=1-2일 내 병원, "관찰"=경과 관찰 가능
 - 추측이 아닌 수의학적 근거에 기반
 
@@ -193,21 +201,25 @@ export async function POST(request: NextRequest) {
 
 [concern_level — 보호자 불안 조절을 위한 핵심 평가]
 정상 행동 가능성을 솔직하게 평가해. 모든 증상을 "병"으로 몰지 말 것.
+**low 선택을 망설이지 말 것** — watch_signs 가 진료 권장 신호를 별도로 안내하므로,
+"low 라고 했는데 응급이면 어떡하지" 같은 우려는 watch_signs + emergency_signs 로 보호됨.
 
-- "low" (정상 행동 가능성 큼):
+- "low" (정상 행동 가능성 큼) — **가장 자주 선택돼야 할 기본값**:
   · 가끔 토함 (헤어볼·풀 섭취 등 흔한 원인 가능)
   · 일상 그루밍 / 가려움 / 졸음 증가
   · 단발성·일시적 / 산발적 증상 한두 개만
   · 활동성·식욕은 정상
+  · 방구·트림·하품·코골이 같은 명백한 생리 현상
+  · 증상이 모호하거나 흔하면 low 선택 (불확실 → medium 으로 도망가지 말 것)
 
 - "medium" (지켜볼 필요 있음):
-  · 며칠 이상 지속되는 증상
-  · 평소와 명확히 다른 행동
+  · 며칠 이상 명확히 지속되는 증상
+  · 평소와 분명히 다른 행동
   · 가능성 있는 질환이지만 응급은 아님
 
 - "high" (적극 진료 권장):
   · 응급 신호 동반 (호흡곤란·발작·다량 출혈·의식 저하 등)
-  · 만성질환 환자의 악화 징후
+  · 만성질환 환자의 명백한 악화 징후
   · 다발성·복합 증상
 
 [reassurance — concern_level 이 low/medium 일 때만 필수]
@@ -323,34 +335,66 @@ type 사용 가이드:
       })
       .filter((s: { sign: string } | null): s is { sign: string; severity: '즉시' | '24시간내' | '경과관찰'; reason?: string } => s !== null && s.sign.length > 0);
 
-    // diseases 후처리 — name_en 이 VET_TERM_MAP 에 있으면 한국어 강제 보정.
-    // AI 의 잘못된 한국어 번역 (예: "모래주머니염") 을 표준 용어로 교체.
-    // 사전에 없는 용어는 AI 응답 그대로 (프롬프트의 "영문 우선" 가이드 따라
-    // 영문이 들어있을 수 있음 — 그대로 노출하는 게 잘못된 한국어보다 안전).
-    const correctedDiseases = (parsed.diseases ?? []).slice(0, 3).map((d: any) => {
-      const standardKo = lookupVetTerm(d?.name_en);
-      return {
-        ...d,
-        ...(standardKo ? { name_ko: standardKo } : {}),
-      };
-    });
+    // diseases 후처리:
+    //  1. name_en 이 VET_TERM_MAP 에 있으면 한국어 강제 보정 (모래주머니염 → 고양이 특발성 방광염)
+    //  2. matching_symptoms 가 비어있는 disease 제외 — AI 가 무리하게 끼워넣은
+    //     무관한 질환 거름 ("방구" → 고양이 특발성 방광염 같은 부적절 매칭 방어)
+    //  3. 최대 3개 cap
+    const rawDiseases = (parsed.diseases ?? []) as any[];
+    const correctedDiseases = rawDiseases
+      .filter(d => {
+        // matching_symptoms 빈약하면 AI 가 억지로 끼운 케이스 → 제외
+        if (!d) return false;
+        const matches = Array.isArray(d.matching_symptoms) ? d.matching_symptoms : [];
+        const validMatches = matches.filter((s: unknown) => typeof s === 'string' && s.trim().length > 0);
+        if (validMatches.length === 0) return false;
+        return true;
+      })
+      .map((d: any) => {
+        const standardKo = lookupVetTerm(d?.name_en);
+        return {
+          ...d,
+          ...(standardKo ? { name_ko: standardKo } : {}),
+        };
+      })
+      .slice(0, 3);
 
     // concern_level 정규화 — AI 가 다른 값 보내거나 누락 시 'medium' 으로 fallback.
     // medium = 기존 UI (가장 안전한 기본값 — 톤 조절 없이 disease cards 표시).
     const rawConcern = parsed.concern_level;
-    const concernLevel: 'low' | 'medium' | 'high' =
+    let concernLevel: 'low' | 'medium' | 'high' =
       rawConcern === 'low' || rawConcern === 'high' ? rawConcern : 'medium';
+
+    // diseases 가 0개로 필터링됐는데 concern_level 이 high 가 아니면 → low 로 강제.
+    // (AI 가 medium 으로 두고 disease 만 끼웠다가 후처리에서 다 거른 케이스 보호)
+    if (correctedDiseases.length === 0 && concernLevel !== 'high') {
+      concernLevel = 'low';
+    }
 
     // reassurance / watch_signs — high 일 땐 의도적으로 생략 (응급 신호 강조에 집중).
     const rawReassurance = typeof parsed.reassurance === 'string' ? parsed.reassurance.trim() : '';
-    const reassurance = concernLevel !== 'high' && rawReassurance ? rawReassurance : undefined;
+    let reassurance = concernLevel !== 'high' && rawReassurance ? rawReassurance : undefined;
 
-    const watchSigns: string[] = Array.isArray(parsed.watch_signs)
+    let watchSigns: string[] = Array.isArray(parsed.watch_signs)
       ? parsed.watch_signs
           .filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
           .map((s: string) => s.trim())
           .slice(0, 3)
       : [];
+
+    // Fallback — disease 0개 + reassurance 누락 시 기본 안심 메시지 제공.
+    // AI 가 가끔 모든 필드 다 비우는 케이스 (특히 매우 가벼운 증상) 대비.
+    // 빈 화면 회피 → 보호자가 최소한의 가이드라도 받게.
+    if (correctedDiseases.length === 0 && concernLevel !== 'high' && !reassurance) {
+      reassurance = '현재 증상만으로는 특정 질병을 의심할 만한 근거가 충분하지 않아요. 일시적인 변화일 가능성이 있으니 며칠 더 지켜봐 주세요.';
+    }
+    if (correctedDiseases.length === 0 && concernLevel !== 'high' && watchSigns.length === 0) {
+      watchSigns = [
+        '증상이 1주일 이상 지속될 때',
+        '다른 증상이 함께 나타날 때',
+        '활동성·식욕이 평소와 다를 때',
+      ];
+    }
 
     const result = {
       diseases: correctedDiseases,
