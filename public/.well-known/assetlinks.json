@@ -1,10 +1,16 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.dylabs.pawdex",
-      "sha256_cert_fingerprints": ["54:DE:47:D3:75:5A:18:25:E5:40:64:85:C1:C4:21:02:4C:F9:60:7A:24:8E:1E:07:FB:26:89:03:F5:C4:E4:23"]
+      "sha256_cert_fingerprints": [
+        "54:DE:47:D3:75:5A:18:25:E5:40:64:85:C1:C4:21:02:4C:F9:60:7A:24:8E:1E:07:FB:26:89:03:F5:C4:E4:23",
+        "BB:CB:DB:AA:F9:EB:6B:0A:76:9A:51:7E:5C:4B:FB:58:A1:03:78:4A:21:8F:CC:6E:C2:49:7A:C1:AB:EC:D3:F9"
+      ]
     }
   }
 ]

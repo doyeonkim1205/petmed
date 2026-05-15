@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -57,6 +58,10 @@ export async function POST(request: NextRequest) {
       message: '자동 갱신이 해제되었습니다. 현재 결제 주기 만료일까지 계속 이용하실 수 있습니다.',
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'billing', action: 'disable' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '처리에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

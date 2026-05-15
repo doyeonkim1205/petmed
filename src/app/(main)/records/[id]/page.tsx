@@ -3,9 +3,11 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
@@ -22,6 +24,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   const [record, setRecord] = useState<HealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -34,6 +37,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       const data = await getRecord(id);
       setRecord(data);
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'fetch-detail' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error fetching record:', error);
       router.push('/records');
     } finally {
@@ -41,12 +48,22 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleDelete = async () => {
-    if (!record || !confirm('정말 이 기록을 삭제하시겠습니까?')) return;
+  const handleDelete = () => {
+    if (!record) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!record) return;
+    setShowDeleteConfirm(false);
     try {
       await deleteRecord(record.id);
       router.push('/records');
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'delete' },
+        extra: { recordId: record?.id, userId: user?.id },
+      });
       console.error('Error deleting record:', error);
     }
   };
@@ -128,6 +145,18 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         )}
 
         <div className="space-y-2">
+          {record.weight != null && Number(record.weight) > 0 && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">체중</span>
+              <span className="text-sm font-medium">{record.weight}kg</span>
+            </div>
+          )}
+          {record.symptom_time && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">증상 발생 시간</span>
+              <span className="text-sm font-medium">{record.symptom_time}</span>
+            </div>
+          )}
           {record.hospital_name && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">병원</span>
@@ -138,12 +167,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">비용</span>
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
-            </div>
-          )}
-          {record.weight != null && record.weight > 0 && (
-            <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">체중</span>
-              <span className="text-sm font-medium">{record.weight}kg</span>
             </div>
           )}
           {record.discharge_date && (
@@ -200,6 +223,26 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     {med.end_date ? ` ~ ${med.end_date}` : ' ~'}
                   </span>
                 </div>
+                {med.alarm_times && med.alarm_times.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="text-[10px] text-gray-400">알림</span>
+                    {med.alarm_enabled === false && (
+                      <span className="text-[10px] text-gray-400">(꺼짐)</span>
+                    )}
+                    {med.alarm_times.map((t: string, i: number) => (
+                      <span
+                        key={i}
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                          med.alarm_enabled === false
+                            ? 'bg-gray-100 text-gray-400'
+                            : 'bg-blue-50 text-blue-600'
+                        }`}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -269,6 +312,16 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title="이 기록을 삭제할까요?"
+        message="삭제된 기록은 복구할 수 없어요."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { verifyAdmin } from '@/lib/adminAuth';
 import webpush from 'web-push';
 
 export async function POST(request: Request) {
-  const { error } = await verifyAdmin(request);
+  const { user, error } = await verifyAdmin(request);
   if (error) return error;
 
   const { title, body, url, userId, target, userEmail } = await request.json();
@@ -45,22 +45,53 @@ export async function POST(request: Request) {
   if (targetUserIds) query = query.in('user_id', targetUserIds);
   const { data: subs } = await query;
 
-  const payload = JSON.stringify({ title, body, url: url || '/' });
+  // tag: 관리자 발송별 unique → 같은 사용자에 여러 번 보내도 서로 안 덮어씀.
+  // user_id 까지 포함해 다른 사용자 알림과도 분리.
+  const adminTag = `admin-${Date.now()}`;
   let sent = 0;
   let failed = 0;
 
   for (const sub of subs || []) {
     try {
+      // sub.user_id 별로 tag 다르게 → 같은 발송이라도 사용자별 독립 알림.
+      const payload = JSON.stringify({
+        title,
+        body,
+        url: url || '/',
+        tag: `${adminTag}-${sub.user_id}`,
+      });
+      // urgency high + TTL 5분 — 즉시 전달 힌트 (배터리 세이버/Doze 우회)
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
         payload,
+        { urgency: 'high', TTL: 300 },
       );
       sent++;
-    } catch {
+    } catch (err: any) {
       failed++;
-      await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+      // 410 / 404 만 영구 삭제 — 일시적 실패엔 유지
+      const statusCode = err?.statusCode;
+      if (statusCode === 410 || statusCode === 404) {
+        await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+      }
     }
   }
+
+  // 관리자 발송 기록 — target='user' 일 땐 resolved 이메일도 기록 (감사 추적).
+  // 관리자가 이메일 오타로 엉뚱한 사람한테 발송했는지 나중에 검증 가능.
+  await supabase.from('activity_logs').insert({
+    user_id: user!.id,
+    action: 'admin.push_send',
+    resource_type: 'push',
+    details: {
+      title,
+      body,
+      target: target || 'all',
+      sent,
+      failed,
+      ...(target === 'user' && userEmail ? { targetEmail: userEmail } : {}),
+    },
+  });
 
   return NextResponse.json({ sent, failed });
 }

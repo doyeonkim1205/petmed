@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import webpush from 'web-push';
 import { chargeBilling, classifyBillingError, type TossBillingError } from '@/lib/toss-billing';
 import { getProductById } from '@/lib/products';
 import { decrypt } from '@/lib/encryption';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,6 +59,9 @@ export async function GET(request: NextRequest) {
     .not('toss_billing_key', 'is', null);
 
   if (fetchErr) {
+    Sentry.captureException(fetchErr, {
+      tags: { feature: 'cron', action: 'auto-billing-fetch' },
+    });
     console.error('auto-billing: failed to fetch due subscriptions', fetchErr);
     return NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 });
   }
@@ -136,6 +141,16 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       const e = err as TossBillingError;
       const { userMessage, retryable } = classifyBillingError(e.code);
+      Sentry.captureException(e, {
+        tags: { feature: 'cron', action: 'auto-billing-charge' },
+        extra: {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          errorCode: e.code,
+          attempt: (sub.billing_failed_count || 0) + 1,
+          retryable,
+        },
+      });
       console.error('auto-billing: charge failed', sub.id, e.code, e.message);
 
       const newFailedCount = (sub.billing_failed_count || 0) + 1;
@@ -219,6 +234,10 @@ export async function GET(request: NextRequest) {
       failed++;
     }
   }
+
+  await logActivityServer(null, 'cron.auto_billing', {
+    details: { processed, succeeded, failed, time: now.toISOString() },
+  });
 
   return NextResponse.json({
     time: now.toISOString(),

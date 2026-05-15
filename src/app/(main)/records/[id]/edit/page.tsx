@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
@@ -10,8 +11,13 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
+import { TimePicker } from '@/components/TimePicker';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
+import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { Loader2 } from 'lucide-react';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -55,6 +61,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
 
+  const [isDirty, setIsDirty] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [petId, setPetId] = useState('');
   const [title, setTitle] = useState('');
@@ -79,8 +88,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
+  // 토글 ON 시 subscribe 진행 중 표시 (-1 = 없음)
+  const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
-  const isPaidUser = profile?.plan && profile.plan !== 'free';
+  const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
@@ -137,6 +148,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         setExistingFiles(record.record_files);
       }
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'records', action: 'load-for-edit' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error loading record:', error);
       router.push('/records');
     } finally {
@@ -144,15 +159,63 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  // ── 변경 감지 + 이탈 방어 ──
+
+  // 브라우저 닫기/새로고침 방어
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  // 하드웨어 뒤로가기 버튼 방어 (Android TWA / 모바일 브라우저)
+  // isDirty 되면 가짜 히스토리 항목 push → popstate 로 가로채기
+  //
+  // ⚠️ 빠른 연속 back press race 방어 (Chrome 네이티브 다이얼로그 추가 노출 버그):
+  //   이전 코드는 popstate handler 안에서 setTimeout(50ms) 후에 fake state 를
+  //   push 했음. 안드로이드 TWA 에서 50ms 안에 두 번째 back 이 들어오면 그 사이에
+  //   /edit 페이지가 history 에서 unwind 됨 → beforeunload 발사 → Chrome 네이티브
+  //   다이얼로그가 우리 ConfirmModal 위에 겹쳐 떴음.
+  //   → 해결: popstate 즉시 (sync) fake state 다시 push. iOS peek 검사 제거.
+  //   iOS 스와이프 peek-cancel 시 모달이 살짝 뜰 수 있지만 [계속 수정] 한 번 누르면
+  //   되고, Android 의 다이얼로그 중복 버그가 더 큰 문제.
+  const guardPushedRef = useRef(false);
+  useEffect(() => {
+    if (!isDirty) return;
+    if (!guardPushedRef.current) {
+      window.history.pushState({ editGuard: true }, '');
+      guardPushedRef.current = true;
+    }
+    const handler = () => {
+      // sync 즉시 push — 빠른 연속 back 으로 /edit 페이지가 history 에서 빠지는 race 차단
+      window.history.pushState({ editGuard: true }, '');
+      if (isDirty && !saving && window.location.pathname.includes('/edit')) {
+        setShowExitConfirm(true);
+      }
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [isDirty, saving]);
+
+  const handleBack = () => {
+    if (saving) return;
+    if (isDirty) setShowExitConfirm(true);
+    else router.back();
+  };
+
   const addMedicationRow = () => {
+    // add 페이지와 일관성 유지: 새 약 행은 항상 alarm_enabled=false 로 시작.
+    // 사용자가 직접 토글해야만 알림 ON 으로 설정됨.
     setMedications([
       ...medications,
-      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: !!canUseAlarm, alarm_times: ['09:00'], isNew: true },
+      { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: false, alarm_times: ['09:00'], isNew: true },
     ]);
     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
   };
 
   const updateMedicationField = (index: number, field: keyof MedicationInput, value: string) => {
+    setIsDirty(true);
     setMedications(medications.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
   };
 
@@ -171,8 +234,32 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     }));
   };
 
-  const toggleMedAlarm = (index: number) => {
-    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: !m.alarm_enabled } : m)));
+  const toggleMedAlarm = async (index: number) => {
+    const turningOn = !medications[index].alarm_enabled;
+    setMedications(medications.map((m, i) => (i === index ? { ...m, alarm_enabled: turningOn } : m)));
+
+    // ON 으로 토글 + 권한 granted 면 user-gesture 콜스택 안에서 즉시 subscribe
+    // (iOS Safari 의 user-gesture 요구 만족). 멱등 — 이미 구독 있으면 no-op.
+    if (
+      turningOn &&
+      canUseAlarm &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      user
+    ) {
+      setSubscribingIdx(index);
+      try {
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`ensurePushSubscribed failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'edit-toggle-subscribe' },
+            extra: { reason: result.reason },
+          });
+        }
+      } finally {
+        setSubscribingIdx(-1);
+      }
+    }
   };
 
   const removeMedication = (index: number) => {
@@ -186,7 +273,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setExistingFiles(existingFiles.filter((f) => f.id !== fileId));
   };
 
-  const maxAttachments = getPlanConfig(profile?.plan || 'free').attachmentsPerRecord;
+  const maxAttachments = getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord;
   const activeFileCount = existingFiles.length + newFiles.length;
   const maxNewFiles = maxAttachments - existingFiles.length;
 
@@ -228,7 +315,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         if (token) {
           const storage = await checkStorageLimit(token);
           if (!storage.canUpload) {
-            showError(`저장 용량(${storage.limitMB}MB)을 초과했습니다. 기존 파일을 삭제하거나 플랜을 업그레이드하세요.`);
+            showError(
+              getEffectivePlan(profile?.plan) === 'plus'
+                ? `저장 공간이 부족해요(${storage.limitMB}MB) 추가 용량이 필요하시면 문의해 주세요`
+                : `저장 공간이 부족해요(${storage.limitMB}MB) Plus로 업그레이드하여 용량을 늘려보세요!`,
+            );
             setSaving(false);
             return;
           }
@@ -257,6 +348,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           if (file) await deleteFile(file.file_path);
           await supabase.from('record_files').delete().eq('id', fileId).eq('user_id', user.id);
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'records', action: 'file-delete' },
+            extra: { recordId: id, userId: user?.id, fileId },
+          });
           console.error('File delete error:', err);
         }
       }
@@ -274,6 +369,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             file_size: file.size,
           });
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'records', action: 'file-upload-edit' },
+            extra: { recordId: id, userId: user?.id, fileName: file.name },
+          });
           console.error('File upload error:', err);
         }
       }
@@ -294,6 +393,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             end_date: med.end_date || undefined,
             frequency: med.frequency,
             color: med.color,
+            alarm_enabled: med.alarm_enabled,
+            alarm_times: med.alarm_times,
           });
         } else if (med.id && med.name.trim()) {
           await updateMed(med.id, {
@@ -303,13 +404,46 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             end_date: med.end_date || null,
             frequency: med.frequency,
             color: med.color,
+            alarm_enabled: med.alarm_enabled,
+            alarm_times: med.alarm_times,
           });
         }
       }
 
       logActivity(user.id, 'record.update', { resourceType: 'record', resourceId: id });
-      router.replace(`/records/${id}`);
+
+      // 저장 시점 silent subscribe — 토글 시점에 이미 처리됐을 가능성 높지만 백업.
+      // 헬퍼는 멱등이라 반복 호출 안전. iOS Safari 는 user-gesture 만료로
+      // 실패 가능 → 토글 시점 처리가 우선.
+      const anyAlarmOn = medications.some(m => m.name.trim() && m.alarm_enabled);
+      if (canUseAlarm && anyAlarmOn && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const result = await ensurePushSubscribed(user.id);
+        if (!result.ok) {
+          Sentry.captureException(new Error(`save-silent-subscribe failed: ${result.reason}`), {
+            tags: { feature: 'push', action: 'save-silent-subscribe' },
+            extra: { reason: result.reason },
+          });
+        }
+      }
+
+      // 저장 성공 → dirty 해제 (popstate guard 가 가로채지 않도록)
+      const hadGuard = guardPushedRef.current;
+      setIsDirty(false);
+      guardPushedRef.current = false;
+      // edit 엔트리만 pop 해서 기존 detail 로 복귀
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        // 가짜 히스토리 항목이 있으면 2단계 back, 아니면 1단계
+        window.history.go(hadGuard ? -2 : -1);
+      } else {
+        router.replace(`/records/${id}`);
+      }
+      // detail 페이지의 서버 상태 revalidate (Router Cache 무효화 → useEffect 재실행 시 최신 데이터 fetch)
+      router.refresh();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'update' },
+        extra: { recordId: id, userId: user?.id },
+      });
       console.error('Error updating record:', err);
       setError('수정에 실패했습니다.');
     } finally {
@@ -328,14 +462,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+        <button onClick={handleBack} className="p-2 -ml-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 수정</h1>
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
@@ -348,17 +482,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
         <div className="space-y-2">
           <label className="text-sm font-medium">반려동물</label>
-          <select
-            value={petId}
-            onChange={(e) => setPetId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-          >
-            {pets.map((pet) => (
-              <option key={pet.id} value={pet.id}>
-                {pet.name} ({pet.type === 'dog' ? '강아지' : '고양이'})
-              </option>
-            ))}
-          </select>
+          {pets.length > 0 ? (
+            <PetSelectDropdown pets={pets} value={petId} onChange={setPetId} />
+          ) : (
+            <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -366,10 +494,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
           </label>
           <input
+            type="search"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            autoComplete="off"
+            enterKeyHint="next"
+            name="record-title"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
 
@@ -380,12 +512,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
             </label>
             <input
-              type="number"
-              step="0.1"
-              min="0"
+              type="text"
+              inputMode="decimal"
               placeholder="예: 3.5"
+              autoComplete="off"
               value={weight}
-              onChange={(e) => setWeight(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -412,12 +547,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <label className="text-sm font-medium">
               발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
-            <input
-              type="time"
-              value={symptomTime}
-              onChange={(e) => setSymptomTime(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
+            <TimePicker value={symptomTime} onChange={setSymptomTime} />
           </div>
         )}
 
@@ -482,7 +612,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 min="0"
                 placeholder="예: 3.5"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                const v = e.target.value;
+                if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
+              }}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -492,10 +625,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 병원명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <input
+                type="search"
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
                 maxLength={50}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                autoComplete="off"
+                enterKeyHint="next"
+                name="hospital-name"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
               />
             </div>
 
@@ -509,6 +646,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 pattern="[0-9]*"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+                autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -550,16 +688,24 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {medications.map((med, i) => (
               <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
+                  type="search"
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  autoComplete="off"
+                  enterKeyHint="next"
+                  name={`medication-name-${i}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <input
+                  type="search"
                   placeholder="용량 (예: 1정)"
+                  autoComplete="off"
+                  enterKeyHint="next"
+                  name={`medication-dosage-${i}`}
                   value={med.dosage}
                   onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {/* Frequency selector */}
                 <div>
@@ -611,40 +757,45 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   <button
                     type="button"
                     onClick={() => canUseAlarm ? toggleMedAlarm(i) : setShowAlarmUpgrade(true)}
-                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors ${
+                    disabled={subscribingIdx === i}
+                    className={`flex items-center gap-2 w-full py-2 px-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
                       med.alarm_enabled ? 'text-blue-600' : 'text-gray-400'
                     }`}
                   >
-                    {med.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                    투약 알림 {med.alarm_enabled ? 'ON' : 'OFF'}
+                    {subscribingIdx === i ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : med.alarm_enabled ? (
+                      <Bell size={14} />
+                    ) : (
+                      <BellOff size={14} />
+                    )}
+                    {subscribingIdx === i ? '알림 켜는 중...' : `투약 알림 ${med.alarm_enabled ? 'ON' : 'OFF'}`}
                   </button>
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
                       {med.alarm_times.map((time, ti) => (
                         <div key={ti} className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
-                          <select
+                          <TimePicker
                             value={time}
-                            onChange={(e) => updateMedAlarmTime(i, ti, e.target.value)}
-                            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            {alarmTimeOptions.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMedAlarmTime(i, ti, v)}
+                            minuteStep={15}
+                          />
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeMedication(i)}
-                  className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={13} />
-                  삭제
-                </button>
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => removeMedication(i)}
+                    className="flex items-center gap-1 py-1.5 px-3 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
             <div ref={medEndRef} />
@@ -703,25 +854,20 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
 
-          {/* New file upload */}
-          {activeFileCount < maxAttachments && (
-            <FileUploader
-              files={newFiles}
-              onFilesChange={(files) => {
-                const added = files.length > newFiles.length;
-                setNewFiles(files);
-                if (added) {
-                  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-                }
-              }}
-              maxFiles={maxNewFiles}
-              placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-            />
-          )}
+          {/* New file upload — 한도 도달 시 FileUploader 내부에서 안내 표시 */}
+          <FileUploader
+            files={newFiles}
+            onFilesChange={(files) => {
+              const added = files.length > newFiles.length;
+              setNewFiles(files);
+              if (added) {
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+              }
+            }}
+            maxFiles={Math.max(maxNewFiles, 0)}
+            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+          />
           <div ref={fileEndRef} />
-          {activeFileCount >= maxAttachments && (
-            <p className="text-xs text-gray-400 text-center">최대 {maxAttachments}개 파일까지 첨부 가능합니다.</p>
-          )}
         </div>
       </form>
 
@@ -768,6 +914,23 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={showExitConfirm}
+        title="저장하지 않고 나갈까요?"
+        message="저장되지 않은 변경사항이 있습니다."
+        confirmLabel="나가기"
+        cancelLabel="계속 수정"
+        variant="danger"
+        onConfirm={() => {
+          setShowExitConfirm(false);
+          setIsDirty(false);
+          guardPushedRef.current = false;
+          // 가짜 히스토리 항목 + 실제 뒤로가기 → 2단계 back
+          window.history.go(-2);
+        }}
+        onCancel={() => setShowExitConfirm(false)}
+      />
     </div>
   );
 }

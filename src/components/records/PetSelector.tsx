@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase, Pet } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -37,6 +38,9 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
           onSelect(null);
         }
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'pets', action: 'selector-fetch' },
+        });
         console.error('PetSelector query failed:', err);
         setPets([]);
       } finally {

@@ -50,3 +50,6 @@ next-env.d.ts
 
 .vercel
 .env*.local
+tmp-banner-preview.html
+tmp-loading-preview.html
+tmp-soft-prompt-preview.html

@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft } from 'lucide-react';
+import { PawIcon } from '@/components/icons/PawIcon';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -19,13 +18,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
   const { signInWithGoogle, signInWithKakao } = useAuth();
-  const router = useRouter();
-
   useEffect(() => {
     setInApp(isInAppBrowser());
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
-      setError('다른 기기에서 로그인하여 현재 세션이 종료되었습니다.');
+      setError('다른 기기에서 로그인하여 이 기기는 자동 로그아웃됐어요. 다시 로그인해주세요.');
     }
   }, []);
 
@@ -50,11 +47,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="flex items-center px-4 py-3 border-b">
-        <button onClick={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="flex-1 text-center text-lg font-semibold pr-8">시작하기</h1>
+      <header className="sticky top-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-center px-4">
+        <div className="text-xl font-extrabold text-blue-600 flex items-center gap-1">
+          <PawIcon size={20} className="text-blue-800 dark:text-blue-300" />
+          PawDex
+        </div>
       </header>
 
       <div className="flex-1 px-6 py-8 flex flex-col items-center justify-center">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -61,6 +62,9 @@ export function usePushNotification() {
       setIsSubscribed(true);
       return true;
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'push', action: 'subscribe' },
+      });
       console.error('Push subscribe failed:', err);
       return false;
     } finally {
@@ -86,6 +90,9 @@ export function usePushNotification() {
       setIsSubscribed(false);
       return true;
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'push', action: 'unsubscribe' },
+      });
       console.error('Push unsubscribe failed:', err);
       return false;
     } finally {

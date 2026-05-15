@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 
 type StatsTab = 'cost' | 'weight';
@@ -133,7 +133,7 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
 export default function StatsPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const planConfig = getPlanConfig(profile?.plan || 'free');
+  const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
   const maxMonths = planConfig.costStatsMonths;
 
   const [tab, setTab] = useState<StatsTab>('cost');
@@ -216,14 +216,22 @@ export default function StatsPage() {
     if (tab === 'weight') fetchWeightLogs();
   }, [tab, fetchWeightLogs]);
 
-  // Merge weight_logs + health_records weight, filter by period
+  // Merge weight_logs + health_records weight, filter by period.
+  // allWeightData 와 같은 포맷/tie-breaker 규칙 적용 (버그 설명은 아래 주석 참고).
   const weightData = useMemo(() => {
-    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; petName?: string; recordType?: string }[] = [];
+    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; createdAt: string; petName?: string; recordType?: string }[] = [];
 
     for (const log of weightLogs) {
       const d = new Date(log.measured_at);
       if (d >= startDate && d <= endDate) {
-        items.push({ date: log.measured_at, weight: Number(log.weight), source: 'log', id: log.id, petName: pets.find(p => p.id === log.pet_id)?.name });
+        items.push({
+          date: String(log.measured_at).split('T')[0],
+          weight: Number(log.weight),
+          source: 'log',
+          id: log.id,
+          createdAt: (log as { created_at?: string }).created_at || '',
+          petName: pets.find(p => p.id === log.pet_id)?.name,
+        });
       }
     }
 
@@ -232,28 +240,65 @@ export default function StatsPage() {
         if (!selectedPetId || r.pet_id === selectedPetId) {
           const d = new Date(r.visit_date);
           if (d >= startDate && d <= endDate) {
-            items.push({ date: r.visit_date.split('T')[0], weight: r.weight, source: 'record', id: r.id, petName: r.pets?.name, recordType: r.record_type });
+            items.push({
+              date: r.visit_date.split('T')[0],
+              weight: r.weight,
+              source: 'record',
+              id: r.id,
+              createdAt: (r as { created_at?: string }).created_at || '',
+              petName: r.pets?.name,
+              recordType: r.record_type,
+            });
           }
         }
       }
     }
 
-    items.sort((a, b) => a.date.localeCompare(b.date) || a.weight - b.weight);
+    items.sort((a, b) => {
+      const byDate = a.date.localeCompare(b.date);
+      if (byDate !== 0) return byDate;
+      return a.createdAt.localeCompare(b.createdAt);
+    });
     return items;
   }, [weightLogs, records, selectedPetId, pets, startDate, endDate]);
 
-  // All weight data (no period filter) for latest/prev calculation
+  // All weight data (no period filter) for latest/prev calculation.
+  //
+  // 버그 2건 수정:
+  //   (1) 날짜 포맷 불일치: weight_logs.measured_at 은 ISO 타임스탬프
+  //       ("2025-04-22T00:00:00.000Z"), records.visit_date 는 .split('T')[0]
+  //       로 잘라서 날짜만 ("2025-04-22"). 같은 날짜인데 문자열 비교에서
+  //       record < log 가 되어 log 가 항상 뒤로 정렬됨 → 유저가 입력
+  //       순서와 무관하게 log 가 "latest" 로 잡히던 문제. 양쪽 모두
+  //       YYYY-MM-DD 로 통일.
+  //   (2) 같은 날짜 tie-breaker 부재: 같은 날짜 여러 기록 있을 때 어떤 게
+  //       "latest" 로 선택될지 불확실. items 에 created_at 도 같이 저장해서
+  //       정렬 2차 키로 사용 → "마지막 날짜 + 그 날짜의 마지막 입력" 이
+  //       정확히 맨 뒤로 옴.
   const allWeightData = useMemo(() => {
-    const items: { date: string; weight: number }[] = [];
+    const items: { date: string; weight: number; createdAt: string }[] = [];
     for (const log of weightLogs) {
-      items.push({ date: log.measured_at, weight: Number(log.weight) });
+      items.push({
+        date: String(log.measured_at).split('T')[0],
+        weight: Number(log.weight),
+        createdAt: (log as { created_at?: string }).created_at || '',
+      });
     }
     for (const r of records) {
       if (r.weight && r.weight > 0 && (!selectedPetId || r.pet_id === selectedPetId)) {
-        items.push({ date: r.visit_date.split('T')[0], weight: r.weight });
+        items.push({
+          date: r.visit_date.split('T')[0],
+          weight: r.weight,
+          createdAt: (r as { created_at?: string }).created_at || '',
+        });
       }
     }
-    items.sort((a, b) => a.date.localeCompare(b.date));
+    items.sort((a, b) => {
+      const byDate = a.date.localeCompare(b.date);
+      if (byDate !== 0) return byDate;
+      // 같은 날짜 → 입력 시각 오름차순. 맨 뒤 요소가 "가장 마지막 입력".
+      return a.createdAt.localeCompare(b.createdAt);
+    });
     return items;
   }, [weightLogs, records, selectedPetId]);
 

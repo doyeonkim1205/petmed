@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangl
 import { useAuth } from '@/contexts/AuthContext';
 import { SavedAnalysis, SavedPaper } from '@/lib/supabase';
 import { getPubMedUrl } from '@/services/pubmed';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function SavedAnalysesPage() {
   const router = useRouter();
@@ -13,6 +14,11 @@ export default function SavedAnalysesPage() {
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<
+    | { kind: 'analysis'; id: string }
+    | { kind: 'paper'; paperId: string; analysisId: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -71,9 +77,12 @@ export default function SavedAnalysesPage() {
   };
 
   if (loading) {
+    // min-h-[calc(100vh-8rem)]: Header(56px) + Footer 영역 제외해서
+    // 실제 보이는 영역의 정확한 중앙에 스피너 위치. min-h-screen 쓰면
+    // 컨테이너가 100vh 로 overflow 되어 스피너가 헤더 높이만큼 아래 치우침.
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-gray-300" />
+      <div className="min-h-[calc(100vh-8rem)] bg-white flex items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-blue-400 motion-reduce:animate-none" aria-label="로딩 중" />
       </div>
     );
   }
@@ -129,7 +138,7 @@ export default function SavedAnalysesPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteAnalysis(item.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmTarget({ kind: 'analysis', id: item.id }); }}
                         className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
                       >
                         <Trash2 size={14} />
@@ -214,7 +223,7 @@ export default function SavedAnalysesPage() {
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() => handleDeletePaper(paper.id, item.id)}
+                                  onClick={() => setConfirmTarget({ kind: 'paper', paperId: paper.id, analysisId: item.id })}
                                   className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
                                 >
                                   <Trash2 size={12} />
@@ -269,6 +278,21 @@ export default function SavedAnalysesPage() {
           })
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmTarget !== null}
+        title={confirmTarget?.kind === 'paper' ? '논문을 삭제할까요?' : '보관함에서 삭제할까요?'}
+        message={<>선택한 항목을 완전히 삭제합니다.<br />되돌릴 수 없어요.</>}
+        variant="danger"
+        confirmLabel="삭제"
+        onConfirm={() => {
+          if (!confirmTarget) return;
+          if (confirmTarget.kind === 'analysis') handleDeleteAnalysis(confirmTarget.id);
+          else handleDeletePaper(confirmTarget.paperId, confirmTarget.analysisId);
+          setConfirmTarget(null);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

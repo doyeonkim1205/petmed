@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,24 +20,23 @@ export async function GET(request: NextRequest) {
     .eq('id', userId)
     .single();
 
-  const plan = profile?.plan || 'free';
+  const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfDayKST();
 
   const [searchCount, refineCount] = await Promise.all([
     supabaseAdmin
-      .from('activity_logs')
+      .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', 'symptom.search')
+      .eq('kind', 'symptom')
       .gte('created_at', startOfDay.toISOString()),
     supabaseAdmin
-      .from('activity_logs')
+      .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('action', 'symptom.refine')
+      .eq('kind', 'symptom_refine')
       .gte('created_at', startOfDay.toISOString()),
   ]);
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { issueBillingKey, type TossBillingError } from '@/lib/toss-billing';
 import { encrypt } from '@/lib/encryption';
@@ -45,17 +46,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '이미 자동 결제가 활성화되어 있습니다.' }, { status: 400 });
     }
 
+    // 연간 구독자는 자동 갱신 차단.
+    // UX 판단: 연간은 "1년 단발 체험" 모델이 자연스러움. 1년 뒤 자동 결제는
+    //   - 유저 심리 부담 (모르는 새 4만원 결제)
+    //   - 한국 소비자 보호 관점에서 민원 요소
+    // 프론트에서 버튼을 이미 숨기지만 API 직접 호출 방지용 백엔드 가드.
+    if (subscription.product_id === 'plus_yearly') {
+      return NextResponse.json(
+        { error: '연간 구독은 자동 갱신을 지원하지 않습니다. 만료 전 연장 안내를 드립니다.' },
+        { status: 400 },
+      );
+    }
+
     // Issue billing key from Toss
     let issued;
     try {
       issued = await issueBillingKey(authKey, customerKey);
     } catch (err) {
       const e = err as TossBillingError;
+      Sentry.captureException(e, {
+        tags: { feature: 'billing', action: 'enable-issue-key' },
+        extra: { userId },
+      });
       return NextResponse.json({ error: e.message || '카드 등록에 실패했습니다.' }, { status: 400 });
     }
 
     const cardCompany = issued.cardCompany || issued.card?.issuerCode || null;
     const cardNumber = issued.cardNumber || issued.card?.number || null;
+
+    // Product ID 전환 규칙:
+    //   plus_monthly_onetime (3,900원 단건) → plus_monthly (3,500원 자동결제 할인가)
+    //   그 외는 유지. 유저가 "자동 결제로 전환하면 할인가 적용" 을 기대하므로.
+    const newProductId =
+      subscription.product_id === 'plus_monthly_onetime'
+        ? 'plus_monthly'
+        : subscription.product_id || 'plus_monthly';
+
+    // 다음 결제 금액: 새 product_id 기준으로 조회
+    const { getProductById } = await import('@/lib/products');
+    const newProduct = await getProductById(newProductId);
 
     // Update subscription: switch to recurring, set next billing to period_end
     await supabaseAdmin
@@ -67,7 +96,7 @@ export async function POST(request: NextRequest) {
         card_company: cardCompany,
         card_number: cardNumber,
         next_billing_at: subscription.period_end, // Charge when current period ends
-        product_id: subscription.product_id || 'plus_monthly',
+        product_id: newProductId,
         billing_failed_count: 0,
         updated_at: new Date().toISOString(),
       })
@@ -75,15 +104,25 @@ export async function POST(request: NextRequest) {
 
     const { logActivity } = await import('@/lib/activityLog');
     logActivity(userId, 'subscription.enable_recurring', {
-      details: { plan: subscription.plan },
+      details: { plan: subscription.plan, productId: newProductId },
     });
 
     return NextResponse.json({
       success: true,
+      mode: 'enable',
       message: `자동 결제가 등록되었습니다. ${new Date(subscription.period_end).toLocaleDateString('ko-KR')}부터 자동 결제됩니다.`,
+      // 페이지에서 정보 카드 렌더용 구조화 필드
+      productId: newProductId,
+      productName: newProduct?.name || 'PawDex Plus 월간 자동 결제',
+      period: newProduct?.period || 'month',
       nextBillingAt: subscription.period_end,
+      amount: newProduct?.price ?? null,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'billing', action: 'enable' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '처리에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

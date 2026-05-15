@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>한도 초과 UI 미리보기</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body { font-family: 'Noto Sans KR', sans-serif; background: #f1f5f9; }</style>
+</head>
+<body class="p-6">
+<div class="max-w-6xl mx-auto">
+  <h1 class="text-xl font-bold text-gray-800 mb-2 text-center">한도 초과 시 사용자가 보는 화면 (최신 문구)</h1>
+  <p class="text-xs text-gray-500 mb-6 text-center">Free 와 Plus 유저 별도 분기</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- 1. 건강 기록 (free) -->
+    <div>
+      <h2 class="text-sm font-bold text-red-700 mb-3">① 건강 기록 한도 (Free 15개)</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">기록 추가</h3>
+        </div>
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-4">
+          📋 기록 한도(15개)에 도달했습니다! Plus로 업그레이드하고 소중한 기록을 계속 남겨보세요
+        </div>
+        <div class="space-y-2 opacity-50 pointer-events-none">
+          <label class="text-xs text-gray-500">반려동물</label>
+          <div class="flex items-center justify-between gap-2 px-4 py-3 border border-gray-200 rounded-lg bg-white text-sm">
+            <span class="text-gray-800">살구</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>위치</b>: <code>/records/add</code> 최상단<br>
+        <b>Plus 유저</b>: "추가 용량이 필요하시면 문의해 주세요" 로 표시
+      </p>
+    </div>
+
+    <!-- 2. 논문 저장 (유지) -->
+    <div>
+      <h2 class="text-sm font-bold text-orange-700 mb-3">② 논문 저장 한도 (Plus 500편, 내부 cap)</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4 min-h-[260px] flex flex-col">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">검색 결과</h3>
+        </div>
+        <div class="flex-1 mb-3 text-xs text-gray-400 p-3 bg-gray-50 rounded-lg">
+          (논문 리스트 + 요약 영역)
+        </div>
+        <p class="text-xs text-orange-500 mb-2 text-center">
+          📌 논문 저장 한도(500편)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.
+        </p>
+        <button class="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium">저장하기</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>변경 없음</b> — 내부 스팸 방어용 cap이라 사실상 일반 유저 도달 X
+      </p>
+    </div>
+
+    <!-- 3. 반려동물 (free, 신규 모달) -->
+    <div>
+      <h2 class="text-sm font-bold text-blue-700 mb-3">③ 반려동물 한도 (Free 2마리) ✨</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4 min-h-[300px] relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">마이페이지</h3>
+        </div>
+        <div class="text-xs text-gray-400 p-3 bg-gray-50 rounded-lg mb-3">
+          (반려동물 2마리 리스트)
+        </div>
+        <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-4 rounded-2xl">
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5 relative">
+            <button class="absolute top-3 right-3 p-0.5 text-gray-300">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-50">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <p class="text-sm font-bold text-gray-800">등록 한도에 도달했어요</p>
+            </div>
+            <div class="text-xs text-gray-500 leading-relaxed mb-4">
+              반려동물은 2마리까지 등록할 수 있어요<br>
+              Plus로 업그레이드하여 더 많은 반려동물을 등록하세요
+            </div>
+            <div class="flex gap-2">
+              <button class="flex-1 py-2.5 text-xs font-bold rounded-full bg-blue-600 text-white">확인</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>Plus 유저</b>: "추가 용량이 필요하시면 문의해 주세요" 로 표시<br>
+        <b>개선</b>: native alert → ConfirmModal (hideCancel)
+      </p>
+    </div>
+
+    <!-- 4. 저장 용량 (free) -->
+    <div>
+      <h2 class="text-sm font-bold text-red-700 mb-3">④ 저장 용량 한도 (Free 50MB)</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4 min-h-[300px]">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">기록 추가</h3>
+        </div>
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-4">
+          저장 공간이 부족해요(50MB) 기존 파일을 정리하거나 Plus로 용량을 늘려보세요!
+        </div>
+        <div class="space-y-2 opacity-50 pointer-events-none">
+          <label class="text-xs text-gray-500">첨부파일</label>
+          <div class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
+            <svg class="mx-auto mb-2 text-gray-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <p class="text-sm text-gray-600">파일을 선택하거나 드래그하세요</p>
+            <p class="text-xs text-gray-400 mt-1">JPG, PNG, PDF (최대 5MB, 1개까지)</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>Plus 유저 (1GB 도달)</b>: "기존 파일을 정리한 뒤 다시 시도해 주세요."
+      </p>
+    </div>
+
+    <!-- 5-Free. 첨부파일 기록당 (free) -->
+    <div>
+      <h2 class="text-sm font-bold text-orange-700 mb-3">⑤ 첨부파일 한도 (Free 1개)</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4 min-h-[300px]">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">기록 추가</h3>
+        </div>
+        <div class="space-y-2">
+          <label class="text-xs text-gray-500">첨부파일</label>
+          <div class="border-2 border-dashed rounded-xl p-6 text-center border-gray-200 opacity-50 pointer-events-none">
+            <svg class="mx-auto mb-2 text-gray-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <p class="text-sm text-orange-600 font-medium">첨부파일 한도(1개)에 도달했습니다</p>
+            <p class="text-xs text-gray-400 mt-1">여러 장을 올리고 싶다면 Plus 플랜을 확인해 보세요!</p>
+          </div>
+          <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
+            <span class="text-gray-600">📷 xray-2026-04-24.jpg</span>
+            <span class="ml-auto text-gray-400">2.1MB</span>
+            <button class="text-red-500">×</button>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>업로드 영역 자체 비활성</b> + 주황 문구
+      </p>
+    </div>
+
+    <!-- 5-Plus. 첨부파일 기록당 (plus) -->
+    <div>
+      <h2 class="text-sm font-bold text-blue-700 mb-3">⑤-Plus 첨부파일 한도 (Plus 5개) 🆕</h2>
+      <div class="bg-white rounded-2xl shadow-sm p-4 min-h-[300px]">
+        <div class="flex items-center gap-2 mb-3">
+          <button class="p-1 text-gray-400">←</button>
+          <h3 class="text-sm font-bold text-gray-800">기록 추가</h3>
+        </div>
+        <div class="space-y-2">
+          <label class="text-xs text-gray-500">첨부파일</label>
+          <div class="border-2 border-dashed rounded-xl p-6 text-center border-gray-200 opacity-50 pointer-events-none">
+            <svg class="mx-auto mb-2 text-gray-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <p class="text-sm text-orange-600 font-medium">첨부파일 한도(5개)에 도달했습니다</p>
+            <p class="text-xs text-gray-400 mt-1">기존 파일을 정리한 뒤 다시 시도해 주세요.</p>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
+              <span class="text-gray-600">📷 xray-2026-04-20.jpg</span>
+              <span class="ml-auto text-gray-400">2.1MB</span>
+              <button class="text-red-500">×</button>
+            </div>
+            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
+              <span class="text-gray-600">📄 blood-test.pdf</span>
+              <span class="ml-auto text-gray-400">0.8MB</span>
+              <button class="text-red-500">×</button>
+            </div>
+            <div class="text-[10px] text-gray-400 text-center mt-1">... 외 3개</div>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        <b>Plus 유저 분기</b>: 이미 Plus인데 "Plus 확인하세요" 뜨면 이상하니까 차단<br>
+        <code>showPlusUpsell={false}</code> → "기존 파일을 정리한 뒤 다시 시도해 주세요."
+      </p>
+    </div>
+
+  </div>
+
+  <div class="mt-8 p-4 bg-white rounded-xl border border-gray-200 text-xs text-gray-600 leading-relaxed">
+    <p class="font-bold text-gray-800 mb-2">📋 Plus 유저에게 보여지는 한도 문구 (요약)</p>
+    <ul class="list-disc ml-5 space-y-1">
+      <li><b>건강 기록</b>: Plus 는 무제한 → 도달 불가</li>
+      <li><b>논문 저장</b>: "추가 용량이 필요하시면 문의해 주세요" (내부 500 cap)</li>
+      <li><b>반려동물</b>: Plus 는 무제한 → 도달 불가</li>
+      <li><b>저장 용량</b>: "기존 파일을 정리한 뒤 다시 시도해 주세요." (Plus 1GB 도달 시)</li>
+      <li><b>첨부파일</b>: "기존 파일을 정리한 뒤 다시 시도해 주세요." (Plus 5개 도달 시)</li>
+    </ul>
+    <p class="mt-3 text-[11px] text-gray-500">
+      * 트라이얼 기간 (~5/13) 동안은 free 유저도 plus 한도 적용이라 이 화면들이 잘 안 뜸.
+    </p>
+  </div>
+</div>
+</body>
+</html>

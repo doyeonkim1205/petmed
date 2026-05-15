@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 
 import { Search as SearchIcon, Stethoscope } from 'lucide-react';
 import { PawIcon } from '@/components/icons/PawIcon';
-import { DarkModeHint } from '@/components/DarkModeHint';
+import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
+import { TrialBanner } from '@/components/TrialBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -40,13 +41,16 @@ export default function HomePage() {
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] bg-white px-4">
-      <DarkModeHint />
-      {/* Logo */}
-      <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
-        <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
-        PawDex
-      </h1>
+    <div className="flex flex-col bg-white min-h-[calc(100vh-8rem)]">
+      {/* 트라이얼 안내 카드 — 하루 1번 */}
+      <TrialBanner />
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <SamsungBrowserHint />
+        {/* Logo */}
+        <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
+          <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
+          PawDex
+        </h1>
 
       {/* Mode Toggle */}
       <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
@@ -86,24 +90,31 @@ export default function HomePage() {
           >
             {petType === 'dog' ? '강아지' : '고양이'} ⇄
           </button>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
-            className="flex-1 h-9 px-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
-          />
-          <button
-            type="submit"
-            className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              searchMode === 'symptom' ? 'text-gray-400 hover:text-purple-600' : 'text-gray-400 hover:text-blue-600'
-            }`}
-          >
-            <SearchIcon size={18} />
-          </button>
+          {/* input 과 돋보기 버튼을 한 묶음으로. min-w-0 가 input intrinsic min-width
+              를 풀어줘서 폰트 크기 확대 시에도 submit 버튼이 바깥으로 밀리지 않음. */}
+          <div className="relative flex-1 min-w-0">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
+              autoComplete="off"
+              enterKeyHint="search"
+              className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden"
+            />
+            <button
+              type="submit"
+              aria-label="검색"
+              className={`absolute right-0.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                searchMode === 'symptom' ? 'text-gray-400 hover:text-purple-600' : 'text-gray-400 hover:text-blue-600'
+              }`}
+            >
+              <SearchIcon size={18} />
+            </button>
+          </div>
         </div>
       </form>
-
+      </div>
     </div>
   );
 }

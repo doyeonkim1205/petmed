@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getProductById } from '@/lib/products';
 import { issueBillingKey, chargeBilling, classifyBillingError, type TossBillingError } from '@/lib/toss-billing';
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
       issued = await issueBillingKey(authKey, customerKey);
     } catch (err) {
       const e = err as TossBillingError;
+      Sentry.captureException(e, {
+        tags: { feature: 'billing', action: 'issue-key' },
+        extra: { userId, productId },
+      });
       console.error('issueBillingKey failed', e);
       return NextResponse.json(
         { error: e.message || '카드 등록에 실패했습니다.' },
@@ -67,6 +72,10 @@ export async function POST(request: NextRequest) {
       });
     } catch (err) {
       const e = err as TossBillingError;
+      Sentry.captureException(e, {
+        tags: { feature: 'billing', action: 'first-charge' },
+        extra: { userId, productId, code: e.code },
+      });
       console.error('first chargeBilling failed', e);
       const friendly = classifyBillingError(e.code).userMessage;
       return NextResponse.json(
@@ -135,13 +144,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      mode: 'register',
       plan: product.plan,
       productId: product.id,
+      productName: product.name,
+      period: product.period,
       periodEnd: periodEnd.toISOString(),
       nextBillingAt: nextBillingAt.toISOString(),
       billingType: 'recurring',
+      amount: charged.totalAmount,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'billing', action: 'register' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '결제 처리에 실패했습니다.';
     console.error('billing/register fatal error', error);
     return NextResponse.json({ error: message }, { status: 500 });

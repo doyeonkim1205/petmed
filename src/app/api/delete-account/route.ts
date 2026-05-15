@@ -40,11 +40,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 });
     }
 
-    // Parse optional provider token (for Google revoke)
+    // Parse optional payload (provider token + 탈퇴 이유)
     let providerToken: string | undefined;
+    let reason: string | null = null;
+    let reasonDetail: string | null = null;
     try {
       const body = await request.json();
       providerToken = body.providerToken;
+      if (typeof body.reason === 'string') reason = body.reason.slice(0, 50);
+      if (typeof body.reasonDetail === 'string') reasonDetail = body.reasonDetail.slice(0, 200);
     } catch {
       // Body may be empty
     }
@@ -80,11 +84,12 @@ export async function POST(request: Request) {
     // Delete user data in order (foreign key safe)
     const userId = user.id;
 
-    // Log account deletion before deleting data
+    // Log account deletion before deleting data.
+    // details 에 탈퇴 이유 포함 (서비스 개선 용도, 비식별).
     await adminClient.from('activity_logs').insert({
       user_id: userId,
       action: 'auth.delete_account',
-      details: { provider },
+      details: { provider, reason, reasonDetail },
     }).then(() => {});
 
     // Cancel active subscriptions before deleting
@@ -104,6 +109,7 @@ export async function POST(request: Request) {
     await adminClient.from('medications').delete().eq('user_id', userId);
     await adminClient.from('record_files').delete().eq('user_id', userId);
     await adminClient.from('health_records').delete().eq('user_id', userId);
+    await adminClient.from('weight_logs').delete().eq('user_id', userId);
     await adminClient.from('pets').delete().eq('user_id', userId);
 
     // -- search / analysis related
@@ -114,19 +120,40 @@ export async function POST(request: Request) {
     // -- session / notification related
     await adminClient.from('active_sessions').delete().eq('user_id', userId);
     await adminClient.from('push_subscriptions').delete().eq('user_id', userId);
+    await adminClient.from('recent_hospitals').delete().eq('user_id', userId);
 
-    // -- activity logs + profile (last, as other tables may FK to these)
-    await adminClient.from('activity_logs').delete().eq('user_id', userId);
+    // -- profile 만 삭제 (last, as other tables may FK to these)
+    //    activity_logs 는 감사 / 서비스 통계용으로 보존. 프로필이 삭제되면
+    //    user_id (UUID) 는 유사-가명 상태가 되고, 관리자 UI 에서는
+    //    "탈퇴 유저 (uuid8)" 로만 표시됨 (식별 불가).
+    //    개인정보 처리방침에 이 비식별 보관 규정 명시 필요.
     await adminClient.from('profiles').delete().eq('id', userId);
 
-    // Delete uploaded files from storage (best-effort)
+    // Delete uploaded files from storage (best-effort).
+    //
+    // 파일 경로 구조: {userId}/{recordId}/{fileName} (3 levels)
+    // storage.list(userId) 는 한 레벨만 반환 (recordId 폴더들). 이걸 바로
+    // remove 에 넣으면 폴더 경로라 실제 파일은 지워지지 않음. 실제 파일을
+    // 지우려면 각 recordId 폴더 안까지 한 번 더 내려가야 함.
     try {
-      const { data: files } = await adminClient.storage
+      const { data: recordFolders } = await adminClient.storage
         .from('medical-files')
         .list(userId);
-      if (files && files.length > 0) {
-        const paths = files.map((f) => `${userId}/${f.name}`);
-        await adminClient.storage.from('medical-files').remove(paths);
+      if (recordFolders && recordFolders.length > 0) {
+        const allFilePaths: string[] = [];
+        for (const folder of recordFolders) {
+          const { data: files } = await adminClient.storage
+            .from('medical-files')
+            .list(`${userId}/${folder.name}`);
+          if (files) {
+            for (const file of files) {
+              allFilePaths.push(`${userId}/${folder.name}/${file.name}`);
+            }
+          }
+        }
+        if (allFilePaths.length > 0) {
+          await adminClient.storage.from('medical-files').remove(allFilePaths);
+        }
       }
     } catch {
       // Storage deletion is best-effort; don't block account deletion

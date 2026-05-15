@@ -1,12 +1,2 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/expire-subscriptions",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/auto-billing",
-      "schedule": "0 1 * * *"
-    }
-  ]
 }

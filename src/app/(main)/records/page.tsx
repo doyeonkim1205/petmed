@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, User, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,8 @@ import { PetSelector } from '@/components/records/PetSelector';
 import { RecordCard } from '@/components/records/RecordCard';
 import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { TextField } from '@/components/TextField';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
@@ -53,6 +56,8 @@ export default function RecordsPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleAddPet = async () => {
     if (!user || !newPet.name.trim()) return;
@@ -68,6 +73,10 @@ export default function RecordsPage() {
       setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
       setPetRefreshKey(k => k + 1);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'pets', action: 'add' },
+        extra: { userId: user?.id },
+      });
       console.error('Error adding pet:', err);
     } finally {
       setSavingPet(false);
@@ -121,17 +130,32 @@ export default function RecordsPage() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`${selectedIds.size}개의 기록을 삭제하시겠습니까?`)) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setShowDeleteConfirm(false);
     setDeleting(true);
     try {
       await deleteRecords(Array.from(selectedIds));
       exitSelectMode();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'bulk-delete' },
+        extra: { userId: user?.id, count: selectedIds.size },
+      });
       console.error('Bulk delete error:', err);
-      alert('삭제 중 오류가 발생했습니다.');
+      setDeleteError('삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleting(false);
     }
+  };
+
+  // long-press 핸들러: 카드를 길게 누르면 selectMode 진입 + 그 카드 선택.
+  const handleLongPress = (id: string) => {
+    if (selectMode) return;
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
   };
 
   if (authLoading) {
@@ -146,25 +170,9 @@ export default function RecordsPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="bg-white min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-6">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <User size={28} className="text-gray-400" />
-        </div>
-        <h2 className="text-lg font-bold text-gray-800 mb-1">로그인이 필요합니다</h2>
-        <p className="text-sm text-gray-400 text-center mb-8">
-          건강 기록장을 이용하려면<br />로그인해주세요.
-        </p>
-        <button
-          onClick={() => router.push('/login')}
-          className="h-11 px-8 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
-        >
-          로그인하기
-        </button>
-      </div>
-    );
-  }
+  // (main) 레이아웃에서 미인증 유저를 /login 으로 리다이렉트함 → 여기 도달 시 user 는 항상 있음
+  // TypeScript 타입 narrowing 용 가드
+  if (!user) return null;
 
   const tabs = [
     { id: 'records' as Tab, label: '기록', icon: ClipboardList },
@@ -263,8 +271,7 @@ export default function RecordsPage() {
           </p>
 
           <div className="w-full max-w-sm space-y-3">
-            <input
-              type="text"
+            <TextField
               placeholder="이름"
               value={newPet.name}
               onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
@@ -290,8 +297,7 @@ export default function RecordsPage() {
                 <Cat size={14} /> 고양이
               </button>
             </div>
-            <input
-              type="text"
+            <TextField
               placeholder="품종 (선택)"
               value={newPet.breed}
               onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
@@ -372,6 +378,7 @@ export default function RecordsPage() {
                   selectMode={selectMode}
                   selected={selectedIds.has(record.id)}
                   onSelect={toggleSelect}
+                  onLongPress={handleLongPress}
                 />
               ))}
             </>
@@ -411,6 +418,27 @@ export default function RecordsPage() {
           </button>
         )
       )}
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title={`${selectedIds.size}개의 기록을 삭제할까요?`}
+        message="삭제된 기록은 복구할 수 없어요."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <ConfirmModal
+        open={!!deleteError}
+        title="삭제 실패"
+        message={deleteError || ''}
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setDeleteError(null)}
+        onCancel={() => setDeleteError(null)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -104,6 +105,10 @@ export function useMedications() {
 
       return filtered;
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'medications', action: 'fetch-today' },
+        extra: { userId: user?.id },
+      });
       console.error('Error fetching today medications:', error);
       return [];
     } finally {

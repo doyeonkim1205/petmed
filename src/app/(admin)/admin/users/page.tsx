@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { TextField } from '@/components/TextField';
 
 interface User {
   id: string;
@@ -104,6 +106,10 @@ export default function UsersPage() {
       alert(data.message);
       openDetail(selectedUser.profile.id);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'user-refund' },
+        extra: { targetUserId: selectedUser?.profile.id },
+      });
       alert(err instanceof Error ? err.message : '환불 실패');
     } finally {
       setSaving(false);
@@ -123,6 +129,10 @@ export default function UsersPage() {
       setModalOpen(false);
       fetchUsers();
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'admin', action: 'user-delete' },
+        extra: { targetUserId: selectedUser?.profile.id },
+      });
       setDeleteMessage(err instanceof Error ? err.message : '삭제에 실패했습니다.');
     } finally {
       setDeleting(false);
@@ -144,11 +154,11 @@ export default function UsersPage() {
           <form onSubmit={handleSearch} className="flex gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
+              <TextField
                 placeholder="이메일 또는 닉네임 검색..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                enterKeyHint="search"
                 className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

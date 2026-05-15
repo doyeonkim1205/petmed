@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
+import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
+import { TextField } from '@/components/TextField';
 
 declare global {
   interface Window {
@@ -46,6 +48,42 @@ export default function MapPage() {
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  // 'unknown' = 미확인 (Permissions API 미지원 or 아직 쿼리 안 함)
+  // 'prompt'  = 권한 미결정 → getCurrentPosition 시 네이티브 팝업 뜸
+  // 'denied'  = 거부된 상태 → 팝업 강제 불가, OS/앱 설정으로만 복구 가능
+  // 'granted' = 이미 허용
+  const [locationPermission, setLocationPermission] = useState<'unknown' | 'prompt' | 'denied' | 'granted'>('unknown');
+  // 로딩 피드백 단계: 0 = 기본, 1 = 2초 이후 (SDK 설명), 2 = 5초 이후 (사유 + 힌트).
+  // Safari / 저사양 모바일에서 카카오맵 SDK + 위치 권한이 5~15초까지
+  // 걸리는 케이스가 있어, 유저에게 "멈춘 게 아니라 진행 중" 임을 점진적으로 알림.
+  const [loadingPhase, setLoadingPhase] = useState<0 | 1 | 2>(0);
+
+  useEffect(() => {
+    if (mapReady) return;
+    const t1 = setTimeout(() => setLoadingPhase(1), 2000);
+    const t2 = setTimeout(() => setLoadingPhase(2), 5000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [mapReady]);
+
+  // Permissions API 로 현재 위치 권한 상태 조회.
+  // Chromium / Firefox 지원. Safari 는 미지원이므로 'unknown' 상태 유지
+  // (기존 흐름: getCurrentPosition 호출 → 시스템이 알아서 팝업/거부 처리).
+  // 상태가 변경되면(allow 를 눌러주면) listener 가 받아서 locationPermission
+  // 을 갱신 → UI 도 실시간으로 반응.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    const update = () => { if (status) setLocationPermission(status.state as any); };
+    navigator.permissions.query({ name: 'geolocation' as PermissionName }).then(s => {
+      status = s;
+      update();
+      s.addEventListener('change', update);
+    }).catch(() => {});
+    return () => { status?.removeEventListener('change', update); };
+  }, []);
 
   // Resize handler — fix map when devtools or keyboard opens
   useEffect(() => {
@@ -66,30 +104,67 @@ export default function MapPage() {
       return;
     }
 
+    // 10초 타임아웃 — 느린 네트워크에서 무한 로딩 방지
+    const loadTimeout = setTimeout(() => {
+      if (!mapInstance.current) {
+        Sentry.captureMessage('Kakao map SDK load timeout', {
+          level: 'warning',
+          tags: { feature: 'map', action: 'sdk-timeout' },
+        });
+        setError('지도 로딩이 너무 오래 걸립니다. 네트워크를 확인해 주세요.');
+        setLoading(false);
+      }
+    }, 10000);
+
+    const safeInit = () => {
+      try {
+        if (!window.kakao?.maps?.Map) {
+          throw new Error('Kakao Maps SDK not available');
+        }
+        initMap();
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'map', action: 'sdk-init' },
+        });
+        setError('지도를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+        setLoading(false);
+      }
+    };
+
     if (window.kakao?.maps?.Map) {
-      initMap();
+      clearTimeout(loadTimeout);
+      safeInit();
       return;
     }
 
     const existing = document.querySelector('script[src*="dapi.kakao.com"]');
     if (existing) {
       existing.addEventListener('load', () => {
-        window.kakao.maps.load(() => initMap());
+        clearTimeout(loadTimeout);
+        window.kakao?.maps?.load(safeInit);
       });
-      return;
+      return () => clearTimeout(loadTimeout);
     }
 
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services&autoload=false`;
     script.async = true;
     script.onload = () => {
-      window.kakao.maps.load(() => initMap());
+      clearTimeout(loadTimeout);
+      window.kakao?.maps?.load(safeInit);
     };
     script.onerror = () => {
-      setError('카카오맵 SDK 로드에 실패했습니다.');
+      clearTimeout(loadTimeout);
+      Sentry.captureMessage('Kakao map SDK script load failed', {
+        level: 'error',
+        tags: { feature: 'map', action: 'sdk-load-failed' },
+      });
+      setError('지도 SDK 로드에 실패했습니다. 네트워크를 확인해 주세요.');
       setLoading(false);
     };
     document.head.appendChild(script);
+
+    return () => clearTimeout(loadTimeout);
   }, []);
 
   const showMyLocationMarker = useCallback((map: any, lat: number, lng: number) => {
@@ -143,6 +218,9 @@ export default function MapPage() {
 
         searchNearby(lat, lng);
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'map', action: 'init' },
+        });
         console.error('Map init error:', err);
         setError('지도 초기화에 실패했습니다.');
         setLoading(false);
@@ -240,6 +318,11 @@ export default function MapPage() {
     const center = mapInstance.current.getCenter();
     searchNearby(center.getLat(), center.getLng());
   };
+
+  // 재시도 버튼 / 가이드 모달은 제거.
+  // 'prompt' / 'unknown' 이면 getCurrentPosition 이 네이티브 팝업을 띄워 처리.
+  // 'denied' 면 브라우저/OS 가 팝업을 막으므로 사용자가 직접 설정에서 풀어야 함
+  // → 배너 한 줄로만 안내 (아래 render 에서 처리).
 
   // Filter places
   useEffect(() => {
@@ -359,23 +442,40 @@ export default function MapPage() {
 
       {error && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-30 p-6">
-          <div className="text-center">
-            <p className="text-red-500 font-medium mb-2">{error}</p>
+          <div className="text-center max-w-xs">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <MapPinOff size={28} className="text-gray-400" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900 mb-2">지도를 불러오지 못했어요</h2>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              {error}
+            </p>
             <button
               onClick={() => window.location.reload()}
-              className="text-sm text-blue-600 underline"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
             >
-              새로고침
+              <RefreshCw size={14} />
+              다시 시도
             </button>
           </div>
         </div>
       )}
 
       {!error && !mapReady && (
-        <div className="absolute inset-0 bg-white flex items-center justify-center z-20">
-          <div className="flex flex-col items-center gap-2">
+        <div className="absolute inset-0 bg-white flex items-center justify-center z-20 px-6">
+          <div className="flex flex-col items-center gap-2 max-w-xs text-center">
             <Loader2 size={32} className="animate-spin text-blue-600" />
-            <p className="text-sm text-gray-500">지도 로딩 중...</p>
+            <p className="text-sm text-gray-600 font-medium">지도 로딩 중...</p>
+            {loadingPhase >= 1 && (
+              <p className="text-xs text-gray-400">카카오맵 SDK를 준비하고 있어요</p>
+            )}
+            {loadingPhase >= 2 && (
+              <div className="mt-4 space-y-1.5 text-[11px] text-gray-500 leading-relaxed">
+                <p className="font-medium text-gray-700">평소보다 시간이 걸리네요</p>
+                <p>📶 네트워크 상태에 따라 최대 15초 정도 걸릴 수 있어요</p>
+                <p>📍 위치 권한을 허용하면 더 빠르게 불러올 수 있어요</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -385,11 +485,11 @@ export default function MapPage() {
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="flex-1 bg-white rounded-lg shadow-md flex items-center px-3 py-2.5">
             <Search size={18} className="text-gray-400 mr-2 flex-shrink-0" />
-            <input
-              type="text"
+            <TextField
               placeholder="병원명 또는 지역 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              enterKeyHint="search"
               className="w-full text-sm outline-none bg-transparent"
             />
             <button type="submit" className="ml-1 text-blue-600 flex-shrink-0">
@@ -431,17 +531,19 @@ export default function MapPage() {
         })}
       </div>
 
-      {/* Location failed notice */}
-      {locationFailed && mapReady && (
+      {/* Location failed notice — denied 상태만 안내 배너. prompt/unknown 은
+          네이티브 팝업이 알아서 처리하므로 사용자에게 배너로 혼란 주지 않음.
+          granted 는 성공이라 당연히 배너 X. 닫기 버튼 유지해서 사용자가 원하면 숨김. */}
+      {locationFailed && mapReady && locationPermission === 'denied' && (
         <div className="absolute top-28 left-3 right-3 z-10">
-          <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-center gap-2">
-            <span className="text-orange-500 text-xs">📍</span>
-            <p className="text-xs text-orange-600 flex-1">
-              현재 위치를 가져올 수 없어 기본 위치로 표시됩니다. 위치 권한을 허용해주세요.
+          <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-start gap-2">
+            <span className="text-orange-500 text-xs mt-0.5">📍</span>
+            <p className="text-xs text-orange-600 flex-1 leading-snug">
+              위치 권한이 차단돼 있어요. 브라우저/앱 설정에서 위치를 <b>"앱 사용 중 허용"</b> 으로 바꾼 뒤 새로고침해주세요.
             </p>
             <button
               onClick={() => setLocationFailed(false)}
-              className="text-orange-400 hover:text-orange-600 flex-shrink-0"
+              className="text-orange-400 hover:text-orange-600 flex-shrink-0 mt-0.5"
             >
               <X size={14} />
             </button>
@@ -520,6 +622,7 @@ export default function MapPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

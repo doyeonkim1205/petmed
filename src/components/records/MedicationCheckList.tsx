@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Pill, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
@@ -49,6 +50,9 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
       setMedications(meds);
       setChecks(chks);
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'medications', action: 'load-check-list' },
+      });
       console.error('Error loading medication data:', error);
     } finally {
       setLoading(false);
@@ -65,6 +69,9 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
       const newChecks = await getChecksForDate(today);
       setChecks(newChecks);
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'medications', action: 'toggle-check' },
+      });
       console.error('Error toggling check:', error);
     }
   };

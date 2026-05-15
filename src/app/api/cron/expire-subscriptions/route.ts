@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +26,9 @@ export async function GET(request: NextRequest) {
       .lt('period_end', now);
 
     if (!expired || expired.length === 0) {
+      await logActivityServer(null, 'cron.expire_subscriptions', {
+        details: { count: 0, result: 'no_expired' },
+      });
       return NextResponse.json({ message: 'No expired subscriptions', count: 0 });
     }
 
@@ -52,11 +57,24 @@ export async function GET(request: NextRequest) {
       await logSubscriptionEvent(sub.user_id, 'expired', sub.plan, undefined, '구독 기간 만료');
     }
 
+    await logActivityServer(null, 'cron.expire_subscriptions', {
+      details: { count: expired.length, result: 'success' },
+    });
+
     return NextResponse.json({
       message: `Expired ${expired.length} subscriptions`,
       count: expired.length,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'cron', action: 'expire-subscriptions' },
+    });
+    await logActivityServer(null, 'cron.expire_subscriptions', {
+      details: {
+        result: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     const message = error instanceof Error ? error.message : 'Failed to process';
     return NextResponse.json({ error: message }, { status: 500 });
   }

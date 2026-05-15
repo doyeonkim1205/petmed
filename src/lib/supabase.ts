@@ -32,6 +32,10 @@ export interface Profile {
   plan: UserPlan;
   role: UserRole;
   created_at: string;
+  // 푸시 알림 수신 의사. null = 미결정 (신규 or 아직 토글 안 건드린 유저),
+  // true = 마이페이지에서 ON, false = 마이페이지에서 명시적 OFF.
+  // auto-resubscribe 로직이 false 면 스킵해서 사용자 의사 존중.
+  is_push_enabled?: boolean | null;
 }
 
 export interface SearchLog {
@@ -76,6 +80,12 @@ export interface Pet {
   type: 'dog' | 'cat';
   breed?: string;
   birth_date?: string;
+  // AI 증상 분석 컨텍스트 (2026-05 추가).
+  // 모두 NULL 허용 — 기존 펫은 미입력 상태로 유지되며 사용자가 점진적으로 채움.
+  sex?: 'male' | 'female' | null;
+  neutered?: boolean | null;
+  weight?: number | null;                   // kg
+  chronic_conditions?: string[] | null;     // 만성질환 목록 (예: ['신부전', '관절염'])
   created_at: string;
 }
 

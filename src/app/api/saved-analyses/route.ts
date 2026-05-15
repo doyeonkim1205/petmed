@@ -62,6 +62,15 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
+  // Rate limit: 분당 저장 스팸 방어 (500편 상한과 별개의 burst 방어선)
+  const { checkRateLimit } = await import('@/lib/rateLimit');
+  if (!checkRateLimit(`${userId}:save-analysis`, 10, 60_000)) {
+    return NextResponse.json(
+      { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+      { status: 429 },
+    );
+  }
+
   // Check plan — only paid users can save
   const { data: profile } = await supabaseAdmin
     .from('profiles')
@@ -69,7 +78,8 @@ export async function POST(request: NextRequest) {
     .eq('id', userId)
     .single();
 
-  const plan = profile?.plan || 'free';
+  const { getEffectivePlan } = await import('@/lib/plans');
+  const plan = getEffectivePlan(profile?.plan);
   if (plan === 'free') {
     return NextResponse.json(
       { error: '유료 구독자만 분석을 저장할 수 있습니다.' },
@@ -146,13 +156,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (remaining <= 0) {
-      const suffix = plan !== 'free'
-        ? '추가 용량이 필요하시면 문의해 주세요.'
-        : '업그레이드하여 더 많은 논문을 저장하세요.';
+      // 여기는 plan === 'plus' 일 때만 도달 (free 는 위에서 이미 403).
       return NextResponse.json({
         ...data,
         savedPaperCount: 0,
-        warning: `📌 논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. ${suffix}`,
+        warning: `📌 논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`,
       });
     }
 

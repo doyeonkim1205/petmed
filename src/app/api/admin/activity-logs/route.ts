@@ -10,6 +10,9 @@ export async function GET(request: Request) {
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
   const userSearch = searchParams.get('userId') || '';
+  const action = searchParams.get('action') || '';   // 단일 action (정확 매칭)
+  const category = searchParams.get('category') || ''; // 카테고리 (prefix 매칭), 예: 'auth', 'cron', 'admin'
+  const excludeCron = searchParams.get('excludeCron') === '1';  // cron.* 제외
   const page = parseInt(searchParams.get('page') || '1');
   const limit = 30;
   const offset = (page - 1) * limit;
@@ -43,22 +46,56 @@ export async function GET(request: Request) {
   if (from) query = query.gte('created_at', from);
   if (to) query = query.lte('created_at', `${to}T23:59:59`);
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
+  if (action) query = query.eq('action', action);
+  else if (category === 'deleted_user') {
+    // 탈퇴 유저 필터: profiles 에 없는 user_id 만
+    const { data: liveProfiles } = await supabase.from('profiles').select('id');
+    const liveIds = (liveProfiles ?? []).map((p) => p.id);
+    query = query.not('user_id', 'is', null);
+    if (liveIds.length > 0) {
+      query = query.not('user_id', 'in', `(${liveIds.join(',')})`);
+    }
+  } else if (category) query = query.like('action', `${category}.%`);
+
+  // cron 제외 플래그 — action / category 필터와 동시 사용 가능. cron 카테고리
+  // 자체를 보고 있을 땐 자가모순이라 무시.
+  if (excludeCron && category !== 'cron' && !action.startsWith('cron.')) {
+    query = query.not('action', 'like', 'cron.%');
+  }
 
   const { data, count } = await query
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // Attach profile info (FK points to auth.users, not profiles)
+  // Attach profile info (FK points to auth.users, not profiles).
+  // Cron/system logs have user_id=null; admin actions have targetUserId
+  // in details. Fetch every id we encounter, then decorate.
   const logs = data || [];
   if (logs.length > 0) {
-    const userIds = [...new Set(logs.map((l: any) => l.user_id))];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, email, nickname')
-      .in('id', userIds);
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const ids = new Set<string>();
     for (const log of logs) {
-      (log as any).profiles = profileMap.get(log.user_id) || null;
+      if (log.user_id) ids.add(log.user_id);
+      const targetId = (log.details as Record<string, unknown>)?.targetUserId;
+      if (typeof targetId === 'string' && targetId) ids.add(targetId);
+    }
+
+    if (ids.size > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, nickname')
+        .in('id', [...ids]);
+      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+
+      for (const log of logs) {
+        const actor = log.user_id ? profileMap.get(log.user_id) ?? null : null;
+        const targetIdRaw = (log.details as Record<string, unknown>)?.targetUserId;
+        const targetId = typeof targetIdRaw === 'string' ? targetIdRaw : null;
+        const target = targetId ? profileMap.get(targetId) ?? null : null;
+
+        (log as { actor?: unknown }).actor = actor;
+        (log as { target?: unknown }).target = target;
+        (log as { profiles?: unknown }).profiles = actor; // backward compat
+      }
     }
   }
 

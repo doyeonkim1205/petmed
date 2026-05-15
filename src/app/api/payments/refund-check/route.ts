@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
       const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
         supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
         supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
-        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('action', 'analysis.save').gte('created_at', paymentDate),
         supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
       ]);
 
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
       const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
         supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
         supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
-        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('action', ['symptom.search', 'symptom.refine', 'analysis.save']).gte('created_at', paymentDate),
+        supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('action', 'analysis.save').gte('created_at', paymentDate),
         supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
       ]);
 
@@ -104,6 +105,10 @@ export async function GET(request: NextRequest) {
       reason: `${monthsUsed}개월 사용, ${remainingMonths}개월분 환불`,
     });
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'payment', action: 'refund-check' },
+      extra: { userId },
+    });
     const message = error instanceof Error ? error.message : '확인에 실패했습니다.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { supabase, HealthRecord } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -34,7 +35,8 @@ export function useHealthRecords(petId?: string) {
           record_files (*)
         `)
         .eq('user_id', userId)
-        .order('visit_date', { ascending: false });
+        .order('visit_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (petId) {
         query = query.eq('pet_id', petId);
@@ -49,7 +51,8 @@ export function useHealthRecords(petId?: string) {
           .from('health_records')
           .select('*')
           .eq('user_id', userId)
-          .order('visit_date', { ascending: false });
+          .order('visit_date', { ascending: false })
+        .order('created_at', { ascending: false });
         if (petId) {
           fallback = fallback.eq('pet_id', petId);
         }
@@ -62,6 +65,10 @@ export function useHealthRecords(petId?: string) {
 
       setRecords(data || []);
     } catch (err: unknown) {
+      Sentry.captureException(err, {
+        tags: { feature: 'records', action: 'fetch' },
+        extra: { userId, petId },
+      });
       const message = err instanceof Error ? err.message : '기록을 불러오는데 실패했습니다';
       console.error('Error fetching records:', err);
       setError(message);
@@ -99,16 +106,18 @@ export function useHealthRecords(petId?: string) {
       .select('plan')
       .eq('id', user.id)
       .single();
-    const config = getPlanConfig(profile?.plan || 'free');
+    const effectivePlan = getEffectivePlan(profile?.plan);
+    const config = getPlanConfig(effectivePlan);
     if (config.maxRecords > 0) {
       const { count } = await supabase
         .from('health_records')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       if ((count || 0) >= config.maxRecords) {
-        const plan = profile?.plan || 'free';
-        const suffix = plan !== 'free' ? ' 추가 용량이 필요하시면 문의해 주세요.' : ' 업그레이드하여 더 많은 기록을 추가하세요.';
-        throw new Error(`📋 기록 한도(${config.maxRecords}개)에 도달했습니다.${suffix}`);
+        const msg = effectivePlan !== 'free'
+          ? `📋 기록 한도(${config.maxRecords}개)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`
+          : `📋 기록 한도(${config.maxRecords}개)에 도달했습니다! Plus로 업그레이드하고 소중한 기록을 계속 남겨보세요`;
+        throw new Error(msg);
       }
     }
 

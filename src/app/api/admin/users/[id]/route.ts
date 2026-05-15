@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await verifyAdmin(request);
@@ -33,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await verifyAdmin(request);
+  const { user: admin, error } = await verifyAdmin(request);
   if (error) return error;
 
   const { id } = await params;
@@ -51,6 +52,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+
+  // Get previous values for audit log
+  const { data: before } = await supabase
+    .from('profiles')
+    .select('plan, role')
+    .eq('id', id)
+    .single();
 
   // Update profile
   const { data, error: dbError } = await supabase
@@ -99,6 +107,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       })
       .eq('user_id', id)
       .in('status', ['active', 'canceled']);
+  }
+
+  // Audit log — admin manual change
+  if (updates.plan && before?.plan !== updates.plan) {
+    await logActivityServer(admin?.id ?? null, 'admin.plan_change', {
+      resourceType: 'user',
+      resourceId: id,
+      details: { targetUserId: id, from: before?.plan ?? null, to: updates.plan },
+    });
+  }
+  if (updates.role && before?.role !== updates.role) {
+    await logActivityServer(admin?.id ?? null, 'admin.role_change', {
+      resourceType: 'user',
+      resourceId: id,
+      details: { targetUserId: id, from: before?.role ?? null, to: updates.role },
+    });
   }
 
   return NextResponse.json(data);

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { logActivity } from '@/lib/activityLog';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -13,6 +14,10 @@ import {
   CreditCard, MapPin, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
+import { APP_VERSION } from '@/lib/version';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { TextField } from '@/components/TextField';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -51,11 +56,11 @@ function NicknameModal({
           <h3 className="text-sm font-bold text-gray-700">닉네임 변경</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
-        <input
-          type="text"
+        <TextField
           value={nickname}
           onChange={e => setNickname(e.target.value)}
           placeholder="새 닉네임 (2자 이상)"
+          autoComplete="nickname"
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
         />
         {errorMsg && (
@@ -77,6 +82,65 @@ function NicknameModal({
 }
 
 // ─── Pet Management Modal ──────────────────────────────────
+// 펫 등록·편집·삭제 모달.
+// 2026-05 확장: AI 증상 분석 컨텍스트 필드 (성별, 중성화, 체중, 만성질환) 추가.
+//   - 모두 선택 입력 — 사용자가 점진적으로 채울 수 있게.
+//   - DB 에 NULL 로 들어가도 기존 기능 영향 0 (옛 펫은 그대로 유지).
+// 편집 모드 신규: 펫 카드 옆 ✏️ 버튼으로 진입 → 같은 폼 재사용.
+type PetFormState = {
+  name: string;
+  type: 'dog' | 'cat';
+  breed: string;
+  birth_date: string;
+  sex: '' | 'male' | 'female';
+  neutered: '' | 'yes' | 'no';
+  weight: string;                  // input 은 string, 저장 시 number 변환
+  chronic_conditions: string;      // 쉼표 구분 입력, 저장 시 string[] 변환
+};
+
+const EMPTY_PET_FORM: PetFormState = {
+  name: '',
+  type: 'dog',
+  breed: '',
+  birth_date: '',
+  sex: '',
+  neutered: '',
+  weight: '',
+  chronic_conditions: '',
+};
+
+function petToForm(pet: Pet): PetFormState {
+  return {
+    name: pet.name,
+    type: pet.type,
+    breed: pet.breed || '',
+    birth_date: pet.birth_date || '',
+    sex: pet.sex || '',
+    neutered: pet.neutered === true ? 'yes' : pet.neutered === false ? 'no' : '',
+    weight: pet.weight != null ? String(pet.weight) : '',
+    chronic_conditions: (pet.chronic_conditions || []).join(', '),
+  };
+}
+
+/** form 상태 → DB payload (NULL/배열 변환). */
+function formToPayload(form: PetFormState) {
+  const weightNum = form.weight.trim() ? parseFloat(form.weight.trim()) : null;
+  const conditions = form.chronic_conditions
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  return {
+    name: form.name.trim(),
+    type: form.type,
+    breed: form.breed.trim() || null,
+    birth_date: form.birth_date || null,
+    sex: form.sex || null,
+    neutered: form.neutered === 'yes' ? true : form.neutered === 'no' ? false : null,
+    weight: weightNum,
+    chronic_conditions: conditions.length > 0 ? conditions : null,
+  };
+}
+
 function PetModal({
   open, userId, onClose,
 }: {
@@ -86,9 +150,14 @@ function PetModal({
 }) {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
+  const [showForm, setShowForm] = useState(false);
+  const [editingPetId, setEditingPetId] = useState<string | null>(null);   // null = 신규, 값 = 편집 중인 펫 id
+  const [form, setForm] = useState<PetFormState>(EMPTY_PET_FORM);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  // 등록 한도 초과 안내 모달 (기존 native alert 대체)
+  const [limitMsg, setLimitMsg] = useState<React.ReactNode | null>(null);
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
@@ -105,6 +174,10 @@ function PetModal({
       if (error) throw error;
       setPets(data ?? []);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'pets', action: 'fetch' },
+        extra: { userId },
+      });
       console.error('Error fetching pets:', err);
       setPets([]);
     } finally {
@@ -117,35 +190,101 @@ function PetModal({
 
   if (!open) return null;
 
-  const handleAdd = async () => {
-    if (!newPet.name.trim()) return;
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingPetId(null);
+    setForm(EMPTY_PET_FORM);
+    setFormError(null);
+  };
 
-    // Check pet limit based on plan
+  const openAddForm = () => {
+    setEditingPetId(null);
+    setForm(EMPTY_PET_FORM);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEditForm = (pet: Pet) => {
+    setEditingPetId(pet.id);
+    setForm(petToForm(pet));
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    if (!form.name.trim()) {
+      setFormError('이름을 입력해주세요');
+      return;
+    }
+    // weight 입력 검증 — 양수만 허용 (DB 제약과 일치).
+    if (form.weight.trim()) {
+      const w = parseFloat(form.weight.trim());
+      if (isNaN(w) || w <= 0) {
+        setFormError('체중은 양수로 입력해주세요 (예: 4.2)');
+        return;
+      }
+    }
+
+    const payload = formToPayload(form);
+
+    if (editingPetId) {
+      // 편집 모드 — UPDATE
+      setSaving(true);
+      const { error } = await supabase
+        .from('pets')
+        .update(payload)
+        .eq('id', editingPetId)
+        .eq('user_id', userId);
+      setSaving(false);
+      if (error) {
+        Sentry.captureException(error, {
+          tags: { feature: 'pets', action: 'update' },
+        });
+        setFormError('저장에 실패했습니다. 다시 시도해주세요.');
+        return;
+      }
+      logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+      closeForm();
+      fetchPets();
+      return;
+    }
+
+    // 신규 등록 모드 — 한도 체크 + INSERT
     const { data: profile } = await supabase
       .from('profiles')
       .select('plan')
       .eq('id', userId)
       .single();
-    const config = getPlanConfig(profile?.plan || 'free');
+    const effectivePlan = getEffectivePlan(profile?.plan);
+    const config = getPlanConfig(effectivePlan);
     if (config.maxPets > 0 && pets.length >= config.maxPets) {
-      const plan = profile?.plan || 'free';
-      const suffix = plan !== 'free' ? '추가 용량이 필요하시면 문의해 주세요.' : '업그레이드하여 더 많은 반려동물을 등록하세요.';
-      alert(`🐾 반려동물 등록 한도(${config.maxPets}마리)에 도달했습니다. ${suffix}`);
+      setLimitMsg(
+        effectivePlan !== 'free' ? (
+          <>반려동물 등록 한도({config.maxPets}마리)에 도달했습니다.<br />추가 용량이 필요하시면 문의해 주세요.</>
+        ) : (
+          <>반려동물은 {config.maxPets}마리까지 등록할 수 있어요<br />Plus로 업그레이드하여 더 많은 반려동물을 등록하세요</>
+        ),
+      );
       return;
     }
 
     setSaving(true);
-    const { data } = await supabase.from('pets').insert({
-      user_id: userId,
-      name: newPet.name.trim(),
-      type: newPet.type,
-      breed: newPet.breed.trim() || null,
-      birth_date: newPet.birth_date || null,
-    }).select('id').single();
-    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
-    setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
-    setShowAddForm(false);
+    const { data, error } = await supabase
+      .from('pets')
+      .insert({ user_id: userId, ...payload })
+      .select('id')
+      .single();
     setSaving(false);
+    if (error) {
+      Sentry.captureException(error, {
+        tags: { feature: 'pets', action: 'create' },
+      });
+      setFormError('등록에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
+    closeForm();
     fetchPets();
   };
 
@@ -157,7 +296,7 @@ function PetModal({
 
   return (
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-xs max-h-[80vh] flex flex-col shadow-lg">
+      <div className="bg-white rounded-2xl w-full max-w-xs max-h-[85vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between p-5 pb-3">
           <h3 className="text-sm font-bold text-gray-700">나의 반려동물</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
@@ -166,7 +305,7 @@ function PetModal({
         <div className="flex-1 overflow-y-auto px-5">
           {loading ? (
             <p className="text-gray-400 text-center py-8 text-sm">로딩 중...</p>
-          ) : pets.length === 0 && !showAddForm ? (
+          ) : pets.length === 0 && !showForm ? (
             <p className="text-gray-400 text-center py-8 text-sm">등록된 반려동물이 없습니다.</p>
           ) : (
             <div className="space-y-2">
@@ -175,15 +314,21 @@ function PetModal({
                   <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                     {pet.type === 'dog' ? <Dog size={16} /> : <Cat size={16} />}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-gray-700">{pet.name}</p>
-                    <p className="text-[11px] text-gray-400">
-                      {pet.type === 'dog' ? '강아지' : '고양이'}
-                      {pet.breed ? ` / ${pet.breed}` : ''}
-                      {pet.birth_date ? ` / ${pet.birth_date}` : ''}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-gray-700 truncate">{pet.name}</p>
                   </div>
-                  <button onClick={() => handleDelete(pet.id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors">
+                  <button
+                    onClick={() => openEditForm(pet)}
+                    aria-label="수정"
+                    className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })}
+                    aria-label="삭제"
+                    className="p-1 text-gray-300 hover:text-red-400 transition-colors"
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -191,60 +336,164 @@ function PetModal({
             </div>
           )}
 
-          {showAddForm && (
+          {showForm && (
             <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
-              <input
-                type="text"
+              <p className="text-xs font-semibold text-gray-500 mb-1">
+                {editingPetId ? '반려동물 정보 수정' : '반려동물 추가'}
+              </p>
+
+              {/* AI 증상 분석에 펫 컨텍스트가 자동 주입돼 정확도가 좌우됨 →
+                 등록 시 정보 입력 의욕을 부드럽게 유도. 모든 필드는 여전히 선택. */}
+              <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed">
+                💡 정보를 자세히 입력할수록 AI 증상 분석이 더 정확해져요
+              </p>
+
+              <TextField
                 placeholder="이름"
-                value={newPet.name}
-                onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                maxLength={12}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+
               <div className="flex gap-2">
                 <button
-                  onClick={() => setNewPet(p => ({ ...p, type: 'dog' }))}
+                  onClick={() => setForm(f => ({ ...f, type: 'dog' }))}
                   className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    newPet.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                    form.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   <Dog size={14} /> 강아지
                 </button>
                 <button
-                  onClick={() => setNewPet(p => ({ ...p, type: 'cat' }))}
+                  onClick={() => setForm(f => ({ ...f, type: 'cat' }))}
                   className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    newPet.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                    form.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                   }`}
                 >
                   <Cat size={14} /> 고양이
                 </button>
               </div>
-              <input
-                type="text"
+
+              <TextField
                 placeholder="품종 (선택)"
-                value={newPet.breed}
-                onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
+                value={form.breed}
+                onChange={e => setForm(f => ({ ...f, breed: e.target.value }))}
+                maxLength={25}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+
               <div>
                 <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
                 <input
                   type="date"
-                  value={newPet.birth_date}
-                  onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-                  className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
+                  value={form.birth_date}
+                  onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+                  className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
                 />
               </div>
-              <div className="flex gap-2">
+
+              {/* 성별 — 미선택 허용 */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">성별 (선택)</label>
+                <div className="flex gap-1.5">
+                  {(['', 'male', 'female'] as const).map(s => {
+                    const labelMap: Record<'' | 'male' | 'female', string> = { '': '모름', male: '수컷', female: '암컷' };
+                    const active = form.sex === s;
+                    return (
+                      <button
+                        key={s || 'unknown'}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, sex: s }))}
+                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
+                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {labelMap[s]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 중성화 — 미선택 허용 */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">중성화 여부 (선택)</label>
+                <div className="flex gap-1.5">
+                  {(['', 'yes', 'no'] as const).map(v => {
+                    const labelMap: Record<'' | 'yes' | 'no', string> = { '': '모름', yes: '했어요', no: '안 했어요' };
+                    const active = form.neutered === v;
+                    return (
+                      <button
+                        key={v || 'unknown'}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, neutered: v }))}
+                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
+                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {labelMap[v]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 체중 — 숫자 입력, 단위 'kg' 는 입력창 오른쪽에 표시 (가독성 ↑).
+                 입력 정규식 (^\d{0,3}(\.\d{0,2})?$) 은 records/add 페이지와 동일 패턴 —
+                 정수 최대 3자리 + 소수 최대 2자리 (예: 999.99kg). inputMode=decimal 로
+                 모바일 숫자 키패드. type=number 미사용 (브라우저별 '.' 처리 차이 회피). */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
+                <div className="relative">
+                  <TextField
+                    inputMode="decimal"
+                    placeholder="예: 4.2"
+                    value={form.weight}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) {
+                        setForm(f => ({ ...f, weight: v }));
+                      }
+                    }}
+                    maxLength={6}
+                    className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
+                    kg
+                  </span>
+                </div>
+              </div>
+
+              {/* 만성질환 — 쉼표 구분 자유 입력 (100자 한도: 평균 3~5개 질환 커버) */}
+              <div>
+                <label className="text-[11px] text-gray-400 mb-1 block">만성질환 (선택, 쉼표로 구분)</label>
+                <TextField
+                  placeholder="예: 신부전, 관절염"
+                  value={form.chronic_conditions}
+                  onChange={e => setForm(f => ({ ...f, chronic_conditions: e.target.value }))}
+                  maxLength={100}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+
+              {formError && (
+                <p className="text-xs text-red-500">{formError}</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => { setShowAddForm(false); setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' }); }}
+                  onClick={closeForm}
                   className="flex-1 h-9 border border-gray-200 rounded-full text-xs text-gray-500 hover:bg-gray-50 transition-colors"
-                >취소</button>
+                >
+                  취소
+                </button>
                 <button
-                  onClick={handleAdd}
-                  disabled={saving || !newPet.name.trim()}
+                  onClick={handleSave}
+                  disabled={saving || !form.name.trim()}
                   className="flex-1 h-9 bg-blue-600 text-[#fff] rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
                 >
-                  {saving ? '등록 중...' : '등록'}
+                  {saving ? (editingPetId ? '저장 중...' : '등록 중...') : (editingPetId ? '저장' : '등록')}
                 </button>
               </div>
             </div>
@@ -252,9 +501,9 @@ function PetModal({
         </div>
 
         <div className="p-5 pt-3">
-          {!showAddForm && (
+          {!showForm && (
             <button
-              onClick={() => setShowAddForm(true)}
+              onClick={openAddForm}
               className="w-full h-9 flex items-center justify-center gap-1.5 border border-dashed border-gray-200 rounded-full text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
             >
               <Plus size={14} /> 반려동물 추가
@@ -262,6 +511,27 @@ function PetModal({
           )}
         </div>
       </div>
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="반려동물을 삭제할까요?"
+        message={<>{deleteTarget?.name ?? ''}의 건강기록도 함께 삭제돼요.<br />되돌릴 수 없어요.</>}
+        variant="danger"
+        confirmLabel="삭제"
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmModal
+        open={limitMsg !== null}
+        title="등록 한도에 도달했어요"
+        message={limitMsg}
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setLimitMsg(null)}
+        onCancel={() => setLimitMsg(null)}
+      />
     </div>
   );
 }
@@ -271,32 +541,119 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [debugMode, setDebugMode] = useState(false);
+  const [deniedModalOpen, setDeniedModalOpen] = useState(false);
+  const [iosInstallHintOpen, setIosInstallHintOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    if (typeof window !== 'undefined') {
+      // URL 쿼리 또는 localStorage 에 debugPush 설정 시 활성
+      const urlOn = new URLSearchParams(window.location.search).get('debugPush') === '1';
+      const storageOn = localStorage.getItem('debugPush') === '1';
+      setDebugMode(urlOn || storageOn);
+    }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
-    if (supported) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          setPushEnabled(!!sub);
-        });
-      });
-    }
+    if (!supported) return;
+
+    // 모달 오픈 시 self-healing:
+    //   permission='granted' + 구독 없음 → 그 자리에서 조용히 subscribe 시도.
+    //   AuthContext 의 auto-resub 가 타이밍 race / 일시 실패로 놓친 케이스를
+    //   여기서 복구 → 사용자가 "토글이 OFF 로 보이는데 분명 허용했는데?" 경험 제거.
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+
+        if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (vapidKey) {
+            const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+            const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            const arr = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            try {
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: arr,
+              });
+              // 서버에 endpoint 등록. 실패 시 sub 롤백.
+              const json = sub.toJSON();
+              const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+              if (session) {
+                const res = await fetch('/api/push/subscribe', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
+                });
+                if (!res.ok) {
+                  await sub.unsubscribe();
+                  sub = null;
+                } else {
+                  // 의사 기록도 true 로 동기화 (auto-resub 가 놓친 케이스 보완)
+                  try {
+                    const { data: { user: u } } = await supabase.auth.getUser();
+                    if (u) await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', u.id);
+                  } catch {}
+                }
+              }
+            } catch {
+              // 권한 관련 에러 등 — 무시하고 기존 sub 상태 유지
+            }
+          }
+        }
+
+        setPushEnabled(!!sub);
+      } catch {
+        // SW 접근 실패 등 — 초기 상태 유지
+      }
+    })();
   }, [open]);
 
   if (!open) return null;
 
+  const log = (msg: string) => {
+    // 콘솔에도 남기고 화면에도 누적
+    console.log('[push]', msg);
+    setDebugLog((prev) => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+  };
+
   const handleTogglePush = async (enabled: boolean) => {
+    // Free 유저는 "알림 설정" 버튼에서 이미 showAlarmUpgrade 모달로 차단됨 (여기까지 도달 안 함)
+    // Samsung Internet 유료 유저: 켜는 방향이면 사전 차단 (SPS 제약으로 알림 수신 불안정)
+    if (enabled && /SamsungBrowser/i.test(navigator.userAgent)) {
+      setDeniedModalOpen(true);
+      return;
+    }
+    // iOS + 홈 화면 미설치: 푸시가 구조적으로 불가 → 간결한 안내만 띄움
+    if (enabled) {
+      const { detectDevice } = await import('@/lib/deviceDetect');
+      const device = detectDevice();
+      if (device?.isIos && !device.isStandalone) {
+        setIosInstallHintOpen(true);
+        return;
+      }
+    }
     setPushLoading(true);
+    setDebugLog([]);
+    log(`toggle=${enabled}, UA=${navigator.userAgent.slice(0, 60)}`);
+    log(`Notification.permission=${Notification.permission}`);
     try {
       if (enabled) {
+        log('Step 1: requestPermission()');
         const permission = await Notification.requestPermission();
+        log(`  → permission=${permission}`);
         if (permission !== 'granted') {
+          // 'denied' 면 안내 모달 표시 (유저가 차단 해제 방법을 알 수 있도록)
+          if (permission === 'denied') setDeniedModalOpen(true);
           setPushLoading(false);
           return;
         }
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        log(`Step 2: VAPID key ${vapidKey ? 'present (' + vapidKey.length + ' chars)' : 'MISSING'}`);
         if (!vapidKey) { setPushLoading(false); return; }
 
         const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
@@ -304,26 +661,51 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         const raw = atob(base64);
         const arr = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        log(`  → applicationServerKey Uint8Array(${arr.length})`);
 
+        log('Step 3: serviceWorker.ready');
         const reg = await navigator.serviceWorker.ready;
+        log(`  → SW scope=${reg.scope}`);
+
+        log('Step 4: pushManager.subscribe()');
         const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
         const json = sub.toJSON();
+        log(`  → endpoint=${(json.endpoint || '').slice(0, 50)}...`);
 
-        const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-        if (session) {
-          const res = await fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
-          });
-          if (!res.ok) {
-            await sub.unsubscribe();
-            setPushLoading(false);
-            return;
+        if (debugMode) {
+          log('Step 5: SKIPPED (debug mode — free 유저도 테스트 가능)');
+          await sub.unsubscribe();
+          log('  → test subscription cleaned up');
+        } else {
+          log('Step 5: POST /api/push/subscribe');
+          const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+          if (session) {
+            const res = await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: json.endpoint, keys_p256dh: json.keys?.p256dh, keys_auth: json.keys?.auth }),
+            });
+            log(`  → status=${res.status} ${res.ok ? 'OK' : 'FAIL'}`);
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              log(`  → body=${body.slice(0, 100)}`);
+              await sub.unsubscribe();
+              setPushLoading(false);
+              return;
+            }
+          } else {
+            log('  → no session, skipping server save');
           }
         }
         setPushEnabled(true);
+        // DB 에 의사 기록 (기기 간 sync 용). 실패해도 구독 자체는 성공이라 무시.
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', u.id);
+        } catch {}
+        log('DONE: subscribed');
       } else {
+        log('Unsubscribe flow');
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
@@ -338,8 +720,19 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
           await sub.unsubscribe();
         }
         setPushEnabled(false);
+        // DB 에 명시적 OFF 기록 (auto-resub 가 다시 켜지 않도록).
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) await supabase.from('profiles').update({ is_push_enabled: false }).eq('id', u.id);
+        } catch {}
+        log('DONE: unsubscribed');
       }
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'push', action: 'toggle' },
+      });
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      log(`ERROR: ${msg}`);
       console.error('Push toggle failed:', err);
     } finally {
       setPushLoading(false);
@@ -375,8 +768,44 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
             </p>
           )}
         </div>
+        {debugMode && debugLog.length > 0 && (
+          <div className="mt-4 p-2 bg-gray-900 text-green-300 text-[10px] rounded-md max-h-48 overflow-auto font-mono leading-relaxed">
+            {debugLog.map((line, i) => (
+              <div key={i} className="break-all">{line}</div>
+            ))}
+          </div>
+        )}
         <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
       </div>
+      <NotificationPermissionDenied open={deniedModalOpen} onClose={() => setDeniedModalOpen(false)} />
+      {iosInstallHintOpen && (
+        <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setIosInstallHintOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">알림을 받으려면 앱을 설치해야 해요</h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-5">
+              iOS 에서는 홈 화면에 추가한 뒤에만 푸시 알림을 받을 수 있어요.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIosInstallHintOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => {
+                  setIosInstallHintOpen(false);
+                  onClose();
+                  window.dispatchEvent(new Event('show-ios-install'));
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium"
+              >
+                설치 방법 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -585,7 +1014,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           <div>
             <SectionHeader icon={Info} iconColor="text-gray-400" label="앱 정보" />
             <div className="space-y-1.5 text-xs text-gray-400">
-              <div className="flex justify-between"><span>버전</span><span className="text-gray-600">1.0.0</span></div>
+              <div className="flex justify-between"><span>버전</span><span className="text-gray-600">{APP_VERSION}</span></div>
               <div className="flex justify-between"><span>개발</span><span className="text-gray-600">PawDex Team</span></div>
             </div>
           </div>
@@ -633,12 +1062,30 @@ function ToggleRow({ label, desc, checked, onChange }: {
 }
 
 // ─── Delete Account Modal ─────────────────────────────────
+const REASON_OPTIONS: { value: string; label: string }[] = [
+  { value: 'expectation_gap', label: '서비스가 기대와 달라요' },
+  { value: 'price', label: '가격이 부담돼요' },
+  { value: 'low_usage', label: '사용 빈도가 낮아요' },
+  { value: 'switching', label: '다른 앱으로 전환해요' },
+  { value: 'privacy', label: '개인정보가 걱정돼요' },
+  { value: 'other', label: '기타' },
+];
+
 function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [reason, setReason] = useState('');
+  const [reasonDetail, setReasonDetail] = useState('');
 
-  useEffect(() => { if (open) { setConfirmText(''); setErrorMsg(''); } }, [open]);
+  useEffect(() => {
+    if (open) {
+      setConfirmText('');
+      setErrorMsg('');
+      setReason('');
+      setReasonDetail('');
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -651,7 +1098,14 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 
       const res = await fetch('/api/delete-account', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reason || null,
+          reasonDetail: reasonDetail.trim() || null,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || '삭제 실패');
@@ -664,6 +1118,9 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       } catch {}
       window.location.href = '/';
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'account', action: 'delete' },
+      });
       setErrorMsg(err instanceof Error ? err.message : '오류가 발생했습니다.');
       setDeleting(false);
     }
@@ -682,10 +1139,37 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
           </p>
         </div>
 
+        <div className="mb-3">
+          <p className="text-[11px] text-gray-500 mb-1.5">탈퇴 이유 <span className="text-gray-300">(선택)</span></p>
+          <div className="flex flex-wrap gap-1.5">
+            {REASON_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setReason(reason === opt.value ? '' : opt.value)}
+                className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${
+                  reason === opt.value
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {reason === 'other' && (
+            <TextField
+              value={reasonDetail}
+              onChange={(e) => setReasonDetail(e.target.value.slice(0, 100))}
+              placeholder="자세한 사유를 입력해주세요 (선택)"
+              className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-red-500 outline-none"
+            />
+          )}
+        </div>
+
         <div className="mb-4">
           <p className="text-[11px] text-gray-400 mb-1.5">확인을 위해 <span className="font-bold text-gray-600">&quot;탈퇴합니다&quot;</span>를 입력해주세요.</p>
-          <input
-            type="text"
+          <TextField
             value={confirmText}
             onChange={e => setConfirmText(e.target.value)}
             placeholder="탈퇴합니다"
@@ -725,7 +1209,7 @@ export default function ProfilePage() {
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
 
-  const canUseAlarm = isPWA && profile?.plan && profile.plan !== 'free';
+  const canUseAlarm = isPWA && getEffectivePlan(profile?.plan) === 'plus';
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
@@ -802,25 +1286,9 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="bg-white min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center px-6">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <User size={28} className="text-gray-400" />
-        </div>
-        <h2 className="text-lg font-bold text-gray-800 mb-1">로그인이 필요합니다</h2>
-        <p className="text-sm text-gray-400 text-center mb-8">
-          PawDex의 모든 기능을 이용하려면<br />로그인해주세요.
-        </p>
-        <button
-          onClick={() => router.push('/login')}
-          className="w-full max-w-xs h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm transition-colors"
-        >
-          시작하기
-        </button>
-      </div>
-    );
-  }
+  // (main) 레이아웃에서 미인증 유저를 /login 으로 리다이렉트함 → 여기 도달 시 user 는 항상 있음
+  // 단 TypeScript 가 user 의 non-null 을 추론 못하므로 이 가드로 타입 narrowing
+  if (!user) return null;
 
   return (
     <div className="bg-white min-h-[calc(100vh-8rem)]">
@@ -852,7 +1320,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
-          {profile?.plan === 'plus' ? (
+          {getEffectivePlan(profile?.plan) === 'plus' ? (
             <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
               <Crown size={10} /> Plus
             </span>
@@ -967,7 +1435,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="py-8 px-6 text-center space-y-1">
-        <p className="text-xs text-gray-400">PawDex v1.0.0</p>
+        <p className="text-xs text-gray-400">PawDex v{APP_VERSION}</p>
         <div className="text-[10px] text-gray-400 leading-relaxed">
           <p>디와이랩스(DYLabs) | 대표: 김도연</p>
           <p>사업자등록번호: 769-77-00552</p>
@@ -1005,7 +1473,7 @@ export default function ProfilePage() {
 
       {/* 알림 기능 안내 팝업 — 상황별 문구 */}
       {showAlarmUpgrade && (() => {
-        const isFree = !profile?.plan || profile.plan === 'free';
+        const isFree = getEffectivePlan(profile?.plan) === 'free';
         const needApp = !isPWA;
         const needPlus = isFree;
 

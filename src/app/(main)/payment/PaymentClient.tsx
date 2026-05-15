@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, CreditCard, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+import * as Sentry from '@sentry/nextjs';
 import type { PaymentProduct } from '@/lib/products';
 
 const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY!;
@@ -36,6 +37,10 @@ export default function PaymentClient({ product }: Props) {
         const toss = await loadTossPayments(clientKey);
         setWidgets(toss.widgets({ customerKey: user!.id }));
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'payment', action: 'widget-init' },
+          extra: { userId: user?.id, productId: product?.id },
+        });
         setError(`결제 위젯 초기화 실패: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
@@ -52,6 +57,10 @@ export default function PaymentClient({ product }: Props) {
         await widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' });
         setReady(true);
       } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'payment', action: 'widget-render' },
+          extra: { productId: product?.id },
+        });
         setError(`결제 위젯 렌더링 실패: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
@@ -93,6 +102,10 @@ export default function PaymentClient({ product }: Props) {
       });
       setProcessing(false);
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'payment', action: 'request-payment' },
+        extra: { userId: user.id, productId: product.id, amount: product.price },
+      });
       console.error(err);
       setProcessing(false);
     }
