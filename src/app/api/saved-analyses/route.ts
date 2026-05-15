@@ -87,20 +87,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { query, petType, analysis, selectedPapers } = await request.json();
+  const body = await request.json();
+  const { query, petType, analysis, selectedPapers } = body;
+  const kind: 'paper' | 'symptom_photo' =
+    body.kind === 'symptom_photo' ? 'symptom_photo' : 'paper';
 
-  // Save analysis result (precautions, ingredients — no articles)
+  // 사진 분석 (kind='symptom_photo') 은 analysis 객체 전체를 그대로 저장.
+  // 논문 분석 (kind='paper') 은 precautions / ingredients 만 추려 저장.
+  const analysisPayload = kind === 'symptom_photo'
+    ? analysis ?? {}
+    : {
+        precautions: analysis?.precautions || [],
+        ingredients: analysis?.ingredients || [],
+      };
+
   const { data, error } = await supabaseAdmin
     .from('saved_analyses')
     .insert({
       user_id: userId,
       query,
       pet_type: petType,
-      articles: [], // No longer store articles here
-      analysis: {
-        precautions: analysis?.precautions || [],
-        ingredients: analysis?.ingredients || [],
-      },
+      articles: [],
+      analysis: analysisPayload,
+      kind,
     })
     .select()
     .single();
@@ -110,9 +119,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
-  // Save selected papers if any
+  // Save selected papers if any (논문 분석에만 해당)
   let savedPaperCount = 0;
-  if (selectedPapers && selectedPapers.length > 0 && data) {
+  if (kind === 'paper' && selectedPapers && selectedPapers.length > 0 && data) {
     const { getPlanConfig } = await import('@/lib/plans');
     const config = getPlanConfig(plan);
 

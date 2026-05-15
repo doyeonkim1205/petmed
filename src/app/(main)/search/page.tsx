@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat, Camera } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -95,6 +95,7 @@ const likelihoodConfig = {
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
@@ -822,6 +823,21 @@ function SearchContent() {
           </div>
         )}
       </div>
+
+      {/* 사진 분석 진입점 — 증상 모드, 결과/로딩 없을 때만 보조 진입 */}
+      {searchMode === 'symptom' && !symptomLoading && !symptomResult && !symptomError && (
+        <div className="max-w-sm mx-auto px-4 mt-1 mb-2">
+          <button
+            type="button"
+            onClick={() => router.push('/search/photo')}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-full border border-purple-200 bg-white text-purple-700 text-xs font-medium hover:bg-purple-50"
+          >
+            <Camera size={14} />
+            사진으로 분석하기
+            <span className="text-[10px] text-purple-400">(Plus)</span>
+          </button>
+        </div>
+      )}
 
       {/* Content Area */}
       <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>

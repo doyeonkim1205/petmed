@@ -140,6 +140,9 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         temperature: 0.3,
+        // 응답 길이 cap — 타임아웃 + 비용 안정화. JSON 구조에 1500 토큰이면
+        // diseases 3개 + followup 2개 + emergency_signs 2~3개 모두 여유.
+        max_tokens: 1500,
         response_format: { type: 'json_object' },
         messages: [
           {

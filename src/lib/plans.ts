@@ -8,6 +8,7 @@ export interface PlanConfig {
   searchPerDay: number;
   symptomSearchPerDay: number;
   symptomRefinePerDay: number;
+  photoAnalysisPerDay: number;
   aiAnalysis: 'blur' | 'full';
   maxSavedAnalyses: number;
   costStatsMonths: number;
@@ -27,6 +28,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     searchPerDay: 3,
     symptomSearchPerDay: 2,
     symptomRefinePerDay: 1,
+    photoAnalysisPerDay: 0,
     aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 3,
@@ -46,6 +48,9 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     // 1~2회로 충분한 임상 정보 수집이 가능하도록 설계 — 4~5회 재분석은
     // AI 가 같은 질문 반복하는 경향 발견됨. 효율화 + 비용 절감.
     symptomRefinePerDay: 3,
+    // 사진 분석은 Vision API 비용이 텍스트 대비 높음 (~5배). 일일 3회면
+    // 동일 증상 다각도 확인 + 새 증상 1회 정도가 가능한 적정 한도.
+    photoAnalysisPerDay: 3,
     aiAnalysis: 'full',
     // 평균 유저는 평생 100편 내외 저장. 500편 상한은 매크로 스팸 방어용.
     // 유저가 도달하면 경고 메시지 + CS 문의로 상향 가능 (내부 규칙).
