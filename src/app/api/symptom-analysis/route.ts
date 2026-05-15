@@ -35,12 +35,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
-    const { symptoms, petType, petId, followupAnswers } = await request.json();
+    const { symptoms, petType, petId, followupAnswers, previousQuestions } = await request.json();
     if (!symptoms) {
       return NextResponse.json({ error: 'Missing symptoms' }, { status: 400 });
     }
 
     const isRefinement = Array.isArray(followupAnswers) && followupAnswers.length > 0;
+    // 누적된 이전 질문 전체 (여러 라운드 재분석 시 모두 포함).
+    // 클라이언트가 askedQuestions 로 관리해 매 재분석마다 전체 리스트 전송.
+    const allPreviousQuestions: string[] = Array.isArray(previousQuestions)
+      ? previousQuestions.filter((q: unknown): q is string => typeof q === 'string' && q.trim().length > 0)
+      : [];
 
     // 펫 컨텍스트 fetch — petId 옵셔널. 다른 유저 petId 면 silent fail (null 반환).
     // 보안: fetchPetContext 가 user_id 검증 포함.
@@ -94,17 +99,24 @@ export async function POST(request: NextRequest) {
     const patientLabel = effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`;
 
     // Build follow-up context for refined analysis.
-    // 이전 질문을 명시적으로 전달 — AI 가 자기가 한 질문 모르고 같은 질문 반복하던 문제 방어.
+    // blocked 질문 = (1) 클라이언트가 누적한 모든 이전 질문 + (2) 이번 답변의 질문.
+    // (1) 이 핵심 — 여러 라운드 재분석 시 1라운드 질문까지 모두 포함돼 진정한
+    // 중복 방지 가능. 클라가 안 보내도 fallback 으로 (2) 동작 (옛 클라 호환).
     let followupContext = '';
     if (isRefinement) {
       const answersText = followupAnswers
         .map((a: { question: string; answer: string }) => `Q: ${a.question}\nA: ${a.answer}`)
         .join('\n');
-      const previousQuestions = followupAnswers
+      const fallbackPrev = followupAnswers
         .map((a: { question: string }) => a.question)
-        .filter((q): q is string => typeof q === 'string' && q.trim().length > 0);
-      const blockedQuestionsText = previousQuestions.length > 0
-        ? `\n\n[⚠️ 이미 물어본 질문 — 절대 다시 묻지 말 것]\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n→ 위 질문과 같거나 의미가 유사한 질문 생성 금지. 정말 새로운 임상 정보를 묻는 질문만 생성.`
+        .filter((q: unknown): q is string => typeof q === 'string' && q.trim().length > 0);
+      // 누적 리스트가 있으면 우선, 없으면 현재 답변의 질문만 (백워드 호환).
+      // Set 으로 중복 제거 후 명령형 가이드 함께 전달.
+      const blockedQuestions = Array.from(new Set(
+        allPreviousQuestions.length > 0 ? allPreviousQuestions : fallbackPrev
+      ));
+      const blockedQuestionsText = blockedQuestions.length > 0
+        ? `\n\n[⚠️ 이미 물어본 질문 — 절대 다시 묻지 말 것]\n${blockedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n→ 위 질문과 같거나 의미가 유사한 질문 생성 금지. 정말 새로운 임상 정보를 묻는 질문만 생성.`
         : '';
       followupContext = `\n\n보호자가 추가 질문에 답변했습니다:\n${answersText}${blockedQuestionsText}\n\n이 추가 정보를 반영하여 더 정확하게 분석해줘. 이전 분석을 완전히 대체하는 새로운 분석을 제공해.`;
     }
@@ -142,6 +154,17 @@ ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 
 - 일상적·정상 행동 가능성도 솔직히 평가하세요. 모든 증상을 병으로 몰지 않습니다.
 - 보호자가 이해할 수 있도록 쉽게 설명합니다.
 
+[심각한 가능성 숨기지 말 것 — 핵심 균형]
+보호자 불안 조절이 중요하지만, **심각한 질환을 의도적으로 누락하는 것은 더 큰 위험**.
+- "흔한 양성 질환" 만 출력하지 말 것. 임상적으로 가능한 심각한 질환도 동등 고려.
+- 노령 환자 (8살+) 의 만성·지속 증상은 종양·자가면역 가능성 절대 배제 X
+- 검사 소견 (X-ray·초음파·혈액검사) 이 언급되면 그 소견에 부합하는 진단 모두 고려
+  · 예시: "위벽 비후" → 위염 (양성) + 림포마 (악성) + IBD 모두 후보
+  · 예시: "신장 수치 상승" → 신부전 + 신독성 약물 + 종양 모두 후보
+- "안심 메시지(concern_level=low)" 는 **정말 가벼운 일상 증상** 한정.
+  임상 소견이 있거나 노령 환자의 진행성 증상이면 concern_level=medium 또는 high.
+- 보호자를 안심시키려고 심각한 가능성을 빼지 말 것. 정확한 정보 제공이 더 친절한 일.
+
 [감별진단(differential diagnosis) 사고 방법론]
 1. 증상이 가리키는 신체 시스템 정확히 파악
    (소화기 / 비뇨기 / 근골격계 / 피부 / 호흡기 / 신경계 / 행동학 / 내분비 / 안과 등)
@@ -172,6 +195,9 @@ ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 
    "똥"=대변, 비뇨기 질환 (FIC 등) 절대 X.
 ✓ "오줌을 자주 봐요" → FIC + 요로결석 (둘 다 비뇨기, 시스템 일치)
    이때는 비뇨기 질환이 정답.
+✓ "초음파상 위벽이 두꺼워요" → 만성 위염 (양성) + 소화기 림포마 (악성) + IBD
+   임상 소견 있고 노령묘면 양성·악성 모두 동등 고려. 위염만 출력 X.
+   concern_level=medium 또는 high (검사 소견 = 일상 증상 아님).
 
 [배변 vs 배뇨 — 절대 혼동 금지 — 가장 자주 발생하는 오류]
 한국어는 배변(대변)과 배뇨(소변)를 단어로 명확히 구분합니다.
@@ -284,13 +310,17 @@ ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 
 **low 선택을 망설이지 말 것** — watch_signs 가 진료 권장 신호를 별도로 안내하므로,
 "low 라고 했는데 응급이면 어떡하지" 같은 우려는 watch_signs + emergency_signs 로 보호됨.
 
-- "low" (정상 행동 가능성 큼) — **가장 자주 선택돼야 할 기본값**:
+- "low" (정상 행동 가능성 큼) — **가벼운 일상 증상에 한정**:
   · 가끔 토함 (헤어볼·풀 섭취 등 흔한 원인 가능)
   · 일상 그루밍 / 가려움 / 졸음 증가
   · 단발성·일시적 / 산발적 증상 한두 개만
   · 활동성·식욕은 정상
   · 방구·트림·하품·코골이 같은 명백한 생리 현상
-  · 증상이 모호하거나 흔하면 low 선택 (불확실 → medium 으로 도망가지 말 것)
+  · ⚠️ 다음 케이스는 low 아님 (medium/high 로):
+    - 검사 소견 언급 (X-ray, 초음파, 혈액검사 등)
+    - 노령 환자 (8살+) 의 만성·지속 증상
+    - 체중 감소·식욕 부진이 며칠 이상 지속
+    - "위벽 비후", "결절", "부종" 같은 의학 소견
 
 - "medium" (지켜볼 필요 있음):
   · 며칠 이상 명확히 지속되는 증상

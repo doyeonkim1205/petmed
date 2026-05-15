@@ -177,6 +177,11 @@ function SearchContent() {
   // 증상 분석 에러 UI 아이콘 분기용: true 면 자물쇠(한도 초과), false 면 ⚠️(네트워크/기타).
   const [symptomLimitReached, setSymptomLimitReached] = useState(false);
 
+  // 한 증상 분석 세션 내 누적된 follow-up 질문 — 재분석 시 AI 가 같은 질문 반복하지
+  // 않도록 서버에 모두 전달. "새 증상 분석 시작" 시 리셋 (handleSearch 에서 처리).
+  // 한도 모델은 일일 풀(3회/일)이지만, 누적은 "현재 분석 세션" 단위로 함.
+  const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
+
   // 펫 컨텍스트 — 증상 분석 시 특정 펫 선택 시 그 펫의 의료 정보를 AI 에 자동 주입.
   // pets: 사용자 등록 펫 목록 (없으면 빈 배열).
   // selectedPetId: null = "전체"(컨텍스트 미사용, 기존 강아지/고양이 토글로 fallback).
@@ -404,6 +409,8 @@ function SearchContent() {
       setFollowupAnswers({});
       setRefineLimit(null);
       setSymptomLimitReached(false);  // 새 시도 시작 시 리셋
+      // 새 증상 분석 시작 → 누적된 질문 리셋. 이 분석의 자체 누적이 새로 시작됨.
+      setAskedQuestions([]);
     }
     try {
       const { authFetch } = await import('@/lib/authFetch');
@@ -417,6 +424,9 @@ function SearchContent() {
           petType: effectivePetType,
           // petId 옵셔널 — 있으면 서버가 펫 의료 정보 fetch → 프롬프트에 주입.
           ...(selectedPetId ? { petId: selectedPetId } : {}),
+          // 재분석 시 — 누적된 모든 이전 질문 전달 (여러 라운드 재분석에도
+          // AI 가 같은 질문 반복하지 않게). 빈 배열이면 서버에서 처리 안 함.
+          ...(isRefine && askedQuestions.length > 0 ? { previousQuestions: askedQuestions } : {}),
           ...(isRefine ? { followupAnswers: answers } : {}),
         }),
       });
@@ -438,6 +448,16 @@ function SearchContent() {
       const data = await res.json();
       setSymptomResult(data);
       setFollowupAnswers({});
+      // 새 응답의 follow-up 질문을 누적 — 다음 재분석 시 서버에 전달돼 중복 방지.
+      // Set 으로 중복 제거 (같은 질문이 두 번 누적되지 않게).
+      if (Array.isArray(data.followup_questions)) {
+        const newQs = data.followup_questions
+          .map((q: string | FollowupQuestion) => getQuestionText(q))
+          .filter((q: string) => typeof q === 'string' && q.trim().length > 0);
+        if (newQs.length > 0) {
+          setAskedQuestions(prev => Array.from(new Set([...prev, ...newQs])));
+        }
+      }
       // 재분석 시 결과 카드가 입력창 아래 멀리 있으면 사용자가 변화를 놓침 →
       // 페이지 맨 위로 스크롤. scrollIntoView 는 sticky 헤더(top-14)가 덮어서
       // 결과가 중간에 걸려보이는 문제가 있어 window.scrollTo 로 교체.
