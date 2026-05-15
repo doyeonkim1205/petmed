@@ -342,6 +342,12 @@ function PetModal({
                 {editingPetId ? '반려동물 정보 수정' : '반려동물 추가'}
               </p>
 
+              {/* AI 증상 분석에 펫 컨텍스트가 자동 주입돼 정확도가 좌우됨 →
+                 등록 시 정보 입력 의욕을 부드럽게 유도. 모든 필드는 여전히 선택. */}
+              <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed">
+                💡 정보를 자세히 입력할수록 AI 증상 분석이 더 정확해져요
+              </p>
+
               <TextField
                 placeholder="이름"
                 value={form.name}

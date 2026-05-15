@@ -35,6 +35,8 @@ export interface PetRecentRecord {
   visit_date: string;
   title: string;
   record_type: string;
+  /** 진료 본문 — 최근 3건만 포함 + 100자 cap (token / 개인정보 균형) */
+  description?: string;
 }
 
 export interface PetContext {
@@ -108,7 +110,7 @@ export async function fetchPetContext(
 
   const { data: recordRows } = await supabaseAdmin
     .from('health_records')
-    .select('visit_date, title, record_type')
+    .select('visit_date, title, record_type, description')
     .eq('user_id', userId)
     .eq('pet_id', petId)
     .in('record_type', ['visit', 'hospitalization', 'symptom'])
@@ -116,10 +118,18 @@ export async function fetchPetContext(
     .order('visit_date', { ascending: false })
     .limit(5);
 
-  const recentRecords: PetRecentRecord[] = (recordRows || []).map(r => ({
+  // description 은 최근 3건만 포함 + 100자 cap.
+  // 이유:
+  //  - 제목만 보면 정보 부실 (유저가 "검사" 같이 대충 적는 경우 많음)
+  //  - description 까지 풍부히 넣으면 token 폭증 + 개인정보 노출 ↑
+  //  - 최근 3건 (가장 최근 진료 위주) + 100자 cap 으로 핵심 정보 + 비용 균형.
+  const recentRecords: PetRecentRecord[] = (recordRows || []).map((r, idx) => ({
     visit_date: r.visit_date,
     title: r.title,
     record_type: r.record_type,
+    ...(idx < 3 && r.description
+      ? { description: r.description.length > 100 ? r.description.slice(0, 100) + '…' : r.description }
+      : {}),
   }));
 
   return { pet, medications, recentRecords };
@@ -166,7 +176,10 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
     lines.push('');
     lines.push('[최근 3개월 진료]');
     for (const r of recentRecords) {
-      lines.push(`- ${r.visit_date}: ${r.title}`);
+      // description 있으면 제목 + 짧은 본문 (최근 3건만 — fetchPetContext 에서 cap 처리됨).
+      // 형태: "2026-04-06: 구토 증상 — 사료 30분 후, 노란 거품"
+      const body = r.description ? ` — ${r.description}` : '';
+      lines.push(`- ${r.visit_date}: ${r.title}${body}`);
     }
   }
 
