@@ -100,7 +100,9 @@ export default function PhotoAnalysisPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // 사진 업로드 input 2개로 분리 — 카메라/갤러리 액션 시트 대신 명시적 두 진입점.
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   // sessionStorage 복원 완료 후에만 캐시 저장 effect 가 작동하도록 가드.
   // 마운트 시 빈 state 를 캐시로 덮어쓰는 race 방지.
   const cacheRestoredRef = useRef(false);
@@ -261,7 +263,6 @@ export default function PhotoAnalysisPage() {
     }
   };
 
-  const catHint = CATEGORIES.find(c => c.value === category)?.hint || '';
   // 입력 영역 노출 조건 — result 가 없을 때만 (옵션 B: 결과 전용 화면 전환)
   const showInputArea = !result;
 
@@ -282,23 +283,6 @@ export default function PhotoAnalysisPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-3 space-y-4">
-        {/* 사용량 칩 — /search 와 동일한 톤. Free=gray, Plus=blue. */}
-        {usage && (
-          <div className="flex justify-center -mb-2">
-            <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-              usage.plan === 'plus' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
-            }`}>
-              {usage.plan === 'plus' ? (
-                <><Sparkles size={10} /> Plus {usage.used}/{usage.limit}</>
-              ) : usage.limit > 0 ? (
-                <>Free 체험 {usage.used}/{usage.limit}</>
-              ) : (
-                <>Plus 전용</>
-              )}
-            </span>
-          </div>
-        )}
-
         {showInputArea && (
           <>
             {/* Free 한도 소진 안내 — 1회 체험 다 쓴 후 */}
@@ -309,7 +293,7 @@ export default function PhotoAnalysisPage() {
                   <div className="text-sm text-purple-900">
                     <p className="font-semibold mb-1">사진 분석 무료 체험을 모두 사용했어요</p>
                     <p className="text-xs leading-relaxed mb-3">
-                      Plus 로 업그레이드하면 매일 3회 사진을 분석할 수 있어요.
+                      Plus 로 업그레이드하면 매일 3회 사진을 분석할 수 있어요
                     </p>
                     <button
                       type="button"
@@ -336,13 +320,13 @@ export default function PhotoAnalysisPage() {
                 <PawPrint size={32} className="mx-auto mb-2 text-purple-300" />
                 <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                  사진 분석은 반려동물의 나이·품종·만성질환 정보를 함께 활용해야 정확해요.
-                  마이페이지에서 등록하고 다시 시도해 주세요.
+                  아이의 특성에 맞춘 정밀한 체크를 위해 정보 등록이 필요합니다<br />
+                  마이페이지에서 등록 후 다시 시도해주세요
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push('/profile')}
-                  className="px-4 py-2 rounded-full bg-purple-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-full bg-white border border-purple-300 text-purple-600 text-xs font-semibold hover:bg-purple-50"
                 >
                   반려동물 등록하러 가기
                 </button>
@@ -375,7 +359,7 @@ export default function PhotoAnalysisPage() {
               </section>
             )}
 
-            {/* 증상 부위 (카테고리) — 6개라 2열 grid 로 정렬 */}
+            {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬 */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">증상 부위</h2>
               <div className="grid grid-cols-3 gap-1.5">
@@ -392,12 +376,27 @@ export default function PhotoAnalysisPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">💡 {catHint}</p>
+              <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">💡 밝은 곳에서 가까이 찍을수록 분석 결과가 정확해져요</p>
             </section>
 
-            {/* 증상 사진 첨부 */}
+            {/* 증상 사진 첨부 — 헤더 우측에 사용량 칩 (Plus/Free 통일 톤) */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
-              <h2 className="text-xs font-semibold text-gray-500 mb-2">증상 사진 첨부</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-semibold text-gray-500">증상 사진 첨부</h2>
+                {usage && (
+                  <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+                    usage.plan === 'plus' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+                  }`}>
+                    {usage.plan === 'plus' ? (
+                      <><Sparkles size={10} /> Plus {usage.used}/{usage.limit}</>
+                    ) : usage.limit > 0 ? (
+                      <>Free 체험 {usage.used}/{usage.limit}</>
+                    ) : (
+                      <>Plus 전용</>
+                    )}
+                  </span>
+                )}
+              </div>
               {imageDataUrl ? (
                 <div className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -416,23 +415,40 @@ export default function PhotoAnalysisPage() {
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-gray-300 rounded-lg py-8 flex flex-col items-center justify-center gap-2 text-gray-500 hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <Camera size={24} />
-                    <span className="text-gray-300">·</span>
-                    <ImageIcon size={24} />
-                  </div>
-                  <span className="text-sm font-medium mt-1">촬영하거나 갤러리에서 선택</span>
-                  <span className="text-[11px] text-gray-400">JPG · PNG · 1장</span>
-                </button>
+                /* 두 진입점 — 직접 촬영 / 갤러리 불러오기. 중앙에 점 구분자.
+                   모바일에선 capture 속성으로 카메라/갤러리 명시 분리. */
+                <div className="w-full border-2 border-dashed border-gray-300 rounded-lg py-7 flex items-center justify-center gap-4 text-gray-500 hover:bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex flex-col items-center gap-1.5 px-3 hover:text-purple-600"
+                  >
+                    <Camera size={26} />
+                    <span className="text-xs font-medium">직접 촬영하기</span>
+                  </button>
+                  <span className="text-gray-300 text-xl leading-none">·</span>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="flex flex-col items-center gap-1.5 px-3 hover:text-purple-600"
+                  >
+                    <ImageIcon size={26} />
+                    <span className="text-xs font-medium">갤러리에서 불러오기</span>
+                  </button>
+                </div>
               )}
-              {/* capture 속성을 빼서 모바일에서 카메라/갤러리 둘 다 액션 시트로 선택 가능. */}
+              {/* 카메라 강제 — capture="environment" 로 후면 카메라 실행 */}
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {/* 갤러리만 — capture 없음. iOS/Android 모두 사진 보관함 노출 */}
+              <input
+                ref={galleryInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -460,9 +476,9 @@ export default function PhotoAnalysisPage() {
               <p className="text-[11px] text-gray-400 text-right mt-1">{hint.length}/200</p>
             </section>
 
-            {/* 책임 제한 1줄 — 상세 정보는 결과 화면의 사진 옆 ⓘ 에서 안내 */}
+            {/* 책임 제한 — 분석 버튼 바로 위. 상세 정보는 결과 화면 사진 옆 ⓘ. */}
             <div className="text-[11px] text-gray-500 leading-relaxed px-1">
-              ⚠️ AI 분석은 참고용이에요. 정확한 진단은 동물병원에서 받으셔야 해요.
+              AI 분석 결과는 참고용입니다! 정확한 진단은 동물병원을 방문해 주세요
             </div>
 
             <button
@@ -518,10 +534,14 @@ function ResultPanel({
   saveError: string | null;
 }) {
   const [showPrivacyTooltip, setShowPrivacyTooltip] = useState(false);
-  const concernColor =
-    result.concern_level === 'high' ? 'border-red-200 bg-red-50' :
-    result.concern_level === 'medium' ? 'border-amber-200 bg-amber-50' :
-    'border-emerald-200 bg-emerald-50';
+  // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️).
+  // medium 의 amber 톤은 "주의" 시그널과 의미 충돌이라 파랑으로 변경.
+  const concernConfig = {
+    low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800' },
+    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: 'ℹ️', textColor: 'text-blue-800' },
+  } as const;
+  const concernKey = result.concern_level === 'low' ? 'low' : 'medium';
+  const cfg = concernConfig[concernKey];
 
   return (
     <section id="photo-result" className="space-y-3 pt-2">
@@ -543,7 +563,7 @@ function ResultPanel({
                 <Info size={14} />
                 {showPrivacyTooltip && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
-                    사진은 서버에 저장되지 않아요. 분석 결과를 저장하면 <strong>이 기기 보관함</strong>에서만 사진이 보이고, 다른 기기에선 보이지 않아요.
+                    사진은 서버에 저장되지 않아요 분석 결과를 저장하면 <strong>이 기기 보관함</strong>에서만 사진이 보이고 다른 기기에선 보이지 않아요
                   </div>
                 )}
               </button>
@@ -552,17 +572,17 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 사진 부적합 */}
+      {/* 사진 부적합 — AI 가 is_valid_photo=false 로 판정한 경우만 노출 */}
       {result.is_valid_photo === false && (
         <div className="bg-white rounded-lg p-4 shadow-sm border border-amber-200">
           <p className="text-sm font-semibold text-amber-900 mb-1">사진을 다시 찍어주세요</p>
-          <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || '사진이 분석에 적합하지 않아요.'}</p>
+          <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || '사진이 분석에 적합하지 않아요'}</p>
           <button
             type="button"
             onClick={onReset}
             className="mt-3 w-full py-2 rounded-full bg-amber-500 text-white text-xs font-semibold"
           >
-            다시 찍기
+            다른 사진으로 분석하기
           </button>
         </div>
       )}
@@ -577,15 +597,17 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 안내 카드 (low/medium) */}
+      {/* 안내 카드 (low/medium) — 텍스트 분석과 동일 톤 (low=초록, medium=파랑) */}
       {result.is_valid_photo !== false && (result.concern_level === 'low' || result.concern_level === 'medium') && (
-        <div className={`rounded-lg p-4 border ${concernColor}`}>
+        <div className={`rounded-lg p-4 border ${cfg.border} ${cfg.bg}`}>
           {result.reassurance && (
-            <p className="text-sm text-gray-800 leading-relaxed mb-3">{result.reassurance}</p>
+            <p className={`text-sm leading-relaxed mb-3 ${cfg.textColor}`}>
+              <span className="mr-1">{cfg.icon}</span>{result.reassurance}
+            </p>
           )}
           {result.watch_signs && result.watch_signs.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-1">이런 경우엔 진료를 고려하세요</p>
+              <p className="text-xs font-semibold text-gray-600 mb-1">🔍 이런 경우엔 진료를 고려하세요</p>
               <ul className="text-xs text-gray-700 space-y-0.5 list-disc pl-4">
                 {result.watch_signs.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -605,19 +627,20 @@ function ResultPanel({
                 {d.name_en && <span className="text-[11px] text-gray-400">{d.name_en}</span>}
               </div>
               {d.category && <p className="text-[11px] text-gray-500 mb-2">{d.category}</p>}
+              {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음 */}
               <div className="flex gap-1.5 mb-2 text-[11px]">
-                {d.likelihood && (
-                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    가능성 {d.likelihood}
-                  </span>
-                )}
                 {d.severity && (
-                  <span className={`px-2 py-0.5 rounded-full ${
+                  <span className={`px-2 py-0.5 rounded-full font-bold ${
                     d.severity === '긴급' ? 'bg-red-100 text-red-700' :
                     d.severity === '주의' ? 'bg-amber-100 text-amber-700' :
                     'bg-emerald-100 text-emerald-700'
                   }`}>
                     {d.severity}
+                  </span>
+                )}
+                {d.likelihood && (
+                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                    가능성 {d.likelihood}
                   </span>
                 )}
               </div>
@@ -653,12 +676,12 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 책임 제한 박스 */}
+      {/* 책임 제한 박스 — 마침표 제거 (일관 정책) */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <p className="text-[11px] text-gray-600 leading-relaxed">
-          <strong className="text-gray-800">⚠️ 분석 결과는 참고용이에요.</strong><br />
-          AI 분석은 사진 한 장의 시각 정보만으로 추정한 가능성이며, 확진이 아니에요.
-          증상이 지속되거나 악화되면 반드시 동물병원에서 진료를 받아주세요.
+          <strong className="text-gray-800">⚠️ 분석 결과는 참고용이에요</strong><br />
+          AI 분석은 사진 한 장의 시각 정보만으로 추정한 가능성이며 확진이 아니에요
+          증상이 지속되거나 악화되면 반드시 동물병원에서 진료를 받아주세요
         </p>
       </div>
 
@@ -688,7 +711,7 @@ function ResultPanel({
         onClick={onReset}
         className="w-full py-2.5 rounded-full bg-white border border-gray-300 text-gray-700 text-sm font-medium"
       >
-        다른 사진 분석하기
+        다른 사진으로 분석하기
       </button>
     </section>
   );

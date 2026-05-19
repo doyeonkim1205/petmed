@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (!checkRateLimit(`${userId}:symptom-photo`, 5, 60_000)) {
       return NextResponse.json(
-        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { error: '요청이 너무 많습니다 잠시 후 다시 시도해주세요' },
         { status: 429 },
       );
     }
@@ -53,18 +53,18 @@ export async function POST(request: NextRequest) {
 
     // 1) 입력 검증
     if (typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
-      return NextResponse.json({ error: '이미지 파일이 올바르지 않아요.' }, { status: 400 });
+      return NextResponse.json({ error: '이미지 파일이 올바르지 않아요' }, { status: 400 });
     }
     // 2MB 가드 — 클라이언트 압축을 우회한 직접 호출 차단
     const base64Body = imageDataUrl.split(',')[1] || '';
     const approxBytes = Math.floor((base64Body.length * 3) / 4);
     if (approxBytes > MAX_IMAGE_BYTES) {
       return NextResponse.json({
-        error: '이미지가 너무 커요. 더 작은 사진을 사용해 주세요.',
+        error: '이미지가 너무 커요 더 작은 사진을 사용해 주세요',
       }, { status: 413 });
     }
     if (petType !== 'dog' && petType !== 'cat') {
-      return NextResponse.json({ error: 'petType 이 올바르지 않아요.' }, { status: 400 });
+      return NextResponse.json({ error: 'petType 이 올바르지 않아요' }, { status: 400 });
     }
     type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'other';
     const ALLOWED_CATEGORIES: readonly Category[] = ['skin', 'eye', 'wound', 'dental', 'ear', 'other'];
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (plan === 'free') {
       if (config.photoAnalysisLifetimeFree === 0) {
         return NextResponse.json({
-          error: '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요.',
+          error: '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요',
           upgradeRequired: true,
         }, { status: 403 });
       }
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         .eq('kind', 'symptom_photo');
       if ((count || 0) >= config.photoAnalysisLifetimeFree) {
         return NextResponse.json({
-          error: '무료 체험(1회)을 모두 사용했어요. Plus 로 업그레이드하면 매일 3회 분석할 수 있어요.',
+          error: '무료 체험(1회)을 모두 사용했어요 Plus 로 업그레이드하면 매일 3회 분석할 수 있어요',
           limitReached: true,
           upgradeRequired: true,
         }, { status: 429 });
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         .gte('created_at', startOfDay.toISOString());
       if ((count || 0) >= config.photoAnalysisPerDay) {
         return NextResponse.json({
-          error: `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
+          error: `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다\n밤 12시(자정)에 초기화됩니다`,
           limitReached: true,
         }, { status: 429 });
       }
@@ -304,7 +304,7 @@ generic 카테고리로 후퇴하지 말 것.
       console.error('OpenAI vision error:', res.status, errText);
       Sentry.captureMessage(`vision-api-${res.status}`, { level: 'error' });
       return NextResponse.json(
-        { error: 'AI 분석 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' },
+        { error: 'AI 분석 중 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
         { status: 502 },
       );
     }
@@ -317,7 +317,7 @@ generic 카테고리로 후퇴하지 말 것.
     } catch {
       Sentry.captureMessage('vision-json-parse-fail', { level: 'error' });
       return NextResponse.json(
-        { error: 'AI 응답 처리에 실패했어요. 다시 시도해 주세요.' },
+        { error: 'AI 응답 처리에 실패했어요 다시 시도해 주세요' },
         { status: 502 },
       );
     }
@@ -346,8 +346,8 @@ generic 카테고리로 후퇴하지 말 것.
     if (parsed.concern_level === 'low' || parsed.concern_level === 'medium') {
       if (!parsed.reassurance) {
         parsed.reassurance = parsed.is_valid_photo === false
-          ? '사진을 다시 찍어서 분석해 보세요.'
-          : '지금 당장 위급한 상황으로 보이진 않아요. 변화가 있는지 잘 지켜봐 주세요.';
+          ? '사진을 다시 찍어서 분석해 보세요'
+          : '지금 당장 위급한 상황으로 보이진 않아요 변화가 있는지 잘 지켜봐 주세요';
       }
       if (!Array.isArray(parsed.watch_signs) || parsed.watch_signs.length === 0) {
         parsed.watch_signs = [
@@ -390,7 +390,7 @@ generic 카테고리로 후퇴하지 말 것.
     console.error('symptom-analysis-image error:', err);
     Sentry.captureException(err);
     return NextResponse.json(
-      { error: '서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.' },
+      { error: '서버 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
       { status: 500 },
     );
   }

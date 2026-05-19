@@ -34,7 +34,7 @@ export interface CompressedImage {
  */
 export async function compressImage(file: File | Blob): Promise<CompressedImage> {
   if (!file.type.startsWith('image/')) {
-    throw new Error('이미지 파일만 업로드할 수 있어요.');
+    throw new Error('이미지 파일만 업로드할 수 있어요');
   }
 
   // 1. File → HTMLImageElement (createImageBitmap 이 더 빠르지만
@@ -58,7 +58,7 @@ export async function compressImage(file: File | Blob): Promise<CompressedImage>
   canvas.width = targetW;
   canvas.height = targetH;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('이미지 변환에 실패했어요.');
+  if (!ctx) throw new Error('이미지 변환에 실패했어요');
   ctx.drawImage(img, 0, 0, targetW, targetH);
 
   const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
@@ -67,7 +67,7 @@ export async function compressImage(file: File | Blob): Promise<CompressedImage>
   const approxBytes = Math.floor((base64Body.length * 3) / 4);
 
   if (approxBytes > MAX_OUTPUT_BYTES) {
-    throw new Error('이미지가 너무 커요. 더 작은 사진을 사용해 주세요.');
+    throw new Error('이미지가 너무 커요 더 작은 사진을 사용해 주세요');
   }
 
   return { dataUrl, approxBytes, width: targetW, height: targetH };
@@ -77,7 +77,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('이미지를 읽지 못했어요.'));
+    img.onerror = () => reject(new Error('이미지를 읽지 못했어요'));
     img.src = src;
   });
 }
