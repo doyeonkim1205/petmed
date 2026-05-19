@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info } from 'lucide-react';
+import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Pet } from '@/lib/supabase';
@@ -51,8 +51,9 @@ export default function PhotoAnalysisPage() {
   const { user, loading: authLoading } = useAuth();
 
   const [pets, setPets] = useState<Pet[]>([]);
+  // 등록 펫만 분석 대상 — 펫 미등록 시 안내 카드 표시.
+  // 펫 1마리 이상이면 첫 펫 자동 선택, 사용자가 칩으로 변경 가능.
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
-  const [petType, setPetType] = useState<'dog' | 'cat'>('dog');
   const [category, setCategory] = useState<Category>('skin');
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -68,8 +69,8 @@ export default function PhotoAnalysisPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedPet = selectedPetId ? pets.find(p => p.id === selectedPetId) ?? null : null;
-  const effectivePetType: 'cat' | 'dog' = selectedPet?.type ?? petType;
   const isFreeNoQuota = usage && usage.limit === 0;
+  const hasPets = pets.length > 0;
 
   useEffect(() => {
     if (!user) return;
@@ -82,7 +83,8 @@ export default function PhotoAnalysisPage() {
       if (!alive) return;
       const petList = petsRes.data ?? [];
       setPets(petList);
-      if (petList.length > 0 && petList[0].type) setPetType(petList[0].type as 'dog' | 'cat');
+      // 펫 1마리 이상이면 첫 펫 자동 선택 — 1마리 유저는 별도 클릭 없이 분석 가능.
+      if (petList.length > 0) setSelectedPetId(prev => prev ?? petList[0].id);
       if (usageRes) setUsage({ used: usageRes.photo.used, limit: usageRes.photo.limit, plan: usageRes.plan });
     })();
     return () => { alive = false; };
@@ -108,7 +110,7 @@ export default function PhotoAnalysisPage() {
   };
 
   const handleAnalyze = async () => {
-    if (!imageDataUrl || analyzing) return;
+    if (!imageDataUrl || analyzing || !selectedPet) return;
     setAnalyzing(true);
     setServerError(null);
     setResult(null);
@@ -120,8 +122,8 @@ export default function PhotoAnalysisPage() {
           imageDataUrl,
           hint: hint.trim() || undefined,
           category,
-          petType: effectivePetType,
-          ...(selectedPetId ? { petId: selectedPetId } : {}),
+          petType: selectedPet.type,
+          petId: selectedPet.id,
         }),
       });
       const data = await res.json();
@@ -155,7 +157,7 @@ export default function PhotoAnalysisPage() {
   };
 
   const handleSave = async () => {
-    if (!result || !imageDataUrl || saving || savedId) return;
+    if (!result || !imageDataUrl || saving || savedId || !selectedPet) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -165,7 +167,7 @@ export default function PhotoAnalysisPage() {
         body: JSON.stringify({
           kind: 'symptom_photo',
           query: hint.trim() || `[사진 분석: ${CATEGORIES.find(c => c.value === category)?.label || '기타'}]`,
-          petType: effectivePetType,
+          petType: selectedPet.type,
           analysis: result,
         }),
       });
@@ -231,20 +233,31 @@ export default function PhotoAnalysisPage() {
           </div>
         )}
 
-        {/* 펫 선택 */}
-        {pets.length > 0 && (
+        {/* 펫 미등록 안내 — 사진 분석은 펫 컨텍스트 (나이/품종/만성질환/약) 가
+            정확도에 큰 영향을 주므로 등록 펫이 있는 사용자만 허용. */}
+        {!hasPets && (
+          <section className="bg-white rounded-lg p-5 shadow-sm text-center">
+            <PawPrint size={32} className="mx-auto mb-2 text-purple-300" />
+            <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              사진 분석은 반려동물의 나이·품종·만성질환 정보를 함께 활용해야 정확해요.
+              마이페이지에서 등록하고 다시 시도해 주세요.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/profile')}
+              className="px-4 py-2 rounded-full bg-purple-600 text-white text-xs font-semibold"
+            >
+              반려동물 등록하러 가기
+            </button>
+          </section>
+        )}
+
+        {/* 펫 선택 — 등록된 펫만. 1마리면 자동 선택, 2마리+ 면 칩으로 변경 가능. */}
+        {hasPets && (
           <section className="bg-white rounded-lg p-4 shadow-sm">
             <h2 className="text-xs font-semibold text-gray-500 mb-2">분석할 반려동물</h2>
             <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
-              <button
-                type="button"
-                onClick={() => setSelectedPetId(null)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium ${
-                  selectedPetId === null ? 'bg-purple-600 text-white' : 'bg-gray-50 text-gray-500'
-                }`}
-              >
-                전체
-              </button>
               {pets.map(pet => {
                 const active = selectedPetId === pet.id;
                 const Icon = pet.type === 'dog' ? Dog : Cat;
@@ -263,24 +276,6 @@ export default function PhotoAnalysisPage() {
                 );
               })}
             </div>
-            {selectedPetId === null && (
-              <div className="flex gap-1.5 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setPetType('dog')}
-                  className={`flex-1 py-1.5 rounded-full text-xs ${petType === 'dog' ? 'bg-blue-50 text-blue-600 font-semibold' : 'bg-gray-50 text-gray-500'}`}
-                >
-                  강아지
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPetType('cat')}
-                  className={`flex-1 py-1.5 rounded-full text-xs ${petType === 'cat' ? 'bg-blue-50 text-blue-600 font-semibold' : 'bg-gray-50 text-gray-500'}`}
-                >
-                  고양이
-                </button>
-              </div>
-            )}
           </section>
         )}
 
@@ -328,18 +323,23 @@ export default function PhotoAnalysisPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-10 flex flex-col items-center justify-center gap-2 text-gray-500 hover:bg-gray-50"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-8 flex flex-col items-center justify-center gap-2 text-gray-500 hover:bg-gray-50"
             >
-              <Camera size={32} />
-              <span className="text-sm font-medium">사진 선택 또는 촬영</span>
-              <span className="text-[11px] text-gray-400">JPG · PNG · 최대 1장</span>
+              <div className="flex items-center gap-3">
+                <Camera size={24} />
+                <span className="text-gray-300">·</span>
+                <ImageIcon size={24} />
+              </div>
+              <span className="text-sm font-medium mt-1">촬영하거나 갤러리에서 선택</span>
+              <span className="text-[11px] text-gray-400">JPG · PNG · 1장</span>
             </button>
           )}
+          {/* capture 속성을 빼서 모바일에서 카메라/갤러리 둘 다 액션 시트로 선택 가능.
+              이전엔 capture="environment" 로 후면 카메라가 강제 실행돼 갤러리 접근이 어려웠음. */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -367,15 +367,15 @@ export default function PhotoAnalysisPage() {
 
         {/* 책임 제한 안내 (분석 전) */}
         <div className="text-[11px] text-gray-500 leading-relaxed px-1">
-          ⚠️ AI 분석은 참고용이에요. 정확한 진단은 동물병원에서 받으셔야 해요.
-          사진은 서버에 저장되지 않아요.
+          ⚠️ AI 분석은 참고용이에요. 정확한 진단은 동물병원에서 받으셔야 해요.<br />
+          사진은 서버에 저장되지 않아요. 분석 결과를 저장하면 이 기기 보관함에서만 사진을 다시 볼 수 있어요.
         </div>
 
-        {/* 분석 버튼 */}
+        {/* 분석 버튼 — 펫 미선택/이미지 없음/Free 한도/분석 중일 땐 비활성 */}
         <button
           type="button"
           onClick={handleAnalyze}
-          disabled={!imageDataUrl || analyzing || isFreeNoQuota === true}
+          disabled={!imageDataUrl || !selectedPet || analyzing || isFreeNoQuota === true}
           className="w-full py-3 rounded-full bg-purple-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           {analyzing ? 'AI가 분석 중이에요...' : '사진 분석하기'}
@@ -451,8 +451,8 @@ function ResultPanel({
               >
                 <Info size={14} />
                 {showPrivacyTooltip && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-56 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
-                    개인정보 보호를 위해 사진은 서버에 저장되지 않으며, 페이지를 나가면 다시 볼 수 없어요.
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
+                    사진은 서버에 저장되지 않아요. 분석 결과를 저장하면 <strong>이 기기 보관함</strong>에서만 사진이 보이고, 다른 기기에선 보이지 않아요.
                   </div>
                 )}
               </button>
