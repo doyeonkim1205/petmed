@@ -534,14 +534,20 @@ function ResultPanel({
   saveError: string | null;
 }) {
   const [showPrivacyTooltip, setShowPrivacyTooltip] = useState(false);
-  // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️).
+  // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️), high=빨강(🚨).
   // AI reassurance 대신 short label 로 concern_level 시그널 표현.
+  // high 일 땐 AI 가 watch_signs 를 안 생성 (emergency_signs 가 그 역할) — 헤더만 표시됨.
   const concernConfig = {
     low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: '지금은 괜찮아 보여요' },
     medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: 'ℹ️', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
+    high:   { border: 'border-red-200',     bg: 'bg-red-50',     icon: '🚨', textColor: 'text-red-800',     label: '빠른 진료가 필요해요' },
   } as const;
-  const concernKey = result.concern_level === 'low' ? 'low' : 'medium';
+  const concernKey =
+    result.concern_level === 'low' ? 'low' :
+    result.concern_level === 'high' ? 'high' :
+    'medium';
   const cfg = concernConfig[concernKey];
+  const hasWatchSigns = !!result.watch_signs && result.watch_signs.length > 0;
 
   return (
     <section id="photo-result" className="space-y-3 pt-2">
@@ -592,19 +598,19 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 안내 카드 (low/medium) — AI 생성 reassurance 대신 짧은 고정 라벨.
-          이유: AI reassurance 가 모호한 안심 멘트라 사용자 가치 작음 + 톤 불안정.
-          짧은 라벨로 concern_level 시그널 유지 + watch_signs 핵심 정보만 강조. */}
-      {result.is_valid_photo !== false && (result.concern_level === 'low' || result.concern_level === 'medium') && (
+      {/* 안내 카드 — low/medium/high 모두 노출. concern_level 시그널 일관성.
+          - low/medium: 헤더 + watch_signs (AI 가 생성)
+          - high:       헤더만 (watch_signs 는 비어있음 — emergency_signs 가 디테일 담당) */}
+      {result.is_valid_photo !== false && (result.concern_level === 'low' || result.concern_level === 'medium' || result.concern_level === 'high') && (
         <div className={`rounded-lg p-4 border ${cfg.border} ${cfg.bg}`}>
-          <p className={`text-sm font-semibold mb-3 ${cfg.textColor}`}>
+          <p className={`text-sm font-semibold ${cfg.textColor} ${hasWatchSigns ? 'mb-3' : ''}`}>
             <span className="mr-1">{cfg.icon}</span>{cfg.label}
           </p>
-          {result.watch_signs && result.watch_signs.length > 0 && (
+          {hasWatchSigns && (
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1">🔍 이런 경우엔 진료를 고려하세요</p>
               <ul className="text-xs text-gray-700 space-y-0.5 list-disc pl-4">
-                {result.watch_signs.map((s, i) => <li key={i}>{s}</li>)}
+                {result.watch_signs!.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
           )}
