@@ -27,7 +27,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     nameKo: '무료',
     price: 0,
     maxRecords: 15,
-    searchPerDay: 3,
+    searchPerDay: 2,
     symptomSearchPerDay: 2,
     symptomRefinePerDay: 1,
     photoAnalysisPerDay: 0,
@@ -47,7 +47,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     nameKo: '플러스',
     price: 3900, // 1회 결제 기준가. 자동 결제 3500, 연간 40000은 payment_products DB에서 관리
     maxRecords: 0,
-    searchPerDay: 15,
+    searchPerDay: 10,
     symptomSearchPerDay: 10,
     // 1~2회로 충분한 임상 정보 수집이 가능하도록 설계 — 4~5회 재분석은
     // AI 가 같은 질문 반복하는 경향 발견됨. 효율화 + 비용 절감.

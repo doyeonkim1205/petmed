@@ -535,10 +535,10 @@ function ResultPanel({
 }) {
   const [showPrivacyTooltip, setShowPrivacyTooltip] = useState(false);
   // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️).
-  // medium 의 amber 톤은 "주의" 시그널과 의미 충돌이라 파랑으로 변경.
+  // AI reassurance 대신 short label 로 concern_level 시그널 표현.
   const concernConfig = {
-    low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800' },
-    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: 'ℹ️', textColor: 'text-blue-800' },
+    low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: '지금은 괜찮아 보여요' },
+    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: 'ℹ️', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
   } as const;
   const concernKey = result.concern_level === 'low' ? 'low' : 'medium';
   const cfg = concernConfig[concernKey];
@@ -572,39 +572,34 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 사진 부적합 — AI 가 is_valid_photo=false 로 판정한 경우만 노출 */}
+      {/* 사진 부적합 — AI 가 is_valid_photo=false 로 판정한 경우만 노출.
+          액션 버튼은 박스 안에 두지 않음 — 결과 화면 하단의 통일 버튼 사용.
+          박스는 안내 (다시 찍어주세요 + 이유) 만 담당해서 시각 잡음 ↓ */}
       {result.is_valid_photo === false && (
         <div className="bg-white rounded-lg p-4 shadow-sm border border-amber-200">
           <p className="text-sm font-semibold text-amber-900 mb-1">사진을 다시 찍어주세요</p>
           <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || '사진이 분석에 적합하지 않아요'}</p>
-          <button
-            type="button"
-            onClick={onReset}
-            className="mt-3 w-full py-2 rounded-full bg-amber-500 text-white text-xs font-semibold"
-          >
-            다른 사진으로 분석하기
-          </button>
         </div>
       )}
 
-      {/* 관찰 사항 */}
+      {/* 관찰 사항 — 본문 폰트를 다른 섹션과 동일하게 text-xs 로 통일 */}
       {result.observations && result.observations.length > 0 && (
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-gray-500 mb-2">사진에서 관찰된 내용</h3>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc pl-4">
+          <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
             {result.observations.map((o, i) => <li key={i}>{o}</li>)}
           </ul>
         </div>
       )}
 
-      {/* 안내 카드 (low/medium) — 텍스트 분석과 동일 톤 (low=초록, medium=파랑) */}
+      {/* 안내 카드 (low/medium) — AI 생성 reassurance 대신 짧은 고정 라벨.
+          이유: AI reassurance 가 모호한 안심 멘트라 사용자 가치 작음 + 톤 불안정.
+          짧은 라벨로 concern_level 시그널 유지 + watch_signs 핵심 정보만 강조. */}
       {result.is_valid_photo !== false && (result.concern_level === 'low' || result.concern_level === 'medium') && (
         <div className={`rounded-lg p-4 border ${cfg.border} ${cfg.bg}`}>
-          {result.reassurance && (
-            <p className={`text-sm leading-relaxed mb-3 ${cfg.textColor}`}>
-              <span className="mr-1">{cfg.icon}</span>{result.reassurance}
-            </p>
-          )}
+          <p className={`text-sm font-semibold mb-3 ${cfg.textColor}`}>
+            <span className="mr-1">{cfg.icon}</span>{cfg.label}
+          </p>
           {result.watch_signs && result.watch_signs.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1">🔍 이런 경우엔 진료를 고려하세요</p>
@@ -622,11 +617,10 @@ function ResultPanel({
           <h3 className="text-xs font-semibold text-gray-500 px-1">의심 진단</h3>
           {result.diseases.map((d, i) => (
             <div key={i} className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="flex items-baseline gap-2 mb-1">
+              <div className="flex items-baseline gap-2 mb-2">
                 <h4 className="font-bold text-sm">{d.name_ko}</h4>
                 {d.name_en && <span className="text-[11px] text-gray-400">{d.name_en}</span>}
               </div>
-              {d.category && <p className="text-[11px] text-gray-500 mb-2">{d.category}</p>}
               {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음 */}
               <div className="flex gap-1.5 mb-2 text-[11px]">
                 {d.severity && (
