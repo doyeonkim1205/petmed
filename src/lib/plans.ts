@@ -9,6 +9,8 @@ export interface PlanConfig {
   symptomSearchPerDay: number;
   symptomRefinePerDay: number;
   photoAnalysisPerDay: number;
+  /** 사진 분석 — Free 유저 평생 체험 횟수. Plus 는 photoAnalysisPerDay 사용. */
+  photoAnalysisLifetimeFree: number;
   aiAnalysis: 'blur' | 'full';
   maxSavedAnalyses: number;
   costStatsMonths: number;
@@ -29,6 +31,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     symptomSearchPerDay: 2,
     symptomRefinePerDay: 1,
     photoAnalysisPerDay: 0,
+    // Free 유저는 평생 1회 사진 분석 체험 가능 — 가치 검증 후 Plus 전환 유도.
+    photoAnalysisLifetimeFree: 1,
     aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 3,
@@ -51,6 +55,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     // 사진 분석은 Vision API 비용이 텍스트 대비 높음 (~5배). 일일 3회면
     // 동일 증상 다각도 확인 + 새 증상 1회 정도가 가능한 적정 한도.
     photoAnalysisPerDay: 3,
+    // Plus 는 일일 한도만 적용 (lifetime 의미 없음).
+    photoAnalysisLifetimeFree: 0,
     aiAnalysis: 'full',
     // 평균 유저는 평생 100편 내외 저장. 500편 상한은 매크로 스팸 방어용.
     // 유저가 도달하면 경고 메시지 + CS 문의로 상향 가능 (내부 규칙).

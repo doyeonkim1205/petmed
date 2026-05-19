@@ -804,11 +804,12 @@ function SearchContent() {
                   <Camera size={18} />
                   {showPhotoHint && (
                     <span
-                      className="absolute top-full right-0 mt-2 whitespace-nowrap rounded-lg bg-purple-600 text-white text-[11px] font-medium px-2.5 py-1.5 shadow-lg z-20"
+                      className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-white border border-purple-300 text-purple-600 text-[11px] font-medium px-2.5 py-1.5 shadow-md z-20"
                       role="tooltip"
                     >
                       📷 사진으로 분석하기!
-                      <span className="absolute -top-1 right-3 w-2 h-2 bg-purple-600 rotate-45" />
+                      {/* 아래 방향 꼬리 — 카메라 아이콘 가리키게. border 색과 동일 톤. */}
+                      <span className="absolute -bottom-1 right-3 w-2 h-2 bg-white border-r border-b border-purple-300 rotate-45" />
                     </span>
                   )}
                 </button>

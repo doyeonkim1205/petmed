@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
     if (petType !== 'dog' && petType !== 'cat') {
       return NextResponse.json({ error: 'petType 이 올바르지 않아요.' }, { status: 400 });
     }
-    const safeCategory: 'skin' | 'eye' | 'other' =
-      category === 'skin' || category === 'eye' ? category : 'other';
+    type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'other';
+    const ALLOWED_CATEGORIES: readonly Category[] = ['skin', 'eye', 'wound', 'dental', 'ear', 'other'];
+    const safeCategory: Category = ALLOWED_CATEGORIES.includes(category) ? category as Category : 'other';
     const safeHint = typeof hint === 'string' ? sanitizeForLLM(hint).slice(0, 300) : '';
 
     // 2) 펫 컨텍스트 (텍스트 분석과 동일하게 user_id 검증 포함)
@@ -85,33 +86,52 @@ export async function POST(request: NextRequest) {
     const plan = getEffectivePlan(profile?.plan);
     const config = getPlanConfig(plan);
 
-    if (config.photoAnalysisPerDay === 0) {
-      return NextResponse.json({
-        error: '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요.',
-        upgradeRequired: true,
-      }, { status: 403 });
-    }
-
-    const startOfDay = startOfDayKST();
-    const { count } = await supabaseAdmin
-      .from('search_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('kind', 'symptom_photo')
-      .gte('created_at', startOfDay.toISOString());
-
-    if ((count || 0) >= config.photoAnalysisPerDay) {
-      return NextResponse.json({
-        error: `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
-        limitReached: true,
-      }, { status: 429 });
+    // Free 유저는 평생 1회 체험, Plus 유저는 일일 한도 적용.
+    if (plan === 'free') {
+      if (config.photoAnalysisLifetimeFree === 0) {
+        return NextResponse.json({
+          error: '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요.',
+          upgradeRequired: true,
+        }, { status: 403 });
+      }
+      const { count } = await supabaseAdmin
+        .from('search_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('kind', 'symptom_photo');
+      if ((count || 0) >= config.photoAnalysisLifetimeFree) {
+        return NextResponse.json({
+          error: '무료 체험(1회)을 모두 사용했어요. Plus 로 업그레이드하면 매일 3회 분석할 수 있어요.',
+          limitReached: true,
+          upgradeRequired: true,
+        }, { status: 429 });
+      }
+    } else {
+      const startOfDay = startOfDayKST();
+      const { count } = await supabaseAdmin
+        .from('search_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('kind', 'symptom_photo')
+        .gte('created_at', startOfDay.toISOString());
+      if ((count || 0) >= config.photoAnalysisPerDay) {
+        return NextResponse.json({
+          error: `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
+          limitReached: true,
+        }, { status: 429 });
+      }
     }
 
     const petLabel = effectivePetType === 'cat' ? '고양이' : '강아지';
     const patientLabel = effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`;
-    const categoryLabel =
-      safeCategory === 'skin' ? '피부' :
-      safeCategory === 'eye' ? '눈' : '일반';
+    const categoryLabel = (
+      safeCategory === 'skin'   ? '피부'      :
+      safeCategory === 'eye'    ? '눈'        :
+      safeCategory === 'wound'  ? '외상'      :
+      safeCategory === 'dental' ? '입·치아'   :
+      safeCategory === 'ear'    ? '귀'        :
+                                  '기타 부위'
+    );
 
     const petContextBlock = petContextText
       ? `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘.`
@@ -149,15 +169,60 @@ ${safeHint
 - 보호자 불안 조절도 중요하지만, 의심되는 심각한 질환을 의도적으로 빼지 마세요.
 - 사진상 종양/궤양/심한 염증 의심 소견이 있으면 concern_level=medium 또는 high.
 
-[감별진단 사고]
+[감별진단 사고 — 구체적 진단명 출력 필수]
 1. 사진에서 관찰되는 객관적 소견을 observations 배열에 먼저 정리 (색·형태·분포·크기 단서)
-2. 그 소견에 부합하는 감별진단 후보를 0~3개. 강제로 3개 채우지 말 것.
+2. 그 소견에 부합하는 **구체적 감별진단** 을 0~3개 동등 고려.
+   ⚠️ "피부염" / "안과 질환" / "치과 질환" 같은 generic 카테고리만 출력 금지.
+   ⚠️ 시각적 소견에 부합하는 **여러 후보를 동등 weight 로** 나열하라.
 3. 환자 컨텍스트(품종/나이/만성질환/약) 있으면 우선순위 조정.
 
+[부위별 자주 보이는 구체 감별진단 — 참고 풀]
+▸ 피부:
+  - 피부사상균증 (ringworm / dermatophytosis) — 원형 탈모 + 인설
+  - 모낭충증 (demodicosis) — 국소·전신 탈모
+  - 농피증 (pyoderma) — 농포·딱지
+  - 알레르기성 피부염 (atopic dermatitis) — 양측성 가려움
+  - 호산구성 육아종 (eosinophilic granuloma, 고양이) — 융기 병변
+  - 옴 (scabies) — 강한 가려움 + 딱지
+▸ 눈:
+  - 결막염 (conjunctivitis)
+  - 각막궤양 (corneal ulcer)
+  - 안검내반증 (entropion)
+  - 백내장 (cataract)
+  - 녹내장 (glaucoma) — 동공 확대 + 충혈
+  - 제3안검 노출 (cherry eye)
+▸ 귀:
+  - 외이염 (otitis externa) — 세균/효모/진드기성
+  - 귀 진드기 (otodectes cynotis)
+  - 혈종 (aural hematoma)
+▸ 입·치아:
+  - 치주염 (periodontitis)
+  - 치석 (dental calculus)
+  - 구내염 (stomatitis, 고양이)
+  - 치아 흡수성 병변 (FORL, 고양이)
+▸ 외상:
+  - 자상/열상 (laceration) — 봉합 필요 여부 평가
+  - 찰과상 (abrasion)
+  - 화상 (burn)
+  - 깊은 상처 (deep wound) — 즉시 응급
+▸ 일반:
+  - 종괴 (mass / tumor) — 양성·악성 감별 필요
+  - 부종 (edema)
+  - 발적 (erythema)
+
+위 풀에서 시각 소견에 맞는 구체 진단명을 골라 출력하라.
+generic 카테고리로 후퇴하지 말 것.
+
 [잘못된 사고 — 회피]
+❌ "피부염" / "안과 질환" 같은 generic 카테고리만 출력
 ❌ "흔한 진단이라서" 끼우기
 ❌ 사진에 안 보이는 부위 진단 (보조 텍스트로 추측)
-❌ 사진 화질이 나쁜데 무리한 진단
+❌ 사진 화질이 나쁜데 무리한 진단 (그땐 is_valid_photo=false)
+
+[자기 검증 체크리스트 — 응답 전 확인]
+□ name_ko 가 "○○염" 같이 상위 카테고리인가? → 구체 진단명으로 교체
+□ 동일 시각 소견에 부합하는 다른 감별진단을 누락하지 않았는가?
+□ matching_symptoms 가 사진의 객관적 소견인가, 막연한 추정인가?
 
 반드시 아래 JSON 형식으로만 응답해:
 {

@@ -26,20 +26,36 @@ export async function GET(request: NextRequest) {
 
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
-  const startOfDay = startOfDayKST();
 
-  const { count } = await supabaseAdmin
-    .from('search_logs')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('kind', 'symptom_photo')
-    .gte('created_at', startOfDay.toISOString());
+  // Free 유저는 평생 1회 체험 → 전체 누적 카운트.
+  // Plus 유저는 일일 한도 → 오늘 카운트.
+  let used: number, limit: number;
+  if (plan === 'free') {
+    const { count } = await supabaseAdmin
+      .from('search_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('kind', 'symptom_photo');
+    used = count || 0;
+    limit = config.photoAnalysisLifetimeFree;
+  } else {
+    const startOfDay = startOfDayKST();
+    const { count } = await supabaseAdmin
+      .from('search_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('kind', 'symptom_photo')
+      .gte('created_at', startOfDay.toISOString());
+    used = count || 0;
+    limit = config.photoAnalysisPerDay;
+  }
 
   return NextResponse.json({
     plan,
     photo: {
-      used: count || 0,
-      limit: config.photoAnalysisPerDay,
+      used,
+      limit,
+      window: plan === 'free' ? 'lifetime' : 'daily',
     },
   });
 }

@@ -55,6 +55,14 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/일` },
       { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
       { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
+      {
+        label: '사진 분석',
+        key: 'photo',
+        // Free 는 평생 1회 체험 (일일 X), Plus 는 일일 3회.
+        format: (p) => p === 'free'
+          ? (PLANS[p].photoAnalysisLifetimeFree > 0 ? `${PLANS[p].photoAnalysisLifetimeFree}회 체험` : '-')
+          : `${PLANS[p].photoAnalysisPerDay}회/일`,
+      },
     ],
   },
   {
