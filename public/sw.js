@@ -1,5 +1,5 @@
-// PawDex Service Worker v28
-const CACHE_NAME = 'pawdex-v28';
+// PawDex Service Worker v29
+const CACHE_NAME = 'pawdex-v29';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -105,6 +105,11 @@ self.addEventListener('push', (event) => {
           break;
         case 'hospitalization':
           categoryIcon = '/icons/hos.webp';
+          break;
+        case 'subscription':
+          // 구독/결제 알림 — alarm.webp 재사용 (전용 아이콘 없음).
+          // 명시적으로 분기시켜 두면 향후 전용 아이콘 교체 용이.
+          categoryIcon = '/icons/alarm.webp';
           break;
       }
 

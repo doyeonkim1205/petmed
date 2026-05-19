@@ -467,30 +467,37 @@ export async function GET(request: NextRequest) {
       if (sub.plan === 'free') continue;
       if (!paidSet.has(sub.user_id)) continue;
 
-      let notification: { title: string; body: string; url: string; tag: string };
+      let notification: { title: string; body: string; url: string; category: string; tag: string };
       // tag = sub-3day-{sub.id} — 구독 1건당 1개 알림이라 record id 기반.
       const tag = `sub-3day-${sub.id}`;
+      // category 'subscription' → sw.js 에서 오른쪽 alarm.webp 아이콘 분기.
       if (sub.status === 'canceled') {
         notification = {
-          title: '⏰ 구독 만료 안내',
-          body: 'PawDex Plus 구독이 3일 후 무료 플랜으로 전환됩니다.',
+          title: '📢 Plus 구독 기간 만료 안내',
+          body: '3일 후 무료 플랜으로 전환됩니다. 혜택 유지를 원하시면 구독 설정을 변경해 주세요.',
           url: '/profile/subscription',
+          category: 'subscription',
           tag,
         };
       } else if (sub.billing_type === 'recurring') {
         const price = sub.product_id ? priceMap.get(sub.product_id) : null;
-        const priceText = price ? ` (${price.toLocaleString()}원)` : '';
+        // 가격 표시 — DB 에서 못 가져오면 일반 안내로 fallback.
+        const bodyWithPrice = price
+          ? `3일 후 Plus 구독료 ${price.toLocaleString()}원이 자동 결제됩니다.`
+          : '3일 후 Plus 구독료가 자동 결제됩니다.';
         notification = {
-          title: '🔄 자동 결제 안내',
-          body: `3일 후 PawDex Plus가 자동 결제됩니다${priceText}. 해지를 원하시면 요금제 페이지에서 자동 갱신을 끄세요.`,
+          title: '🔄 정기 결제 예정 안내',
+          body: bodyWithPrice,
           url: '/profile/subscription',
+          category: 'subscription',
           tag,
         };
       } else {
         notification = {
-          title: '⏰ 구독 만료 안내',
-          body: 'PawDex Plus가 3일 후 만료됩니다. 계속 이용하려면 재결제해주세요.',
+          title: '✨ Plus 이용 기간 종료 임박',
+          body: '3일 후 이용 기간이 만료됩니다. 서비스 지속을 원하시면 구독을 갱신해 주세요.',
           url: '/profile/subscription',
+          category: 'subscription',
           tag,
         };
       }
