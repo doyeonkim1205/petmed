@@ -103,6 +103,8 @@ export default function PhotoAnalysisPage() {
   // 사진 업로드 input 2개로 분리 — 카메라/갤러리 액션 시트 대신 명시적 두 진입점.
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  // 결과 화면 뒤로가기 처리용 동기 lock — 시스템 백 vs 명시 reset 충돌 방지.
+  const isResettingRef = useRef(false);
   // sessionStorage 복원 완료 후에만 캐시 저장 effect 가 작동하도록 가드.
   // 마운트 시 빈 state 를 캐시로 덮어쓰는 race 방지.
   const cacheRestoredRef = useRef(false);
@@ -223,7 +225,17 @@ export default function PhotoAnalysisPage() {
     }
   };
 
-  const handleReset = () => {
+  // 결과 화면을 닫고 입력 화면으로 복귀.
+  // - 명시 호출 (헤더/하단 버튼): dummy history state 명시 정리 (history.back)
+  // - popstate 호출 (시스템 백 버튼): 이미 dummy 가 stack 에서 빠진 상태 → 추가 정리 X
+  const handleReset = (opts?: { fromPopstate?: boolean }) => {
+    isResettingRef.current = true;
+    if (!opts?.fromPopstate &&
+        typeof window !== 'undefined' &&
+        window.history.state?.photoResult) {
+      // dummy state 정리 — popstate 가 또 발생하지만 isResettingRef 로 무시됨.
+      window.history.back();
+    }
     setImageDataUrl(null);
     setHint('');
     setResult(null);
@@ -231,8 +243,29 @@ export default function PhotoAnalysisPage() {
     setSavedId(null);
     setSaveError(null);
     if (user) clearCache(user.id);
-    cacheRestoredRef.current = true; // 다음 변경부터 다시 저장 시작
+    cacheRestoredRef.current = true;
+    // popstate 이벤트가 microtask 큐에 들어가 있을 수 있으므로 짧은 지연 후 lock 해제.
+    setTimeout(() => { isResettingRef.current = false; }, 50);
   };
+
+  // result 표시 시 dummy history state push → 시스템 백 버튼이 페이지 떠나는 대신
+  // result 만 닫도록 (handleReset 호출). 사용자 의도 ("결과 → 입력 화면") 와 일치.
+  useEffect(() => {
+    if (!result || typeof window === 'undefined') return;
+    // 이미 photoResult state 면 중복 push 방지 (effect 재실행 케이스 방어)
+    if (window.history.state?.photoResult) return;
+    window.history.pushState({ photoResult: true }, '');
+
+    const onPopState = () => {
+      // 명시 reset 중이면 (handleReset 의 history.back 호출이 만든 popstate) 무시
+      if (isResettingRef.current) return;
+      handleReset({ fromPopstate: true });
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // handleReset 은 stable (state setter only) 이라 deps 에 안 넣어도 안전
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   const handleSave = async () => {
     if (!result || !imageDataUrl || saving || savedId || !selectedPet) return;
@@ -270,9 +303,14 @@ export default function PhotoAnalysisPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
         <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
+          {/* 뒤로가기 — 결과 화면일 땐 입력 화면으로 복귀 (handleReset),
+              그 외엔 표준 뒤로가기 (이전 페이지). 시스템 백 버튼과 동일 흐름. */}
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (result) handleReset();
+              else router.back();
+            }}
             className="-ml-2 p-2 rounded-full hover:bg-gray-100"
             aria-label="뒤로 가기"
           >
