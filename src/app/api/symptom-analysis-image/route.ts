@@ -147,12 +147,20 @@ export async function POST(request: NextRequest) {
 - 확실하지 않은 진단은 단정짓지 않습니다.
 - 보호자가 이해할 수 있도록 쉽게 설명합니다.
 
-[사진 적합성 판단 — 가장 먼저 수행]
-다음 중 하나라도 해당하면 is_valid_photo = false 로 설정하고 invalid_reason 채우세요:
-- 사진이 너무 흐리거나 어두워서 병변/부위가 식별 불가
-- 사진에 ${petLabel}이 보이지 않음 (사람·풍경·다른 사물)
-- 진단 대상 부위(${categoryLabel})가 사진에 없음
-- 사진이 너무 작거나 멀어서 세부 식별 불가
+[사진 적합성 판단 — 엄격 기준]
+is_valid_photo = false 는 **정말 식별 불가능할 때만** 선택하세요.
+borderline 케이스 (약간 흐림·약간 어두움·약간 멈) 는 valid 로 가되 ai_confidence=low 로 표시.
+
+is_valid_photo = false 설정 조건 (다음 중 하나에 명확히 해당):
+- 완전히 흐려서 어떤 부위인지조차 식별 불가능 ("뭔가 분홍색" 정도만 보이는 수준)
+- 사진에 ${petLabel}이 전혀 보이지 않음 (사람·풍경·다른 사물만)
+- 진단 대상 부위(${categoryLabel})가 사진에 전혀 없음 (예: 피부 분석인데 발만 보임)
+- 너무 작거나 멀어서 색깔조차 식별 안 됨 (병변 윤곽 자체가 보이지 않음)
+
+⚠️ 같은 사진을 두 번 분석해도 같은 결과를 내야 합니다.
+⚠️ 판정이 흔들리는 borderline 케이스는 무조건 valid 로 처리하라.
+⚠️ "확진 불가" 라는 이유로 invalid 로 떨어뜨리지 말 것.
+    분석 자체가 가능하면 valid + ai_confidence=low + 신중한 후보 진단으로 처리.
 
 is_valid_photo = false 이면 diseases / observations 는 빈 배열로 두고
 invalid_reason 에 다시 찍을 때 팁(거리·조명·각도)을 한국어로 친절히 안내하세요.
@@ -315,7 +323,10 @@ generic 카테고리로 후퇴하지 말 것.
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        temperature: 0.3,
+        // 사진 분석은 같은 사진 재분석 시 동일 결과가 사용자 신뢰의 핵심.
+        // temperature 0.1 (보수적) + seed 고정 → 결정론적 출력 시도.
+        temperature: 0.1,
+        seed: 1,
         max_tokens: 1500,
         response_format: { type: 'json_object' },
         messages: [
