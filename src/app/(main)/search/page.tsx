@@ -568,22 +568,13 @@ function SearchContent() {
   };
 
   const clickSearchTerm = (term: string) => {
-    // 최근 검색어 칩 클릭: 현재 탭 모드에 맞춰 해당 탭에서 새 검색 실행.
+    // 최근 검색어 칩 클릭 — input 만 채움. 사용자가 돋보기 버튼을 눌러야 실제 검색 실행.
+    // (자동 검색이 사용자 의도와 어긋남: 칩 클릭 → 추가 작성하려는데 즉시 검색돼 버림)
     if (searchMode === 'symptom') {
       setSymptomInput(term);
-      setSymptomQuery(term);
-      setSearchedPetType(effectivePetType);
-      handleSymptomSearch(term);
-      return;
+    } else {
+      setDiseaseInput(term);
     }
-    setDiseaseInput(term);
-    setCachedPubmed(null);
-    setSaved(false);
-    const found = mockDiseases.find(d => d.name.includes(term));
-    setMockResult(found || null);
-    setSearchedPetType(petType);
-    setSearchTerm(term);
-    setSearchKey(k => k + 1);
   };
 
   const toggleBookmark = (idx: number) => {

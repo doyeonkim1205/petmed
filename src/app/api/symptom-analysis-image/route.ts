@@ -457,7 +457,9 @@ ${safeHint
 
     if (!recentDupe) {
       const inputType = safeHint ? 'photo_with_text' : 'photo';
-      await supabaseAdmin.from('search_logs').insert({
+      // INSERT 실패 명시적 로깅 — 이전엔 silent fail 로 사용량 카운트 안 되는 버그 발생.
+      // CHECK constraint 위반 / RLS / 컬럼 NULL 등 즉시 감지 위해 error check + Sentry 알림.
+      const { error: insertError } = await supabaseAdmin.from('search_logs').insert({
         user_id: userId,
         query: safeHint || `[사진 분석: ${categoryLabel}]`,
         pet_type: effectivePetType,
@@ -469,6 +471,13 @@ ${safeHint
           is_valid_photo: parsed.is_valid_photo !== false,
         },
       });
+      if (insertError) {
+        console.error('search_logs INSERT failed:', insertError.message);
+        Sentry.captureMessage(`search_logs-insert-fail: ${insertError.message}`, {
+          level: 'error',
+          extra: { userId, kind: 'symptom_photo' },
+        });
+      }
     }
 
     // 10) 응답에 갱신된 usage 포함 — 클라이언트 state stale 방지.

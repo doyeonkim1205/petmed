@@ -409,9 +409,11 @@ export default function PhotoAnalysisPage() {
               </section>
             )}
 
-            {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬 */}
+            {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬. 필수. */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
-              <h2 className="text-xs font-semibold text-gray-500 mb-2">증상 부위</h2>
+              <h2 className="text-xs font-semibold text-gray-500 mb-2">
+                증상 부위 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
+              </h2>
               <div className="grid grid-cols-3 gap-1.5">
                 {CATEGORIES.map(c => (
                   <button
@@ -432,7 +434,9 @@ export default function PhotoAnalysisPage() {
             {/* 증상 사진 첨부 — 헤더 우측에 사용량 칩 (Plus/Free 통일 톤) */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xs font-semibold text-gray-500">증상 사진 첨부</h2>
+                <h2 className="text-xs font-semibold text-gray-500">
+                  증상 사진 첨부 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
+                </h2>
                 {usage && (
                   <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
                     usage.plan === 'plus' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
@@ -514,7 +518,7 @@ export default function PhotoAnalysisPage() {
             {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 상세 내용 <span className="text-red-400 font-normal">*</span>
+                증상 상세 내용 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
               </h2>
               <textarea
                 value={hint}
@@ -534,10 +538,19 @@ export default function PhotoAnalysisPage() {
               AI 분석 결과는 참고용입니다! 정확한 진단은 동물병원을 방문해 주세요
             </div>
 
+            {/* isQuotaExhausted 도 가드 — Plus 한도 (3회/일) 소진 시도 차단.
+                isFreeNoQuota 는 Free + limit=0 (Plus 전용) 케이스 커버. */}
             <button
               type="button"
               onClick={handleAnalyze}
-              disabled={!imageDataUrl || !selectedPet || hint.trim().length < 5 || analyzing || isFreeNoQuota === true}
+              disabled={
+                !imageDataUrl ||
+                !selectedPet ||
+                hint.trim().length < 5 ||
+                analyzing ||
+                isFreeNoQuota === true ||
+                isQuotaExhausted === true
+              }
               className="w-full py-3 rounded-full bg-purple-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {analyzing ? 'AI가 분석 중이에요...' : '사진 분석하기'}
@@ -663,7 +676,8 @@ function ResultPanel({
           </p>
           {hasEmergencySigns && (
             <div className={hasWatchSigns ? 'mb-3' : ''}>
-              <p className="text-xs font-semibold text-red-700 mb-1">🩺 병원에 가야 할 신호</p>
+              {/* "병원에 가야 할 신호" 헤더 제거 — concern_level 라벨 ("빠른 진료가 필요해요") 와 의미 중복.
+                  [즉시] / [24시간내] 뱃지가 충분한 context 제공. */}
               <ul className="text-xs text-gray-700 space-y-1">
                 {result.emergency_signs!.map((s, i) => (
                   <li key={i} className="flex items-start gap-1.5">
@@ -699,7 +713,8 @@ function ResultPanel({
                 <h4 className="font-bold text-sm">{d.name_ko}</h4>
                 {d.name_en && <span className="text-[11px] text-gray-400">{d.name_en}</span>}
               </div>
-              {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음 */}
+              {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음.
+                  likelihood 색상도 텍스트 분석과 동일 (높음=red, 중간=yellow, 낮음=gray). */}
               <div className="flex gap-1.5 mb-2 text-[11px]">
                 {d.severity && (
                   <span className={`px-2 py-0.5 rounded-full font-bold ${
@@ -711,7 +726,11 @@ function ResultPanel({
                   </span>
                 )}
                 {d.likelihood && (
-                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                  <span className={`px-2 py-0.5 rounded-full ${
+                    d.likelihood === '높음' ? 'bg-red-100 text-red-600' :
+                    d.likelihood === '중간' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>
                     가능성 {d.likelihood}
                   </span>
                 )}
