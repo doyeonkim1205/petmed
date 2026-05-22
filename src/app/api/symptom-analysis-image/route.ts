@@ -335,10 +335,12 @@ generic 카테고리로 후퇴하지 말 것.
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        // 사진 분석은 같은 사진 재분석 시 동일 결과가 사용자 신뢰의 핵심.
-        // temperature 0.1 (보수적) + seed 고정 → 결정론적 출력 시도.
-        temperature: 0.1,
-        seed: 1,
+        // 텍스트 증상 분석 (route.ts) 과 동일 파라미터로 통일.
+        // 1f968df 에서 temperature 0.1 + seed=1 도입했으나 결정론이 너무 강해
+        // 보수적 진단 (결막염 등) 으로 수렴 → 각막궤양 같은 high 진단 누락.
+        // 같은 사진 재분석 일관성은 시스템 프롬프트의 "borderline 무조건 valid"
+        // + "흔들리지 말 것" 가이드로 충분히 방어 가능.
+        temperature: 0.3,
         max_tokens: 1500,
         response_format: { type: 'json_object' },
         messages: [
