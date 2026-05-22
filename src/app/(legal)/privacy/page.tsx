@@ -23,6 +23,7 @@ export default function PrivacyPage() {
       <Section title="2. 수집하는 개인정보 항목">
         <p><strong>필수 항목:</strong> 이메일 주소, 비밀번호(해시 처리), 닉네임</p>
         <p><strong>선택 항목:</strong> 프로필 사진, 반려동물 정보(이름, 종류, 품종, 생년월일), 건강 기록(증상, 진료 내용, 투약 정보)</p>
+        <p><strong>사진 증상 분석 (선택):</strong> 사용자가 분석 목적으로 직접 업로드한 반려동물 증상 사진. 분석 요청 시 일시적으로 처리되며 서버에 저장하지 않습니다. 자세한 처리 방식은 아래 7. 섹션 참고.</p>
         <p><strong>결제 정보:</strong> 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리). 자동 결제 이용 시 토스페이먼츠로부터 발급받은 암호화된 빌링키를 저장합니다.</p>
         <p><strong>푸시 알림:</strong> 알림 수신 동의 시 기기 식별을 위한 구독 정보(엔드포인트, 암호화 키)를 수집합니다. 유료 플랜에서만 수집되며, 구독 해지 또는 탈퇴 시 즉시 삭제됩니다.</p>
         <p><strong>자동 수집 항목:</strong> 서비스 이용 기록, 접속 로그, 기기 정보</p>
@@ -77,7 +78,7 @@ export default function PrivacyPage() {
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
               <td className="py-2">OpenAI, Inc.</td>
-              <td className="py-2">AI 기반 논문 분석 및 건강 정보 요약</td>
+              <td className="py-2">AI 기반 논문 분석, 건강 정보 요약, 증상 사진 분석</td>
               <td className="py-2">미국</td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -164,7 +165,61 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="7. 개인정보의 파기 절차 및 방법">
+      <Section title="7. 사진 증상 분석 데이터 처리 (Image Data Handling)">
+        <p>
+          PawDex 는 보호자가 반려동물의 증상 사진을 업로드하면 AI 가 시각 단서를 분석해
+          의심 진단 후보를 제공하는 &quot;사진 증상 분석&quot; 기능을 운영합니다.
+          본 섹션은 사진 데이터의 수집·처리·저장 방식을 투명하게 안내합니다.
+        </p>
+
+        <p className="mt-3"><strong>7.1 사진 수집 시점 및 권한</strong></p>
+        <ul>
+          <li>사용자가 사진 증상 분석 메뉴에서 <strong>명시적으로 사진을 첨부</strong>한 경우에만 수집합니다.</li>
+          <li>앱은 사용자 동의 하에 디바이스의 <strong>카메라 또는 사진 보관함(갤러리)</strong> 접근 권한을 사용합니다.</li>
+          <li>사용자가 거부하면 사진 분석 기능은 사용할 수 없으며, 다른 서비스 이용에는 영향이 없습니다.</li>
+          <li>사진 외 다른 미디어 (영상·음성·문서) 는 수집하지 않습니다.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.2 사진 처리 흐름</strong></p>
+        <ul>
+          <li>업로드된 사진은 디바이스에서 1280px 이내 + JPEG 0.8 품질로 자동 압축됩니다.</li>
+          <li>압축된 사진은 HTTPS(TLS) 로 PawDex 서버를 거쳐 OpenAI 의 Vision API 로 전송됩니다.</li>
+          <li>AI 가 시각 분석을 마치면 사진 데이터는 <strong>즉시 폐기</strong>되며 서버에 저장하지 않습니다.</li>
+          <li>분석 결과 (텍스트 진단 후보·관찰 사항·권고 행동) 만 사용자에게 반환됩니다.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.3 사진 저장 정책 — 서버 미저장</strong></p>
+        <ul>
+          <li>PawDex 서버 데이터베이스 / 스토리지 / 백업 어디에도 <strong>사진 자체는 저장하지 않습니다</strong>.</li>
+          <li>분석 결과를 사용자가 명시적으로 &quot;보관함 저장&quot; 한 경우에만, 사진 썸네일이 <strong>해당 사용자의 디바이스 IndexedDB</strong> 에 저장됩니다.</li>
+          <li>IndexedDB 의 썸네일은 디바이스 단위로만 보관되며 다른 기기 / 서버와 공유되지 않습니다. 브라우저 데이터 삭제 시 함께 삭제됩니다.</li>
+          <li>분석 결과 텍스트 (진단 후보 등) 와 메타 데이터 (선택한 부위 카테고리, AI 신뢰도, 입력 유형) 만 서비스 통계 목적으로 일부 저장됩니다. 사진 픽셀 데이터는 포함되지 않습니다.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.4 AI 학습에 미사용</strong></p>
+        <ul>
+          <li>OpenAI 의 API 정책상 API 를 통해 전송된 데이터는 <strong>모델 학습에 사용되지 않습니다</strong>. (<a href="https://openai.com/enterprise-privacy" className="text-blue-500" target="_blank" rel="noopener noreferrer">openai.com/enterprise-privacy</a> 참조)</li>
+          <li>PawDex 자체도 사진 데이터를 자체 머신러닝 학습에 사용하지 않습니다.</li>
+          <li>제3자에게 사진을 판매·공유·중개하지 않습니다.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.5 보존 및 삭제</strong></p>
+        <ul>
+          <li>OpenAI 측 임시 처리 데이터는 OpenAI 의 API 데이터 보존 정책 (기본 30일 이내 삭제) 에 따릅니다.</li>
+          <li>PawDex 서버의 분석 결과 메타는 회원 탈퇴 시 즉시 삭제됩니다.</li>
+          <li>디바이스 IndexedDB 의 썸네일은 사용자가 보관함에서 삭제하거나 브라우저 데이터 삭제 시 즉시 사라집니다.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.6 분석 결과의 한계 — 의료 자문 아님</strong></p>
+        <p>
+          사진 증상 분석은 보호자에게 <strong>참고용 정보</strong> 만 제공합니다.
+          AI 가 사진의 시각 단서를 기반으로 의심 진단 후보를 나열하지만,
+          이는 수의사의 진료를 대체할 수 없으며 확진이 아닙니다.
+          정확한 진단·치료를 위해서는 반드시 동물병원에서 진료를 받으셔야 합니다.
+        </p>
+      </Section>
+
+      <Section title="8. 개인정보의 파기 절차 및 방법">
         <ul>
           <li><strong>파기 절차:</strong> 회원 탈퇴 요청 시 즉시 파기하며, 법령에 따라 보관이 필요한 정보는 별도 분리하여 보관 후 기간 만료 시 파기합니다.</li>
           <li><strong>파기 방법:</strong> 전자적 파일은 복구 불가능한 방법으로 삭제하며, 종이 문서는 분쇄 또는 소각합니다.</li>
@@ -180,7 +235,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="8. 정보주체의 권리·의무 및 행사 방법">
+      <Section title="9. 정보주체의 권리·의무 및 행사 방법">
         <p>이용자는 언제든지 다음 권리를 행사할 수 있습니다.</p>
         <ul>
           <li>개인정보 열람 요구</li>
@@ -191,7 +246,7 @@ export default function PrivacyPage() {
         <p>권리 행사는 앱 내 프로필 설정 또는 이메일(<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>)을 통해 가능합니다.</p>
       </Section>
 
-      <Section title="9. 개인정보 침해사고 대응">
+      <Section title="10. 개인정보 침해사고 대응">
         <p>서비스는 개인정보 침해사고 발생 시 다음과 같이 대응합니다.</p>
         <ul>
           <li><strong>24시간 이내:</strong> 침해사고 탐지 및 차단 조치</li>
@@ -201,7 +256,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="10. 개인정보 보호책임자">
+      <Section title="11. 개인정보 보호책임자">
         <ul>
           <li>담당자: 김도연 (디와이랩스 대표)</li>
           <li>이메일: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
@@ -213,7 +268,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="11. 개인정보의 안전성 확보 조치">
+      <Section title="12. 개인정보의 안전성 확보 조치">
         <p>서비스는 개인정보의 안전성 확보를 위해 다음 조치를 취하고 있습니다.</p>
         <ul>
           <li>모든 데이터 전송 시 HTTPS(TLS) 암호화 적용</li>
@@ -224,11 +279,11 @@ export default function PrivacyPage() {
         </ul>
       </Section>
 
-      <Section title="12. 개인정보처리방침의 변경">
+      <Section title="13. 개인정보처리방침의 변경">
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 23일 (개정 — Google 사용자 데이터 처리 섹션 추가)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 5월 22일 (개정 — 사진 증상 분석 데이터 처리 섹션 추가)</p>
     </article>
   );
 }
