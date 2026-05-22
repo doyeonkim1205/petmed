@@ -704,7 +704,8 @@ function ResultPanel({
           <ul className="text-xs text-gray-700 space-y-1">
             {result.emergency_signs.map((s, i) => (
               <li key={i} className="flex items-start gap-1.5">
-                <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded ${
+                {/* 뱃지 — 좁은 공간에서 "즉시" 가 세로로 깨지는 것 방지 */}
+                <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
                   s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                 }`}>
                   {s.severity}
