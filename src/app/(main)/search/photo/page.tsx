@@ -209,14 +209,15 @@ export default function PhotoAnalysisPage() {
         return;
       }
       setResult(data as AnalysisResult);
-      authFetch('/api/photo-analysis/usage').then(r => r.ok ? r.json() : null).then(u => {
-        if (u) setUsage({
-          used: u.photo.used,
-          limit: u.photo.limit,
-          plan: u.plan,
-          window: u.photo.window || (u.plan === 'free' ? 'lifetime' : 'daily'),
+      // 응답에 usage 포함 — 즉시 setUsage (별도 fetch 없이 stale 방지).
+      if (data.usage) {
+        setUsage({
+          used: data.usage.used,
+          limit: data.usage.limit,
+          plan: data.usage.plan,
+          window: data.usage.window || (data.usage.plan === 'free' ? 'lifetime' : 'daily'),
         });
-      });
+      }
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 50);
@@ -248,6 +249,15 @@ export default function PhotoAnalysisPage() {
     cacheRestoredRef.current = true;
     // popstate 이벤트가 microtask 큐에 들어가 있을 수 있으므로 짧은 지연 후 lock 해제.
     setTimeout(() => { isResettingRef.current = false; }, 50);
+    // 입력 화면 복귀 시 usage refetch — 다른 디바이스/탭에서 분석한 경우의 stale 도 방어.
+    authFetch('/api/photo-analysis/usage').then(r => r.ok ? r.json() : null).then(u => {
+      if (u) setUsage({
+        used: u.photo.used,
+        limit: u.photo.limit,
+        plan: u.plan,
+        window: u.photo.window || (u.plan === 'free' ? 'lifetime' : 'daily'),
+      });
+    }).catch(() => {});
   };
 
   // result 표시 시 dummy history state push → 시스템 백 버튼이 페이지 떠나는 대신
@@ -501,10 +511,10 @@ export default function PhotoAnalysisPage() {
               )}
             </section>
 
-            {/* 증상 상세 내용 (선택) */}
+            {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 상세 내용 <span className="text-gray-400 font-normal">(선택)</span>
+                증상 상세 내용 <span className="text-red-400 font-normal">*</span>
               </h2>
               <textarea
                 value={hint}
@@ -513,7 +523,10 @@ export default function PhotoAnalysisPage() {
                 rows={3}
                 className="w-full border border-gray-200 rounded-md p-2 text-sm resize-none focus:outline-none focus:border-purple-400"
               />
-              <p className="text-[11px] text-gray-400 text-right mt-1">{hint.length}/200</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[10px] text-gray-400">언제부터·어디가·어떤지 알려주세요 (최소 5자)</p>
+                <p className="text-[11px] text-gray-400">{hint.length}/200</p>
+              </div>
             </section>
 
             {/* 책임 제한 — 분석 버튼 바로 위. 상세 정보는 결과 화면 사진 옆 ⓘ. */}
@@ -524,7 +537,7 @@ export default function PhotoAnalysisPage() {
             <button
               type="button"
               onClick={handleAnalyze}
-              disabled={!imageDataUrl || !selectedPet || analyzing || isFreeNoQuota === true}
+              disabled={!imageDataUrl || !selectedPet || hint.trim().length < 5 || analyzing || isFreeNoQuota === true}
               className="w-full py-3 rounded-full bg-purple-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {analyzing ? 'AI가 분석 중이에요...' : '사진 분석하기'}
@@ -579,7 +592,7 @@ function ResultPanel({
   // high 일 땐 AI 가 watch_signs 를 안 생성 (emergency_signs 가 그 역할) — 헤더만 표시됨.
   const concernConfig = {
     low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: '지금은 괜찮아 보여요' },
-    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: 'ℹ️', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
+    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: '👀', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
     high:   { border: 'border-red-200',     bg: 'bg-red-50',     icon: '🚨', textColor: 'text-red-800',     label: '빠른 진료가 필요해요' },
   } as const;
   const concernKey =
@@ -588,6 +601,7 @@ function ResultPanel({
     'medium';
   const cfg = concernConfig[concernKey];
   const hasWatchSigns = !!result.watch_signs && result.watch_signs.length > 0;
+  const hasEmergencySigns = !!result.emergency_signs && result.emergency_signs.length > 0;
 
   return (
     <section id="photo-result" className="space-y-3 pt-2">
@@ -638,14 +652,32 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 안내 카드 — low/medium/high 모두 노출. concern_level 시그널 일관성.
-          - low/medium: 헤더 + watch_signs (AI 가 생성)
-          - high:       헤더만 (watch_signs 는 비어있음 — emergency_signs 가 디테일 담당) */}
+      {/* 안내 카드 — low/medium/high 모두 노출. emergency_signs 도 카드 안 통합.
+          - high:       헤더 + emergency_signs (주된 케이스)
+          - low/medium: 헤더 + watch_signs
+          - 둘 다 있으면: emergency 위 / watch 아래 (긴급도 순) */}
       {result.is_valid_photo !== false && (result.concern_level === 'low' || result.concern_level === 'medium' || result.concern_level === 'high') && (
         <div className={`rounded-lg p-4 border ${cfg.border} ${cfg.bg}`}>
-          <p className={`text-sm font-semibold ${cfg.textColor} ${hasWatchSigns ? 'mb-3' : ''}`}>
+          <p className={`text-sm font-semibold ${cfg.textColor} ${(hasEmergencySigns || hasWatchSigns) ? 'mb-3' : ''}`}>
             <span className="mr-1">{cfg.icon}</span>{cfg.label}
           </p>
+          {hasEmergencySigns && (
+            <div className={hasWatchSigns ? 'mb-3' : ''}>
+              <p className="text-xs font-semibold text-red-700 mb-1">🩺 병원에 가야 할 신호</p>
+              <ul className="text-xs text-gray-700 space-y-1">
+                {result.emergency_signs!.map((s, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
+                      s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {s.severity}
+                    </span>
+                    <span>{s.sign}{s.reason ? ` — ${s.reason}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {hasWatchSigns && (
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1">🔍 이런 경우엔 진료를 고려하세요</p>
@@ -697,25 +729,7 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 응급 신호 */}
-      {result.emergency_signs && result.emergency_signs.length > 0 && (
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-red-100">
-          <h3 className="text-xs font-semibold text-red-700 mb-2">병원에 가야 할 신호</h3>
-          <ul className="text-xs text-gray-700 space-y-1">
-            {result.emergency_signs.map((s, i) => (
-              <li key={i} className="flex items-start gap-1.5">
-                {/* 뱃지 — 좁은 공간에서 "즉시" 가 세로로 깨지는 것 방지 */}
-                <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
-                  s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {s.severity}
-                </span>
-                <span>{s.sign}{s.reason ? ` — ${s.reason}` : ''}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* emergency_signs 별도 카드 제거 — 안내 카드 (concern_level) 안에 통합됨 */}
 
       {/* 책임 제한 박스 — 마침표 제거 (일관 정책) */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">

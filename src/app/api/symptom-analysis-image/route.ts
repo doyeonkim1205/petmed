@@ -229,12 +229,15 @@ ${safeHint
   - 설사 → 위장염/식이 변경 (medium)
   - 기생충 (회충/촌충 마디) → 구충 필요 (medium)
   [구토]
-  - 노란 거품 (담즙) → 담즙 역류성 위염 (low/medium)
+  - 헤어볼 (trichobezoar) → 사료+털 섞인 토 (특히 고양이 흔함, low)
+  - 노란 거품 (담즙) → 담즙 역류성 위염 OR 공복+헤어볼 가능 (low/medium)
   - 흰 거품 (위산) → 공복성 위염 (low/medium)
+  - 점액성 토 → 식도 자극, 위염 (low/medium)
   - 붉은 (선혈) → 위 출혈/식도 외상 (high)
   - 갈색 (커피찌꺼기) → 만성 위 출혈 (high)
   - 사료 소화 X → 빠른 통과/식도 문제 (low/medium)
   - 이물 보임 → 위 이물 (high · 응급)
+  ⚠️ 노란 토 사진 = 담즙 단정 X — 헤어볼/공복 위염 동등 후보로
   [소변]
   - 붉은 (혈뇨) → FIC/요로결석/방광염 (medium/high)
   - 갈색 (헤모글로빈뇨) → 용혈/약물 (high)
@@ -468,7 +471,37 @@ ${safeHint
       });
     }
 
-    return NextResponse.json(parsed);
+    // 10) 응답에 갱신된 usage 포함 — 클라이언트 state stale 방지.
+    //     별도 fetch 안 거치고 즉시 setUsage 가능 → 한도 소진 후 분석 버튼 즉시 disabled.
+    let usageUsed = 0;
+    let usageLimit = 0;
+    let usageWindow: 'lifetime' | 'daily' = 'daily';
+    if (plan === 'free') {
+      const { count } = await supabaseAdmin
+        .from('search_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('kind', 'symptom_photo');
+      usageUsed = count || 0;
+      usageLimit = config.photoAnalysisLifetimeFree;
+      usageWindow = 'lifetime';
+    } else {
+      const startOfDay = startOfDayKST();
+      const { count } = await supabaseAdmin
+        .from('search_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('kind', 'symptom_photo')
+        .gte('created_at', startOfDay.toISOString());
+      usageUsed = count || 0;
+      usageLimit = config.photoAnalysisPerDay;
+      usageWindow = 'daily';
+    }
+
+    return NextResponse.json({
+      ...parsed,
+      usage: { used: usageUsed, limit: usageLimit, plan, window: usageWindow },
+    });
   } catch (err) {
     console.error('symptom-analysis-image error:', err);
     Sentry.captureException(err);
