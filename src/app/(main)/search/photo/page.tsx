@@ -11,7 +11,8 @@ import { authFetch } from '@/lib/authFetch';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { saveThumbnail } from '@/lib/photoThumbnailStore';
 
-type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'other';
+// excretion = 대소변·구토 (사용자 사용 빈도 ↑). '기타' 제거 + '분비물 단일 카테고리' 추가.
+type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'excretion';
 
 interface AnalysisResult {
   is_valid_photo: boolean;
@@ -40,13 +41,13 @@ interface AnalysisResult {
   watch_signs?: string[];
 }
 
-const CATEGORIES: Array<{ value: Category; label: string; hint: string }> = [
-  { value: 'skin',   label: '피부',     hint: '병변 부위를 가까이서, 자연광에서 찍어주세요' },
-  { value: 'eye',    label: '눈',       hint: '눈을 정면으로, 너무 어둡지 않게 찍어주세요' },
-  { value: 'wound',  label: '외상',     hint: '상처 크기·깊이를 비교할 수 있게 가까이 찍어주세요' },
-  { value: 'dental', label: '입·치아',  hint: '입을 살짝 벌려 잇몸·치아가 잘 보이게 찍어주세요' },
-  { value: 'ear',    label: '귀',       hint: '귀 안쪽이 보이도록 귀를 살짝 들고 찍어주세요' },
-  { value: 'other',  label: '기타',     hint: '진단 부위가 화면에 충분히 크게 나오게 찍어주세요' },
+const CATEGORIES: Array<{ value: Category; label: string }> = [
+  { value: 'skin',      label: '피부' },
+  { value: 'eye',       label: '눈' },
+  { value: 'wound',     label: '외상' },
+  { value: 'dental',    label: '입·치아' },
+  { value: 'ear',       label: '귀' },
+  { value: 'excretion', label: '대소변·구토' },
 ];
 
 interface UsageInfo {
@@ -58,7 +59,8 @@ interface UsageInfo {
 
 // sessionStorage cache — 사용자가 다른 탭 갔다 와도 결과/입력 유지.
 // 페이지 닫으면 자동 삭제 (sessionStorage 특성). userId 별로 키 분리.
-const cacheKey = (userId: string) => `photo-analysis-cache-v1:${userId}`;
+// v2: 카테고리 'other' → 'excretion' 변경으로 옛 캐시 무효화.
+const cacheKey = (userId: string) => `photo-analysis-cache-v2:${userId}`;
 interface PhotoCache {
   imageDataUrl?: string | null;
   hint?: string;
