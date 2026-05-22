@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2 } from 'lucide-react';
+import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Pet } from '@/lib/supabase';
@@ -335,25 +335,24 @@ export default function PhotoAnalysisPage() {
       <main className="max-w-md mx-auto px-4 pt-3 space-y-4">
         {showInputArea && (
           <>
-            {/* Free 한도 소진 안내 — 1회 체험 다 쓴 후 */}
+            {/* Free 한도 소진 안내 — 텍스트 분석/논문 한도 박스와 동일한 톤
+                (gradient + Crown + 요금제 보기 버튼) */}
             {isFreeNoQuota && (
-              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                <div className="flex items-start gap-2">
-                  <Sparkles size={18} className="text-purple-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-purple-900">
-                    <p className="font-semibold mb-1">사진 분석 무료 체험을 모두 사용했어요</p>
-                    <p className="text-xs leading-relaxed mb-3">
-                      Plus 로 업그레이드하면 매일 3회 사진을 분석할 수 있어요
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/profile/subscription')}
-                      className="text-xs font-semibold bg-purple-600 text-white px-3 py-1.5 rounded-full"
-                    >
-                      Plus 둘러보기
-                    </button>
-                  </div>
+              <div className="rounded-xl p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                  <Crown size={16} className="text-purple-500" />
+                  <p className="text-sm font-bold text-gray-700">사진 분석 무료 체험을 모두 사용했어요</p>
                 </div>
+                <p className="text-xs text-gray-500 text-center mb-3">
+                  Plus 로 업그레이드하면 매일 3회 사진을 분석할 수 있어요
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push('/profile/subscription')}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                >
+                  요금제 보기
+                </button>
               </div>
             )}
 
@@ -412,7 +411,7 @@ export default function PhotoAnalysisPage() {
             {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬. 필수. */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 부위 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
+                증상 부위 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
               <div className="grid grid-cols-3 gap-1.5">
                 {CATEGORIES.map(c => (
@@ -435,7 +434,7 @@ export default function PhotoAnalysisPage() {
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold text-gray-500">
-                  증상 사진 첨부 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
+                  증상 사진 첨부 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
                 </h2>
                 {usage && (
                   <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
@@ -518,7 +517,7 @@ export default function PhotoAnalysisPage() {
             {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
             <section className="bg-white rounded-lg p-4 shadow-sm">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 상세 내용 <span className="text-[10px] text-red-400 font-normal">(필수)</span>
+                증상 상세 내용 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
               <textarea
                 value={hint}
@@ -681,8 +680,9 @@ function ResultPanel({
               <ul className="text-xs text-gray-700 space-y-1">
                 {result.emergency_signs!.map((s, i) => (
                   <li key={i} className="flex items-start gap-1.5">
+                    {/* 즉시 / 24시간내 색상 — 텍스트 증상 분석과 통일 (즉시=red, 24시간내=orange) */}
                     <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
-                      s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                     }`}>
                       {s.severity}
                     </span>
@@ -716,11 +716,13 @@ function ResultPanel({
               {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음.
                   likelihood 색상도 텍스트 분석과 동일 (높음=red, 중간=yellow, 낮음=gray). */}
               <div className="flex gap-1.5 mb-2 text-[11px]">
+                {/* severity 색상 — 텍스트 증상 분석과 100% 동일.
+                    긴급=red, 주의=orange, 관찰=green. */}
                 {d.severity && (
                   <span className={`px-2 py-0.5 rounded-full font-bold ${
                     d.severity === '긴급' ? 'bg-red-100 text-red-700' :
-                    d.severity === '주의' ? 'bg-amber-100 text-amber-700' :
-                    'bg-emerald-100 text-emerald-700'
+                    d.severity === '주의' ? 'bg-orange-100 text-orange-700' :
+                    'bg-green-100 text-green-700'
                   }`}>
                     {d.severity}
                   </span>
