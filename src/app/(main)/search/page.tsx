@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat } from 'lucide-react';
+import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat, Camera } from 'lucide-react';
 import { mockDiseases, Disease } from '@/data/mock';
 import { usePubMedSearch, SearchStep, UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
 import { PaperSection } from '@/components/PaperSection';
@@ -95,6 +95,10 @@ const likelihoodConfig = {
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  // 사진 분석 onboarding 툴팁 — 첫 진입 1회만 노출. 사용자가 명시적으로
+  // 닫거나 카메라 아이콘 누르면 localStorage 에 플래그 저장.
+  const [showPhotoHint, setShowPhotoHint] = useState(false);
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
   const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
@@ -252,6 +256,21 @@ function SearchContent() {
       );
     }
   }, [pubmed.lastLogResult]);
+
+  // 사진 분석 onboarding 툴팁 — 증상 모드 진입 + 미경험 사용자에게 1회 노출.
+  // 5초 후 자동 fade-out. 카메라 클릭 시에도 즉시 사라짐 + 플래그 저장.
+  useEffect(() => {
+    if (searchMode !== 'symptom') return;
+    let onboarded = false;
+    try { onboarded = localStorage.getItem('photo-analysis-onboarded-v1') === '1'; } catch {}
+    if (onboarded) return;
+    const showTimer = setTimeout(() => setShowPhotoHint(true), 600);
+    const hideTimer = setTimeout(() => {
+      setShowPhotoHint(false);
+      try { localStorage.setItem('photo-analysis-onboarded-v1', '1'); } catch {}
+    }, 5600);
+    return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
+  }, [searchMode]);
 
   // 증상 분석 배지 초기값 — 마운트 시 1회.
   // 이후 갱신은 /api/symptom-analysis 응답의 data.usage 로 처리.
@@ -766,8 +785,35 @@ function SearchContent() {
                 placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
                 autoComplete="off"
                 enterKeyHint="search"
-                className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden"
+                className={`w-full h-9 pl-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden ${
+                  searchMode === 'symptom' ? 'pr-[72px]' : 'pr-10'
+                }`}
               />
+              {/* 증상 모드에만 사진 분석 진입 버튼 — 돋보기 왼쪽. */}
+              {searchMode === 'symptom' && (
+                <button
+                  type="button"
+                  aria-label="사진으로 분석하기"
+                  onClick={() => {
+                    try { localStorage.setItem('photo-analysis-onboarded-v1', '1'); } catch {}
+                    setShowPhotoHint(false);
+                    router.push('/search/photo');
+                  }}
+                  className="absolute right-9 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-600 transition-colors"
+                >
+                  <Camera size={18} />
+                  {showPhotoHint && (
+                    <span
+                      className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-white border border-purple-300 text-purple-600 text-[11px] font-medium px-2.5 py-1.5 shadow-md z-20"
+                      role="tooltip"
+                    >
+                      📷 사진으로 분석하기!
+                      {/* 아래 방향 꼬리 — 카메라 아이콘 가리키게. border 색과 동일 톤. */}
+                      <span className="absolute -bottom-1 right-3 w-2 h-2 bg-white border-r border-b border-purple-300 rotate-45" />
+                    </span>
+                  )}
+                </button>
+              )}
               <button
                 type="submit"
                 aria-label="검색"

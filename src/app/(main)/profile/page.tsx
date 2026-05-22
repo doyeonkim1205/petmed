@@ -154,6 +154,9 @@ function PetModal({
   const [editingPetId, setEditingPetId] = useState<string | null>(null);   // null = 신규, 값 = 편집 중인 펫 id
   const [form, setForm] = useState<PetFormState>(EMPTY_PET_FORM);
   const [saving, setSaving] = useState(false);
+  // 더블 클릭 방지용 동기적 lock — setSaving 은 setState 라 다음 렌더 사이클에서야
+  // disabled 가 적용되므로 빠른 더블 클릭이면 두 번 호출됨. useRef 로 즉시 차단.
+  const savingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   // 등록 한도 초과 안내 모달 (기존 native alert 대체)
@@ -212,12 +215,14 @@ function PetModal({
   };
 
   const handleSave = async () => {
+    // 동기적 lock — 빠른 더블 클릭으로 중복 INSERT 되는 것 방지.
+    // 검증 실패는 lock 해제하지만, 실제 네트워크 호출 시작 후엔 응답 완료까지 lock 유지.
+    if (savingRef.current) return;
     setFormError(null);
     if (!form.name.trim()) {
       setFormError('이름을 입력해주세요');
       return;
     }
-    // weight 입력 검증 — 양수만 허용 (DB 제약과 일치).
     if (form.weight.trim()) {
       const w = parseFloat(form.weight.trim());
       if (isNaN(w) || w <= 0) {
@@ -227,65 +232,63 @@ function PetModal({
     }
 
     const payload = formToPayload(form);
+    savingRef.current = true;
+    setSaving(true);
 
-    if (editingPetId) {
-      // 편집 모드 — UPDATE
-      setSaving(true);
-      const { error } = await supabase
-        .from('pets')
-        .update(payload)
-        .eq('id', editingPetId)
-        .eq('user_id', userId);
-      setSaving(false);
-      if (error) {
-        Sentry.captureException(error, {
-          tags: { feature: 'pets', action: 'update' },
-        });
-        setFormError('저장에 실패했습니다. 다시 시도해주세요.');
+    try {
+      if (editingPetId) {
+        const { error } = await supabase
+          .from('pets')
+          .update(payload)
+          .eq('id', editingPetId)
+          .eq('user_id', userId);
+        if (error) {
+          Sentry.captureException(error, { tags: { feature: 'pets', action: 'update' } });
+          setFormError('저장에 실패했습니다. 다시 시도해주세요.');
+          return;
+        }
+        logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+        closeForm();
+        fetchPets();
         return;
       }
-      logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+
+      // 신규 등록 — 한도 체크 + INSERT
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', userId)
+        .single();
+      const effectivePlan = getEffectivePlan(profile?.plan);
+      const config = getPlanConfig(effectivePlan);
+      if (config.maxPets > 0 && pets.length >= config.maxPets) {
+        setLimitMsg(
+          effectivePlan !== 'free' ? (
+            <>반려동물 등록 한도({config.maxPets}마리)에 도달했습니다.<br />추가 용량이 필요하시면 문의해 주세요.</>
+          ) : (
+            <>반려동물은 {config.maxPets}마리까지 등록할 수 있어요<br />Plus로 업그레이드하여 더 많은 반려동물을 등록하세요</>
+          ),
+        );
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('pets')
+        .insert({ user_id: userId, ...payload })
+        .select('id')
+        .single();
+      if (error) {
+        Sentry.captureException(error, { tags: { feature: 'pets', action: 'create' } });
+        setFormError('등록에 실패했습니다. 다시 시도해주세요.');
+        return;
+      }
+      if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
       closeForm();
       fetchPets();
-      return;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-
-    // 신규 등록 모드 — 한도 체크 + INSERT
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan')
-      .eq('id', userId)
-      .single();
-    const effectivePlan = getEffectivePlan(profile?.plan);
-    const config = getPlanConfig(effectivePlan);
-    if (config.maxPets > 0 && pets.length >= config.maxPets) {
-      setLimitMsg(
-        effectivePlan !== 'free' ? (
-          <>반려동물 등록 한도({config.maxPets}마리)에 도달했습니다.<br />추가 용량이 필요하시면 문의해 주세요.</>
-        ) : (
-          <>반려동물은 {config.maxPets}마리까지 등록할 수 있어요<br />Plus로 업그레이드하여 더 많은 반려동물을 등록하세요</>
-        ),
-      );
-      return;
-    }
-
-    setSaving(true);
-    const { data, error } = await supabase
-      .from('pets')
-      .insert({ user_id: userId, ...payload })
-      .select('id')
-      .single();
-    setSaving(false);
-    if (error) {
-      Sentry.captureException(error, {
-        tags: { feature: 'pets', action: 'create' },
-      });
-      setFormError('등록에 실패했습니다. 다시 시도해주세요.');
-      return;
-    }
-    if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
-    closeForm();
-    fetchPets();
   };
 
   const handleDelete = async (petId: string) => {

@@ -38,13 +38,24 @@ export interface Profile {
   is_push_enabled?: boolean | null;
 }
 
+export type SearchLogKind = 'symptom' | 'symptom_refine' | 'symptom_photo' | 'disease';
+
 export interface SearchLog {
   id: string;
   user_id: string;
   query: string;
   pet_type: string;
+  kind: SearchLogKind;
+  result_summary?: {
+    input_type?: 'text' | 'photo' | 'photo_with_text';
+    main_category?: string;
+    ai_confidence?: 'low' | 'medium' | 'high';
+    is_valid_photo?: boolean;
+  } | null;
   created_at: string;
 }
+
+export type SavedAnalysisKind = 'paper' | 'symptom_photo';
 
 export interface SavedAnalysis {
   id: string;
@@ -53,6 +64,7 @@ export interface SavedAnalysis {
   pet_type: string;
   articles: any[];
   analysis: any;
+  kind: SavedAnalysisKind;
   created_at: string;
   saved_papers?: SavedPaper[];
 }

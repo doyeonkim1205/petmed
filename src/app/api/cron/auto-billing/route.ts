@@ -195,11 +195,15 @@ export async function GET(request: NextRequest) {
           `자동 결제 실패로 만료: ${userMessage}`,
         );
 
-        // Send push notification — final failure, action required
+        // Send push notification — final failure, action required.
+        // category 'subscription' → sw.js 에서 오른쪽 alarm.webp 아이콘 분기.
+        // 횟수 변수 (newFailedCount) 는 실제 1차+3 retry = 4회 시점이라
+        // 사용자 직관과 차이가 있어 "여러 번"으로 일반화.
         await sendBillingFailurePush(sub.user_id, {
-          title: '⚠️ 구독이 만료되었습니다',
-          body: `자동 결제에 ${newFailedCount}회 실패하여 무료 플랜으로 전환되었습니다. (${userMessage})`,
+          title: '🚫 정기 구독 자동 종료',
+          body: '결제가 여러 번 거절되어 무료 플랜으로 전환되었습니다. 언제든 다시 Plus 구독을 시작하실 수 있습니다.',
           url: '/profile/subscription',
+          category: 'subscription',
         });
       } else {
         // Schedule next retry based on attempt count
@@ -222,11 +226,15 @@ export async function GET(request: NextRequest) {
           details: { code: e.code, attempt: newFailedCount, retryInDays: delayDays },
         });
 
-        // Notify user of failure + retry
+        // Notify user of failure + retry.
+        // category 'subscription' → sw.js 에서 오른쪽 alarm.webp 아이콘 분기.
+        // delayDays 는 RETRY_DELAYS_DAYS[newFailedCount-1] (1/3/7). 사유 텍스트는
+        // 잠금화면 길이 부담이 커서 push body 에선 생략 — 상세는 결제 페이지에서 확인.
         await sendBillingFailurePush(sub.user_id, {
-          title: '💳 결제 실패 안내',
-          body: `자동 결제에 실패했습니다 (${userMessage}). ${delayDays}일 후 다시 시도합니다.`,
+          title: '💳 정기 결제 승인 실패',
+          body: `카드 거절 등의 사유로 결제가 승인되지 않았습니다. ${delayDays}일 뒤 재시도 예정이니 결제 수단을 점검해 주세요.`,
           url: '/profile/subscription',
+          category: 'subscription',
         });
       }
 
@@ -253,7 +261,7 @@ export async function GET(request: NextRequest) {
 let vapidConfigured = false;
 async function sendBillingFailurePush(
   userId: string,
-  notification: { title: string; body: string; url: string },
+  notification: { title: string; body: string; url: string; category?: string },
 ) {
   if (!vapidConfigured) {
     try {

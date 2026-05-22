@@ -24,6 +24,9 @@ interface SubscriptionInfo {
   card_company?: string | null;
   card_number?: string | null;
   product_id?: string | null;
+  billing_failed_count?: number;
+  last_billing_failure_at?: string | null;
+  last_billing_failure_reason?: string | null;
 }
 
 interface RefundCheck {
@@ -52,6 +55,14 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/일` },
       { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
       { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
+      {
+        label: '사진 분석',
+        key: 'photo',
+        // Free 는 평생 1회 체험 (일일 X), Plus 는 일일 3회.
+        format: (p) => p === 'free'
+          ? (PLANS[p].photoAnalysisLifetimeFree > 0 ? `${PLANS[p].photoAnalysisLifetimeFree}회 체험` : '-')
+          : `${PLANS[p].photoAnalysisPerDay}회/일`,
+      },
     ],
   },
   {
@@ -132,6 +143,31 @@ export default function SubscriptionPage() {
     import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
   }, [user, authLoading, router]);
 
+  const handleRetryBilling = async () => {
+    setActionLoading('retry');
+    setActionMessage('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('세션이 만료되었습니다.');
+      const res = await fetch('/api/payments/billing/retry', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '결제에 실패했어요.');
+      setActionMessage('결제가 완료되었어요. 다음 결제일이 갱신되었습니다.');
+      await fetchData();
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { feature: 'subscription', action: 'retry' },
+        extra: { userId: user?.id },
+      });
+      setActionMessage(err instanceof Error ? err.message : '재결제에 실패했어요.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleCancel = async () => {
     setActionLoading('cancel');
     setActionMessage('');
@@ -172,6 +208,10 @@ export default function SubscriptionPage() {
   const isRecurring = subscription?.billing_type === 'recurring';
   const isYearly = subscription?.product_id?.includes('yearly');
   const hasSub = isActive || isCanceled;
+  // 결제 실패 retry 중 — Grace Period 안내 + 즉시 재결제 노출 조건.
+  // 자동 갱신 유저만 즉시 재결제 가능 (1회 결제는 next_billing_at 없음 → cron 안 돔).
+  const billingFailedCount = subscription?.billing_failed_count || 0;
+  const isInRetry = isActive && billingFailedCount > 0 && isRecurring;
 
   // Toss returns issuer codes instead of card company names
   const CARD_ISSUERS: Record<string, string> = {
@@ -261,6 +301,48 @@ export default function SubscriptionPage() {
                 sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
             </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Billing retry banner ── */}
+        {isInRetry && subscription && (
+          <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-900 mb-1">자동 결제가 보류 중이에요</p>
+                <p className="text-xs text-amber-800 leading-relaxed mb-2">
+                  카드 거절 등의 사유로 결제가 완료되지 않았어요. 다음 자동 재시도 전까지 Plus 기능은 계속 사용하실 수 있고,
+                  {subscription.next_billing_at && (
+                    <> <span className="font-medium">{new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')}</span>에 자동 재시도됩니다.</>
+                  )}
+                </p>
+                {subscription.last_billing_failure_reason && (
+                  <p className="text-[11px] text-amber-700 bg-amber-100 rounded px-2 py-1 mb-2 inline-block">
+                    실패 사유: {subscription.last_billing_failure_reason}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleRetryBilling}
+                    disabled={actionLoading === 'retry'}
+                    className="flex-1 py-2 rounded-full bg-amber-600 text-white text-xs font-semibold disabled:opacity-50"
+                  >
+                    {actionLoading === 'retry' ? (
+                      <span className="inline-flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> 결제 중...</span>
+                    ) : '지금 다시 결제'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
+                    className="flex-1 py-2 rounded-full border border-amber-400 bg-white text-amber-700 text-xs font-medium"
+                  >
+                    새 카드로 등록
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
