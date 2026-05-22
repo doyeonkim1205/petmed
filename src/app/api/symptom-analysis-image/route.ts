@@ -160,7 +160,19 @@ is_valid_photo = false 설정 조건 (다음 중 하나에 명확히 해당):
 ⚠️ 같은 사진을 두 번 분석해도 같은 결과를 내야 합니다.
 ⚠️ 판정이 흔들리는 borderline 케이스는 무조건 valid 로 처리하라.
 ⚠️ "확진 불가" 라는 이유로 invalid 로 떨어뜨리지 말 것.
-    분석 자체가 가능하면 valid + ai_confidence=low + 신중한 후보 진단으로 처리.
+    분석 자체가 가능하면 valid + ai_confidence=low 로 표시하라.
+    (단 후보 진단은 임상 기준 그대로 구체 진단명을 출력 — 진단을 약화·축소하지 말 것)
+
+[ai_confidence 와 진단명의 관계 — 절대 혼동 금지]
+- ai_confidence=low : 사진 화질·각도 등으로 "AI 의 확신" 이 낮다는 표현
+- 진단명 (name_ko): 시각 단서에서 의심되는 임상 진단명 — 확신과 무관하게 구체 명칭 그대로
+- 즉 confidence 낮다고 "각막궤양" → "결막염" 같이 약한 진단으로 후퇴 금지
+- 시각 단서가 각막궤양을 시사하면 confidence 낮아도 "각막궤양" 그대로 출력
+  (단 의심 가능성 likelihood 는 적절히 조정)
+
+⚠️ "결막염" / "외이염" / "피부염" 같은 generic 카테고리로 후퇴하지 말 것
+⚠️ 시각 단서가 명확하면 임상 명칭 (각막궤양, ringworm, 모낭충, 농피증 등) 그대로 출력
+⚠️ ai_confidence=low 는 확신 낮음을 표현하는 수단일 뿐, 진단명 자체를 약화하는 도구 X
 
 is_valid_photo = false 이면 diseases / observations 는 빈 배열로 두고
 invalid_reason 에 다시 찍을 때 팁(거리·조명·각도)을 한국어로 친절히 안내하세요.
