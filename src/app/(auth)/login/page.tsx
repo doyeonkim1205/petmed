@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, FileSearch, Camera, MapPin } from 'lucide-react';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -13,44 +12,11 @@ function isInAppBrowser(): boolean {
   return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|Snapchat|Twitter/.test(ua);
 }
 
-/**
- * 로그인 페이지 진입용 일러스트.
- * 온보딩의 IllustPaw 와 같은 톤 (200x200, blue 배경 원, 발바닥 + 하트 + sparkles).
- * 라이트하게 변형: 크기는 그대로지만 페이지에서 작게 (140x140).
- */
-function LoginIllust() {
-  return (
-    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
-      <circle cx="100" cy="100" r="90" fill="#DBEAFE" />
-      <circle cx="100" cy="100" r="70" fill="#BFDBFE" opacity="0.6" />
-      {/* Paw pad */}
-      <ellipse cx="100" cy="120" rx="28" ry="24" fill="#3B82F6" />
-      <ellipse cx="72" cy="90" rx="14" ry="17" fill="#3B82F6" transform="rotate(-15, 72, 90)" />
-      <ellipse cx="92" cy="78" rx="13" ry="16" fill="#3B82F6" transform="rotate(-5, 92, 78)" />
-      <ellipse cx="112" cy="78" rx="13" ry="16" fill="#3B82F6" transform="rotate(5, 112, 78)" />
-      <ellipse cx="130" cy="90" rx="14" ry="17" fill="#3B82F6" transform="rotate(15, 130, 90)" />
-      <path d="M90 135 C90 130, 82 125, 82 130 C82 136, 90 142, 90 142 C90 142, 98 136, 98 130 C98 125, 90 130, 90 135Z" fill="#EF4444" opacity="0.8" transform="translate(12, -2) scale(1.2)" />
-      <circle cx="45" cy="55" r="3" fill="#FBBF24" />
-      <circle cx="155" cy="60" r="2.5" fill="#FBBF24" />
-      <circle cx="50" cy="150" r="2" fill="#FBBF24" />
-      <circle cx="160" cy="140" r="3" fill="#FBBF24" />
-      <path d="M150 45 L152 40 L154 45 L159 47 L154 49 L152 54 L150 49 L145 47Z" fill="#F59E0B" opacity="0.7" />
-      <path d="M38 120 L40 116 L42 120 L46 122 L42 124 L40 128 L38 124 L34 122Z" fill="#F59E0B" opacity="0.5" />
-    </svg>
-  );
-}
-
-const FEATURES = [
-  { icon: MessageCircle, label: 'AI 증상 분석',     color: 'text-blue-500' },
-  { icon: Camera,        label: 'AI 사진 분석',     color: 'text-purple-500' },
-  { icon: FileSearch,    label: '수의학 논문 검색', color: 'text-emerald-500' },
-  { icon: MapPin,        label: '24시 병원 찾기',   color: 'text-rose-500' },
-];
-
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
   const { signInWithGoogle, signInWithKakao } = useAuth();
+
   useEffect(() => {
     setInApp(isInAppBrowser());
     const params = new URLSearchParams(window.location.search);
@@ -79,39 +45,30 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
-      <main className="flex-1 px-6 py-10 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        {/* 일러스트 + 로고 */}
-        <div className="w-32 h-32 mb-3">
-          <LoginIllust />
-        </div>
-        <h1 className="text-2xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-        <p className="text-sm text-gray-500 mt-2 text-center leading-relaxed">
+      <main className="flex-1 px-6 py-12 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
+        {/* 브랜드 영역 */}
+        <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
+        <div className="w-12 h-1 bg-blue-500 rounded-full mt-3" />
+
+        <p className="text-base text-gray-700 mt-6 text-center leading-relaxed font-medium">
           반려동물 건강 케어,<br />
-          <span className="text-gray-700 font-semibold">더 똑똑하게</span>
+          <span className="text-blue-600 font-bold">더 똑똑하게</span>
         </p>
 
-        {/* 기능 카드 — 가입 동기 강화 */}
-        <div className="w-full mt-8 mb-7 grid grid-cols-2 gap-2">
-          {FEATURES.map(({ icon: Icon, label, color }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5 shadow-sm"
-            >
-              <Icon size={16} className={color} />
-              <span className="text-xs font-medium text-gray-700">{label}</span>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
+          AI 증상 분석부터 24시 병원까지<br />
+          한 번에 보호자 곁에서
+        </p>
 
         {/* 에러 메시지 */}
         {error && (
-          <div className="w-full p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-4">
+          <div className="w-full mt-8 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {error}
           </div>
         )}
 
         {/* 로그인 버튼 */}
-        <div className="w-full space-y-2.5">
+        <div className="w-full space-y-2.5 mt-10">
           <button
             onClick={handleKakaoLogin}
             className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
@@ -138,7 +95,7 @@ export default function LoginPage() {
         </div>
 
         {/* 약관 */}
-        <p className="text-[11px] text-gray-400 mt-5 text-center leading-relaxed">
+        <p className="text-[11px] text-gray-400 mt-6 text-center leading-relaxed">
           시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
           <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
         </p>

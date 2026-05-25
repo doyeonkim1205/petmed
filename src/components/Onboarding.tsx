@@ -41,21 +41,19 @@ function IllustAI() {
       <circle cx="100" cy="100" r="90" fill="#EDE9FE" />
       <circle cx="100" cy="100" r="70" fill="#DDD6FE" opacity="0.5" />
 
-      {/* 사진 프레임 (살짝 기울어진 카드) */}
+      {/* 사진 프레임 (살짝 기울어진 카드) — 미니멀 풍경 사진 */}
       <g transform="rotate(-8, 85, 85)">
         <rect x="50" y="50" width="70" height="70" rx="8" fill="white" stroke="#8B5CF6" strokeWidth="2.5" />
-        {/* 강아지 얼굴 — 노란 톤 */}
-        <ellipse cx="85" cy="92" rx="22" ry="20" fill="#FBBF24" />
-        {/* 귀 */}
-        <ellipse cx="68" cy="73" rx="7" ry="11" fill="#F59E0B" transform="rotate(-25, 68, 73)" />
-        <ellipse cx="102" cy="73" rx="7" ry="11" fill="#F59E0B" transform="rotate(25, 102, 73)" />
-        {/* 눈 */}
-        <circle cx="79" cy="90" r="2.5" fill="#1F2937" />
-        <circle cx="91" cy="90" r="2.5" fill="#1F2937" />
-        {/* 코 */}
-        <ellipse cx="85" cy="100" rx="3" ry="2" fill="#1F2937" />
-        {/* 미소 */}
-        <path d="M82 105 Q85 108 88 105" stroke="#1F2937" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        {/* 하늘 영역 */}
+        <rect x="55" y="55" width="60" height="44" rx="3" fill="#E0E7FF" />
+        {/* 태양 */}
+        <circle cx="100" cy="68" r="6" fill="#FBBF24" />
+        {/* 뒷쪽 산 */}
+        <path d="M55 95 L72 75 L88 90 L100 80 L115 95 Z" fill="#A78BFA" opacity="0.7" />
+        {/* 앞쪽 산 */}
+        <path d="M55 99 L68 84 L82 96 L95 86 L110 99 L115 99 L115 99 Z" fill="#8B5CF6" />
+        {/* 땅(하단) */}
+        <rect x="55" y="99" width="60" height="16" fill="#F5F3FF" />
       </g>
 
       {/* 말풍선 (분석 결과) — 오른쪽 하단 */}
@@ -220,7 +218,7 @@ const slides = [
   {
     Illustration: IllustAI,
     title: '증상이나 사진으로\nAI 분석을 받아보세요',
-    desc: '말로 풀어 적어도, 사진 한 장만으로도\nAI가 의심 진단과 행동 가이드를 알려줘요.',
+    desc: '직접 입력하신 증상은 물론, 사진 한 장만으로도\n의심 증상과 맞춤 행동 가이드를 알려드려요.',
     gradient: 'from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-950',
     accentColor: '#8B5CF6',
   },
