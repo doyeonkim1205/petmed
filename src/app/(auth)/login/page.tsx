@@ -46,16 +46,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-200 to-blue-50 px-5 py-10">
       <main className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        {/* 흰 카드 — 모든 콘텐츠 컨테이너 */}
-        <div className="w-full bg-white rounded-3xl shadow-lg px-7 pt-10 pb-7">
+        {/* 흰 카드 — 모든 콘텐츠 컨테이너 (세로 여유) */}
+        <div className="w-full bg-white rounded-3xl shadow-lg px-7 pt-14 pb-10 min-h-[560px] flex flex-col">
           {/* 브랜드 영역 */}
           <div className="flex flex-col items-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-            <p className="text-base text-gray-700 mt-6 text-center leading-relaxed font-medium">
+            <p className="text-base text-gray-700 mt-9 text-center leading-relaxed font-medium">
               반려동물 건강 케어,<br />
               <span className="text-blue-600 font-bold">더 똑똑하게</span>
             </p>
-            <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
+            <p className="text-sm text-gray-500 mt-4 text-center leading-relaxed">
               AI 증상 분석부터 24시 병원까지<br />
               한 번에 보호자 곁에서
             </p>
@@ -63,13 +63,13 @@ export default function LoginPage() {
 
           {/* 에러 메시지 */}
           {error && (
-            <div className="w-full mt-7 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="w-full mt-9 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
               {error}
             </div>
           )}
 
-          {/* 로그인 버튼 */}
-          <div className="w-full space-y-2.5 mt-9">
+          {/* 로그인 버튼 — 카드 하단으로 밀어내기 */}
+          <div className="w-full space-y-3 mt-auto pt-12">
             <button
               onClick={handleKakaoLogin}
               className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
@@ -96,7 +96,7 @@ export default function LoginPage() {
           </div>
 
           {/* 약관 */}
-          <p className="text-[11px] text-gray-400 mt-6 text-center leading-relaxed">
+          <p className="text-[11px] text-gray-400 mt-7 text-center leading-relaxed">
             시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
             <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
           </p>
