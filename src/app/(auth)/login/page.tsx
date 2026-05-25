@@ -55,10 +55,6 @@ export default function LoginPage() {
               반려동물 건강 케어,<br />
               <span className="text-blue-600 font-bold">더 똑똑하게</span>
             </p>
-            <p className="text-sm text-gray-500 mt-3 text-center leading-relaxed">
-              AI 증상 분석부터 24시 병원까지<br />
-              한 번에 보호자 곁에서
-            </p>
 
             {error && (
               <div className="w-full mt-7 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
@@ -95,8 +91,8 @@ export default function LoginPage() {
 
           {/* 약관 — 카드 하단 고정 */}
           <p className="text-[11px] text-gray-400 text-center leading-relaxed pt-6">
-            시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
-            <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
+            로그인 시 <a href="/terms" className="underline">이용약관</a> 및{' '}
+            <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다.
           </p>
         </div>
       </main>
