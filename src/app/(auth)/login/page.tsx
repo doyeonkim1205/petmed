@@ -51,7 +51,7 @@ export default function LoginPage() {
           {/* 콘텐츠 그룹 — PawDex + 카피 + 버튼 (카드 중앙에 묶임) */}
           <div className="flex-1 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-            <p className="text-base text-gray-700 mt-9 text-center leading-relaxed font-medium">
+            <p className="text-base text-gray-700 mt-4 text-center leading-relaxed font-medium">
               반려동물 건강 케어,<br />
               <span className="text-blue-600 font-bold">더 똑똑하게</span>
             </p>
@@ -62,7 +62,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="w-full space-y-3 mt-10">
+            <div className="w-full space-y-3 mt-16">
               <button
                 onClick={handleKakaoLogin}
                 className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
