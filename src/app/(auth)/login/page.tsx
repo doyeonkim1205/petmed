@@ -46,23 +46,25 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-200 to-blue-50 px-5 py-8">
       <main className="flex-1 flex flex-col items-stretch max-w-sm mx-auto w-full">
-        {/* 흰 카드 — 콘텐츠는 중앙 묶음, 약관만 하단 */}
+        {/* 흰 카드 — 2등분(상=텍스트, 하=버튼) + 약관 하단 */}
         <div className="w-full bg-white rounded-3xl shadow-lg px-7 py-10 flex-1 min-h-[680px] flex flex-col">
-          {/* 콘텐츠 그룹 — PawDex + 카피 + 버튼 (카드 중앙에 묶임) */}
+          {/* [상반부] PawDex + 카피 */}
           <div className="flex-1 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
             <p className="text-base text-gray-700 mt-4 text-center leading-relaxed font-medium">
               반려동물 건강 케어,<br />
               <span className="text-blue-600 font-bold">더 똑똑하게</span>
             </p>
+          </div>
 
+          {/* [하반부] 에러 + 로그인 버튼 */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full">
             {error && (
-              <div className="w-full mt-7 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
               </div>
             )}
-
-            <div className="w-full space-y-3 mt-16">
+            <div className="w-full space-y-3">
               <button
                 onClick={handleKakaoLogin}
                 className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
