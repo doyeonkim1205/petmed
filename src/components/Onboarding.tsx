@@ -34,6 +34,63 @@ function IllustPaw() {
   );
 }
 
+function IllustAI() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle — purple 톤 (AI 진단) */}
+      <circle cx="100" cy="100" r="90" fill="#EDE9FE" />
+      <circle cx="100" cy="100" r="70" fill="#DDD6FE" opacity="0.5" />
+
+      {/* 사진 프레임 (살짝 기울어진 카드) */}
+      <g transform="rotate(-8, 85, 85)">
+        <rect x="50" y="50" width="70" height="70" rx="8" fill="white" stroke="#8B5CF6" strokeWidth="2.5" />
+        {/* 강아지 얼굴 — 노란 톤 */}
+        <ellipse cx="85" cy="92" rx="22" ry="20" fill="#FBBF24" />
+        {/* 귀 */}
+        <ellipse cx="68" cy="73" rx="7" ry="11" fill="#F59E0B" transform="rotate(-25, 68, 73)" />
+        <ellipse cx="102" cy="73" rx="7" ry="11" fill="#F59E0B" transform="rotate(25, 102, 73)" />
+        {/* 눈 */}
+        <circle cx="79" cy="90" r="2.5" fill="#1F2937" />
+        <circle cx="91" cy="90" r="2.5" fill="#1F2937" />
+        {/* 코 */}
+        <ellipse cx="85" cy="100" rx="3" ry="2" fill="#1F2937" />
+        {/* 미소 */}
+        <path d="M82 105 Q85 108 88 105" stroke="#1F2937" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      </g>
+
+      {/* 말풍선 (분석 결과) — 오른쪽 하단 */}
+      <g>
+        <rect x="105" y="115" width="62" height="42" rx="10" fill="white" stroke="#8B5CF6" strokeWidth="2" />
+        {/* 말풍선 꼬리 */}
+        <path d="M115 154 L108 165 L122 158 Z" fill="white" stroke="#8B5CF6" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M115 155 L122 158" stroke="white" strokeWidth="2.5" />
+        {/* 분석 결과 라인 (텍스트 가짜) */}
+        <rect x="113" y="124" width="46" height="3" rx="1.5" fill="#A78BFA" />
+        <rect x="113" y="132" width="36" height="3" rx="1.5" fill="#C4B5FD" />
+        <rect x="113" y="140" width="42" height="3" rx="1.5" fill="#DDD6FE" />
+        {/* AI 체크 마크 */}
+        <circle cx="155" cy="142" r="5" fill="#10B981" />
+        <path d="M152 142 L154 144 L158 140" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </g>
+
+      {/* AI 스파클 — 사진 위 */}
+      <g transform="translate(135, 38)">
+        <path d="M6 0 L8 5 L13 7 L8 9 L6 14 L4 9 L-1 7 L4 5 Z" fill="#A78BFA" />
+      </g>
+      {/* AI 텍스트 (작게) */}
+      <g transform="translate(28, 90)">
+        <circle cx="8" cy="8" r="10" fill="#A78BFA" opacity="0.3" />
+        <text x="8" y="11.5" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#7C3AED">AI</text>
+      </g>
+      {/* Small sparkles */}
+      <circle cx="50" cy="55" r="3" fill="#FBBF24" />
+      <circle cx="158" cy="65" r="2.5" fill="#FBBF24" />
+      <circle cx="42" cy="160" r="2" fill="#FBBF24" />
+      <path d="M170 105 L172 100 L174 105 L179 107 L174 109 L172 114 L170 109 L165 107Z" fill="#F59E0B" opacity="0.6" />
+    </svg>
+  );
+}
+
 function IllustSearch() {
   return (
     <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
@@ -159,6 +216,13 @@ const slides = [
     desc: '10살 이브가 치료를 받던 시간,\n믿을 수 있는 정보와 꾸준한 기록이 꼭 필요했습니다.',
     gradient: 'from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-950',
     accentColor: '#3B82F6',
+  },
+  {
+    Illustration: IllustAI,
+    title: '증상이나 사진으로\nAI 분석을 받아보세요',
+    desc: '말로 풀어 적어도, 사진 한 장만으로도\nAI가 의심 진단과 행동 가이드를 알려줘요.',
+    gradient: 'from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-950',
+    accentColor: '#8B5CF6',
   },
   {
     Illustration: IllustSearch,
