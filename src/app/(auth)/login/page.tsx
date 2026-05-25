@@ -44,14 +44,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-200 to-blue-50 px-5 py-10">
-      <main className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        {/* 흰 카드 — 모든 콘텐츠 컨테이너 (세로 여유) */}
-        <div className="w-full bg-white rounded-3xl shadow-lg px-7 pt-14 pb-10 min-h-[560px] flex flex-col">
-          {/* 브랜드 영역 */}
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-200 to-blue-50 px-5 py-8">
+      <main className="flex-1 flex flex-col items-stretch max-w-sm mx-auto w-full">
+        {/* 흰 카드 — 화면 대부분 차지, 콘텐츠 위·아래 분배 */}
+        <div className="w-full bg-white rounded-3xl shadow-lg px-7 pt-20 pb-12 flex-1 min-h-[680px] flex flex-col">
+          {/* 브랜드 영역 — 상단 */}
           <div className="flex flex-col items-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-            <p className="text-base text-gray-700 mt-9 text-center leading-relaxed font-medium">
+            <p className="text-base text-gray-700 mt-12 text-center leading-relaxed font-medium">
               반려동물 건강 케어,<br />
               <span className="text-blue-600 font-bold">더 똑똑하게</span>
             </p>
@@ -96,7 +96,7 @@ export default function LoginPage() {
           </div>
 
           {/* 약관 */}
-          <p className="text-[11px] text-gray-400 mt-7 text-center leading-relaxed">
+          <p className="text-[11px] text-gray-400 mt-8 text-center leading-relaxed">
             시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
             <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
           </p>
