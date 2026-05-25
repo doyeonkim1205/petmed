@@ -68,8 +68,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* 로그인 버튼 — 카드 하단으로 밀어내기 */}
-          <div className="w-full space-y-3 mt-auto pt-12">
+          {/* 로그인 버튼 — 카피 바로 아래 (자연 흐름) */}
+          <div className="w-full space-y-3 mt-10">
             <button
               onClick={handleKakaoLogin}
               className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
@@ -95,8 +95,8 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* 약관 */}
-          <p className="text-[11px] text-gray-400 mt-8 text-center leading-relaxed">
+          {/* 약관 — 카드 하단 고정 */}
+          <p className="text-[11px] text-gray-400 mt-auto pt-8 text-center leading-relaxed">
             시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
             <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
           </p>
