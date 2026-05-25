@@ -48,7 +48,7 @@ export default function LoginPage() {
       <main className="flex-1 px-6 py-12 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
         {/* 브랜드 영역 */}
         <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
-        <div className="w-12 h-1 bg-blue-500 rounded-full mt-3" />
+        <div className="w-20 h-px bg-blue-300 mt-3" />
 
         <p className="text-base text-gray-700 mt-6 text-center leading-relaxed font-medium">
           반려동물 건강 케어,<br />
