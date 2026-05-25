@@ -57,8 +57,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* [하반부] 에러 + 로그인 버튼 */}
-          <div className="flex-1 flex flex-col items-center justify-center w-full">
+          {/* [하반부] 에러 + 로그인 버튼 — 약관 바로 위까지 내려감 */}
+          <div className="flex-1 flex flex-col items-center justify-end w-full">
             {error && (
               <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
