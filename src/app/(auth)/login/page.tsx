@@ -46,10 +46,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-200 to-blue-50 px-5 py-8">
       <main className="flex-1 flex flex-col items-stretch max-w-sm mx-auto w-full">
-        {/* 흰 카드 — 3구역(상·중·하) 자동 분배 */}
-        <div className="w-full bg-white rounded-3xl shadow-lg px-7 pt-14 pb-10 flex-1 min-h-[680px] flex flex-col justify-between">
-          {/* [상단] 브랜드 영역 */}
-          <div className="flex flex-col items-center">
+        {/* 흰 카드 — 콘텐츠는 중앙 묶음, 약관만 하단 */}
+        <div className="w-full bg-white rounded-3xl shadow-lg px-7 py-10 flex-1 min-h-[680px] flex flex-col">
+          {/* 콘텐츠 그룹 — PawDex + 카피 + 버튼 (카드 중앙에 묶임) */}
+          <div className="flex-1 flex flex-col items-center justify-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
             <p className="text-base text-gray-700 mt-9 text-center leading-relaxed font-medium">
               반려동물 건강 케어,<br />
@@ -59,16 +59,14 @@ export default function LoginPage() {
               AI 증상 분석부터 24시 병원까지<br />
               한 번에 보호자 곁에서
             </p>
-          </div>
 
-          {/* [중앙] 로그인 버튼 (+ 에러 메시지) */}
-          <div className="w-full">
             {error && (
-              <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              <div className="w-full mt-7 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
               </div>
             )}
-            <div className="w-full space-y-3">
+
+            <div className="w-full space-y-3 mt-10">
               <button
                 onClick={handleKakaoLogin}
                 className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
@@ -95,8 +93,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* [하단] 약관 */}
-          <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+          {/* 약관 — 카드 하단 고정 */}
+          <p className="text-[11px] text-gray-400 text-center leading-relaxed pt-6">
             시작하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
             <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다
           </p>
