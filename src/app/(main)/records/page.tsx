@@ -12,7 +12,8 @@ import { RecordCard } from '@/components/records/RecordCard';
 import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { TextField } from '@/components/TextField';
+import { PetFormFields } from '@/components/pets/PetFormFields';
+import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
@@ -48,7 +49,8 @@ export default function RecordsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [petCount, setPetCount] = useState<number | null>(null);
   const [petRefreshKey, setPetRefreshKey] = useState(0);
-  const [newPet, setNewPet] = useState({ name: '', type: 'dog' as 'dog' | 'cat', breed: '', birth_date: '' });
+  const [newPet, setNewPet] = useState<PetFormState>(EMPTY_PET_FORM);
+  const [petFormError, setPetFormError] = useState<string | null>(null);
   const [savingPet, setSavingPet] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -60,17 +62,20 @@ export default function RecordsPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleAddPet = async () => {
-    if (!user || !newPet.name.trim()) return;
+    if (!user) return;
+    const validationError = validatePetForm(newPet);
+    if (validationError) {
+      setPetFormError(validationError);
+      return;
+    }
+    setPetFormError(null);
     setSavingPet(true);
     try {
       await supabase.from('pets').insert({
         user_id: user.id,
-        name: newPet.name.trim(),
-        type: newPet.type,
-        breed: newPet.breed.trim() || null,
-        birth_date: newPet.birth_date || null,
+        ...formToPayload(newPet),
       });
-      setNewPet({ name: '', type: 'dog', breed: '', birth_date: '' });
+      setNewPet(EMPTY_PET_FORM);
       setPetRefreshKey(k => k + 1);
     } catch (err) {
       Sentry.captureException(err, {
@@ -271,47 +276,8 @@ export default function RecordsPage() {
           </p>
 
           <div className="w-full max-w-sm space-y-3">
-            <TextField
-              placeholder="이름"
-              value={newPet.name}
-              onChange={e => setNewPet(p => ({ ...p, name: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setNewPet(p => ({ ...p, type: 'dog' }))}
-                className={`flex-1 h-10 rounded-xl border font-medium text-sm flex items-center justify-center gap-1.5 transition-colors ${
-                  newPet.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                }`}
-              >
-                <Dog size={14} /> 강아지
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewPet(p => ({ ...p, type: 'cat' }))}
-                className={`flex-1 h-10 rounded-xl border font-medium text-sm flex items-center justify-center gap-1.5 transition-colors ${
-                  newPet.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                }`}
-              >
-                <Cat size={14} /> 고양이
-              </button>
-            </div>
-            <TextField
-              placeholder="품종 (선택)"
-              value={newPet.breed}
-              onChange={e => setNewPet(p => ({ ...p, breed: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">생년월일 (선택)</label>
-              <input
-                type="date"
-                value={newPet.birth_date}
-                onChange={e => setNewPet(p => ({ ...p, birth_date: e.target.value }))}
-                className={`w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!newPet.birth_date ? 'date-empty' : ''}`}
-              />
-            </div>
+            <PetFormFields form={newPet} setForm={setNewPet} />
+            {petFormError && <p className="text-xs text-red-500">{petFormError}</p>}
             <button
               onClick={handleAddPet}
               disabled={savingPet || !newPet.name.trim()}

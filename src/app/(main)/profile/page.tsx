@@ -18,6 +18,10 @@ import { NotificationPermissionDenied } from '@/components/NotificationPermissio
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { TextField } from '@/components/TextField';
+import { PetFormFields } from '@/components/pets/PetFormFields';
+import {
+  PetFormState, EMPTY_PET_FORM, petToForm, formToPayload, validatePetForm,
+} from '@/lib/petForm';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -86,60 +90,9 @@ function NicknameModal({
 // 2026-05 확장: AI 증상 분석 컨텍스트 필드 (성별, 중성화, 체중, 만성질환) 추가.
 //   - 모두 선택 입력 — 사용자가 점진적으로 채울 수 있게.
 //   - DB 에 NULL 로 들어가도 기존 기능 영향 0 (옛 펫은 그대로 유지).
-// 편집 모드 신규: 펫 카드 옆 ✏️ 버튼으로 진입 → 같은 폼 재사용.
-type PetFormState = {
-  name: string;
-  type: 'dog' | 'cat';
-  breed: string;
-  birth_date: string;
-  sex: '' | 'male' | 'female';
-  neutered: '' | 'yes' | 'no';
-  weight: string;                  // input 은 string, 저장 시 number 변환
-  chronic_conditions: string;      // 쉼표 구분 입력, 저장 시 string[] 변환
-};
-
-const EMPTY_PET_FORM: PetFormState = {
-  name: '',
-  type: 'dog',
-  breed: '',
-  birth_date: '',
-  sex: '',
-  neutered: '',
-  weight: '',
-  chronic_conditions: '',
-};
-
-function petToForm(pet: Pet): PetFormState {
-  return {
-    name: pet.name,
-    type: pet.type,
-    breed: pet.breed || '',
-    birth_date: pet.birth_date || '',
-    sex: pet.sex || '',
-    neutered: pet.neutered === true ? 'yes' : pet.neutered === false ? 'no' : '',
-    weight: pet.weight != null ? String(pet.weight) : '',
-    chronic_conditions: (pet.chronic_conditions || []).join(', '),
-  };
-}
-
-/** form 상태 → DB payload (NULL/배열 변환). */
-function formToPayload(form: PetFormState) {
-  const weightNum = form.weight.trim() ? parseFloat(form.weight.trim()) : null;
-  const conditions = form.chronic_conditions
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-  return {
-    name: form.name.trim(),
-    type: form.type,
-    breed: form.breed.trim() || null,
-    birth_date: form.birth_date || null,
-    sex: form.sex || null,
-    neutered: form.neutered === 'yes' ? true : form.neutered === 'no' ? false : null,
-    weight: weightNum,
-    chronic_conditions: conditions.length > 0 ? conditions : null,
-  };
-}
+// 편집 모드: 펫 카드 옆 ✏️ 버튼으로 진입 → 같은 폼 재사용.
+// 폼 상태/변환 로직(petForm)과 입력 필드 UI(PetFormFields)는 공통 모듈로 분리 —
+// 기록장 첫 진입 화면과 입력 항목을 동기화하기 위함.
 
 function PetModal({
   open, userId, onClose,
@@ -219,16 +172,10 @@ function PetModal({
     // 검증 실패는 lock 해제하지만, 실제 네트워크 호출 시작 후엔 응답 완료까지 lock 유지.
     if (savingRef.current) return;
     setFormError(null);
-    if (!form.name.trim()) {
-      setFormError('이름을 입력해주세요');
+    const validationError = validatePetForm(form);
+    if (validationError) {
+      setFormError(validationError);
       return;
-    }
-    if (form.weight.trim()) {
-      const w = parseFloat(form.weight.trim());
-      if (isNaN(w) || w <= 0) {
-        setFormError('체중은 양수로 입력해주세요 (예: 4.2)');
-        return;
-      }
     }
 
     const payload = formToPayload(form);
@@ -345,140 +292,7 @@ function PetModal({
                 {editingPetId ? '반려동물 정보 수정' : '반려동물 추가'}
               </p>
 
-              {/* AI 증상 분석에 펫 컨텍스트가 자동 주입돼 정확도가 좌우됨 →
-                 등록 시 정보 입력 의욕을 부드럽게 유도. 모든 필드는 여전히 선택. */}
-              <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed">
-                💡 정보를 자세히 입력할수록 AI 증상 분석이 더 정확해져요
-              </p>
-
-              <TextField
-                placeholder="이름"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                maxLength={12}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setForm(f => ({ ...f, type: 'dog' }))}
-                  className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    form.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  <Dog size={14} /> 강아지
-                </button>
-                <button
-                  onClick={() => setForm(f => ({ ...f, type: 'cat' }))}
-                  className={`flex-1 h-9 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
-                    form.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  <Cat size={14} /> 고양이
-                </button>
-              </div>
-
-              <TextField
-                placeholder="품종 (선택)"
-                value={form.breed}
-                onChange={e => setForm(f => ({ ...f, breed: e.target.value }))}
-                maxLength={25}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-
-              <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
-                <input
-                  type="date"
-                  value={form.birth_date}
-                  onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
-                  className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
-                />
-              </div>
-
-              {/* 성별 — 미선택 허용 */}
-              <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">성별 (선택)</label>
-                <div className="flex gap-1.5">
-                  {(['', 'male', 'female'] as const).map(s => {
-                    const labelMap: Record<'' | 'male' | 'female', string> = { '': '모름', male: '수컷', female: '암컷' };
-                    const active = form.sex === s;
-                    return (
-                      <button
-                        key={s || 'unknown'}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, sex: s }))}
-                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
-                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                        }`}
-                      >
-                        {labelMap[s]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 중성화 — 미선택 허용 */}
-              <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">중성화 여부 (선택)</label>
-                <div className="flex gap-1.5">
-                  {(['', 'yes', 'no'] as const).map(v => {
-                    const labelMap: Record<'' | 'yes' | 'no', string> = { '': '모름', yes: '했어요', no: '안 했어요' };
-                    const active = form.neutered === v;
-                    return (
-                      <button
-                        key={v || 'unknown'}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, neutered: v }))}
-                        className={`flex-1 h-9 rounded-xl border text-xs font-medium transition-colors ${
-                          active ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                        }`}
-                      >
-                        {labelMap[v]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 체중 — 숫자 입력, 단위 'kg' 는 입력창 오른쪽에 표시 (가독성 ↑).
-                 입력 정규식 (^\d{0,3}(\.\d{0,2})?$) 은 records/add 페이지와 동일 패턴 —
-                 정수 최대 3자리 + 소수 최대 2자리 (예: 999.99kg). inputMode=decimal 로
-                 모바일 숫자 키패드. type=number 미사용 (브라우저별 '.' 처리 차이 회피). */}
-              <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
-                <div className="relative">
-                  <TextField
-                    inputMode="decimal"
-                    placeholder="예: 4.2"
-                    value={form.weight}
-                    onChange={e => {
-                      const v = e.target.value;
-                      if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) {
-                        setForm(f => ({ ...f, weight: v }));
-                      }
-                    }}
-                    maxLength={6}
-                    className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
-                    kg
-                  </span>
-                </div>
-              </div>
-
-              {/* 만성질환 — 쉼표 구분 자유 입력 (100자 한도: 평균 3~5개 질환 커버) */}
-              <div>
-                <label className="text-[11px] text-gray-400 mb-1 block">만성질환 (선택, 쉼표로 구분)</label>
-                <TextField
-                  placeholder="예: 신부전, 관절염"
-                  value={form.chronic_conditions}
-                  onChange={e => setForm(f => ({ ...f, chronic_conditions: e.target.value }))}
-                  maxLength={100}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
+              <PetFormFields form={form} setForm={setForm} />
 
               {formError && (
                 <p className="text-xs text-red-500">{formError}</p>
