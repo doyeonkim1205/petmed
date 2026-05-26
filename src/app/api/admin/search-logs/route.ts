@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
 
-type LogKind = 'disease' | 'symptom' | 'symptom_refine';
-type SearchType = 'all' | 'disease' | 'symptom';
+type LogKind = 'disease' | 'symptom' | 'symptom_refine' | 'symptom_photo';
+type SearchType = 'all' | 'disease' | 'symptom' | 'symptom_photo';
 
 /**
  * 관리자 검색 로그 조회 API.
@@ -67,6 +67,7 @@ export async function GET(request: Request) {
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
   if (type === 'disease') query = query.eq('kind', 'disease');
   else if (type === 'symptom') query = query.in('kind', ['symptom', 'symptom_refine']);
+  else if (type === 'symptom_photo') query = query.eq('kind', 'symptom_photo');
 
   const { data, count } = await query
     .order('created_at', { ascending: false })

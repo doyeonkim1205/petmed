@@ -939,8 +939,8 @@ function SearchContent() {
                     <p className={`text-xs leading-relaxed ${
                       symptomResult.concern_level === 'low' ? 'text-green-800' : 'text-blue-800'
                     }`}>
-                      {/* medium 이모지 — 사진 분석과 통일 (👀 관찰 의미, 거꾸로 보이는 폰트 이슈 해결) */}
-                      {symptomResult.concern_level === 'low' ? '😊 ' : '👀 '}
+                      {/* medium 이모지 — 사진 분석과 통일 (🔍 관찰/살펴보기 의미) */}
+                      {symptomResult.concern_level === 'low' ? '😊 ' : '🔍 '}
                       {symptomResult.reassurance}
                     </p>
 

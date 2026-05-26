@@ -7,8 +7,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 import { TextField } from '@/components/TextField';
 
-type SearchType = 'all' | 'disease' | 'symptom';
-type LogKind = 'disease' | 'symptom' | 'symptom_refine';
+type SearchType = 'all' | 'disease' | 'symptom' | 'symptom_photo';
+type LogKind = 'disease' | 'symptom' | 'symptom_refine' | 'symptom_photo';
 
 interface MergedLog {
   id: string;
@@ -24,12 +24,14 @@ const kindConfig: Record<LogKind, { label: string; className: string }> = {
   disease: { label: '질병 검색', className: 'bg-blue-50 text-blue-600' },
   symptom: { label: '증상 분석', className: 'bg-orange-50 text-orange-600' },
   symptom_refine: { label: '증상 재분석', className: 'bg-rose-50 text-rose-600' },
+  symptom_photo: { label: '사진 분석', className: 'bg-purple-50 text-purple-600' },
 };
 
 const typeTabs: { id: SearchType; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'disease', label: '질병 검색' },
   { id: 'symptom', label: '증상 분석' },
+  { id: 'symptom_photo', label: '사진 분석' },
 ];
 
 function formatUser(p: MergedLog['profile']) {

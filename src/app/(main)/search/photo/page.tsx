@@ -604,7 +604,7 @@ function ResultPanel({
   // high 일 땐 AI 가 watch_signs 를 안 생성 (emergency_signs 가 그 역할) — 헤더만 표시됨.
   const concernConfig = {
     low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: '지금은 괜찮아 보여요' },
-    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: '👀', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
+    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: '🔍', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
     high:   { border: 'border-red-200',     bg: 'bg-red-50',     icon: '🚨', textColor: 'text-red-800',     label: '빠른 진료가 필요해요' },
   } as const;
   const concernKey =
