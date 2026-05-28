@@ -12,20 +12,21 @@ import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
 type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
 
-// 그룹별 계열 통일 + 계열 내 톤 변화 — 탭바와 산발적으로 겹쳐 보이던 문제는 막되,
-// 단색으로 밋밋하지 않게. AI 케어 = 푸른 계열 / 건강 기록 = 녹색 계열.
+// 투명 칩(배경 없이 아이콘만) + 기능 의미색.
+//   브랜드 컨셉: 주력 AI 진단(증상·사진) = 파랑(브랜드색) / 논문 검색 = 보라(보조).
+//   건강 기록 = 의미색(기록 초록 / 캘린더 주황 / 체중 청록 / 의료비 초록=돈).
 const AI_CARE: MenuItem[] = [
-  { icon: MessageCircle, label: '증상 분석', color: 'bg-blue-100 text-blue-600', href: '/search?mode=symptom' },
-  { icon: Camera, label: '사진 분석', color: 'bg-indigo-100 text-indigo-600', href: '/search/photo' },
-  { icon: FileSearch, label: '논문 검색', color: 'bg-sky-100 text-sky-600', href: '/search?mode=disease' },
-  { icon: Bookmark, label: '보관함', color: 'bg-cyan-100 text-cyan-600', href: '/profile/saved' },
+  { icon: MessageCircle, label: '증상 분석', color: 'text-blue-500', href: '/search?mode=symptom' },
+  { icon: Camera, label: '사진 분석', color: 'text-sky-500', href: '/search/photo' },
+  { icon: FileSearch, label: '논문 검색', color: 'text-violet-500', href: '/search?mode=disease' },
+  { icon: Bookmark, label: '보관함', color: 'text-amber-500', href: '/profile/saved' },
 ];
 
 const HEALTH: MenuItem[] = [
-  { icon: ClipboardList, label: '기록장', color: 'bg-emerald-100 text-emerald-600', href: '/records' },
-  { icon: Calendar, label: '캘린더', color: 'bg-green-100 text-green-600', href: '/records?tab=calendar' },
-  { icon: Scale, label: '체중 관리', color: 'bg-teal-100 text-teal-600', href: '/records/stats?tab=weight' },
-  { icon: Wallet, label: '의료비', color: 'bg-lime-100 text-lime-600', href: '/records/stats?tab=cost' },
+  { icon: ClipboardList, label: '기록장', color: 'text-emerald-500', href: '/records' },
+  { icon: Calendar, label: '캘린더', color: 'text-orange-500', href: '/records?tab=calendar' },
+  { icon: Scale, label: '체중 관리', color: 'text-teal-500', href: '/records/stats?tab=weight' },
+  { icon: Wallet, label: '의료비', color: 'text-green-600', href: '/records/stats?tab=cost' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
@@ -35,11 +36,9 @@ function MenuGrid({ items }: { items: MenuItem[] }) {
         <Link
           key={label}
           href={href}
-          className="bg-white rounded-2xl py-3.5 flex flex-col items-center gap-2 shadow-sm border border-gray-100 active:scale-[0.97] transition-transform"
+          className="bg-white rounded-2xl py-4 flex flex-col items-center gap-2 shadow-sm border border-gray-100 active:scale-[0.97] transition-transform"
         >
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
-            <Icon size={20} />
-          </div>
+          <Icon size={24} className={color} />
           <span className="text-[11px] font-medium text-gray-700 text-center leading-tight px-0.5">{label}</span>
         </Link>
       ))}

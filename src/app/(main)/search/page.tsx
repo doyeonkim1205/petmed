@@ -673,7 +673,7 @@ function SearchContent() {
                 setSearchMode('disease');
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+                searchMode === 'disease' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-500'
               }`}
             >
               <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
@@ -686,7 +686,7 @@ function SearchContent() {
                 setSearchMode('symptom');
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
+                searchMode === 'symptom' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
               }`}
             >
               <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
@@ -705,7 +705,7 @@ function SearchContent() {
               onClick={() => setSelectedPetId(null)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 selectedPetId === null
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
               }`}
             >
@@ -721,7 +721,7 @@ function SearchContent() {
                   onClick={() => setSelectedPetId(pet.id)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
                     active
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                   }`}
                 >
@@ -735,13 +735,13 @@ function SearchContent() {
 
         <form onSubmit={handleSearch} className="max-w-sm mx-auto">
           <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
-            searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-300'
+            searchMode === 'symptom' ? 'border-blue-300' : 'border-violet-200'
           }`}>
             {(searchMode === 'symptom' && selectedPet) ? (
               // 증상 분석 + 펫 선택 시에만 — 종 이름 + 아이콘 (표시만, 변경은 위 칩 줄에서).
               // 논문 검색 모드에선 펫 선택과 무관하게 항상 강아지/고양이 토글만 노출.
               <div
-                className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 text-xs font-medium gap-1 bg-purple-50 text-purple-600"
+                className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 text-xs font-medium gap-1 bg-blue-50 text-blue-600"
               >
                 {selectedPet.type === 'dog' ? <Dog size={12} /> : <Cat size={12} />}
                 {selectedPet.name}
@@ -751,7 +751,7 @@ function SearchContent() {
                 type="button"
                 onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
                 className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors text-xs font-medium ${
-                  searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                  searchMode === 'symptom' ? 'bg-blue-50 text-blue-600' : 'bg-violet-50 text-violet-600'
                 }`}
               >
                 {petType === 'dog' ? '강아지' : '고양이'} ⇄
@@ -789,17 +789,17 @@ function SearchContent() {
                     setShowPhotoHint(false);
                     router.push('/search/photo');
                   }}
-                  className="absolute right-9 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-600 transition-colors"
+                  className="absolute right-9 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 transition-colors"
                 >
                   <Camera size={18} />
                   {showPhotoHint && (
                     <span
-                      className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-white border border-purple-300 text-purple-600 text-[11px] font-medium px-2.5 py-1.5 shadow-md z-20"
+                      className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-white border border-blue-300 text-blue-600 text-[11px] font-medium px-2.5 py-1.5 shadow-md z-20"
                       role="tooltip"
                     >
                       📷 사진으로 분석하기!
                       {/* 아래 방향 꼬리 — 카메라 아이콘 가리키게. border 색과 동일 톤. */}
-                      <span className="absolute -bottom-1 right-3 w-2 h-2 bg-white border-r border-b border-purple-300 rotate-45" />
+                      <span className="absolute -bottom-1 right-3 w-2 h-2 bg-white border-r border-b border-blue-300 rotate-45" />
                     </span>
                   )}
                 </button>
@@ -808,7 +808,7 @@ function SearchContent() {
                 type="submit"
                 aria-label="검색"
                 className={`absolute right-0.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
-                  searchMode === 'symptom' ? 'text-gray-400 hover:text-purple-600' : 'text-gray-400 hover:text-blue-600'
+                  searchMode === 'symptom' ? 'text-gray-400 hover:text-blue-600' : 'text-gray-400 hover:text-violet-600'
                 }`}
               >
                 <SearchIcon size={18} />
@@ -865,8 +865,8 @@ function SearchContent() {
         {searchMode === 'symptom' && (symptomLoading || symptomResult || symptomError) ? (
           <div className="max-w-sm mx-auto space-y-4">
             {symptomLoading && (
-              <div className="flex items-center gap-2.5 p-4 rounded-xl bg-purple-50">
-                <Loader2 size={16} className="animate-spin text-purple-500 flex-shrink-0" />
+              <div className="flex items-center gap-2.5 p-4 rounded-xl bg-blue-50">
+                <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
                 <p className="text-xs text-gray-600">AI가 증상을 분석하고 있습니다...</p>
               </div>
             )}
@@ -916,9 +916,9 @@ function SearchContent() {
                 {/* 펫 컨텍스트 사용 시 배지 — 분석에 펫 의료 정보가 반영됐음을 명시.
                    유저가 "이 분석이 우리 펫에 맞춤화됐구나" 인지하도록 결과 카드 위에 배치. */}
                 {symptomResult.context_used && symptomResult.pet_name && (
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl">
-                    <Sparkles size={14} className="text-purple-600 flex-shrink-0" />
-                    <p className="text-xs text-purple-700">
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                    <Sparkles size={14} className="text-blue-600 flex-shrink-0" />
+                    <p className="text-xs text-blue-700">
                       <span className="font-semibold">{symptomResult.pet_name}</span>
                       의 의료 정보를 반영한 분석이에요
                     </p>
