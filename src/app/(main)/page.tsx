@@ -15,7 +15,7 @@ type MenuItem = { icon: LucideIcon; label: string; color: string; href: string }
 
 // 투명 칩(배경 없이 아이콘만) + 아이콘 의미에 맞춘 색.
 //   AI 케어 = 파랑 계열로 통일(브랜드): 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=남색.
-//   건강 기록 = 그린·민트 계열로 통일(편안한 일상 데이터): 기록장=딥그린 / 캘린더=소프트그린 / 체중=에메랄드 / 의료비=딥 청록(teal-950 ≈ #00343d).
+//   건강 기록 = 그린·민트 계열로 통일(편안한 일상 데이터): 기록장=딥그린 / 캘린더=소프트그린 / 체중=에메랄드 / 의료비=딥 청록(#00343d).
 const AI_CARE: MenuItem[] = [
   { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', href: '/search?mode=symptom' },
   { icon: Camera, label: '사진 분석', color: 'text-sky-500', href: '/search/photo' },
@@ -27,7 +27,7 @@ const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', href: '/records' },
   { icon: Calendar, label: '캘린더', color: 'text-green-500', href: '/records?tab=calendar' },
   { icon: Scale, label: '체중 관리', color: 'text-emerald-500', href: '/records/stats?tab=weight' },
-  { icon: Wallet, label: '의료비', color: 'text-teal-950', href: '/records/stats?tab=cost' },
+  { icon: Wallet, label: '의료비', color: 'text-[#00343d]', href: '/records/stats?tab=cost' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
