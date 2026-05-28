@@ -335,6 +335,15 @@ ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 
   · 만성질환 환자의 명백한 악화 징후
   · 다발성·복합 증상
 
+[출혈(피) 증상 — 안전 규칙 · 매우 중요]
+- 토혈·혈변·혈뇨·각혈 등 "피"가 언급되면 **절대 concern_level=low 금지** (최소 medium).
+- 변/토물의 색·양상으로 출혈 위치를 구분해 description 에 설명할 것:
+  · 선홍색(밝은 빨강) 혈변 = 하부 위장관·직장·항문 (가벼운 자극일 수도, 파보·출혈성 장염 등 응급일 수도)
+  · 검은색·타르색 변(melena), 커피찌꺼기색 토물 = 소화된 피 = 상부 위장관 출혈 → concern_level=high
+- 선홍색 소량 + 그 외 정상 = medium (단, "정상" 단정 금지 + 강한 진료 권장, watch_signs 에 응급 전환 신호 포함)
+- 선홍색이라도 다량·하루 이상 지속·무기력·구토·식욕부진·어린/노령 동반 = high
+- 색·양상이 불명확하면 followup_questions 로 "변(또는 토물) 색이 선홍색인가요, 검은 타르 같은가요?" 를 반드시 물을 것
+
 [reassurance — concern_level 이 low/medium 일 때만 필수]
 - 한국어 1~2문장
 - "정상 행동일 가능성도 있다" / "너무 걱정하지 마세요" 류 톤
@@ -491,6 +500,21 @@ type 사용 가이드:
       concernLevel = 'low';
     }
 
+    // ── 출혈(피) 증상 안전 가드 (최종 안전망) ──
+    // LLM 이 규칙을 어기고 출혈을 low 로 깔아도 여기서 강제 격상한다.
+    //   · melena(검은·타르변)·커피찌꺼기 토물 = 상부 위장관 출혈 → high
+    //   · 그 외 출혈(선홍 등) = 최소 medium (절대 low 금지)
+    // "피"·"혈" 단독은 오탐(피부/피곤/빈혈/혈압)이 많아 제외하고, 출혈을 뜻하는 복합어만 매칭.
+    const bloodRe = /혈변|혈뇨|토혈|혈토|객혈|각혈|하혈|잠혈|출혈|코피|혈담|선홍|피똥|피\s*똥|핏덩|핏물|피설사|피\s*설사|피를?\s*토|피를?\s*흘|피가?\s*나|피가?\s*섞|피\s*섞|피가?\s*묻|피\s*묻|붉은\s*피|빨간\s*피/;
+    const melenaRe = /흑변|흑색변|검은\s*변|검은색\s*변|타르|짜장|커피\s*찌꺼기|커피색/;
+    const bloodDetected = bloodRe.test(symptoms);
+    const melenaDetected = melenaRe.test(symptoms);
+    if (melenaDetected) {
+      concernLevel = 'high';
+    } else if (bloodDetected && concernLevel === 'low') {
+      concernLevel = 'medium';
+    }
+
     // reassurance / watch_signs — high 일 땐 의도적으로 생략 (응급 신호 강조에 집중).
     const rawReassurance = typeof parsed.reassurance === 'string' ? parsed.reassurance.trim() : '';
     let reassurance = concernLevel !== 'high' && rawReassurance ? rawReassurance : undefined;
@@ -514,6 +538,14 @@ type 사용 가이드:
         '다른 증상이 함께 나타날 때',
         '활동성·식욕이 평소와 다를 때',
       ];
+    }
+
+    // 출혈이 medium 으로 격상된 케이스: AI 의 안심 문구가 "정상" 톤일 수 있어 보수적으로 교체.
+    if (bloodDetected && concernLevel === 'medium') {
+      reassurance = '출혈이 동반된 증상이에요. 가벼운 원인일 수도 있지만, 정확한 확인을 위해 가까운 시일 내 진료를 권장해요.';
+      if (watchSigns.length === 0) {
+        watchSigns = ['출혈량이 늘거나 반복될 때', '무기력·식욕부진·구토가 동반될 때', '검은색/타르 같은 변이 보일 때'];
+      }
     }
 
     const result = {
