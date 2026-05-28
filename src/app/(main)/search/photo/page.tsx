@@ -723,24 +723,20 @@ function ResultPanel({
               <div className="flex gap-1.5 mb-2 text-[11px]">
                 {/* severity 색상 — 텍스트 증상 분석과 100% 동일.
                     긴급=red, 주의=orange, 관찰=green. */}
-                {d.severity && (
-                  <span className={`px-2 py-0.5 rounded-full font-bold ${
-                    d.severity === '긴급' ? 'bg-red-100 text-red-700' :
-                    d.severity === '주의' ? 'bg-orange-100 text-orange-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {d.severity}
-                  </span>
-                )}
-                {d.likelihood && (
-                  <span className={`px-2 py-0.5 rounded-full ${
-                    d.likelihood === '높음' ? 'bg-red-100 text-red-600' :
-                    d.likelihood === '중간' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-500'
-                  }`}>
-                    가능성 {d.likelihood}
-                  </span>
-                )}
+                <span className={`px-2 py-0.5 rounded-full font-bold ${
+                  d.severity === '긴급' ? 'bg-red-100 text-red-700' :
+                  d.severity === '주의' ? 'bg-orange-100 text-orange-700' :
+                  'bg-green-100 text-green-700'
+                }`}>
+                  {d.severity || '관찰'}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full ${
+                  d.likelihood === '높음' ? 'bg-red-100 text-red-600' :
+                  d.likelihood === '낮음' ? 'bg-gray-100 text-gray-500' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  가능성 {d.likelihood || '중간'}
+                </span>
               </div>
               {d.description && (
                 <p className="text-xs text-gray-700 leading-relaxed mb-2">{d.description}</p>
