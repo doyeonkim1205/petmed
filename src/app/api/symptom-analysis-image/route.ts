@@ -443,6 +443,16 @@ ${safeHint
       }
     }
 
+    // 출혈(피) 안전 가드 — 이미지 색 판단은 프롬프트가 담당하되, hint 텍스트에
+    // 출혈 언급이 있으면 백업으로 격상(절대 low 금지, 검은·타르=high). 텍스트 분석과 동일 기준.
+    const bloodRe = /혈변|혈뇨|토혈|혈토|객혈|각혈|하혈|잠혈|출혈|코피|혈담|선홍|피똥|피\s*똥|핏덩|핏물|피설사|피\s*설사|피를?\s*토|피를?\s*흘|피가?\s*나|피가?\s*섞|피\s*섞|피가?\s*묻|피\s*묻|붉은\s*피|빨간\s*피/;
+    const melenaRe = /흑변|흑색변|검은\s*변|검은색\s*변|타르|짜장|커피\s*찌꺼기|커피색/;
+    if (melenaRe.test(safeHint)) {
+      parsed.concern_level = 'high';
+    } else if (bloodRe.test(safeHint) && parsed.concern_level === 'low') {
+      parsed.concern_level = 'medium';
+    }
+
     // 9) 사용량 기록 + 메타 저장 (dedup 5초 윈도우 — 비행기모드 재시도 방어)
     const dedupWindowMs = 5_000;
     const windowStart = new Date(Date.now() - dedupWindowMs).toISOString();

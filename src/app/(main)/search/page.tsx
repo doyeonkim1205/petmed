@@ -935,8 +935,8 @@ function SearchContent() {
                     <p className={`text-xs leading-relaxed ${
                       symptomResult.concern_level === 'low' ? 'text-green-800' : 'text-blue-800'
                     }`}>
-                      {/* low=😊 안심 / medium=🩺 (아래 watch_signs 의 🔍 와 겹치지 않게) */}
-                      {symptomResult.concern_level === 'low' ? '😊 ' : '🩺 '}
+                      {/* low=😊 안심 / medium=🔍 관찰 (아래 진료 권장 헤더는 🩺 청진기) */}
+                      {symptomResult.concern_level === 'low' ? '😊 ' : '🔍 '}
                       {symptomResult.reassurance}
                     </p>
 
@@ -947,7 +947,7 @@ function SearchContent() {
                         <p className={`text-[11px] font-semibold mb-1.5 ${
                           symptomResult.concern_level === 'low' ? 'text-green-700' : 'text-blue-700'
                         }`}>
-                          🔍 이런 경우엔 진료를 고려하세요
+                          🩺 이런 경우엔 진료를 고려하세요
                         </p>
                         <ul className="space-y-1">
                           {symptomResult.watch_signs.map((sign, i) => (
@@ -1036,19 +1036,6 @@ function SearchContent() {
                   );
                 })}
 
-                {/* Upgrade banner (질병 카드 직후) */}
-                {!isPaid && (
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
-                    </div>
-                    <p className="text-[11px] text-gray-400 leading-relaxed">
-                      더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
-                    </p>
-                  </div>
-                )}
-
                 {/* Emergency Signs — severity 별 색 분기.
                    '즉시'=빨강 (대표), '24시간내'=주황, '경과관찰'=노랑.
                    가장 심한 severity 를 카드 전체 톤으로 사용. */}
@@ -1111,20 +1098,24 @@ function SearchContent() {
                   );
                 })()}
 
-                {/* Interactive Follow-up Questions */}
-                {symptomResult.followup_questions.length > 0 && !refineLimit && (() => {
+                {/* Interactive Follow-up Questions — 재분석 소진 시에도 표시(버튼만 비활성화) */}
+                {symptomResult.followup_questions.length > 0 && (() => {
                   const totalQ = symptomResult.followup_questions.length;
                   const answeredCount = symptomResult.followup_questions.filter(
                     (_, i) => (followupAnswers[i] ?? '').trim().length > 0
                   ).length;
+                  const refineExhausted = refineLimit != null ||
+                    (!!symptomUsageInfo && symptomUsageInfo.refine.used >= symptomUsageInfo.refine.limit);
                   return (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                     <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                       <HelpCircle size={14} />
                       추가 질문에 답하면 더 정확해져요
-                      <span className="ml-auto text-[10px] font-normal text-blue-500/70">
-                        {answeredCount}/{totalQ} 답변
-                      </span>
+                      {symptomUsageInfo && (
+                        <span className="ml-auto text-[10px] font-normal text-blue-500/70">
+                          재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}
+                        </span>
+                      )}
                     </h4>
                     <div className="space-y-3">
                       {symptomResult.followup_questions.map((q, i) => {
@@ -1193,56 +1184,39 @@ function SearchContent() {
                         )}
                         <button
                           onClick={handleRefineAnalysis}
-                          disabled={isRefining}
-                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                          disabled={isRefining || refineExhausted}
+                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 disabled:cursor-not-allowed"
                         >
                           {isRefining ? (
                             <><Loader2 size={14} className="animate-spin" /> 재분석 중...</>
+                          ) : refineExhausted ? (
+                            <><Lock size={14} /> 오늘 재분석을 모두 사용했어요</>
                           ) : (
                             <><Stethoscope size={14} /> 답변 반영하여 재분석</>
                           )}
                         </button>
-                        {symptomUsageInfo && (
-                          <p className="text-[10px] text-gray-400 text-center">
-                            오늘 재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}회 사용
-                          </p>
-                        )}
+                        <p className="text-[10px] text-gray-400 text-center">
+                          {answeredCount}/{totalQ} 답변
+                        </p>
                       </div>
                     )}
                   </div>
                   );
                 })()}
 
-                {/* Refine limit reached — 증상/논문 한도와 동일 패턴(자물쇠 + 가치카드) */}
-                {refineLimit && (() => {
-                  const lines = refineLimit.split('\n');
-                  return (
-                    <div className="text-center py-2">
-                      <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Lock size={24} className="text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600 font-medium">{lines[0]}</p>
-                      {lines[1] && (
-                        <p className="text-[11px] text-gray-400 mt-1">{lines[1]}</p>
-                      )}
-                      {!isPaid && (
-                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                          <div className="flex items-center justify-center gap-1.5 mb-2">
-                            <Crown size={16} className="text-purple-500" />
-                            <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
-                          </div>
-                          <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
-                          <button
-                            onClick={() => window.location.href = '/profile/subscription'}
-                            className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
-                          >
-                            요금제 보기
-                          </button>
-                        </div>
-                      )}
+                {/* Upgrade banner — 응급 카드 아래(결과 하단)로 이동. 무료만 노출.
+                    재분석 소진은 버튼 비활성화로 처리 → 별도 카드(중복 요금제 보기) 제거. */}
+                {!isPaid && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Crown size={13} className="text-purple-500" />
+                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
                     </div>
-                  );
-                })()}
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장
+                    </p>
+                  </div>
+                )}
 
                 {/* Disclaimer */}
                 <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">

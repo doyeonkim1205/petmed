@@ -699,7 +699,7 @@ function ResultPanel({
           )}
           {hasWatchSigns && (
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-1">🔍 이런 경우엔 진료를 고려하세요</p>
+              <p className="text-xs font-semibold text-gray-600 mb-1">🩺 이런 경우엔 진료를 고려하세요</p>
               <ul className="text-xs text-gray-700 space-y-0.5 list-disc pl-4">
                 {result.watch_signs!.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
