@@ -482,10 +482,11 @@ type 사용 가이드:
       .map((d: any) => {
         const standardKo = lookupVetTerm(d?.name_en);
         // severity / likelihood 누락·오류 방어 — AI 가 빈 값을 보내면 UI 가
-        // "색만 있고 글자 없는 뱃지" 로 렌더되던 버그 방지.
-        // 기본값은 보수적으로: severity=주의(모르면 약함이 아니라 조심스럽게), likelihood=중간.
-        const severity = ['긴급', '주의', '관찰'].includes(d?.severity) ? d.severity : '주의';
-        const likelihood = ['높음', '중간', '낮음'].includes(d?.likelihood) ? d.likelihood : '중간';
+        // "색만 있고 글자 없는 뱃지" 로 렌더되던 버그 방지(드문 JSON 글리치용).
+        // 기본값: severity=관찰, likelihood=낮음. 전체 긴급도는 별도 concern_level 박스가 담당하므로
+        // 보조 정보인 질병 뱃지는 과경고하지 않는다.
+        const severity = ['긴급', '주의', '관찰'].includes(d?.severity) ? d.severity : '관찰';
+        const likelihood = ['높음', '중간', '낮음'].includes(d?.likelihood) ? d.likelihood : '낮음';
         return {
           ...d,
           ...(standardKo ? { name_ko: standardKo } : {}),

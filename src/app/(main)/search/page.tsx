@@ -974,8 +974,8 @@ function SearchContent() {
 
                 {/* Disease Cards */}
                 {symptomResult.diseases.map((disease, idx) => {
-                  const sev = severityConfig[disease.severity] || severityConfig['주의'];
-                  const lik = likelihoodConfig[disease.likelihood] || likelihoodConfig['중간'];
+                  const sev = severityConfig[disease.severity] || severityConfig['관찰'];
+                  const lik = likelihoodConfig[disease.likelihood] || likelihoodConfig['낮음'];
                   return (
                     <div key={idx} className={`rounded-xl border ${sev.border} ${sev.bg} p-4 space-y-3`}>
                       {/* Header */}
@@ -988,10 +988,10 @@ function SearchContent() {
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.badge}`}>
-                            {disease.severity || '주의'}
+                            {disease.severity || '관찰'}
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${lik}`}>
-                            가능성 {disease.likelihood || '중간'}
+                            가능성 {disease.likelihood || '낮음'}
                           </span>
                         </div>
                       </div>
