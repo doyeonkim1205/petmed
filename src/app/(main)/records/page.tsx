@@ -34,6 +34,9 @@ export default function RecordsPage() {
   });
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     if (typeof window !== 'undefined') {
+      // URL ?tab=calendar 직통 (홈 대시보드 캘린더 바로가기) — localStorage 보다 우선
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab === 'records' || urlTab === 'calendar') return urlTab;
       const saved = localStorage.getItem('recordsActiveTab');
       if (saved === 'records' || saved === 'calendar') return saved;
     }

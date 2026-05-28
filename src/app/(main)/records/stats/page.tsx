@@ -136,7 +136,14 @@ export default function StatsPage() {
   const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
   const maxMonths = planConfig.costStatsMonths;
 
-  const [tab, setTab] = useState<StatsTab>('cost');
+  const [tab, setTab] = useState<StatsTab>(() => {
+    // URL ?tab=weight|cost 직통 (홈 대시보드 체중관리·의료비 바로가기)
+    if (typeof window !== 'undefined') {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t === 'cost' || t === 'weight') return t;
+    }
+    return 'cost';
+  });
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
 

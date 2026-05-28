@@ -1,119 +1,162 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-import { Search as SearchIcon, Stethoscope } from 'lucide-react';
-import { PawIcon } from '@/components/icons/PawIcon';
-import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
-import { TrialBanner } from '@/components/TrialBanner';
+import Link from 'next/link';
+import {
+  MessageCircle, Camera, FileSearch, Bookmark,
+  ClipboardList, Calendar, Scale, Wallet,
+  ChevronRight, ChevronDown, Dog, Cat, Plus, Stethoscope, LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, Pet } from '@/lib/supabase';
+import { HomeBanner } from '@/components/home/HomeBanner';
+import { TrialBanner } from '@/components/TrialBanner';
+import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
-type SearchMode = 'disease' | 'symptom';
+/** birth_date(YYYY-MM-DD) → "N살" (만나이). 없거나 0살이면 null/'1살 미만'. */
+function calcAge(birth?: string | null): string | null {
+  if (!birth) return null;
+  const b = new Date(birth);
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  if (age < 0) return null;
+  return age === 0 ? '1살 미만' : `${age}살`;
+}
+
+type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
+
+const AI_CARE: MenuItem[] = [
+  { icon: MessageCircle, label: '증상 분석', color: 'bg-blue-100 text-blue-600', href: '/search?mode=symptom' },
+  { icon: Camera, label: '사진 분석', color: 'bg-purple-100 text-purple-600', href: '/search/photo' },
+  { icon: FileSearch, label: '논문 검색', color: 'bg-sky-100 text-sky-600', href: '/search?mode=disease' },
+  { icon: Bookmark, label: '보관함', color: 'bg-violet-100 text-violet-600', href: '/profile/saved' },
+];
+
+const HEALTH: MenuItem[] = [
+  { icon: ClipboardList, label: '기록장', color: 'bg-emerald-100 text-emerald-600', href: '/records' },
+  { icon: Calendar, label: '캘린더', color: 'bg-amber-100 text-amber-600', href: '/records?tab=calendar' },
+  { icon: Scale, label: '체중 관리', color: 'bg-teal-100 text-teal-600', href: '/records/stats?tab=weight' },
+  { icon: Wallet, label: '의료비', color: 'bg-rose-100 text-rose-600', href: '/records/stats?tab=cost' },
+];
+
+function MenuGrid({ items }: { items: MenuItem[] }) {
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {items.map(({ icon: Icon, label, color, href }) => (
+        <Link
+          key={label}
+          href={href}
+          className="bg-white rounded-2xl py-3.5 flex flex-col items-center gap-2 shadow-sm border border-gray-100 active:scale-[0.97] transition-transform"
+        >
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
+            <Icon size={20} />
+          </div>
+          <span className="text-[11px] font-medium text-gray-700 text-center leading-tight px-0.5">{label}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <p className="flex items-center gap-1.5 text-[15px] font-extrabold text-gray-800 mb-2.5">
+      <Icon size={16} className="text-gray-700" /> {title}
+    </p>
+  );
+}
 
 export default function HomePage() {
-  const [query, setQuery] = useState('');
-  const [petType, setPetType] = useState<'cat' | 'dog'>('dog');
-  const [searchMode, setSearchMode] = useState<SearchMode>('disease');
-  const router = useRouter();
   const { user } = useAuth();
+  const [pets, setPets] = useState<Pet[] | null>(null); // null=로딩, []=없음
 
-  // Fetch pets to set initial petType
   useEffect(() => {
     if (!user) return;
-    const fetchPets = async () => {
+    let alive = true;
+    (async () => {
       const { data } = await supabase
         .from('pets')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
-      if (data && data.length > 0) setPetType(data[0].type);
-    };
-    fetchPets();
+      if (alive) setPets(data ?? []);
+    })();
+    return () => { alive = false; };
   }, [user]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(query.trim())}&pet=${petType}&mode=${searchMode}`);
-  };
+  // 대표 펫: 마지막 선택/기본 펫 우선, 없으면 첫 펫
+  let primaryPet: Pet | null = null;
+  if (pets && pets.length > 0) {
+    const savedId = typeof window !== 'undefined'
+      ? (localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId'))
+      : null;
+    primaryPet = pets.find((p) => p.id === savedId) ?? pets[0];
+  }
 
+  const petInfo = primaryPet
+    ? [
+        calcAge(primaryPet.birth_date),
+        primaryPet.breed,
+        primaryPet.weight != null ? `${primaryPet.weight}kg` : null,
+      ].filter(Boolean).join(' · ')
+    : '';
 
   return (
-    <div className="flex flex-col bg-white min-h-[calc(100vh-8rem)]">
-      {/* 트라이얼 안내 카드 — 하루 1번 */}
+    <div className="bg-gray-50 min-h-[calc(100vh-3.5rem)] pb-6">
       <TrialBanner />
-      <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <SamsungBrowserHint />
-        {/* Logo */}
-        <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight mb-4 flex items-center gap-2">
-          <PawIcon size={32} className="text-blue-800 dark:text-blue-300" />
-          PawDex
-        </h1>
+      <SamsungBrowserHint />
 
-      {/* Mode Toggle */}
-      <div className="flex bg-gray-100 rounded-full p-0.5 mb-4">
-        <button
-          type="button"
-          onClick={() => { setSearchMode('disease'); setQuery(''); }}
-          className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'disease' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
-          논문 검색
-        </button>
-        <button
-          type="button"
-          onClick={() => { setSearchMode('symptom'); setQuery(''); }}
-          className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            searchMode === 'symptom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
-          증상 분석
-        </button>
+      {/* 상단 배너 캐러셀 */}
+      <HomeBanner />
+
+      {/* 펫 요약 (등록 O) / 등록 유도 (등록 X) */}
+      <div className="px-4 pt-4">
+        {pets === null ? (
+          <div className="h-[68px] bg-white rounded-2xl border border-gray-100 animate-pulse" />
+        ) : primaryPet ? (
+          <Link
+            href="/profile"
+            className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-gray-100 active:scale-[0.99] transition-transform"
+          >
+            <div className="w-11 h-11 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+              {primaryPet.type === 'cat' ? <Cat size={24} /> : <Dog size={24} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-gray-800 text-sm truncate">{primaryPet.name}</span>
+                {pets.length > 1 && <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
+              </div>
+              {petInfo && <p className="text-xs text-gray-400 truncate">{petInfo}</p>}
+            </div>
+            <ChevronRight size={20} className="text-gray-300 flex-shrink-0" />
+          </Link>
+        ) : (
+          <Link
+            href="/profile"
+            className="w-full bg-blue-50 border border-dashed border-blue-300 rounded-2xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform"
+          >
+            <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-blue-400 flex-shrink-0">
+              <Plus size={24} />
+            </div>
+            <p className="flex-1 font-bold text-blue-700 text-sm">프로필 등록하고 맞춤 케어 시작하기</p>
+            <ChevronRight size={20} className="text-blue-300 flex-shrink-0" />
+          </Link>
+        )}
       </div>
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="w-full max-w-sm mx-auto">
-        <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
-          searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-300'
-        }`}>
-          <button
-            type="button"
-            onClick={() => setPetType(petType === 'cat' ? 'dog' : 'cat')}
-            className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 transition-colors text-xs font-medium ${
-              searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-            }`}
-          >
-            {petType === 'dog' ? '강아지' : '고양이'} ⇄
-          </button>
-          {/* input 과 돋보기 버튼을 한 묶음으로. min-w-0 가 input intrinsic min-width
-              를 풀어줘서 폰트 크기 확대 시에도 submit 버튼이 바깥으로 밀리지 않음. */}
-          <div className="relative flex-1 min-w-0">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드를 검색하세요'}
-              autoComplete="off"
-              enterKeyHint="search"
-              className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            <button
-              type="submit"
-              aria-label="검색"
-              className={`absolute right-0.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
-                searchMode === 'symptom' ? 'text-gray-400 hover:text-purple-600' : 'text-gray-400 hover:text-blue-600'
-              }`}
-            >
-              <SearchIcon size={18} />
-            </button>
-          </div>
-        </div>
-      </form>
+      {/* AI 케어 */}
+      <div className="px-4 pt-6">
+        <SectionTitle icon={Stethoscope} title="AI 케어" />
+        <MenuGrid items={AI_CARE} />
+      </div>
+
+      {/* 건강 기록 */}
+      <div className="px-4 pt-6">
+        <SectionTitle icon={ClipboardList} title="건강 기록" />
+        <MenuGrid items={HEALTH} />
       </div>
     </div>
   );
