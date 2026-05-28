@@ -7,6 +7,7 @@ import {
   Stethoscope, LucideIcon,
 } from 'lucide-react';
 import { HomeBanner } from '@/components/home/HomeBanner';
+import { HealthTip } from '@/components/home/HealthTip';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
@@ -36,9 +37,9 @@ function MenuGrid({ items }: { items: MenuItem[] }) {
         <Link
           key={label}
           href={href}
-          className="bg-white rounded-2xl py-4 flex flex-col items-center gap-2 shadow-sm border border-gray-100 active:scale-[0.97] transition-transform"
+          className="py-2 flex flex-col items-center gap-2 rounded-xl active:scale-[0.95] transition-transform"
         >
-          <Icon size={24} className={color} />
+          <Icon size={26} className={color} />
           <span className="text-[11px] font-medium text-gray-700 text-center leading-tight px-0.5">{label}</span>
         </Link>
       ))}
@@ -56,23 +57,29 @@ function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }
 
 export default function HomePage() {
   return (
-    <div className="bg-white min-h-[calc(100vh-3rem)] pb-6">
+    <div className="bg-gray-50 min-h-[calc(100vh-3rem)] pb-6">
       <TrialBanner />
       <SamsungBrowserHint />
 
       {/* 상단 배너 캐러셀 */}
       <HomeBanner />
 
-      {/* AI 케어 */}
-      <div className="px-4 pt-6">
-        <SectionTitle icon={Stethoscope} title="AI 케어" />
-        <MenuGrid items={AI_CARE} />
+      {/* 오늘의 건강 팁 */}
+      <div className="px-4 pt-3">
+        <HealthTip />
       </div>
 
-      {/* 건강 기록 */}
-      <div className="px-4 pt-6">
-        <SectionTitle icon={ClipboardList} title="건강 기록" />
-        <MenuGrid items={HEALTH} />
+      {/* 기능 메뉴 — 섹션별 흰 카드 박스 */}
+      <div className="px-4 pt-4 space-y-3">
+        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <SectionTitle icon={Stethoscope} title="AI 케어" />
+          <MenuGrid items={AI_CARE} />
+        </section>
+
+        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <SectionTitle icon={ClipboardList} title="건강 기록" />
+          <MenuGrid items={HEALTH} />
+        </section>
       </div>
     </div>
   );
