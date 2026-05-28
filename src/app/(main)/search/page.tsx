@@ -102,7 +102,7 @@ function SearchContent() {
   const [showPhotoHint, setShowPhotoHint] = useState(false);
   const initialQuery = searchParams.get('q') || '';
   const initialPet = (searchParams.get('pet') as 'cat' | 'dog') || 'cat';
-  const initialMode = (searchParams.get('mode') as SearchMode) || 'disease';
+  const initialMode = (searchParams.get('mode') as SearchMode) || 'symptom';
   const { user, profile } = useAuth();
   const effectivePlan = getEffectivePlan(profile?.plan);
   const isPaid = effectivePlan === 'plus';
@@ -665,23 +665,7 @@ function SearchContent() {
               type="button"
               onClick={() => {
                 // 각 탭이 독립된 input/result state 를 가지므로 탭 전환 시
-                // 상태를 건드리지 않아도 된다. 이전에 있던 대량 클리어 로직은
-                // "입력창 공유 구조" 에서 나왔던 회피 코드였고, 이번에 state
-                // 를 분리하면서 원천 제거됨.
-                // 자동 재검색도 훅의 lastFetchRef dedup 이 막음.
-                if (searchMode === 'disease') return;
-                setSearchMode('disease');
-              }}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                searchMode === 'disease' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
-              논문 검색
-            </button>
-            <button
-              type="button"
-              onClick={() => {
+                // 상태를 건드리지 않아도 된다. 자동 재검색도 훅의 lastFetchRef dedup 이 막음.
                 if (searchMode === 'symptom') return;
                 setSearchMode('symptom');
               }}
@@ -691,6 +675,19 @@ function SearchContent() {
             >
               <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
               증상 분석
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (searchMode === 'disease') return;
+                setSearchMode('disease');
+              }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                searchMode === 'disease' ? 'bg-white text-violet-600 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
+              논문 검색
             </button>
           </div>
         </div>

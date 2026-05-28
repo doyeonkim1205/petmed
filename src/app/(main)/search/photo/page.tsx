@@ -366,7 +366,7 @@ export default function PhotoAnalysisPage() {
             {/* 펫 미등록 안내 */}
             {!petsLoading && !hasPets && (
               <section className="bg-white rounded-lg p-5 shadow-sm text-center">
-                <PawPrint size={32} className="mx-auto mb-2 text-purple-300" />
+                <PawPrint size={32} className="mx-auto mb-2 text-blue-300" />
                 <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">
                   아이의 특성에 맞춘 정밀한 체크를 위해 정보 등록이 필요합니다<br />
@@ -375,7 +375,7 @@ export default function PhotoAnalysisPage() {
                 <button
                   type="button"
                   onClick={() => router.push('/profile')}
-                  className="px-4 py-2 rounded-full bg-white border border-purple-300 text-purple-600 text-xs font-semibold hover:bg-purple-50"
+                  className="px-4 py-2 rounded-full bg-white border border-blue-300 text-blue-600 text-xs font-semibold hover:bg-blue-50"
                 >
                   반려동물 등록하러 가기
                 </button>
@@ -396,7 +396,7 @@ export default function PhotoAnalysisPage() {
                         type="button"
                         onClick={() => setSelectedPetId(pet.id)}
                         className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 ${
-                          active ? 'bg-purple-600 text-white' : 'bg-gray-50 text-gray-500'
+                          active ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'
                         }`}
                       >
                         <Icon size={12} />
@@ -420,7 +420,7 @@ export default function PhotoAnalysisPage() {
                     type="button"
                     onClick={() => setCategory(c.value)}
                     className={`py-2 rounded-full text-xs font-medium ${
-                      category === c.value ? 'bg-purple-600 text-white' : 'bg-gray-50 text-gray-500'
+                      category === c.value ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'
                     }`}
                   >
                     {c.label}
@@ -474,7 +474,7 @@ export default function PhotoAnalysisPage() {
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
-                    className="flex flex-col items-center gap-1.5 px-3 hover:text-purple-600"
+                    className="flex flex-col items-center gap-1.5 px-3 hover:text-blue-600"
                   >
                     <Camera size={26} />
                     <span className="text-xs font-medium">직접 촬영하기</span>
@@ -483,7 +483,7 @@ export default function PhotoAnalysisPage() {
                   <button
                     type="button"
                     onClick={() => galleryInputRef.current?.click()}
-                    className="flex flex-col items-center gap-1.5 px-3 hover:text-purple-600"
+                    className="flex flex-col items-center gap-1.5 px-3 hover:text-blue-600"
                   >
                     <ImageIcon size={26} />
                     <span className="text-xs font-medium">갤러리에서 불러오기</span>
@@ -524,7 +524,7 @@ export default function PhotoAnalysisPage() {
                 onChange={(e) => setHint(e.target.value.slice(0, 200))}
                 placeholder="예: 3일 전부터 가려워해요. 오른쪽 귀 안쪽이에요."
                 rows={3}
-                className="w-full border border-gray-200 rounded-md p-2 text-sm resize-none focus:outline-none focus:border-purple-400"
+                className="w-full border border-gray-200 rounded-md p-2 text-sm resize-none focus:outline-none focus:border-blue-400"
               />
               <div className="flex items-center justify-between mt-1">
                 <p className="text-[10px] text-gray-400">언제부터·어디가·어떤지 알려주세요 (최소 5자)</p>
@@ -550,7 +550,7 @@ export default function PhotoAnalysisPage() {
                 isFreeNoQuota === true ||
                 isQuotaExhausted === true
               }
-              className="w-full py-3 rounded-full bg-purple-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-full bg-blue-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {analyzing ? 'AI가 분석 중이에요...' : '사진 분석하기'}
             </button>
@@ -741,7 +741,7 @@ function ResultPanel({
                 <p className="text-xs text-gray-700 leading-relaxed mb-2">{d.description}</p>
               )}
               {d.action && (
-                <div className="text-xs bg-purple-50 text-purple-900 rounded p-2 leading-relaxed">
+                <div className="text-xs bg-blue-50 text-blue-900 rounded p-2 leading-relaxed">
                   💡 {d.action}
                 </div>
               )}
@@ -771,7 +771,7 @@ function ResultPanel({
             className={`w-full py-2.5 rounded-full text-sm font-semibold ${
               savedId
                 ? 'bg-emerald-50 text-emerald-700 cursor-default'
-                : 'bg-purple-600 text-white disabled:bg-gray-300'
+                : 'bg-blue-600 text-white disabled:bg-gray-300'
             }`}
           >
             {savedId ? '✓ 보관함에 저장됨' : saving ? '저장 중...' : '분석 결과 저장'}
