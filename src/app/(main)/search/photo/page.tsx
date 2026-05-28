@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown } from 'lucide-react';
+import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Pet } from '@/lib/supabase';
@@ -338,21 +338,26 @@ export default function PhotoAnalysisPage() {
             {/* Free 한도 소진 안내 — 텍스트 분석/논문 한도 박스와 동일한 톤
                 (gradient + Crown + 요금제 보기 버튼) */}
             {isFreeNoQuota && (
-              <div className="rounded-xl p-4 bg-gradient-to-r from-blue-50 to-purple-50">
-                <div className="flex items-center justify-center gap-1.5 mb-2">
-                  <Crown size={16} className="text-purple-500" />
-                  <p className="text-sm font-bold text-gray-700">사진 분석 무료 체험을 모두 사용했어요</p>
+              <div className="text-center py-2">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Lock size={24} className="text-gray-400" />
                 </div>
-                <p className="text-xs text-gray-500 text-center mb-3">
-                  Plus 로 업그레이드하면 매일 3회 사진을 분석할 수 있어요
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push('/profile/subscription')}
-                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
-                >
-                  요금제 보기
-                </button>
+                <p className="text-sm text-gray-600 font-medium">사진 분석 무료 체험을 모두 사용했어요.</p>
+                <p className="text-[11px] text-gray-400 mt-1">Plus로 업그레이드하면 계속 사용할 수 있어요.</p>
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                  <div className="flex items-center justify-center gap-1.5 mb-2">
+                    <Crown size={16} className="text-purple-500" />
+                    <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/profile/subscription')}
+                    className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                  >
+                    요금제 보기
+                  </button>
+                </div>
               </div>
             )}
 

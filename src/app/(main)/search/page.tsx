@@ -935,8 +935,8 @@ function SearchContent() {
                     <p className={`text-xs leading-relaxed ${
                       symptomResult.concern_level === 'low' ? 'text-green-800' : 'text-blue-800'
                     }`}>
-                      {/* medium 이모지 — 사진 분석과 통일 (🔍 관찰/살펴보기 의미) */}
-                      {symptomResult.concern_level === 'low' ? '😊 ' : '🔍 '}
+                      {/* low=😊 안심 / medium=🩺 (아래 watch_signs 의 🔍 와 겹치지 않게) */}
+                      {symptomResult.concern_level === 'low' ? '😊 ' : '🩺 '}
                       {symptomResult.reassurance}
                     </p>
 
@@ -1091,9 +1091,13 @@ function SearchContent() {
                             <CircleAlert size={12} className="mt-0.5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-1.5 flex-wrap">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${itemBadgeByTier[item.severity]}`}>
-                                  {item.severity}
-                                </span>
+                                {/* 타이틀이 이미 최상위 severity 를 표기 → 같은 등급 항목엔 뱃지 생략(중복).
+                                    다른 등급(예: 즉시 카드 안의 24시간내)만 뱃지로 구분. */}
+                                {item.severity !== topSeverity && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${itemBadgeByTier[item.severity]}`}>
+                                    {item.severity}
+                                  </span>
+                                )}
                                 <span className="font-medium">{item.sign}</span>
                               </div>
                               {item.reason && (
@@ -1209,22 +1213,32 @@ function SearchContent() {
                   );
                 })()}
 
-                {/* Refine limit reached */}
+                {/* Refine limit reached — 증상/논문 한도와 동일 패턴(자물쇠 + 가치카드) */}
                 {refineLimit && (() => {
                   const lines = refineLimit.split('\n');
                   return (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                      <p className="text-xs text-gray-600 font-medium">{lines[0]}</p>
+                    <div className="text-center py-2">
+                      <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Lock size={24} className="text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium">{lines[0]}</p>
                       {lines[1] && (
-                        <p className="text-[10px] text-gray-400 mt-1">{lines[1]}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{lines[1]}</p>
                       )}
                       {!isPaid && (
-                        <button
-                          onClick={() => window.location.href = '/profile/subscription'}
-                          className="mt-2 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-medium"
-                        >
-                          요금제 보기
-                        </button>
+                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
+                          <div className="flex items-center justify-center gap-1.5 mb-2">
+                            <Crown size={16} className="text-purple-500" />
+                            <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
+                          <button
+                            onClick={() => window.location.href = '/profile/subscription'}
+                            className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                          >
+                            요금제 보기
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
