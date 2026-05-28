@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * 홈 상단 배너 캐러셀.
@@ -76,6 +77,26 @@ export function HomeBanner() {
           <br />
           <span className="text-base font-medium opacity-95">{banner.subtitle}</span>
         </p>
+
+        {/* 좌우 화살표 — 수동 넘기기 (버블링 차단) */}
+        <span
+          role="button"
+          tabIndex={-1}
+          aria-label="이전 배너"
+          onClick={(e) => { e.stopPropagation(); setIdx((i) => (i - 1 + BANNERS.length) % BANNERS.length); }}
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/15 hover:bg-black/25 flex items-center justify-center transition-colors"
+        >
+          <ChevronLeft size={18} />
+        </span>
+        <span
+          role="button"
+          tabIndex={-1}
+          aria-label="다음 배너"
+          onClick={(e) => { e.stopPropagation(); setIdx((i) => (i + 1) % BANNERS.length); }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/15 hover:bg-black/25 flex items-center justify-center transition-colors"
+        >
+          <ChevronRight size={18} />
+        </span>
 
         {/* 점 인디케이터 — 탭하면 해당 배너로 (이벤트 버블링 차단) */}
         <div className="absolute bottom-4 right-5 flex gap-1.5">

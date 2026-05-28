@@ -151,6 +151,7 @@ export default function StatsPage() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [pets, setPets] = useState<Pet[]>([]);
+  const [petsLoaded, setPetsLoaded] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
 
   // Weight states
@@ -169,6 +170,8 @@ export default function StatsPage() {
           setPets(data);
           if (data.length === 1) setSelectedPetId(data[0].id);
         }
+        // 펫 로딩 + selectedPetId 결정 완료 표시 — 이 전엔 통계 스켈레톤 유지(빈 값 깜빡임 방지)
+        setPetsLoaded(true);
       });
   }, [user]);
 
@@ -415,7 +418,7 @@ export default function StatsPage() {
         {/* ═══ COST TAB ═══ */}
         {tab === 'cost' && (
           <>
-            {loading ? (
+            {(!petsLoaded || loading) ? (
               <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
             ) : (
               <>
@@ -480,13 +483,13 @@ export default function StatsPage() {
         {/* ═══ WEIGHT TAB ═══ */}
         {tab === 'weight' && (
           <>
-            {needPetSelect ? (
+            {(!petsLoaded || weightLoading) ? (
+              <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
+            ) : needPetSelect ? (
               <div className="text-center py-16">
                 <Scale size={40} className="mx-auto mb-3 text-gray-200" />
                 <p className="text-gray-400 text-sm">반려동물을 선택해주세요.</p>
               </div>
-            ) : weightLoading ? (
-              <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
             ) : (
               <>
                 {/* Current weight summary */}
