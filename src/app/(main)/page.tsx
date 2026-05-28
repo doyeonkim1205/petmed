@@ -14,8 +14,8 @@ import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
 
 // 투명 칩(배경 없이 아이콘만) + 아이콘 의미에 맞춘 색.
-//   증상=코발트 블루 / 사진=스카이 블루 / 논문=인디고(전문성·무게감) / 보관함=웜 오렌지.
-//   기록장=포레스트 그린 / 캘린더=딥 오렌지 / 체중=터콰이즈 / 의료비=골드(돈).
+//   AI 케어 = 파랑 계열(브랜드) + 보관함 포인트: 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=웜 오렌지.
+//   건강 기록 = 그린·민트 계열로 통일(편안한 일상 데이터): 기록장=딥그린 / 캘린더=소프트그린 / 체중=에메랄드 / 의료비=연두.
 const AI_CARE: MenuItem[] = [
   { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', href: '/search?mode=symptom' },
   { icon: Camera, label: '사진 분석', color: 'text-sky-500', href: '/search/photo' },
@@ -25,9 +25,9 @@ const AI_CARE: MenuItem[] = [
 
 const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', href: '/records' },
-  { icon: Calendar, label: '캘린더', color: 'text-orange-600', href: '/records?tab=calendar' },
-  { icon: Scale, label: '체중 관리', color: 'text-teal-500', href: '/records/stats?tab=weight' },
-  { icon: Wallet, label: '의료비', color: 'text-yellow-600', href: '/records/stats?tab=cost' },
+  { icon: Calendar, label: '캘린더', color: 'text-green-500', href: '/records?tab=calendar' },
+  { icon: Scale, label: '체중 관리', color: 'text-emerald-500', href: '/records/stats?tab=weight' },
+  { icon: Wallet, label: '의료비', color: 'text-lime-600', href: '/records/stats?tab=cost' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
