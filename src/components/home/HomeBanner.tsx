@@ -84,18 +84,18 @@ export function HomeBanner() {
           tabIndex={-1}
           aria-label="이전 배너"
           onClick={(e) => { e.stopPropagation(); setIdx((i) => (i - 1 + BANNERS.length) % BANNERS.length); }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/15 hover:bg-black/25 flex items-center justify-center transition-colors"
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </span>
         <span
           role="button"
           tabIndex={-1}
           aria-label="다음 배너"
           onClick={(e) => { e.stopPropagation(); setIdx((i) => (i + 1) % BANNERS.length); }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/15 hover:bg-black/25 flex items-center justify-center transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-white/80 hover:text-white transition-colors"
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={20} />
         </span>
 
         {/* 점 인디케이터 — 탭하면 해당 배너로 (이벤트 버블링 차단) */}

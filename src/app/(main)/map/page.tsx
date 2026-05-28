@@ -464,7 +464,7 @@ export default function MapPage() {
       {!error && !mapReady && (
         <div className="absolute inset-0 bg-white flex items-center justify-center z-20 px-6">
           <div className="flex flex-col items-center gap-2 max-w-xs text-center">
-            <Loader2 size={32} className="animate-spin text-blue-600" />
+            <Loader2 size={32} className="animate-spin text-blue-400" />
             <p className="text-sm text-gray-600 font-medium">지도 로딩 중...</p>
             {loadingPhase >= 1 && (
               <p className="text-xs text-gray-400">카카오맵 SDK를 준비하고 있어요</p>

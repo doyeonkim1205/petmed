@@ -12,20 +12,20 @@ import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
 type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
 
-// 그룹별 톤 통일 — 탭바/메뉴 색상이 산발적으로 겹쳐 보이던 문제 해소.
-//   AI 케어 = 블루 계열 / 건강 기록 = 그린 계열 (아이콘으로 기능 구분)
+// 그룹별 계열 통일 + 계열 내 톤 변화 — 탭바와 산발적으로 겹쳐 보이던 문제는 막되,
+// 단색으로 밋밋하지 않게. AI 케어 = 푸른 계열 / 건강 기록 = 녹색 계열.
 const AI_CARE: MenuItem[] = [
   { icon: MessageCircle, label: '증상 분석', color: 'bg-blue-100 text-blue-600', href: '/search?mode=symptom' },
-  { icon: Camera, label: '사진 분석', color: 'bg-blue-100 text-blue-600', href: '/search/photo' },
-  { icon: FileSearch, label: '논문 검색', color: 'bg-blue-100 text-blue-600', href: '/search?mode=disease' },
-  { icon: Bookmark, label: '보관함', color: 'bg-blue-100 text-blue-600', href: '/profile/saved' },
+  { icon: Camera, label: '사진 분석', color: 'bg-indigo-100 text-indigo-600', href: '/search/photo' },
+  { icon: FileSearch, label: '논문 검색', color: 'bg-sky-100 text-sky-600', href: '/search?mode=disease' },
+  { icon: Bookmark, label: '보관함', color: 'bg-cyan-100 text-cyan-600', href: '/profile/saved' },
 ];
 
 const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'bg-emerald-100 text-emerald-600', href: '/records' },
-  { icon: Calendar, label: '캘린더', color: 'bg-emerald-100 text-emerald-600', href: '/records?tab=calendar' },
-  { icon: Scale, label: '체중 관리', color: 'bg-emerald-100 text-emerald-600', href: '/records/stats?tab=weight' },
-  { icon: Wallet, label: '의료비', color: 'bg-emerald-100 text-emerald-600', href: '/records/stats?tab=cost' },
+  { icon: Calendar, label: '캘린더', color: 'bg-green-100 text-green-600', href: '/records?tab=calendar' },
+  { icon: Scale, label: '체중 관리', color: 'bg-teal-100 text-teal-600', href: '/records/stats?tab=weight' },
+  { icon: Wallet, label: '의료비', color: 'bg-lime-100 text-lime-600', href: '/records/stats?tab=cost' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
