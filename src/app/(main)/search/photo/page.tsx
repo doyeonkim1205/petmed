@@ -715,8 +715,8 @@ function ResultPanel({
           {result.diseases.map((d, i) => (
             <div key={i} className={`rounded-lg p-4 border ${
               d.severity === '긴급' ? 'bg-red-50 border-red-200' :
-              d.severity === '주의' ? 'bg-orange-50 border-orange-200' :
-              'bg-green-50 border-green-200'
+              d.severity === '관찰' ? 'bg-green-50 border-green-200' :
+              'bg-orange-50 border-orange-200'
             }`}>
               <div className="flex items-baseline gap-2 mb-2">
                 <h4 className="font-bold text-sm">{d.name_ko}</h4>
@@ -729,10 +729,10 @@ function ResultPanel({
                     긴급=red, 주의=orange, 관찰=green. */}
                 <span className={`px-2 py-0.5 rounded-full font-bold ${
                   d.severity === '긴급' ? 'bg-red-100 text-red-700' :
-                  d.severity === '주의' ? 'bg-orange-100 text-orange-700' :
-                  'bg-green-100 text-green-700'
+                  d.severity === '관찰' ? 'bg-green-100 text-green-700' :
+                  'bg-orange-100 text-orange-700'
                 }`}>
-                  {d.severity || '관찰'}
+                  {d.severity || '주의'}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full ${
                   d.likelihood === '높음' ? 'bg-red-100 text-red-600' :
