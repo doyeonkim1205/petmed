@@ -8,7 +8,7 @@ export function Footer() {
   const pathname = usePathname();
 
   const navItems = [
-    { icon: FileText, label: '질병 검색', path: '/search', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
+    { icon: FileText, label: '검색', path: '/search', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
     { icon: ClipboardList, label: '건강 기록장', path: '/records', color: 'bg-emerald-100 text-emerald-600', activeColor: 'bg-emerald-600 text-white' },
     { icon: MapPin, label: '병원 찾기', path: '/map', color: 'bg-rose-100 text-rose-600', activeColor: 'bg-rose-600 text-white' },
     { icon: User, label: '마이페이지', path: '/profile', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-600 text-white' },

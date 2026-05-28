@@ -656,7 +656,7 @@ function SearchContent() {
   return (
     <div className="flex flex-col h-full bg-white min-h-[calc(100vh-8rem)]">
       {/* Search Header */}
-      <div className="bg-white px-4 pt-6 pb-4 sticky top-14 z-40">
+      <div className="bg-white px-4 pt-6 pb-4 sticky top-12 z-40">
         {/* Mode Toggle */}
         <div className="max-w-sm mx-auto mb-3 flex justify-center">
           <div className="flex bg-gray-100 rounded-full p-0.5">

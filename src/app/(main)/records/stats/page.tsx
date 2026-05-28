@@ -136,14 +136,13 @@ export default function StatsPage() {
   const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
   const maxMonths = planConfig.costStatsMonths;
 
-  const [tab, setTab] = useState<StatsTab>(() => {
-    // URL ?tab=weight|cost 직통 (홈 대시보드 체중관리·의료비 바로가기)
-    if (typeof window !== 'undefined') {
-      const t = new URLSearchParams(window.location.search).get('tab');
-      if (t === 'cost' || t === 'weight') return t;
-    }
-    return 'cost';
-  });
+  const [tab, setTab] = useState<StatsTab>('cost');
+  // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 URL 접근이 빌드 시점 서버 값으로
+  // 굳어 클라이언트 쿼리를 못 읽음 → 마운트 후 useEffect 로 ?tab=weight 직통 처리.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'weight') setTab('weight');
+  }, []);
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
 

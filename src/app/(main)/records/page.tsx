@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
@@ -32,16 +32,16 @@ export default function RecordsPage() {
     }
     return null;
   });
-  const [activeTab, setActiveTab] = useState<Tab>(() => {
-    if (typeof window !== 'undefined') {
-      // URL ?tab=calendar 직통 (홈 대시보드 캘린더 바로가기) — localStorage 보다 우선
-      const urlTab = new URLSearchParams(window.location.search).get('tab');
-      if (urlTab === 'records' || urlTab === 'calendar') return urlTab;
-      const saved = localStorage.getItem('recordsActiveTab');
-      if (saved === 'records' || saved === 'calendar') return saved;
-    }
-    return 'records';
-  });
+  const [activeTab, setActiveTab] = useState<Tab>('records');
+  // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 window/URL 접근이 빌드 시점
+  // 서버 값으로 굳어 클라이언트 URL 을 못 읽음 → 마운트 후 useEffect 로 탭 복원.
+  // URL ?tab=calendar (홈 대시보드 캘린더 직통) 우선, 없으면 localStorage 복원.
+  useEffect(() => {
+    const urlTab = new URLSearchParams(window.location.search).get('tab');
+    if (urlTab === 'calendar' || urlTab === 'records') { setActiveTab(urlTab); return; }
+    const saved = localStorage.getItem('recordsActiveTab');
+    if (saved === 'records' || saved === 'calendar') setActiveTab(saved);
+  }, []);
   const [recordFilter, setRecordFilter] = useState<RecordFilter>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('recordFilter');
@@ -189,7 +189,7 @@ export default function RecordsPage() {
 
   return (
     <div className="bg-white min-h-full pb-20 relative">
-      <div className="sticky top-14 z-30 bg-white">
+      <div className="sticky top-12 z-30 bg-white">
         <PetSelector key={petRefreshKey} selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
         <div className="flex max-w-sm mx-auto">
           {tabs.map((tab) => {
