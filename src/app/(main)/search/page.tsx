@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DiseaseDescription } from '@/services/openai';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { TextField } from '@/components/TextField';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { supabase, Pet } from '@/lib/supabase';
 
 type SearchMode = 'disease' | 'symptom';
@@ -736,13 +737,11 @@ function SearchContent() {
           <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
             searchMode === 'symptom' ? 'border-purple-200' : 'border-blue-300'
           }`}>
-            {selectedPet ? (
-              // 펫 선택 상태 — 종 이름 + 아이콘 (토글 기능 없음, 표시만).
-              // 펫 변경하려면 위 칩 줄에서 다른 펫 선택.
+            {(searchMode === 'symptom' && selectedPet) ? (
+              // 증상 분석 + 펫 선택 시에만 — 종 이름 + 아이콘 (표시만, 변경은 위 칩 줄에서).
+              // 논문 검색 모드에선 펫 선택과 무관하게 항상 강아지/고양이 토글만 노출.
               <div
-                className={`h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 text-xs font-medium gap-1 ${
-                  searchMode === 'symptom' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                }`}
+                className="h-8 rounded-full px-3 flex items-center justify-center flex-shrink-0 text-xs font-medium gap-1 bg-purple-50 text-purple-600"
               >
                 {selectedPet.type === 'dog' ? <Dog size={12} /> : <Cat size={12} />}
                 {selectedPet.name}
@@ -1524,7 +1523,7 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[calc(100vh-8rem)]"><div className="text-gray-500">로딩 중...</div></div>}>
+    <Suspense fallback={<LoadingScreen />}>
       <SearchContent />
     </Suspense>
   );

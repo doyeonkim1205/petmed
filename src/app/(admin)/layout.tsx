@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { createClient } from '@supabase/supabase-js';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -44,11 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router]);
 
   if (loading || !authorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
