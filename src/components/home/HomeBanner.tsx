@@ -25,7 +25,7 @@ const BANNERS: Banner[] = [
     badge: 'NEW 기능',
     title: 'AI 사진 분석 출시!',
     subtitle: '사진 한 장으로 건강 체크',
-    gradient: 'from-violet-500 to-blue-500',
+    gradient: 'from-indigo-500 to-blue-600',
     href: '/search/photo',
   },
   {
@@ -33,7 +33,7 @@ const BANNERS: Banner[] = [
     badge: 'PawDex Plus',
     title: '무제한으로 더 똑똑하게',
     subtitle: '증상·사진 분석을 매일 넉넉하게',
-    gradient: 'from-amber-500 to-orange-500',
+    gradient: 'from-amber-500 to-orange-600',
     href: '/profile/subscription',
   },
   {
@@ -41,7 +41,7 @@ const BANNERS: Banner[] = [
     badge: '수의학 논문',
     title: '믿을 수 있는 정보',
     subtitle: '질병·키워드로 논문을 검색해보세요',
-    gradient: 'from-emerald-500 to-teal-500',
+    gradient: 'from-violet-500 to-indigo-600',
     href: '/search?mode=disease',
   },
 ];
