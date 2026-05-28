@@ -773,7 +773,7 @@ function SearchContent() {
                   }
                 }}
                 maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
-                placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드로 논문 검색'}
+                placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드를 검색하세요'}
                 autoComplete="off"
                 enterKeyHint="search"
                 className={`w-full h-9 pl-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden ${

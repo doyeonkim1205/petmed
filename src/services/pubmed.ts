@@ -50,8 +50,14 @@ export async function searchPubMed(
     : '(dog OR dogs OR canine OR puppy)';
 
   // 질병명에서 feline/canine 접두어 제거 (MeSH가 종을 필터링하므로 불필요, 오히려 결과 줄임)
+  // + sanitize: 영문 직통 입력의 PubMed 구문 인젝션/오해석 방어.
+  //   - [ ] ( ) { } " : 필드 태그/그룹/구문검색 문자 → 우리 쿼리 `(${q}[Title])` 구조와 충돌
+  //   - 대문자 AND/OR/NOT : 불린 연산자 오해석 ('cat AND dog' → 1275건) → 소문자화(stopword)
   const cleanQuery = query
     .replace(/^(feline|canine)\s+/i, '')
+    .replace(/[[\](){}"]/g, ' ')
+    .replace(/\b(AND|OR|NOT)\b/g, (m) => m.toLowerCase())
+    .replace(/\s+/g, ' ')
     .trim();
 
   const currentYear = new Date().getFullYear();

@@ -97,7 +97,7 @@ export default function HomePage() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
+              placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드를 검색하세요'}
               autoComplete="off"
               enterKeyHint="search"
               className="w-full h-9 pl-3 pr-10 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden"

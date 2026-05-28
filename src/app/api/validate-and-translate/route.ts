@@ -65,6 +65,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 2.5) 영문 직통 — 한글이 없으면 OpenAI 번역을 건너뛰고 입력을 그대로 PubMed 쿼리로.
+    //   파워유저(수의대생/수의사)가 정확한 영문 의학용어·논문 제목을 넣을 때 재번역
+    //   왜곡을 막고 OpenAI 호출 비용/지연도 절약. 금지어는 위(0단계)에서 이미 차단.
+    //   PubMed 구문 문자([](){}" 등) 인젝션은 pubmed.ts 의 sanitize 가 방어.
+    if (!/[가-힣]/.test(trimmed)) {
+      return NextResponse.json({ valid: true, englishQuery: trimmed });
+    }
+
     // 3.5) Rate limit: max 30 OpenAI calls per hour per user
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabaseAdmin
