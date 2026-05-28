@@ -14,13 +14,13 @@ import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
 
 // 투명 칩(배경 없이 아이콘만) + 아이콘 의미에 맞춘 색.
-//   AI 케어 = 파랑 계열(브랜드) + 보관함 포인트: 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=웜 오렌지.
+//   AI 케어 = 파랑 계열로 통일(브랜드): 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=남색.
 //   건강 기록 = 그린·민트 계열로 통일(편안한 일상 데이터): 기록장=딥그린 / 캘린더=소프트그린 / 체중=에메랄드 / 의료비=연두.
 const AI_CARE: MenuItem[] = [
   { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', href: '/search?mode=symptom' },
   { icon: Camera, label: '사진 분석', color: 'text-sky-500', href: '/search/photo' },
   { icon: FileSearch, label: '논문 검색', color: 'text-indigo-600', href: '/search?mode=disease' },
-  { icon: Bookmark, label: '보관함', color: 'text-amber-500', href: '/profile/saved' },
+  { icon: Bookmark, label: '보관함', color: 'text-blue-800', href: '/profile/saved' },
 ];
 
 const HEALTH: MenuItem[] = [
