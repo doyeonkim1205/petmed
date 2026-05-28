@@ -987,12 +987,16 @@ function SearchContent() {
                           </h3>
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.badge}`}>
-                            {disease.severity}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${lik}`}>
-                            가능성 {disease.likelihood}
-                          </span>
+                          {disease.severity && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.badge}`}>
+                              {disease.severity}
+                            </span>
+                          )}
+                          {disease.likelihood && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${lik}`}>
+                              가능성 {disease.likelihood}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1112,7 +1116,7 @@ function SearchContent() {
                       <HelpCircle size={14} />
                       추가 질문에 답하면 더 정확해져요
                       {symptomUsageInfo && (
-                        <span className="ml-auto text-[10px] font-normal text-blue-500/70">
+                        <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">
                           재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}
                         </span>
                       )}

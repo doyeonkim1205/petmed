@@ -481,9 +481,15 @@ type 사용 가이드:
       })
       .map((d: any) => {
         const standardKo = lookupVetTerm(d?.name_en);
+        // severity / likelihood 누락·오류 방어 — AI 가 빈 값을 보내면 UI 가
+        // "색만 있고 글자 없는 뱃지" 로 렌더되던 버그 방지. 기본값: severity=관찰, likelihood=중간.
+        const severity = ['긴급', '주의', '관찰'].includes(d?.severity) ? d.severity : '관찰';
+        const likelihood = ['높음', '중간', '낮음'].includes(d?.likelihood) ? d.likelihood : '중간';
         return {
           ...d,
           ...(standardKo ? { name_ko: standardKo } : {}),
+          severity,
+          likelihood,
         };
       })
       .slice(0, 3);
