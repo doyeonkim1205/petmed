@@ -773,7 +773,7 @@ function SearchContent() {
                   }
                 }}
                 maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
-                placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병명을 검색하세요'}
+                placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드로 논문 검색'}
                 autoComplete="off"
                 enterKeyHint="search"
                 className={`w-full h-9 pl-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden ${
@@ -1261,7 +1261,7 @@ function SearchContent() {
               </div>
             )}
             <div className="mt-10 text-center text-gray-400">
-              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '반려동물의 질병명을 검색해보세요.'}</p>
+              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다.' : '질병명이나 키워드로 관련 논문을 찾아보세요.'}</p>
               <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다.'}</p>
             </div>
           </div>
