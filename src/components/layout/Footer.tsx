@@ -32,8 +32,8 @@ export function Footer() {
             }`}>
               <Icon size={20} />
             </div>
-            <span className={`text-[10px] font-medium ${
-              isActive ? 'text-gray-900' : 'text-gray-500'
+            <span className={`text-[10px] ${
+              isActive ? 'font-bold text-gray-900' : 'font-medium text-gray-500'
             }`}>{item.label}</span>
           </Link>
         );
