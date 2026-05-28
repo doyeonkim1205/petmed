@@ -98,8 +98,8 @@ export function HomeBanner() {
           <ChevronRight size={20} />
         </span>
 
-        {/* 점 인디케이터 — 탭하면 해당 배너로 (이벤트 버블링 차단) */}
-        <div className="absolute bottom-4 right-5 flex gap-1.5">
+        {/* 점 인디케이터 — 하단 중앙, 탭하면 해당 배너로 (이벤트 버블링 차단) */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
           {BANNERS.map((b, i) => (
             <span
               key={b.id}

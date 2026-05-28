@@ -40,7 +40,7 @@ function MenuGrid({ items }: { items: MenuItem[] }) {
           className="py-2 flex flex-col items-center gap-2 rounded-xl active:scale-[0.95] transition-transform"
         >
           <Icon size={26} className={color} />
-          <span className="text-[11px] font-medium text-gray-700 text-center leading-tight px-0.5">{label}</span>
+          <span className="text-[11px] font-bold text-gray-800 text-center leading-tight px-0.5">{label}</span>
         </Link>
       ))}
     </div>
