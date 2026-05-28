@@ -713,7 +713,11 @@ function ResultPanel({
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-gray-500 px-1">의심 진단</h3>
           {result.diseases.map((d, i) => (
-            <div key={i} className="bg-white rounded-lg p-4 shadow-sm">
+            <div key={i} className={`rounded-lg p-4 border ${
+              d.severity === '긴급' ? 'bg-red-50 border-red-200' :
+              d.severity === '주의' ? 'bg-orange-50 border-orange-200' :
+              'bg-green-50 border-green-200'
+            }`}>
               <div className="flex items-baseline gap-2 mb-2">
                 <h4 className="font-bold text-sm">{d.name_ko}</h4>
                 {d.name_en && <span className="text-[11px] text-gray-400">{d.name_en}</span>}
@@ -742,7 +746,7 @@ function ResultPanel({
                 <p className="text-xs text-gray-700 leading-relaxed mb-2">{d.description}</p>
               )}
               {d.action && (
-                <div className="text-xs bg-blue-50 text-blue-900 rounded p-2 leading-relaxed">
+                <div className="text-xs bg-white/60 text-gray-700 rounded p-2 leading-relaxed">
                   💡 {d.action}
                 </div>
               )}
