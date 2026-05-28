@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { HomeBanner } from '@/components/home/HomeBanner';
 import { HealthTip } from '@/components/home/HealthTip';
+import { SmartBanner } from '@/components/home/SmartBanner';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
@@ -81,6 +82,9 @@ export default function HomePage() {
           <MenuGrid items={HEALTH} />
         </section>
       </div>
+
+      {/* 하단 스마트 배너 — 펫 미등록=등록 유도 / 무료=Plus 유도 / Plus=숨김 */}
+      <SmartBanner />
     </div>
   );
 }
