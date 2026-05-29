@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, X, ArrowLeft, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown, Lock } from 'lucide-react';
+import { Camera, X, ArrowLeft, ArrowRight, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Pet } from '@/lib/supabase';
@@ -746,8 +746,13 @@ function ResultPanel({
                 <p className="text-xs text-gray-700 leading-relaxed mb-2">{d.description}</p>
               )}
               {d.action && (
-                <div className="text-xs bg-white/60 text-gray-700 rounded p-2 leading-relaxed">
-                  💡 {d.action}
+                <div className="flex items-start gap-2 bg-white/60 rounded-lg p-2.5">
+                  <ArrowRight size={14} className={`mt-0.5 flex-shrink-0 ${
+                    d.severity === '긴급' ? 'text-red-600' :
+                    d.severity === '관찰' ? 'text-green-600' :
+                    'text-orange-600'
+                  }`} />
+                  <p className="text-xs text-gray-700 font-medium">{d.action}</p>
                 </div>
               )}
             </div>

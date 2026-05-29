@@ -8,6 +8,7 @@ import { startOfDayKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
+import { matchRedFlags } from '@/data/redFlags';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -129,6 +130,15 @@ export async function POST(request: NextRequest) {
 - 만성질환과의 연관성 검토
 - 복용 약물 부작용 가능성 검토
 - 알레르기/금기 약물 회피 권고`
+      : '';
+
+    // ── 레드플래그(치명적 감염성 질환) 주입 ──
+    // 입력 증상이 매칭될 때만 짧은 힌트를 user message 에 주입. prose 규칙이 긴
+    // 프롬프트에 묻혀 누락되던 파보·디스템퍼·범백·FIP·광견병·고양이 안과 감염을
+    // "반드시 감별 후보 포함"으로 강제. 매칭 안 되면 빈 문자열(프롬프트 비대화 X).
+    const redFlagHints = matchRedFlags(effectivePetType, symptoms);
+    const redFlagBlock = redFlagHints.length > 0
+      ? `\n\n[이 증상에서 반드시 감별 후보에 포함할 주요 질환 — 누락 금지]\n${redFlagHints.map((h) => `- ${h}`).join('\n')}\n→ 위 질환을 diseases 배열에 반드시 포함하되, action/설명에 "확진은 병원 검사 필요"를 명시하라. (사진이 아닌 증상 기반이므로 감별로 제시하는 것은 적절)`
       : '';
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -408,7 +418,7 @@ type 사용 가이드:
           },
           {
             role: 'user',
-            content: `${patientLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${petContextBlock}${followupContext}`,
+            content: `${patientLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${redFlagBlock}${petContextBlock}${followupContext}`,
           },
         ],
       }),
