@@ -34,13 +34,12 @@ export default function RecordsPage() {
   });
   const [activeTab, setActiveTab] = useState<Tab>('records');
   // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 window/URL 접근이 빌드 시점
-  // 서버 값으로 굳어 클라이언트 URL 을 못 읽음 → 마운트 후 useEffect 로 탭 복원.
-  // URL ?tab=calendar (홈 대시보드 캘린더 직통) 우선, 없으면 localStorage 복원.
+  // 서버 값으로 굳어 클라이언트 URL 을 못 읽음 → 마운트 후 useEffect 로 탭 결정.
+  // "기록장" 진입(파라미터 없음)은 항상 기록장 탭. 캘린더는 ?tab=calendar 로만 진입.
+  // (localStorage 복원은 제거 — 마지막 탭이 캘린더면 "기록장" 눌러도 캘린더가 뜨던 버그)
   useEffect(() => {
     const urlTab = new URLSearchParams(window.location.search).get('tab');
-    if (urlTab === 'calendar' || urlTab === 'records') { setActiveTab(urlTab); return; }
-    const saved = localStorage.getItem('recordsActiveTab');
-    if (saved === 'records' || saved === 'calendar') setActiveTab(saved);
+    if (urlTab === 'calendar') setActiveTab('calendar');
   }, []);
   const [recordFilter, setRecordFilter] = useState<RecordFilter>(() => {
     if (typeof window !== 'undefined') {
@@ -102,7 +101,6 @@ export default function RecordsPage() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    localStorage.setItem('recordsActiveTab', tab);
   };
 
   const handleFilterChange = (filter: RecordFilter) => {
