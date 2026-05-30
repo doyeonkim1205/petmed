@@ -720,7 +720,7 @@ function ResultPanel({
             }`}>
               <div className="flex items-baseline gap-2 mb-2">
                 <h4 className="font-bold text-sm">{d.name_ko}</h4>
-                {d.name_en && <span className="text-[11px] text-gray-400">{d.name_en}</span>}
+                {d.name_en && <span className="text-[11px] text-gray-400">({d.name_en})</span>}
               </div>
               {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음.
                   likelihood 색상도 텍스트 분석과 동일 (높음=red, 중간=yellow, 낮음=gray). */}
