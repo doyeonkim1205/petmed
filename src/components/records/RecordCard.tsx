@@ -6,7 +6,7 @@ import { Stethoscope, AlertCircle, FileEdit, Building2, PawPrint } from 'lucide-
 
 // 일상 세부 종류 한글 라벨. RecordCard 에서 sub_entries 텍스트 표시용.
 const DAILY_SUB_LABEL: Record<DailySubKind, string> = {
-  meal: '식사', walk: '산책', poop: '배변', grooming: '그루밍', mood: '기분', other: '기타',
+  meal: '식사', hydration: '수분', walk: '산책', poop: '배변', mood: '기분', other: '기타',
 };
 
 interface RecordCardProps {
@@ -24,7 +24,7 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
   hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-300' },
 };
 
 // 500ms = Material Design 의 표준 long-press 시간. 짧은 탭과 명확히 구분되면서

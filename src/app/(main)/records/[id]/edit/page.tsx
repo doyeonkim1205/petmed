@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Scissors, Smile, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -41,12 +41,12 @@ for (let h = 0; h < 24; h++) {
 
 // 일상 세부 종류 — add 페이지와 동일한 정의. 호환 위해 동일 순서 유지.
 const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'meal',     label: '식사',   icon: Utensils       },
-  { id: 'walk',     label: '산책',   icon: Footprints     },
-  { id: 'poop',     label: '배변',   icon: CircleDot      },
-  { id: 'grooming', label: '그루밍', icon: Scissors       },
-  { id: 'mood',     label: '기분',   icon: Smile          },
-  { id: 'other',    label: '기타',   icon: MoreHorizontal },
+  { id: 'meal',      label: '식사', icon: Utensils       },
+  { id: 'hydration', label: '수분', icon: Droplet        },
+  { id: 'walk',      label: '산책', icon: Footprints     },
+  { id: 'poop',      label: '배변', icon: CircleDot      },
+  { id: 'mood',      label: '기분', icon: Smile          },
+  { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
 const nowHHMM = () => {
@@ -569,7 +569,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       setIsDirty(true);
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
-                      selected ? 'bg-indigo-700 text-white border-indigo-700' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                      selected ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <Icon size={14} />
@@ -585,9 +585,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               return (
                 <div key={sk.id} className="space-y-2 mt-2">
                   {entries.map((entry, idx) => (
-                    <div key={entry.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
+                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-blue-900 rounded-lg p-3 bg-white space-y-2">
                       <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                        <Icon size={16} className="text-indigo-700" />
+                        <Icon size={16} className="text-blue-900" />
                         <span className="text-sm font-semibold text-gray-800">
                           {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
                         </span>
@@ -619,7 +619,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   <button
                     type="button"
                     onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }]); setIsDirty(true); }}
-                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-indigo-700 hover:border-indigo-300 transition-colors flex items-center justify-center gap-1"
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-900 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
                   >
                     <Plus size={13} /> {sk.label} 더 추가
                   </button>

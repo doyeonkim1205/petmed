@@ -104,7 +104,7 @@ export interface Pet {
 // Health Record types
 export type RecordType = 'symptom' | 'visit' | 'hospitalization' | 'manual' | 'daily';
 
-export type DailySubKind = 'meal' | 'walk' | 'poop' | 'grooming' | 'mood' | 'other';
+export type DailySubKind = 'meal' | 'hydration' | 'walk' | 'poop' | 'mood' | 'other';
 
 export interface DailySubEntry {
   sub_kind: DailySubKind;

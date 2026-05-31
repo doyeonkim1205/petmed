@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2, PawPrint, Utensils, Footprints, CircleDot, Scissors, Smile, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -21,18 +21,19 @@ const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
-  { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+  { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
 ];
 
 // 일상 세부 종류 — 라벨/아이콘.
 // 새 sub_kind 추가 시 supabase.ts 의 DailySubKind 와 함께 확장.
+// 수분은 식사 옆 배치 (의학적 연결, 매일 함께 체크하는 흐름).
 const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'meal',     label: '식사',   icon: Utensils       },
-  { id: 'walk',     label: '산책',   icon: Footprints     },
-  { id: 'poop',     label: '배변',   icon: CircleDot      },
-  { id: 'grooming', label: '그루밍', icon: Scissors       },
-  { id: 'mood',     label: '기분',   icon: Smile          },
-  { id: 'other',    label: '기타',   icon: MoreHorizontal },
+  { id: 'meal',      label: '식사', icon: Utensils       },
+  { id: 'hydration', label: '수분', icon: Droplet        },
+  { id: 'walk',      label: '산책', icon: Footprints     },
+  { id: 'poop',      label: '배변', icon: CircleDot      },
+  { id: 'mood',      label: '기분', icon: Smile          },
+  { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
 // 현재 시각 HH:MM 헬퍼.
@@ -726,7 +727,7 @@ export default function RecordAddPage() {
                     onClick={() => { toggleDailySubKind(sk.id); setIsDirty(true); }}
                     className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
                       selected
-                        ? 'bg-indigo-700 text-white border-indigo-700'
+                        ? 'bg-blue-900 text-white border-blue-900'
                         : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -746,9 +747,9 @@ export default function RecordAddPage() {
               return (
                 <div key={sk.id} className="space-y-2 mt-2">
                   {entries.map((entry, idx) => (
-                    <div key={entry.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
+                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-blue-900 rounded-lg p-3 bg-white space-y-2">
                       <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                        <Icon size={16} className="text-indigo-700" />
+                        <Icon size={16} className="text-blue-900" />
                         <span className="text-sm font-semibold text-gray-800">
                           {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
                         </span>
@@ -780,7 +781,7 @@ export default function RecordAddPage() {
                   <button
                     type="button"
                     onClick={() => { addDailyEntry(sk.id); setIsDirty(true); }}
-                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-indigo-700 hover:border-indigo-300 transition-colors flex items-center justify-center gap-1"
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-900 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
                   >
                     <Plus size={13} /> {sk.label} 더 추가
                   </button>
