@@ -584,51 +584,26 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 );
               })}
             </div>
+            {/* sub_kind 별 — 박스 X, 시간 X, "더 추가" X. 기존 데이터에 같은 sub_kind 여러 entry 가 있어도
+                v11 디자인은 첫 entry 만 편집 가능. 사용자가 새로 입력하는 데이터는 sub_kind 당 1개 보장. */}
             {dailySubKinds.map((sk) => {
-              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
-              if (entries.length === 0) return null;
+              const entry = dailyEntries.find((e) => e.sub_kind === sk.id);
+              if (!entry) return null;
               const Icon = sk.icon;
               return (
-                <div key={sk.id} className="space-y-2 mt-2">
-                  {entries.map((entry, idx) => (
-                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-blue-500 rounded-lg p-3 bg-white space-y-2">
-                      <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                        <Icon size={16} className="text-blue-500" />
-                        <span className="text-sm font-semibold text-gray-800">
-                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => { setDailyEntries((prev) => prev.filter((e) => e.id !== entry.id)); setIsDirty(true); }}
-                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
-                          aria-label={`${sk.label} 삭제`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
-                        <TimePicker value={entry.time} onChange={(v) => { setDailyEntries((prev) => prev.map((e) => e.id === entry.id ? { ...e, time: v } : e)); setIsDirty(true); }} />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 block mb-1">메모</label>
-                        <textarea
-                          value={entry.memo}
-                          onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
-                          maxLength={500}
-                          autoComplete="off"
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }]); setIsDirty(true); }}
-                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Plus size={13} /> {sk.label} 더 추가
-                  </button>
+                <div key={sk.id} className="mt-4">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Icon size={16} className="text-blue-500" />
+                    <span className="text-sm font-semibold text-gray-700">{sk.label}</span>
+                  </div>
+                  <textarea
+                    placeholder="메모를 입력하세요"
+                    value={entry.memo}
+                    onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
+                    maxLength={500}
+                    autoComplete="off"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                  />
                 </div>
               );
             })}

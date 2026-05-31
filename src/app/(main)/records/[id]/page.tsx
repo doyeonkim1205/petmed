@@ -137,7 +137,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </span>
               )}
               <div className="flex items-center gap-0.5 ml-auto">
-                <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-blue-500 hover:text-blue-700 transition-colors">
+                <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-gray-700 hover:text-gray-900 transition-colors">
                   <Edit2 size={16} />
                 </button>
                 <button onClick={handleDelete} className="p-1.5 text-red-400 hover:text-red-600 transition-colors">
@@ -159,26 +159,22 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
         )}
 
-        {/* 일상 세부 기록 — sub_entries 섹션별로 표시. 슬라이드 X, 그냥 스크롤. */}
+        {/* 일상 세부 기록 — 박스 X, 시간 X. 진료기록 description 톤으로 평문 표시.
+            sub_kind 별 헤더(아이콘+라벨) + 메모 평문. 섹션 사이 얇은 가로선 구분. */}
         {record.record_type === 'daily' && record.sub_entries && record.sub_entries.length > 0 && (
-          <div className="space-y-2 mb-4">
+          <div className="mb-4">
             {record.sub_entries.map((entry, idx) => {
               const meta = DAILY_SUB_META[entry.sub_kind];
               if (!meta) return null;
               const SubIcon = meta.icon;
               return (
-                <div key={idx} className="border border-gray-200 border-l-4 border-l-blue-500 rounded-lg p-3 bg-white">
-                  <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                <div key={idx} className={idx > 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     <SubIcon size={16} className="text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-800">{meta.label}</span>
-                    {entry.time && (
-                      <span className="text-xs text-gray-400 ml-auto">{entry.time}</span>
-                    )}
+                    <span className="text-sm font-semibold text-gray-700">{meta.label}</span>
                   </div>
-                  {entry.memo ? (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mt-2">{entry.memo}</p>
-                  ) : (
-                    <p className="text-xs text-gray-300 mt-2">메모 없음</p>
+                  {entry.memo && (
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{entry.memo}</p>
                   )}
                 </div>
               );
