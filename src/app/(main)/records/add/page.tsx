@@ -256,12 +256,43 @@ export default function RecordAddPage() {
     })();
   }, [user]);
 
-  // Draft 로드 — 마운트 시 1회. 사용자별 키. 있으면 복원 모달 띄움.
+  // Draft 로드 — 마운트 시 1회.
+  // - 같은 PWA 세션 (사용자가 입력 중 다른 앱 갔다 옴) → 모달 없이 자동 복원
+  // - 새 세션 (PWA 종료 후 재실행, 어제 멈춘 draft) → 모달로 [불러오기]/[새로 시작] 묻기
+  // sessionStorage 는 PWA 닫으면 초기화되므로 자연스럽게 세션 구분됨.
   useEffect(() => {
     if (!user || draftCheckedRef.current) return;
     draftCheckedRef.current = true;
     const draft = loadDraft(draftKey.add(user.id));
-    if (draft) setPendingDraft(draft);
+    if (!draft) {
+      // draft 없어도 세션 마커는 켜둠 (앞으로 저장될 draft 의 세션 기준)
+      try { sessionStorage.setItem('pawdex-add-session', '1'); } catch {}
+      return;
+    }
+    let sameSession = false;
+    try { sameSession = sessionStorage.getItem('pawdex-add-session') === '1'; } catch {}
+    if (sameSession) {
+      // 같은 세션 — 모달 없이 직접 복원
+      if (draft.recordType) setRecordType(draft.recordType);
+      if (draft.petId) setPetId(draft.petId);
+      if (draft.title !== undefined) setTitle(draft.title);
+      if (draft.description !== undefined) setDescription(draft.description);
+      if (draft.hospitalName !== undefined) setHospitalName(draft.hospitalName);
+      if (draft.cost !== undefined) setCost(draft.cost);
+      if (draft.weight !== undefined) setWeight(draft.weight);
+      if (draft.symptomTime !== undefined) setSymptomTime(draft.symptomTime);
+      if (draft.visitDate) setVisitDate(draft.visitDate);
+      if (draft.dischargeDate !== undefined) setDischargeDate(draft.dischargeDate);
+      if (draft.nextAppointmentDate !== undefined) setNextAppointmentDate(draft.nextAppointmentDate);
+      if (draft.recordColor) setRecordColor(draft.recordColor);
+      if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
+      if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
+      setIsDirty(true);
+    } else {
+      // 새 세션 — 모달로 확인
+      setPendingDraft(draft);
+    }
+    try { sessionStorage.setItem('pawdex-add-session', '1'); } catch {}
   }, [user]);
 
   // 매 render 마다 최신 state 를 ref 에 mirror — pagehide/visibility 핸들러가 closure
@@ -321,7 +352,9 @@ export default function RecordAddPage() {
     setPendingDraft(null);
   };
 
-  // 복원 모달 [새로 시작] — draft 폐기.
+  // 복원 모달 [새로 시작] — draft 폐기 + 모달 닫기.
+  // 세션 마커는 그대로 유지 (이미 켜져 있음). 새 입력 → save 후 다른 앱 갔다 와도
+  // 같은 세션 → 자동 복원되어 입력 그대로 보임.
   const discardDraft = () => {
     if (user) clearDraft(draftKey.add(user.id));
     setPendingDraft(null);
@@ -675,8 +708,11 @@ export default function RecordAddPage() {
         }
       }
 
-      // 저장 성공 → draft 삭제 + dirty 해제 후 이동
+      // 저장 성공 → draft 삭제 + 세션 마커 해제 + dirty 해제 후 이동.
+      // 세션 마커 해제: 다음 add 진입 시 (예: 같은 PWA 세션 안에서 곧바로 또 작성)
+      // 모달 없이 빈 폼으로 시작. 새 draft 저장되면 자동으로 다시 마커 켜짐.
       if (user) clearDraft(draftKey.add(user.id));
+      try { sessionStorage.removeItem('pawdex-add-session'); } catch {}
       setIsDirty(false);
       guardPushedRef.current = false;
       router.push('/records');
