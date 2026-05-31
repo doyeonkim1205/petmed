@@ -673,7 +673,6 @@ export default function RecordAddPage() {
 
         {/* Record Type Selection */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">기록 유형</label>
           <div className="flex gap-2">
             {recordTypes.map((type) => {
               const Icon = type.icon;
