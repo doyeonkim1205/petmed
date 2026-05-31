@@ -264,36 +264,39 @@ export default function RecordAddPage() {
     if (draft) setPendingDraft(draft);
   }, [user]);
 
-  // Draft 자동 저장 — 입력 변경 시 500ms debounce. 텍스트/칩/날짜만 (medications, files 제외).
-  // 사용자가 [새로 시작] 누르거나 저장 성공 전까지는 계속 갱신.
+  // Draft 자동 저장 — 입력 변경 시 즉시 저장. debounce 안 씀 (setTimeout race 방지):
+  //   debounce 500ms 동안 다른 앱으로 가면 → visibilitychange 신뢰성 ↓ → OS 메모리 정리 시
+  //   cleanup 으로 setTimeout 취소돼 save 누락. localStorage write 자체는 < 1ms 라 부담 미미.
   useEffect(() => {
-    if (!user || pendingDraft) return; // 복원 모달 떠있을 땐 저장 안 함 (덮어쓰기 방지)
-    const t = setTimeout(() => {
-      saveDraft(draftKey.add(user.id), {
-        recordType, title, description, hospitalName, cost, weight, symptomTime,
-        visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-        petId, selectedSubKinds,
-      });
-    }, 500);
-    return () => clearTimeout(t);
+    if (!user || pendingDraft) return; // 복원 모달 떠있을 땐 저장 X (덮어쓰기 방지)
+    saveDraft(draftKey.add(user.id), {
+      recordType, title, description, hospitalName, cost, weight, symptomTime,
+      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+      petId, selectedSubKinds,
+    });
   }, [user, pendingDraft, recordType, title, description, hospitalName, cost, weight, symptomTime,
       visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
       petId, selectedSubKinds]);
 
-  // visibilitychange — 백그라운드 진입 시 즉시 저장 (debounce 기다리지 않고).
-  // 다른 앱/탭 갔다 돌아왔을 때 입력값 복원 보장.
+  // 백그라운드 진입 안전망 — visibilitychange + pagehide 둘 다 listen.
+  // visibilitychange 는 일부 모바일/TWA 환경에서 신뢰성 낮음 → pagehide 로 보강.
+  // (이미 useEffect 즉시 저장이라 대부분 OK, 이건 마지막 안전망.)
   useEffect(() => {
     if (!user) return;
-    const onHide = () => {
-      if (document.visibilityState !== 'hidden') return;
+    const save = () => {
       saveDraft(draftKey.add(user.id), {
         recordType, title, description, hospitalName, cost, weight, symptomTime,
         visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
         petId, selectedSubKinds,
       });
     };
-    document.addEventListener('visibilitychange', onHide);
-    return () => document.removeEventListener('visibilitychange', onHide);
+    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', save);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', save);
+    };
   }, [user, recordType, title, description, hospitalName, cost, weight, symptomTime,
       visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
       petId, selectedSubKinds]);

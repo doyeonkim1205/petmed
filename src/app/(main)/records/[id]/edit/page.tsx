@@ -123,35 +123,38 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     if (id && user) loadData();
   }, [id, user]);
 
-  // Draft 자동 저장 — record 가 로드 완료(updatedAt 있음)된 후부터, 복원 모달 떠있지 않을 때만.
-  // medications, files 는 의도적으로 제외 (lib/recordDraft.ts 주석 참고).
+  // Draft 자동 저장 — record 로드 + 복원 모달 닫힌 후, state 변경 시 즉시 저장.
+  // debounce 안 씀: setTimeout 동안 백그라운드 전환 시 cleanup 으로 save 누락 위험.
+  // localStorage write < 1ms 라 부담 미미. medications/files 는 의도적으로 제외.
   useEffect(() => {
     if (!user || !recordUpdatedAt || pendingDraft) return;
-    const t = setTimeout(() => {
-      saveDraft(draftKey.edit(user.id, id), {
-        recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
-        cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
-        recordColor, nextAppointmentColor, petId, selectedSubKinds,
-      });
-    }, 500);
-    return () => clearTimeout(t);
+    saveDraft(draftKey.edit(user.id, id), {
+      recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
+      cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
+      recordColor, nextAppointmentColor, petId, selectedSubKinds,
+    });
   }, [user, id, recordUpdatedAt, pendingDraft, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
       recordColor, nextAppointmentColor, petId, selectedSubKinds]);
 
-  // visibilitychange — 백그라운드 진입 즉시 저장.
+  // 백그라운드 진입 안전망 — visibilitychange + pagehide. 즉시 저장과 중복이지만
+  // 모바일/TWA 에서 setState 후 effect 가 fire 되기 전 백그라운드 가는 케이스 방어.
   useEffect(() => {
     if (!user || !recordUpdatedAt) return;
-    const onHide = () => {
-      if (document.visibilityState !== 'hidden') return;
+    const save = () => {
       saveDraft(draftKey.edit(user.id, id), {
         recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
         cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
         recordColor, nextAppointmentColor, petId, selectedSubKinds,
       });
     };
-    document.addEventListener('visibilitychange', onHide);
-    return () => document.removeEventListener('visibilitychange', onHide);
+    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', save);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', save);
+    };
   }, [user, id, recordUpdatedAt, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
       recordColor, nextAppointmentColor, petId, selectedSubKinds]);
