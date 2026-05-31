@@ -49,13 +49,7 @@ const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentTyp
   { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
-// v11: time UI 미입력 (빈 문자열로 두고 저장 시 undefined). DB 스키마는 유지.
-interface DailyEntry {
-  id: string;
-  sub_kind: DailySubKind;
-  time: string;
-  memo: string;
-}
+// v12: sub_kind 는 분류 태그용, 메모는 description 1개로 통합.
 
 interface MedicationInput {
   id?: string;
@@ -97,8 +91,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
-  // 일상 entry 배열 — 같은 sub_kind 여러 개 가능. id 는 React key 용.
-  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
+  // v12: 선택한 sub_kind 목록만 추적 (멀티 선택, 중복 X). 메모는 description state 활용.
+  const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [dischargeDate, setDischargeDate] = useState('');
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
@@ -168,16 +162,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         setExistingFiles(record.record_files);
       }
 
-      // 일상: sub_entries 배열 → DailyEntry 배열로 복원 (id 새로 부여).
-      // 순서 유지 + 같은 sub_kind 여러 entry 도 모두 보존.
+      // v12: sub_entries 에서 sub_kind 만 복원 (중복 제거). 메모는 description 으로 통합 사용.
+      // 기존 데이터 호환: description 비어있고 sub_entries[i].memo 가 있으면 합쳐서 description 으로.
       if (record.record_type === 'daily' && record.sub_entries) {
-        const restored: DailyEntry[] = record.sub_entries.map((entry) => ({
-          id: crypto.randomUUID(),
-          sub_kind: entry.sub_kind,
-          time: entry.time || '',
-          memo: entry.memo || '',
-        }));
-        setDailyEntries(restored);
+        const kinds = Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)));
+        setSelectedSubKinds(kinds);
+        if (!record.description) {
+          const legacyMemos = record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n');
+          if (legacyMemos) setDescription(legacyMemos);
+        }
       }
     } catch (error) {
       Sentry.captureException(error, {
@@ -317,13 +310,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (recordType === 'daily') {
-      if (dailyEntries.length === 0) {
+      if (selectedSubKinds.length === 0) {
         showError('세부 종류를 1개 이상 선택해주세요.'); return;
       }
-      const emptyMemo = dailyEntries.find((e) => !e.memo.trim());
-      if (emptyMemo) {
-        const label = dailySubKinds.find((sk) => sk.id === emptyMemo.sub_kind)?.label ?? '항목';
-        showError(`${label} 메모를 입력해주세요.`); return;
+      if (!description.trim()) {
+        showError('메모를 입력해주세요.'); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -370,13 +361,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       if (recordType === 'daily') {
-        // 일상: sub_entries 만 갱신. id 제거 + memo trim. 순서는 UI 그대로.
-        const subEntries = dailyEntries.map((e) => ({
-          sub_kind: e.sub_kind,
-          time: e.time || undefined,
-          memo: e.memo.trim(),
-        }));
-        await updateRecord(id, { sub_entries: subEntries } as any);
+        // v12: sub_entries 는 sub_kind 만, 메모는 description 으로 통합 저장.
+        const subEntries = selectedSubKinds.map((k) => ({ sub_kind: k }));
+        await updateRecord(id, {
+          sub_entries: subEntries,
+          description: description.trim(),
+        } as any);
       } else {
         await updateRecord(id, {
           pet_id: petId,
@@ -548,7 +538,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
-        {/* 일상 — 멀티 선택 + 같은 sub_kind 여러 entry (수정용) */}
+        {/* 일상 — 세부 종류 멀티 선택 (분류 태그) + 통합 메모 1개 (일기 형식, 수정용) */}
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -557,17 +547,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-3 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
-                const selected = dailyEntries.some((e) => e.sub_kind === sk.id);
+                const selected = selectedSubKinds.includes(sk.id);
                 return (
                   <button
                     key={sk.id}
                     type="button"
                     onClick={() => {
-                      setDailyEntries((prev) => {
-                        const has = prev.some((e) => e.sub_kind === sk.id);
-                        if (has) return prev.filter((e) => e.sub_kind !== sk.id);
-                        return [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: '', memo: '' }];
-                      });
+                      setSelectedSubKinds((prev) => prev.includes(sk.id) ? prev.filter((k) => k !== sk.id) : [...prev, sk.id]);
                       setIsDirty(true);
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-medium border-2 transition-colors ${
@@ -580,49 +566,18 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 );
               })}
             </div>
-            {/* sub_kind 별 — 박스/시간 X, 같은 sub_kind 여러 entry + ✕ 삭제 + "+ 더 추가". */}
-            {dailySubKinds.map((sk) => {
-              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
-              if (entries.length === 0) return null;
-              const Icon = sk.icon;
-              return (
-                <div key={sk.id} className="mt-4">
-                  {entries.map((entry, idx) => (
-                    <div key={entry.id} className={idx > 0 ? 'mt-3' : ''}>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Icon size={16} className="text-blue-500" />
-                        <span className="text-sm font-semibold text-gray-700">
-                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => { setDailyEntries((prev) => prev.filter((e) => e.id !== entry.id)); setIsDirty(true); }}
-                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
-                          aria-label={`${sk.label} 삭제`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <textarea
-                        placeholder="메모를 입력하세요"
-                        value={entry.memo}
-                        onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
-                        maxLength={500}
-                        autoComplete="off"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: '', memo: '' }]); setIsDirty(true); }}
-                    className="w-full py-2 mt-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Plus size={13} /> {sk.label} 더 추가
-                  </button>
-                </div>
-              );
-            })}
+
+            <div className="mt-4">
+              <label className="text-sm font-medium block mb-2">메모</label>
+              <textarea
+                placeholder="오늘 하루를 기록해보세요"
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); setIsDirty(true); }}
+                maxLength={1000}
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[140px] resize-none"
+              />
+            </div>
           </div>
         )}
 

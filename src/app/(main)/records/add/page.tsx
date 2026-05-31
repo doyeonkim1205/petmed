@@ -36,15 +36,8 @@ const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentTyp
   { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
-// 일상 entry 단일 단위.
-// id 는 React key 용 (저장 시 제외). time 은 v11 에서 UI 미입력 — 빈 문자열로 두고
-// 저장 시 undefined 로 빠짐. DB 스키마는 그대로 유지 (호환성).
-interface DailyEntry {
-  id: string;
-  sub_kind: DailySubKind;
-  time: string;
-  memo: string;
-}
+// v12: sub_kind 는 분류 태그 역할만, 메모는 description 1개로 통합.
+// sub_entries 는 [{sub_kind}, ...] 형태로 저장 (memo/time 사용 X, DB 스키마는 호환).
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -91,10 +84,8 @@ export default function RecordAddPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
   const [petId, setPetId] = useState('');
-  // 일상 entry 배열 — 같은 sub_kind 여러 번 가능 (식사 #1, 식사 #2 등).
-  // 뱃지 ON/OFF 는 "그 sub_kind 의 entry 가 존재하는가" 로 판정.
-  // 저장 시 id 빼고 sub_entries 배열로 직렬화.
-  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
+  // v12: 선택한 sub_kind 목록만 추적 (멀티 선택 가능, 중복 X). 메모는 description state 활용.
+  const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
@@ -207,27 +198,11 @@ export default function RecordAddPage() {
     setRecordType(newType);
   };
 
-  // 뱃지 토글 — 그 sub_kind 의 entry 가 있으면 모두 제거 (OFF), 없으면 1개 추가 (ON).
+  // 뱃지 토글 — 있으면 제거, 없으면 추가. 중복 X.
   const toggleDailySubKind = (kind: DailySubKind) => {
-    setDailyEntries((prev) => {
-      const has = prev.some((e) => e.sub_kind === kind);
-      if (has) return prev.filter((e) => e.sub_kind !== kind);
-      return [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: '', memo: '' }];
-    });
-  };
-
-  // 같은 sub_kind 에 entry 1개 더 추가 (+ 식사 더 추가 등).
-  const addDailyEntry = (kind: DailySubKind) => {
-    setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: '', memo: '' }]);
-  };
-
-  // entry 단일 삭제 — 같은 sub_kind 의 마지막 entry 까지 제거되면 뱃지도 자동 OFF.
-  const removeDailyEntry = (id: string) => {
-    setDailyEntries((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  const updateDailyEntry = (id: string, field: 'time' | 'memo', value: string) => {
-    setDailyEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+    setSelectedSubKinds((prev) =>
+      prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]
+    );
   };
 
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
@@ -456,13 +431,11 @@ export default function RecordAddPage() {
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
     // 일상: 세부 종류 1개 이상 + 모든 entry 의 메모 필수 (빈값 저장 차단).
     if (recordType === 'daily') {
-      if (dailyEntries.length === 0) {
+      if (selectedSubKinds.length === 0) {
         showError('세부 종류를 1개 이상 선택해주세요.'); return;
       }
-      const emptyMemo = dailyEntries.find((e) => !e.memo.trim());
-      if (emptyMemo) {
-        const label = dailySubKinds.find((sk) => sk.id === emptyMemo.sub_kind)?.label ?? '항목';
-        showError(`${label} 메모를 입력해주세요.`); return;
+      if (!description.trim()) {
+        showError('메모를 입력해주세요.'); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -512,17 +485,13 @@ export default function RecordAddPage() {
       // title 은 NOT NULL 이라 "일상 기록" 로 채움 (펫 이름은 표시 시 join 으로 가져옴).
       let record;
       if (recordType === 'daily') {
-        // id 는 React key 용 — 직렬화 전에 제거. sub_kind 순서는 입력 순서 유지.
-        // memo 는 필수라 trim 후 항상 값 있음. time 은 빈 문자열 가능 (생략).
-        const subEntries = dailyEntries.map((e) => ({
-          sub_kind: e.sub_kind,
-          time: e.time || undefined,
-          memo: e.memo.trim(),
-        }));
+        // v12: sub_entries 는 sub_kind 만 저장 (분류 태그). 메모는 description 1개로 통합.
+        const subEntries = selectedSubKinds.map((k) => ({ sub_kind: k }));
         record = await createRecord({
           pet_id: petId,
           record_type: 'daily',
           title: '일상 기록',
+          description: description.trim(),
           visit_date: visitDate,
           sub_entries: subEntries,
         });
@@ -707,7 +676,7 @@ export default function RecordAddPage() {
           )}
         </div>
 
-        {/* 일상 — 세부 종류 멀티 선택 + 같은 sub_kind 여러 entry 가능 */}
+        {/* 일상 — 세부 종류 멀티 선택 (분류 태그) + 통합 메모 1개 (일기 형식) */}
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -716,7 +685,7 @@ export default function RecordAddPage() {
             <div className="grid grid-cols-3 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
-                const selected = dailyEntries.some((e) => e.sub_kind === sk.id);
+                const selected = selectedSubKinds.includes(sk.id);
                 return (
                   <button
                     key={sk.id}
@@ -735,50 +704,18 @@ export default function RecordAddPage() {
               })}
             </div>
 
-            {/* sub_kind 별 표시 — 박스/시간 X (진료기록 description 톤).
-                같은 sub_kind 여러 entry 가능 — 헤더 #1/#2 + ✕ 삭제, 그룹 마지막 "+ 더 추가". */}
-            {dailySubKinds.map((sk) => {
-              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
-              if (entries.length === 0) return null;
-              const Icon = sk.icon;
-              return (
-                <div key={sk.id} className="mt-4">
-                  {entries.map((entry, idx) => (
-                    <div key={entry.id} className={idx > 0 ? 'mt-3' : ''}>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Icon size={16} className="text-blue-500" />
-                        <span className="text-sm font-semibold text-gray-700">
-                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => { removeDailyEntry(entry.id); setIsDirty(true); }}
-                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
-                          aria-label={`${sk.label} 삭제`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <textarea
-                        placeholder="메모를 입력하세요"
-                        value={entry.memo}
-                        onChange={(e) => updateDailyEntry(entry.id, 'memo', e.target.value)}
-                        maxLength={500}
-                        autoComplete="off"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => { addDailyEntry(sk.id); setIsDirty(true); }}
-                    className="w-full py-2 mt-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Plus size={13} /> {sk.label} 더 추가
-                  </button>
-                </div>
-              );
-            })}
+            {/* 통합 메모 1개 — 일기 형식. sub_kind 선택 여부와 별개로 항상 노출. */}
+            <div className="mt-4">
+              <label className="text-sm font-medium block mb-2">메모</label>
+              <textarea
+                placeholder="오늘 하루를 기록해보세요"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={1000}
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[140px] resize-none"
+              />
+            </div>
           </div>
         )}
 

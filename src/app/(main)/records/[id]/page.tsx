@@ -159,26 +159,34 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
         )}
 
-        {/* 일상 세부 기록 — 박스 X, 시간 X. 진료기록 description 톤으로 평문 표시.
-            sub_kind 별 헤더(아이콘+라벨) + 메모 평문. 섹션 사이 얇은 가로선 구분. */}
-        {record.record_type === 'daily' && record.sub_entries && record.sub_entries.length > 0 && (
+        {/* v12 일상 — sub_kind 들 작은 칩으로 표시 (분류 태그) + description 통합 메모 평문. */}
+        {record.record_type === 'daily' && (
           <div className="mb-4">
-            {record.sub_entries.map((entry, idx) => {
-              const meta = DAILY_SUB_META[entry.sub_kind];
-              if (!meta) return null;
-              const SubIcon = meta.icon;
-              return (
-                <div key={idx} className={idx > 0 ? 'border-t border-gray-100 pt-3 mt-3' : ''}>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <SubIcon size={16} className="text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-700">{meta.label}</span>
-                  </div>
-                  {entry.memo && (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{entry.memo}</p>
-                  )}
-                </div>
-              );
-            })}
+            {record.sub_entries && record.sub_entries.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind))).map((kind) => {
+                  const meta = DAILY_SUB_META[kind];
+                  if (!meta) return null;
+                  const SubIcon = meta.icon;
+                  return (
+                    <span key={kind} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                      <SubIcon size={12} />
+                      {meta.label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {record.description ? (
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{record.description}</p>
+            ) : (
+              // 기존 v11 데이터 호환 — description 비어있으면 sub_entries 의 memo 들 합쳐서 표시.
+              record.sub_entries && record.sub_entries.some((e) => e.memo) && (
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n')}
+                </p>
+              )
+            )}
           </div>
         )}
 
