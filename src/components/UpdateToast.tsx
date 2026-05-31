@@ -28,7 +28,13 @@ export function UpdateToast() {
     // 첫 설치 (컨트롤러 없음) → 업데이트 아님
     if (!navigator.serviceWorker.controller) return;
 
+    // 사용자가 X 로 dismiss 한 직후 5분간은 새 toast 안 띄움.
+    // sessionStorage 라 PWA 닫으면 초기화 (의도적).
     const reveal = (sw: ServiceWorker) => {
+      try {
+        const silentUntil = parseInt(sessionStorage.getItem('sw-toast-silent-until') || '0', 10);
+        if (silentUntil > Date.now()) return;
+      } catch {}
       setWaitingSW(sw);
       setShow(true);
     };
@@ -71,29 +77,13 @@ export function UpdateToast() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
-  const applyUpdate = async () => {
+  const applyUpdate = () => {
     if (!waitingSW || applying) return;
     setApplying(true);
 
-    // 🎯 클릭 시점 1차: 그 사이에 더 새 버전이 서버에 올라왔는지 한 번 더 체크.
-    //   짧은 시간 안에 v40 → v41 → v42 연속 푸시 시, 사용자가 v40 토스트만 보고
-    //   적용해도 reload 직후 v41/v42 토스트가 또 뜨는 문제 완화. update() 가
-    //   서버 응답을 기다리므로 1.5초 timeout 으로 무한 대기 방어. 실패해도
-    //   기존 waitingSW 그대로 적용되므로 회귀 없음.
-    let targetSW: ServiceWorker | null = waitingSW;
-    try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg) {
-        await Promise.race([
-          reg.update(),
-          new Promise((resolve) => setTimeout(resolve, 1500)),
-        ]);
-        // update() 후 새 waiting SW 가 생겼다면 그게 진짜 최신.
-        if (reg.waiting) targetSW = reg.waiting;
-      }
-    } catch {
-      // update() 실패는 swallow. 기존 waitingSW 로 fallback.
-    }
+    // 이전 B안 (reg.update() 호출) 은 부작용으로 토스트 무한 반복 야기 → 제거.
+    // [지금 적용] 시점의 waitingSW 를 그대로 활성화. 짧은 시간 연속 푸시가 있어도
+    // 다음 reload 후 새 toast 한 번 더 거치는 게 안전 (race 없음).
 
     // 페이지 갱신 로직.
     // - iOS Safari: reload() 가 BFCache 에서 복원되는 quirk → URL 에
@@ -118,8 +108,8 @@ export function UpdateToast() {
     const onControllerChange = () => performReload();
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
-    // 최신 waiting SW 에게 skipWaiting 지시 (update() 직후 갱신된 SW 우선).
-    targetSW?.postMessage({ type: 'SKIP_WAITING' });
+    // waiting SW 에게 skipWaiting 지시.
+    waitingSW.postMessage({ type: 'SKIP_WAITING' });
 
     // ⏱️ TWA / 일부 환경에서 controllerchange 가 늦게 fire 되거나 안 오는
     // 케이스 방어 — 3초 안에 안 오면 강제 reload. SW 는 이미 skipWaiting
@@ -143,7 +133,11 @@ export function UpdateToast() {
           {applying ? '적용 중...' : '지금 적용'}
         </button>
         <button
-          onClick={() => setShow(false)}
+          onClick={() => {
+            // X dismiss → 5분간 silence (새 빌드 와도 그동안은 안 띄움).
+            try { sessionStorage.setItem('sw-toast-silent-until', String(Date.now() + 5 * 60 * 1000)); } catch {}
+            setShow(false);
+          }}
           disabled={applying}
           className="text-white/70 hover:text-white disabled:opacity-50 flex-shrink-0"
           aria-label="닫기"
