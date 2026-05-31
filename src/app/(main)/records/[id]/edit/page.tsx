@@ -575,7 +575,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       setIsDirty(true);
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
-                      selected ? 'bg-[#2c0a71] text-white border-[#2c0a71]' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                      selected ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <Icon size={14} />
@@ -591,9 +591,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               return (
                 <div key={sk.id} className="space-y-2 mt-2">
                   {entries.map((entry, idx) => (
-                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-[#2c0a71] rounded-lg p-3 bg-white space-y-2">
+                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-purple-500 rounded-lg p-3 bg-white space-y-2">
                       <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                        <Icon size={16} className="text-[#2c0a71]" />
+                        <Icon size={16} className="text-purple-500" />
                         <span className="text-sm font-semibold text-gray-800">
                           {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
                         </span>
@@ -625,7 +625,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   <button
                     type="button"
                     onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }]); setIsDirty(true); }}
-                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-[#2c0a71] hover:border-[#d8c7fa] transition-colors flex items-center justify-center gap-1"
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-purple-600 hover:border-purple-300 transition-colors flex items-center justify-center gap-1"
                   >
                     <Plus size={13} /> {sk.label} 더 추가
                   </button>
