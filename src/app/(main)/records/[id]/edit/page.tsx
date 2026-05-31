@@ -241,14 +241,45 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      // Draft 체크 — record 로드 완료 후 1회. record.updated_at 보다 오래된 draft 는
-      // 자동 폐기 (stale 덮어쓰기 방지). 다른 기기에서 record 가 갱신된 경우 처리.
-      setRecordUpdatedAt(record.updated_at ?? null);
+      // Draft 체크 — record 로드 완료 후 1회.
+      // 1) 같은 PWA 세션 (sessionStorage 세션 마커 있음) → 모달 없이 자동 복원
+      //    (사용자가 작성 중 다른 앱 갔다 온 케이스)
+      // 2) 새 세션 → 모달
+      // serverUpdatedAt 비교는 stale draft 폐기에 사용.
+      const sessionKey = `pawdex-edit-session-${id}`;
       if (!draftCheckedRef.current && user) {
         draftCheckedRef.current = true;
         const draft = loadDraft(draftKey.edit(user.id, id), { serverUpdatedAt: record.updated_at });
-        if (draft) setPendingDraft(draft);
+        let sameSession = false;
+        try { sameSession = sessionStorage.getItem(sessionKey) === '1'; } catch {}
+        if (draft) {
+          if (sameSession) {
+            // 같은 세션 — 모달 없이 직접 복원 (record 값 위에 덮어씀)
+            if (draft.title !== undefined) setTitle(draft.title);
+            if (draft.description !== undefined) setDescription(draft.description);
+            if (draft.hospitalName !== undefined) setHospitalName(draft.hospitalName);
+            if (draft.cost !== undefined) setCost(draft.cost);
+            if (draft.weight !== undefined) setWeight(draft.weight);
+            if (draft.symptomTime !== undefined) setSymptomTime(draft.symptomTime);
+            if (draft.visitDate) setVisitDate(draft.visitDate);
+            if (draft.dischargeDate !== undefined) setDischargeDate(draft.dischargeDate);
+            if (draft.nextAppointmentDate !== undefined) setNextAppointmentDate(draft.nextAppointmentDate);
+            if (draft.recordColor) setRecordColor(draft.recordColor);
+            if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
+            if (draft.petId) setPetId(draft.petId);
+            if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
+            setIsDirty(true);
+          } else {
+            // 새 세션 — 모달
+            setPendingDraft(draft);
+          }
+        }
+        try { sessionStorage.setItem(sessionKey, '1'); } catch {}
       }
+      // recordUpdatedAt 은 가장 마지막에 set — draft 즉시 저장 useEffect 의 트리거.
+      // 위의 draft 체크/setPendingDraft 가 같은 batch 에 들어가, useEffect 첫 fire 시
+      // pendingDraft 가 truthy 면 saveDraft 차단되어 record 값으로 덮어쓰기 방지.
+      setRecordUpdatedAt(record.updated_at ?? null);
     } catch (error) {
       Sentry.captureException(error, {
         tags: { feature: 'records', action: 'load-for-edit' },
@@ -546,8 +577,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      // 저장 성공 → draft 삭제 + dirty 해제 (popstate guard 가 가로채지 않도록)
+      // 저장 성공 → draft + 세션 마커 정리, dirty 해제 (popstate guard 가 가로채지 않도록)
       if (user) clearDraft(draftKey.edit(user.id, id));
+      try { sessionStorage.removeItem(`pawdex-edit-session-${id}`); } catch {}
       const hadGuard = guardPushedRef.current;
       setIsDirty(false);
       guardPushedRef.current = false;
