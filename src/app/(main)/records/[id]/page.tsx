@@ -14,7 +14,7 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료 기록', color: 'bg-blue-100 text-blue-600' },
   hospitalization: { icon: Building2, label: '입퇴원 기록', color: 'bg-emerald-100 text-emerald-600' },
   manual: { icon: FileEdit, label: '직접 입력', color: 'bg-green-100 text-green-600' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-yellow-100 text-yellow-800' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-[#C2CDFF] text-[#000B3D]' },
 };
 
 // 일상 세부 종류 → 라벨/아이콘 매핑 (상세 페이지 섹션 헤더).
@@ -167,9 +167,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               if (!meta) return null;
               const SubIcon = meta.icon;
               return (
-                <div key={idx} className="border border-gray-200 border-l-4 border-l-yellow-500 rounded-lg p-3 bg-white">
+                <div key={idx} className="border border-gray-200 border-l-4 border-l-[#000B3D] rounded-lg p-3 bg-white">
                   <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                    <SubIcon size={16} className="text-yellow-600" />
+                    <SubIcon size={16} className="text-[#000B3D]" />
                     <span className="text-sm font-semibold text-gray-800">{meta.label}</span>
                     {entry.time && (
                       <span className="text-xs text-gray-400 ml-auto">{entry.time}</span>
