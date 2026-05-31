@@ -1,8 +1,13 @@
 'use client';
 
 import { useRef } from 'react';
-import { HealthRecord } from '@/lib/supabase';
-import { Stethoscope, AlertCircle, FileEdit, Building2 } from 'lucide-react';
+import { HealthRecord, DailySubKind } from '@/lib/supabase';
+import { Stethoscope, AlertCircle, FileEdit, Building2, PawPrint } from 'lucide-react';
+
+// 일상 세부 종류 한글 라벨. RecordCard 에서 sub_entries 텍스트 표시용.
+const DAILY_SUB_LABEL: Record<DailySubKind, string> = {
+  meal: '식사', walk: '산책', poop: '배변', grooming: '그루밍', mood: '기분', other: '기타',
+};
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -19,6 +24,7 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
   hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' },
 };
 
 // 500ms = Material Design 의 표준 long-press 시간. 짧은 탭과 명확히 구분되면서
@@ -145,10 +151,20 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect, on
               {formatDate(record.visit_date)}
             </span>
           </div>
-          <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">{record.title}</h3>
-          {record.description && (
+          <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">
+            {record.record_type === 'daily'
+              ? `${record.pets?.name ?? ''}의 일상 기록`
+              : record.title}
+          </h3>
+          {record.record_type === 'daily' ? (
+            record.sub_entries && record.sub_entries.length > 0 ? (
+              <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                {record.sub_entries.map((e) => DAILY_SUB_LABEL[e.sub_kind]).join(' · ')}
+              </p>
+            ) : null
+          ) : record.description ? (
             <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{record.description}</p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

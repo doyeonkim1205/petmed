@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2, PawPrint, Utensils, Footprints, CircleDot, Scissors, Smile, MoreHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
-import { supabase, Pet, RecordType } from '@/lib/supabase';
+import { supabase, Pet, RecordType, DailySubKind } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
@@ -21,6 +21,18 @@ const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+  { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+];
+
+// 일상 세부 종류 — 라벨/아이콘/placeholder.
+// 새 sub_kind 추가 시 supabase.ts 의 DailySubKind 와 함께 확장.
+const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; placeholder: string }[] = [
+  { id: 'meal',     label: '식사',   icon: Utensils,        placeholder: '뭘 얼마나 먹었나요?' },
+  { id: 'walk',     label: '산책',   icon: Footprints,      placeholder: '얼마나 산책했나요?' },
+  { id: 'poop',     label: '배변',   icon: CircleDot,       placeholder: '배변 상태는 어땠나요?' },
+  { id: 'grooming', label: '그루밍', icon: Scissors,        placeholder: '어떤 그루밍을 했나요?' },
+  { id: 'mood',     label: '기분',   icon: Smile,           placeholder: '오늘 기분은 어땠나요?' },
+  { id: 'other',    label: '기타',   icon: MoreHorizontal,  placeholder: '메모를 남겨주세요' },
 ];
 
 const frequencyOptions = [
@@ -68,6 +80,10 @@ export default function RecordAddPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
   const [petId, setPetId] = useState('');
+  // 일상 세부 종류 입력 상태. id → {time, memo} 매핑.
+  // 키 존재 = "선택됨", 키 없음 = "선택 안 됨" (안 보임).
+  // 저장 시 키별로 sub_entries JSON 배열로 변환.
+  const [dailyEntries, setDailyEntries] = useState<Partial<Record<DailySubKind, { time: string; memo: string }>>>({});
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
@@ -178,6 +194,27 @@ export default function RecordAddPage() {
       setFiles([]);
     }
     setRecordType(newType);
+  };
+
+  // 일상 세부 종류 뱃지 토글 — 키 있으면 제거(접기), 없으면 추가(펼침).
+  // 기본 시간은 현재 시각 HH:MM. 메모는 빈 문자열.
+  const toggleDailySubKind = (kind: DailySubKind) => {
+    setDailyEntries((prev) => {
+      if (prev[kind]) {
+        const { [kind]: _drop, ...rest } = prev;
+        return rest;
+      }
+      const now = new Date();
+      const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      return { ...prev, [kind]: { time, memo: '' } };
+    });
+  };
+
+  const updateDailyEntry = (kind: DailySubKind, field: 'time' | 'memo', value: string) => {
+    setDailyEntries((prev) => {
+      if (!prev[kind]) return prev;
+      return { ...prev, [kind]: { ...prev[kind]!, [field]: value } };
+    });
   };
 
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
@@ -404,25 +441,33 @@ export default function RecordAddPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
-    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
-    if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
-    if (dischargeDate && dischargeDate < visitDate) {
-      showError('퇴원일은 입원일 이후여야 합니다.'); return;
-    }
-    if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-      showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
-    }
-    const emptyNameMed = medications.find(m => !m.name.trim());
-    if (emptyNameMed) {
-      showError('약 이름을 입력해주세요.'); return;
-    }
-    const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
-    if (noEndMed) {
-      showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
-    }
-    const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
-    if (badMed) {
-      showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+    // 일상: 세부 종류 1개 이상 선택 필요. 제목/날짜는 자동 생성.
+    if (recordType === 'daily') {
+      const keys = Object.keys(dailyEntries) as DailySubKind[];
+      if (keys.length === 0) {
+        showError('세부 종류를 1개 이상 선택해주세요.'); return;
+      }
+    } else {
+      const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
+      if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
+      if (dischargeDate && dischargeDate < visitDate) {
+        showError('퇴원일은 입원일 이후여야 합니다.'); return;
+      }
+      if (nextAppointmentDate && nextAppointmentDate < visitDate) {
+        showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+      }
+      const emptyNameMed = medications.find(m => !m.name.trim());
+      if (emptyNameMed) {
+        showError('약 이름을 입력해주세요.'); return;
+      }
+      const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
+      if (noEndMed) {
+        showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
+      }
+      const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
+      if (badMed) {
+        showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+      }
     }
 
     setSaving(true);
@@ -446,21 +491,42 @@ export default function RecordAddPage() {
         }
       }
 
-      const record = await createRecord({
-        pet_id: petId,
-        record_type: recordType,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        hospital_name: hospitalName.trim() || undefined,
-        visit_date: visitDate,
-        cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
-        color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
-        discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
-        next_appointment_date: nextAppointmentDate || undefined,
-        next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
-        symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
-        weight: weight ? Number(weight) : undefined,
-      });
+      // 일상은 자동 제목 + 세부 종류 JSON 만 저장. 캘린더 반영 X (color/날짜 컬럼은 사용 안 함).
+      // title 은 NOT NULL 이라 "일상 기록" 로 채움 (펫 이름은 표시 시 join 으로 가져옴).
+      let record;
+      if (recordType === 'daily') {
+        // dailySubKinds 의 정의 순서대로 sub_entries 구성 (UI 표시 일관성).
+        const subEntries = dailySubKinds
+          .filter((sk) => dailyEntries[sk.id])
+          .map((sk) => ({
+            sub_kind: sk.id,
+            time: dailyEntries[sk.id]!.time || undefined,
+            memo: dailyEntries[sk.id]!.memo.trim() || undefined,
+          }));
+        record = await createRecord({
+          pet_id: petId,
+          record_type: 'daily',
+          title: '일상 기록',
+          visit_date: visitDate,
+          sub_entries: subEntries,
+        });
+      } else {
+        record = await createRecord({
+          pet_id: petId,
+          record_type: recordType,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          hospital_name: hospitalName.trim() || undefined,
+          visit_date: visitDate,
+          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
+          color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
+          discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
+          next_appointment_date: nextAppointmentDate || undefined,
+          next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
+          symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
+          weight: weight ? Number(weight) : undefined,
+        });
+      }
 
       for (const file of files) {
         try {
@@ -620,7 +686,68 @@ export default function RecordAddPage() {
           )}
         </div>
 
-        {/* Title */}
+        {/* 일상 — 세부 종류 멀티 선택 + 선택한 항목마다 펼침 양식 */}
+        {recordType === 'daily' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              세부 종류 <span className="text-gray-400 font-normal text-xs">(여러 개 선택 가능)</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {dailySubKinds.map((sk) => {
+                const Icon = sk.icon;
+                const selected = !!dailyEntries[sk.id];
+                return (
+                  <button
+                    key={sk.id}
+                    type="button"
+                    onClick={() => { toggleDailySubKind(sk.id); setIsDirty(true); }}
+                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
+                      selected
+                        ? 'bg-indigo-700 text-white border-indigo-700'
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {sk.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {dailySubKinds
+              .filter((sk) => dailyEntries[sk.id])
+              .map((sk) => {
+                const Icon = sk.icon;
+                const entry = dailyEntries[sk.id]!;
+                return (
+                  <div key={sk.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2 mt-2">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                      <Icon size={16} className="text-indigo-700" />
+                      <span className="text-sm font-semibold text-gray-800">{sk.label}</span>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
+                      <TimePicker value={entry.time} onChange={(v) => updateDailyEntry(sk.id, 'time', v)} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
+                      <textarea
+                        placeholder={sk.placeholder}
+                        value={entry.memo}
+                        onChange={(e) => updateDailyEntry(sk.id, 'memo', e.target.value)}
+                        maxLength={500}
+                        autoComplete="off"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {/* Title (일상 제외) */}
+        {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
@@ -637,6 +764,7 @@ export default function RecordAddPage() {
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
+        )}
 
         {/* Weight (증상 기록: 증상명 아래) */}
         {recordType === 'symptom' && (
@@ -659,7 +787,8 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* Date */}
+        {/* Date (일상 제외) */}
+        {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
@@ -674,6 +803,7 @@ export default function RecordAddPage() {
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
+        )}
 
         {/* Symptom Time (optional, symptom only) */}
         {recordType === 'symptom' && (
@@ -988,27 +1118,31 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* ── 첨부파일 섹션 ── */}
-        <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
-          <Paperclip size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-800">첨부파일</h3>
-        </div>
+        {/* ── 첨부파일 섹션 (일상 제외 — v1.0 에선 첨부 미지원, 용량 부담 회피) ── */}
+        {recordType !== 'daily' && (
+          <>
+            <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
+              <Paperclip size={16} className="text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-800">첨부파일</h3>
+            </div>
 
-        <div className="space-y-2">
-          <FileUploader
-            files={files}
-            onFilesChange={(newFiles) => {
-              const added = newFiles.length > files.length;
-              setFiles(newFiles);
-              if (added) {
-                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
-              }
-            }}
-            maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
-            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
-          />
-          <div ref={fileEndRef} />
-        </div>
+            <div className="space-y-2">
+              <FileUploader
+                files={files}
+                onFilesChange={(newFiles) => {
+                  const added = newFiles.length > files.length;
+                  setFiles(newFiles);
+                  if (added) {
+                    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+                  }
+                }}
+                maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
+                placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
+              />
+              <div ref={fileEndRef} />
+            </div>
+          </>
+        )}
       </form>
 
       {/* Bottom Save Button */}

@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Scissors, Smile, MoreHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
-import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
+import { supabase, Pet, HealthRecord, Medication, RecordFile, DailySubKind } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
@@ -38,6 +38,16 @@ for (let h = 0; h < 24; h++) {
     alarmTimeOptions.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
   }
 }
+
+// 일상 세부 종류 — add 페이지와 동일한 정의. 호환 위해 동일 순서 유지.
+const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; placeholder: string }[] = [
+  { id: 'meal',     label: '식사',   icon: Utensils,        placeholder: '뭘 얼마나 먹었나요?' },
+  { id: 'walk',     label: '산책',   icon: Footprints,      placeholder: '얼마나 산책했나요?' },
+  { id: 'poop',     label: '배변',   icon: CircleDot,       placeholder: '배변 상태는 어땠나요?' },
+  { id: 'grooming', label: '그루밍', icon: Scissors,        placeholder: '어떤 그루밍을 했나요?' },
+  { id: 'mood',     label: '기분',   icon: Smile,           placeholder: '오늘 기분은 어땠나요?' },
+  { id: 'other',    label: '기타',   icon: MoreHorizontal,  placeholder: '메모를 남겨주세요' },
+];
 
 interface MedicationInput {
   id?: string;
@@ -79,6 +89,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
+  // 일상: 기존 sub_entries 를 키 기반 객체로 복원. 신규 add 와 동일 구조.
+  const [dailyEntries, setDailyEntries] = useState<Partial<Record<DailySubKind, { time: string; memo: string }>>>({});
   const [dischargeDate, setDischargeDate] = useState('');
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
@@ -146,6 +158,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       if (record.record_files) {
         setExistingFiles(record.record_files);
+      }
+
+      // 일상: sub_entries 배열 → 키 기반 객체로 복원 (UI 편집 형태)
+      if (record.record_type === 'daily' && record.sub_entries) {
+        const restored: Partial<Record<DailySubKind, { time: string; memo: string }>> = {};
+        for (const entry of record.sub_entries) {
+          restored[entry.sub_kind] = { time: entry.time || '', memo: entry.memo || '' };
+        }
+        setDailyEntries(restored);
       }
     } catch (error) {
       Sentry.captureException(error, {
@@ -284,25 +305,32 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setError(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
-    if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
-    if (dischargeDate && dischargeDate < visitDate) {
-      showError('퇴원일은 입원일 이후여야 합니다.'); return;
-    }
-    if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-      showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
-    }
-    const emptyNameMed = medications.find(m => !m.name.trim());
-    if (emptyNameMed) {
-      showError('약 이름을 입력해주세요.'); return;
-    }
-    const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
-    if (noEndMed) {
-      showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
-    }
-    const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
-    if (badMed) {
-      showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+    if (recordType === 'daily') {
+      const keys = Object.keys(dailyEntries) as DailySubKind[];
+      if (keys.length === 0) {
+        showError('세부 종류를 1개 이상 선택해주세요.'); return;
+      }
+    } else {
+      const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
+      if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
+      if (dischargeDate && dischargeDate < visitDate) {
+        showError('퇴원일은 입원일 이후여야 합니다.'); return;
+      }
+      if (nextAppointmentDate && nextAppointmentDate < visitDate) {
+        showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+      }
+      const emptyNameMed = medications.find(m => !m.name.trim());
+      if (emptyNameMed) {
+        showError('약 이름을 입력해주세요.'); return;
+      }
+      const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
+      if (noEndMed) {
+        showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
+      }
+      const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
+      if (badMed) {
+        showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+      }
     }
 
     setSaving(true);
@@ -326,20 +354,32 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      await updateRecord(id, {
-        pet_id: petId,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        hospital_name: hospitalName.trim() || undefined,
-        visit_date: visitDate,
-        cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
-        color: recordColor,
-        discharge_date: dischargeDate || null,
-        next_appointment_date: nextAppointmentDate || null,
-        next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
-        symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
-        weight: weight ? Number(weight) : null,
-      } as any);
+      if (recordType === 'daily') {
+        // 일상: sub_entries 만 갱신. 다른 필드는 그대로.
+        const subEntries = dailySubKinds
+          .filter((sk) => dailyEntries[sk.id])
+          .map((sk) => ({
+            sub_kind: sk.id,
+            time: dailyEntries[sk.id]!.time || undefined,
+            memo: dailyEntries[sk.id]!.memo.trim() || undefined,
+          }));
+        await updateRecord(id, { sub_entries: subEntries } as any);
+      } else {
+        await updateRecord(id, {
+          pet_id: petId,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          hospital_name: hospitalName.trim() || undefined,
+          visit_date: visitDate,
+          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
+          color: recordColor,
+          discharge_date: dischargeDate || null,
+          next_appointment_date: nextAppointmentDate || null,
+          next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
+          symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
+          weight: weight ? Number(weight) : null,
+        } as any);
+      }
 
       // Delete removed files
       for (const fileId of deletedFileIds) {
@@ -489,6 +529,75 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
+        {/* 일상 — 세부 종류 멀티 선택 + 펼침 양식 (수정용) */}
+        {recordType === 'daily' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              세부 종류 <span className="text-gray-400 font-normal text-xs">(여러 개 선택 가능)</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {dailySubKinds.map((sk) => {
+                const Icon = sk.icon;
+                const selected = !!dailyEntries[sk.id];
+                return (
+                  <button
+                    key={sk.id}
+                    type="button"
+                    onClick={() => {
+                      setDailyEntries((prev) => {
+                        if (prev[sk.id]) {
+                          const { [sk.id]: _drop, ...rest } = prev;
+                          return rest;
+                        }
+                        const now = new Date();
+                        const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                        return { ...prev, [sk.id]: { time, memo: '' } };
+                      });
+                      setIsDirty(true);
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
+                      selected ? 'bg-indigo-700 text-white border-indigo-700' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {sk.label}
+                  </button>
+                );
+              })}
+            </div>
+            {dailySubKinds
+              .filter((sk) => dailyEntries[sk.id])
+              .map((sk) => {
+                const Icon = sk.icon;
+                const entry = dailyEntries[sk.id]!;
+                return (
+                  <div key={sk.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2 mt-2">
+                    <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                      <Icon size={16} className="text-indigo-700" />
+                      <span className="text-sm font-semibold text-gray-800">{sk.label}</span>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
+                      <TimePicker value={entry.time} onChange={(v) => { setDailyEntries((prev) => prev[sk.id] ? { ...prev, [sk.id]: { ...prev[sk.id]!, time: v } } : prev); setIsDirty(true); }} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
+                      <textarea
+                        placeholder={sk.placeholder}
+                        value={entry.memo}
+                        onChange={(e) => { setDailyEntries((prev) => prev[sk.id] ? { ...prev, [sk.id]: { ...prev[sk.id]!, memo: e.target.value } } : prev); }}
+                        maxLength={500}
+                        autoComplete="off"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
@@ -504,6 +613,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
+        )}
 
         {/* Weight (증상 기록: 증상명 아래) */}
         {recordType === 'symptom' && (
@@ -526,6 +636,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
+        {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
@@ -540,6 +651,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
+        )}
 
         {/* Symptom Time (optional, symptom only) */}
         {recordType === 'symptom' && (
@@ -802,7 +914,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {/* ── 첨부파일 섹션 ── */}
+        {/* ── 첨부파일 섹션 (일상 제외) ── */}
+        {recordType !== 'daily' && (<>
         <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
           <Paperclip size={16} className="text-gray-400" />
           <h3 className="text-sm font-semibold text-gray-800">첨부파일</h3>
@@ -869,6 +982,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           />
           <div ref={fileEndRef} />
         </div>
+        </>)}
       </form>
 
       {/* Bottom Save Button */}

@@ -2,11 +2,11 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText, PawPrint, Utensils, Footprints, CircleDot, Scissors, Smile, MoreHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
-import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
+import { HealthRecord, Medication, RecordFile, supabase, DailySubKind } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
 
 const typeConfig = {
@@ -14,6 +14,17 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료 기록', color: 'bg-blue-100 text-blue-600' },
   hospitalization: { icon: Building2, label: '입퇴원 기록', color: 'bg-emerald-100 text-emerald-600' },
   manual: { icon: FileEdit, label: '직접 입력', color: 'bg-green-100 text-green-600' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-indigo-100 text-indigo-700' },
+};
+
+// 일상 세부 종류 → 라벨/아이콘 매핑 (상세 페이지 섹션 헤더).
+const DAILY_SUB_META: Record<DailySubKind, { label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  meal:     { label: '식사',   icon: Utensils },
+  walk:     { label: '산책',   icon: Footprints },
+  poop:     { label: '배변',   icon: CircleDot },
+  grooming: { label: '그루밍', icon: Scissors },
+  mood:     { label: '기분',   icon: Smile },
+  other:    { label: '기타',   icon: MoreHorizontal },
 };
 
 export default function RecordDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -138,10 +149,41 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-3">{record.title}</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-3">
+          {record.record_type === 'daily'
+            ? `${record.pets?.name ?? ''}의 일상 기록`
+            : record.title}
+        </h2>
 
-        {record.description && (
+        {record.record_type !== 'daily' && record.description && (
           <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
+        )}
+
+        {/* 일상 세부 기록 — sub_entries 섹션별로 표시. 슬라이드 X, 그냥 스크롤. */}
+        {record.record_type === 'daily' && record.sub_entries && record.sub_entries.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {record.sub_entries.map((entry, idx) => {
+              const meta = DAILY_SUB_META[entry.sub_kind];
+              if (!meta) return null;
+              const SubIcon = meta.icon;
+              return (
+                <div key={idx} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                    <SubIcon size={16} className="text-indigo-700" />
+                    <span className="text-sm font-semibold text-gray-800">{meta.label}</span>
+                    {entry.time && (
+                      <span className="text-xs text-gray-400 ml-auto">{entry.time}</span>
+                    )}
+                  </div>
+                  {entry.memo ? (
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mt-2">{entry.memo}</p>
+                  ) : (
+                    <p className="text-xs text-gray-300 mt-2">메모 없음</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
 
         <div className="space-y-2">

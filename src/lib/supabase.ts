@@ -102,7 +102,15 @@ export interface Pet {
 }
 
 // Health Record types
-export type RecordType = 'symptom' | 'visit' | 'hospitalization' | 'manual';
+export type RecordType = 'symptom' | 'visit' | 'hospitalization' | 'manual' | 'daily';
+
+export type DailySubKind = 'meal' | 'walk' | 'poop' | 'grooming' | 'mood' | 'other';
+
+export interface DailySubEntry {
+  sub_kind: DailySubKind;
+  time?: string;
+  memo?: string;
+}
 
 export interface HealthRecord {
   id: string;
@@ -121,6 +129,7 @@ export interface HealthRecord {
   next_appointment_color?: string;
   symptom_time?: string;
   weight?: number;
+  sub_entries?: DailySubEntry[] | null;
   created_at: string;
   updated_at: string;
   pets?: Pet;

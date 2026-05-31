@@ -147,11 +147,16 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
   const dayAppointments = appointmentRecords[selectedDateKey] || [];
   const dayDischarges = dischargeRecords[selectedDateKey] || [];
 
+  // daily 는 캘린더 노출 X — 일상은 빈도 높은 메모성 기록이라 캘린더에 표시하면
+  // 정작 중요한 진료/예약 이벤트가 묻혀버림. 호출부(records/page.tsx)에서 records
+  // prop 에 daily 제외 필터 걸어두면 여기 매핑은 사용되지 않지만, 타입 안전을 위해
+  // 일단 정의는 해둠.
   const typeIcon = {
     symptom: AlertCircle,
     visit: Stethoscope,
     hospitalization: Building2,
     manual: FileEdit,
+    daily: FileEdit,
   };
 
   const typeColor = {
@@ -159,6 +164,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
     visit: 'text-blue-500',
     hospitalization: 'text-emerald-500',
     manual: 'text-gray-500',
+    daily: 'text-indigo-500',
   };
 
   const typeLabel = {
@@ -166,6 +172,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
     visit: '진료',
     hospitalization: '입원',
     manual: '기록',
+    daily: '일상',
   };
 
   // Build calendar grid

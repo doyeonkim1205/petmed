@@ -353,8 +353,10 @@ export default function RecordsPage() {
         </div>
       ) : (
         <div className="bg-white max-w-sm mx-auto">
+          {/* 일상 기록은 캘린더에 노출 X — 메모성 빈도가 높아 캘린더가 빽빽해지면
+              정작 중요한 진료/예약/퇴원 이벤트가 묻힘. 리스트(기록장 탭)에선 그대로 보임. */}
           <CalendarView
-            records={records}
+            records={records.filter((r) => r.record_type !== 'daily')}
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
             onRecordClick={(id) => router.push(`/records/${id}`)}
