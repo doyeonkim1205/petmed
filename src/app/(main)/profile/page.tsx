@@ -46,8 +46,8 @@ function NicknameModal({
 
   const handleSave = async () => {
     const clean = sanitize(nickname).trim();
-    if (clean.length < 2) {
-      setErrorMsg('닉네임은 2자 이상 입력해주세요');
+    if (clean.length < 1) {
+      setErrorMsg('닉네임을 입력해주세요');
       return;
     }
     setSaving(true);
@@ -71,7 +71,7 @@ function NicknameModal({
         <TextField
           value={nickname}
           onChange={e => setNickname(sanitize(e.target.value))}
-          placeholder="한글·영문·숫자 (2~10자)"
+          placeholder="한글·영문·숫자 (1~10자)"
           autoComplete="nickname"
           maxLength={10}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
@@ -83,7 +83,7 @@ function NicknameModal({
           <button onClick={onClose} className="flex-1 h-10 border border-gray-200 rounded-full text-sm text-gray-500 hover:bg-gray-50 transition-colors">취소</button>
           <button
             onClick={handleSave}
-            disabled={saving || nickname.trim().length < 2}
+            disabled={saving || nickname.trim().length < 1}
             className="flex-1 h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium disabled:opacity-50 transition-colors"
           >
             {saving ? '저장 중...' : '저장'}
