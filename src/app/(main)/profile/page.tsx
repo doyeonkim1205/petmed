@@ -63,8 +63,9 @@ function NicknameModal({
         <TextField
           value={nickname}
           onChange={e => setNickname(e.target.value)}
-          placeholder="새 닉네임 (2자 이상)"
+          placeholder="새 닉네임 (2~10자)"
           autoComplete="nickname"
+          maxLength={10}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
         />
         {errorMsg && (

@@ -768,7 +768,7 @@ function SearchContent() {
                     setDiseaseInput(e.target.value);
                   }
                 }}
-                maxLength={searchMode === 'symptom' ? maxSymptomLen : undefined}
+                maxLength={searchMode === 'symptom' ? maxSymptomLen : 100}
                 placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드를 검색하세요'}
                 autoComplete="off"
                 enterKeyHint="search"
