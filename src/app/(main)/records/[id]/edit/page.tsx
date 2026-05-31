@@ -374,7 +374,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           description: description.trim() || undefined,
           hospital_name: hospitalName.trim() || undefined,
           visit_date: visitDate,
-          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
+          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
           color: recordColor,
           discharge_date: dischargeDate || null,
           next_appointment_date: nextAppointmentDate || null,
@@ -573,7 +573,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => { setDescription(e.target.value); setIsDirty(true); }}
-                maxLength={2000}
+                maxLength={700}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[140px] resize-none"
               />
@@ -590,7 +590,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             type="search"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            maxLength={100}
+            maxLength={50}
             autoComplete="off"
             enterKeyHint="next"
             name="record-title"
@@ -610,6 +610,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               inputMode="decimal"
               placeholder="예: 3.5"
               autoComplete="off"
+              maxLength={6}
               value={weight}
               onChange={(e) => {
                 const v = e.target.value;
@@ -672,7 +673,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              maxLength={1000}
+              maxLength={700}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
           </div>
@@ -725,7 +726,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 type="search"
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
-                maxLength={50}
+                maxLength={30}
                 autoComplete="off"
                 enterKeyHint="next"
                 name="hospital-name"
@@ -789,6 +790,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
+                  maxLength={20}
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-name-${i}`}
@@ -797,6 +799,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 <input
                   type="search"
                   placeholder="용량 (예: 1정)"
+                  maxLength={20}
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-dosage-${i}`}

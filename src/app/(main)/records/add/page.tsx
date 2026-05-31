@@ -503,7 +503,7 @@ export default function RecordAddPage() {
           description: description.trim() || undefined,
           hospital_name: hospitalName.trim() || undefined,
           visit_date: visitDate,
-          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 100000000) : undefined,
+          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
           color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
           discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
           next_appointment_date: nextAppointmentDate || undefined,
@@ -711,7 +711,7 @@ export default function RecordAddPage() {
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                maxLength={2000}
+                maxLength={1000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[140px] resize-none"
               />
@@ -730,7 +730,7 @@ export default function RecordAddPage() {
             placeholder={recordType === 'symptom' ? '예: 구토, 설사' : recordType === 'hospitalization' ? '예: 슬개골 수술, 장염 치료' : '예: 건강검진, 예방접종'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            maxLength={100}
+            maxLength={50}
             autoComplete="off"
             enterKeyHint="next"
             name="record-title"
@@ -754,6 +754,7 @@ export default function RecordAddPage() {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+              maxLength={6}
               autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
@@ -814,7 +815,7 @@ export default function RecordAddPage() {
               placeholder="상세 내용을 입력하세요"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              maxLength={1000}
+              maxLength={700}
               autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
@@ -873,7 +874,7 @@ export default function RecordAddPage() {
                   onChange={(e) => { setHospitalName(e.target.value); setShowHospitalSuggestions(true); }}
                   onFocus={() => setShowHospitalSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
-                  maxLength={50}
+                  maxLength={30}
                   autoComplete="off"
                   enterKeyHint="next"
                   name="hospital-name"
@@ -972,6 +973,7 @@ export default function RecordAddPage() {
                   placeholder="약 이름"
                   value={med.name}
                   onChange={(e) => updateMedication(i, 'name', e.target.value)}
+                  maxLength={20}
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-name-${i}`}
@@ -982,6 +984,7 @@ export default function RecordAddPage() {
                   placeholder="용량 (예: 1정)"
                   value={med.dosage}
                   onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
+                  maxLength={20}
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-dosage-${i}`}

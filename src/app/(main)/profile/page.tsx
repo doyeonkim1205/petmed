@@ -40,11 +40,19 @@ function NicknameModal({
 
   if (!open) return null;
 
+  // 한글(완성형+자음모음) · 영문 · 숫자 · '_' · '-' 만 허용. 특수문자/이모지/공백 차단.
+  // 입력 단계에서 막으면 사용자가 못 친 이유를 알기 어려우니, 자동으로 허용 문자만 통과.
+  const sanitize = (raw: string) => raw.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ_-]/g, '');
+
   const handleSave = async () => {
-    if (nickname.trim().length < 2) return;
+    const clean = sanitize(nickname).trim();
+    if (clean.length < 2) {
+      setErrorMsg('닉네임은 2자 이상 입력해주세요');
+      return;
+    }
     setSaving(true);
     setErrorMsg('');
-    const result = await onSave(nickname.trim());
+    const result = await onSave(clean);
     setSaving(false);
     if (result.error) {
       setErrorMsg(result.error.message || '저장에 실패했습니다');
@@ -62,8 +70,8 @@ function NicknameModal({
         </div>
         <TextField
           value={nickname}
-          onChange={e => setNickname(e.target.value)}
-          placeholder="새 닉네임 (2~10자)"
+          onChange={e => setNickname(sanitize(e.target.value))}
+          placeholder="한글·영문·숫자 (2~10자)"
           autoComplete="nickname"
           maxLength={10}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
