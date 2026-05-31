@@ -172,11 +172,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               </p>
             )}
             {record.description ? (
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{record.description}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{record.description}</p>
             ) : (
               // 기존 v11 데이터 호환 — description 비어있으면 sub_entries 의 memo 들 합쳐서 표시.
               record.sub_entries && record.sub_entries.some((e) => e.memo) && (
-                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                   {record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n')}
                 </p>
               )
