@@ -149,7 +149,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-3">
+        <h2 className={`text-xl font-bold text-gray-900 ${record.record_type === 'daily' ? 'mb-1' : 'mb-3'}`}>
           {record.record_type === 'daily'
             ? `${record.pets?.name ?? ''}의 일상 기록`
             : record.title}
@@ -159,23 +159,17 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
         )}
 
-        {/* v12 일상 — sub_kind 들 작은 칩으로 표시 (분류 태그) + description 통합 메모 평문. */}
+        {/* v12 일상 — sub_kind 들을 옅은 회색 텍스트 + · 구분자로 미니멀하게 (A 안).
+            제목 아래 보조 정보처럼 자연스럽게 묻혀, 본문 메모에 시선 집중. */}
         {record.record_type === 'daily' && (
           <div className="mb-4">
             {record.sub_entries && record.sub_entries.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind))).map((kind) => {
-                  const meta = DAILY_SUB_META[kind];
-                  if (!meta) return null;
-                  const SubIcon = meta.icon;
-                  return (
-                    <span key={kind} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                      <SubIcon size={12} />
-                      {meta.label}
-                    </span>
-                  );
-                })}
-              </div>
+              <p className="text-xs text-gray-400 mb-3">
+                {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
+                  .map((kind) => DAILY_SUB_META[kind]?.label)
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
             )}
             {record.description ? (
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{record.description}</p>
