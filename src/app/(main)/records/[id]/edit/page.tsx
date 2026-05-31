@@ -18,6 +18,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
+import { saveDraft, loadDraft, clearDraft, draftKey, type RecordDraft } from '@/lib/recordDraft';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -94,6 +95,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   // v12: 선택한 sub_kind 목록만 추적 (멀티 선택, 중복 X). 메모는 description state 활용.
   const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [dischargeDate, setDischargeDate] = useState('');
+  // Draft 복원 모달.
+  const [pendingDraft, setPendingDraft] = useState<RecordDraft | null>(null);
+  // record updated_at — draft stale 판정용. record 로드 후 set.
+  const [recordUpdatedAt, setRecordUpdatedAt] = useState<string | null>(null);
+  // draft 체크 1회만.
+  const draftCheckedRef = useRef(false);
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -115,6 +122,66 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (id && user) loadData();
   }, [id, user]);
+
+  // Draft 자동 저장 — record 가 로드 완료(updatedAt 있음)된 후부터, 복원 모달 떠있지 않을 때만.
+  // medications, files 는 의도적으로 제외 (lib/recordDraft.ts 주석 참고).
+  useEffect(() => {
+    if (!user || !recordUpdatedAt || pendingDraft) return;
+    const t = setTimeout(() => {
+      saveDraft(draftKey.edit(user.id, id), {
+        recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
+        cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
+        recordColor, nextAppointmentColor, petId, selectedSubKinds,
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [user, id, recordUpdatedAt, pendingDraft, recordType, title, description, hospitalName,
+      cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
+      recordColor, nextAppointmentColor, petId, selectedSubKinds]);
+
+  // visibilitychange — 백그라운드 진입 즉시 저장.
+  useEffect(() => {
+    if (!user || !recordUpdatedAt) return;
+    const onHide = () => {
+      if (document.visibilityState !== 'hidden') return;
+      saveDraft(draftKey.edit(user.id, id), {
+        recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
+        cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
+        recordColor, nextAppointmentColor, petId, selectedSubKinds,
+      });
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [user, id, recordUpdatedAt, recordType, title, description, hospitalName,
+      cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
+      recordColor, nextAppointmentColor, petId, selectedSubKinds]);
+
+  // 복원 모달 [불러오기] — draft 값 적용 + isDirty.
+  const applyDraft = () => {
+    if (!pendingDraft) return;
+    if (pendingDraft.recordType) setRecordType(pendingDraft.recordType);
+    if (pendingDraft.petId) setPetId(pendingDraft.petId);
+    if (pendingDraft.title !== undefined) setTitle(pendingDraft.title);
+    if (pendingDraft.description !== undefined) setDescription(pendingDraft.description);
+    if (pendingDraft.hospitalName !== undefined) setHospitalName(pendingDraft.hospitalName);
+    if (pendingDraft.cost !== undefined) setCost(pendingDraft.cost);
+    if (pendingDraft.weight !== undefined) setWeight(pendingDraft.weight);
+    if (pendingDraft.symptomTime !== undefined) setSymptomTime(pendingDraft.symptomTime);
+    if (pendingDraft.visitDate) setVisitDate(pendingDraft.visitDate);
+    if (pendingDraft.dischargeDate !== undefined) setDischargeDate(pendingDraft.dischargeDate);
+    if (pendingDraft.nextAppointmentDate !== undefined) setNextAppointmentDate(pendingDraft.nextAppointmentDate);
+    if (pendingDraft.recordColor) setRecordColor(pendingDraft.recordColor);
+    if (pendingDraft.nextAppointmentColor) setNextAppointmentColor(pendingDraft.nextAppointmentColor);
+    if (pendingDraft.selectedSubKinds) setSelectedSubKinds(pendingDraft.selectedSubKinds);
+    setIsDirty(true);
+    setPendingDraft(null);
+  };
+
+  // 복원 모달 [새로 시작] — draft 폐기 (서버 record 그대로 사용).
+  const discardDraft = () => {
+    if (user) clearDraft(draftKey.edit(user.id, id));
+    setPendingDraft(null);
+  };
 
   const loadData = async () => {
     try {
@@ -171,6 +238,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           const legacyMemos = record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n');
           if (legacyMemos) setDescription(legacyMemos);
         }
+      }
+
+      // Draft 체크 — record 로드 완료 후 1회. record.updated_at 보다 오래된 draft 는
+      // 자동 폐기 (stale 덮어쓰기 방지). 다른 기기에서 record 가 갱신된 경우 처리.
+      setRecordUpdatedAt(record.updated_at ?? null);
+      if (!draftCheckedRef.current && user) {
+        draftCheckedRef.current = true;
+        const draft = loadDraft(draftKey.edit(user.id, id), { serverUpdatedAt: record.updated_at });
+        if (draft) setPendingDraft(draft);
       }
     } catch (error) {
       Sentry.captureException(error, {
@@ -469,7 +545,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      // 저장 성공 → dirty 해제 (popstate guard 가 가로채지 않도록)
+      // 저장 성공 → draft 삭제 + dirty 해제 (popstate guard 가 가로채지 않도록)
+      if (user) clearDraft(draftKey.edit(user.id, id));
       const hadGuard = guardPushedRef.current;
       setIsDirty(false);
       guardPushedRef.current = false;
@@ -1033,6 +1110,25 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           window.history.go(-2);
         }}
         onCancel={() => setShowExitConfirm(false)}
+      />
+
+      {/* Draft 복원 — record 로드 후 localStorage 에 더 최신 draft 있으면 띄움.
+          [불러오기] = state 에 적용 (서버 값 덮어씀) / [새로 시작] = draft 삭제, 서버 record 그대로. */}
+      <ConfirmModal
+        open={!!pendingDraft}
+        title="이전 수정 중인 내용 불러올까요?"
+        message={
+          <>
+            <p>최근 수정하다가 멈춘 내용이 있어요.</p>
+            <p className="mt-2 text-[10px] text-gray-400">
+              약·첨부 파일은 저장된 그대로 유지돼요
+            </p>
+          </>
+        }
+        confirmLabel="불러오기"
+        cancelLabel="새로 시작"
+        onConfirm={applyDraft}
+        onCancel={discardDraft}
       />
     </div>
   );

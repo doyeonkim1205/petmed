@@ -16,6 +16,7 @@ import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { saveDraft, loadDraft, clearDraft, draftKey, type RecordDraft } from '@/lib/recordDraft';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -96,6 +97,10 @@ export default function RecordAddPage() {
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
+  // Draft 복원 모달 — 진입 시 draft 있으면 모달 띄움.
+  const [pendingDraft, setPendingDraft] = useState<RecordDraft | null>(null);
+  // draft 로드 1회만 (마운트 시) — 초기 폼에 draft 적용 후 isDirty 켜야 하므로 별도 flag.
+  const draftCheckedRef = useRef(false);
   const [dischargeDate, setDischargeDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
@@ -250,6 +255,75 @@ export default function RecordAddPage() {
       } catch {}
     })();
   }, [user]);
+
+  // Draft 로드 — 마운트 시 1회. 사용자별 키. 있으면 복원 모달 띄움.
+  useEffect(() => {
+    if (!user || draftCheckedRef.current) return;
+    draftCheckedRef.current = true;
+    const draft = loadDraft(draftKey.add(user.id));
+    if (draft) setPendingDraft(draft);
+  }, [user]);
+
+  // Draft 자동 저장 — 입력 변경 시 500ms debounce. 텍스트/칩/날짜만 (medications, files 제외).
+  // 사용자가 [새로 시작] 누르거나 저장 성공 전까지는 계속 갱신.
+  useEffect(() => {
+    if (!user || pendingDraft) return; // 복원 모달 떠있을 땐 저장 안 함 (덮어쓰기 방지)
+    const t = setTimeout(() => {
+      saveDraft(draftKey.add(user.id), {
+        recordType, title, description, hospitalName, cost, weight, symptomTime,
+        visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+        petId, selectedSubKinds,
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [user, pendingDraft, recordType, title, description, hospitalName, cost, weight, symptomTime,
+      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+      petId, selectedSubKinds]);
+
+  // visibilitychange — 백그라운드 진입 시 즉시 저장 (debounce 기다리지 않고).
+  // 다른 앱/탭 갔다 돌아왔을 때 입력값 복원 보장.
+  useEffect(() => {
+    if (!user) return;
+    const onHide = () => {
+      if (document.visibilityState !== 'hidden') return;
+      saveDraft(draftKey.add(user.id), {
+        recordType, title, description, hospitalName, cost, weight, symptomTime,
+        visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+        petId, selectedSubKinds,
+      });
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [user, recordType, title, description, hospitalName, cost, weight, symptomTime,
+      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+      petId, selectedSubKinds]);
+
+  // 복원 모달 [불러오기] — draft 의 모든 필드를 state 에 적용 후 isDirty 켜기.
+  const applyDraft = () => {
+    if (!pendingDraft) return;
+    if (pendingDraft.recordType) setRecordType(pendingDraft.recordType);
+    if (pendingDraft.petId) setPetId(pendingDraft.petId);
+    if (pendingDraft.title !== undefined) setTitle(pendingDraft.title);
+    if (pendingDraft.description !== undefined) setDescription(pendingDraft.description);
+    if (pendingDraft.hospitalName !== undefined) setHospitalName(pendingDraft.hospitalName);
+    if (pendingDraft.cost !== undefined) setCost(pendingDraft.cost);
+    if (pendingDraft.weight !== undefined) setWeight(pendingDraft.weight);
+    if (pendingDraft.symptomTime !== undefined) setSymptomTime(pendingDraft.symptomTime);
+    if (pendingDraft.visitDate) setVisitDate(pendingDraft.visitDate);
+    if (pendingDraft.dischargeDate !== undefined) setDischargeDate(pendingDraft.dischargeDate);
+    if (pendingDraft.nextAppointmentDate !== undefined) setNextAppointmentDate(pendingDraft.nextAppointmentDate);
+    if (pendingDraft.recordColor) setRecordColor(pendingDraft.recordColor);
+    if (pendingDraft.nextAppointmentColor) setNextAppointmentColor(pendingDraft.nextAppointmentColor);
+    if (pendingDraft.selectedSubKinds) setSelectedSubKinds(pendingDraft.selectedSubKinds);
+    setIsDirty(true);
+    setPendingDraft(null);
+  };
+
+  // 복원 모달 [새로 시작] — draft 폐기.
+  const discardDraft = () => {
+    if (user) clearDraft(draftKey.add(user.id));
+    setPendingDraft(null);
+  };
 
   const addMedicationRow = () => {
     // alarm_enabled 디폴트 false: 사용자의 명시적 opt-in 요구. 이전에는
@@ -599,7 +673,8 @@ export default function RecordAddPage() {
         }
       }
 
-      // 저장 성공 → dirty 해제 후 이동
+      // 저장 성공 → draft 삭제 + dirty 해제 후 이동
+      if (user) clearDraft(draftKey.add(user.id));
       setIsDirty(false);
       guardPushedRef.current = false;
       router.push('/records');
@@ -1175,6 +1250,26 @@ export default function RecordAddPage() {
         variant="danger"
         onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); guardPushedRef.current = false; window.history.go(-2); }}
         onCancel={() => setShowExitConfirm(false)}
+      />
+
+      {/* Draft 복원 — 마운트 시 localStorage 에 임시 저장된 내용이 있으면 띄움.
+          [불러오기] = 폼에 복원 / [새로 시작] = draft 삭제 후 빈 폼.
+          약·첨부 파일은 의도적으로 draft 에 포함 안 했으므로 안내 문구로 분리 처리. */}
+      <ConfirmModal
+        open={!!pendingDraft}
+        title="이전 작성 중인 내용 불러올까요?"
+        message={
+          <>
+            <p>최근 작성하다가 멈춘 내용이 있어요.</p>
+            <p className="mt-2 text-[10px] text-gray-400">
+              약·첨부 파일은 다시 선택해주세요
+            </p>
+          </>
+        }
+        confirmLabel="불러오기"
+        cancelLabel="새로 시작"
+        onConfirm={applyDraft}
+        onCancel={discardDraft}
       />
 
       {/* Soft-prompt: 알림 권한 'default' 상태에서 알림 토글 ON 시도 시.
