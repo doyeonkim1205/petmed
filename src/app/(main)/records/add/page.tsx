@@ -733,7 +733,7 @@ export default function RecordAddPage() {
                     onClick={() => { toggleDailySubKind(sk.id); setIsDirty(true); }}
                     className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
                       selected
-                        ? 'bg-blue-900 text-white border-blue-900'
+                        ? 'bg-sky-700 text-white border-sky-700'
                         : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -753,9 +753,9 @@ export default function RecordAddPage() {
               return (
                 <div key={sk.id} className="space-y-2 mt-2">
                   {entries.map((entry, idx) => (
-                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-blue-900 rounded-lg p-3 bg-white space-y-2">
+                    <div key={entry.id} className="border border-gray-200 border-l-4 border-l-sky-700 rounded-lg p-3 bg-white space-y-2">
                       <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                        <Icon size={16} className="text-blue-900" />
+                        <Icon size={16} className="text-sky-700" />
                         <span className="text-sm font-semibold text-gray-800">
                           {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
                         </span>
@@ -787,7 +787,7 @@ export default function RecordAddPage() {
                   <button
                     type="button"
                     onClick={() => { addDailyEntry(sk.id); setIsDirty(true); }}
-                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-900 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-sky-700 hover:border-sky-300 transition-colors flex items-center justify-center gap-1"
                   >
                     <Plus size={13} /> {sk.label} 더 추가
                   </button>
