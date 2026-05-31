@@ -574,8 +574,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       });
                       setIsDirty(true);
                     }}
-                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-medium border transition-colors ${
-                      selected ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                    className={`flex items-center justify-start gap-1.5 pl-3 pr-2 py-2 rounded-full text-xs font-medium border-2 transition-colors ${
+                      selected ? 'bg-white text-blue-600 border-blue-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <Icon size={14} />
