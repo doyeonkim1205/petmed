@@ -156,7 +156,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         </h2>
 
         {record.record_type !== 'daily' && record.description && (
-          <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">{record.description}</p>
         )}
 
         {/* v12 일상 — sub_kind 들을 옅은 회색 텍스트 + · 구분자로 미니멀하게 (A 안).
