@@ -24,16 +24,31 @@ const recordTypes = [
   { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
 ];
 
-// 일상 세부 종류 — 라벨/아이콘/placeholder.
+// 일상 세부 종류 — 라벨/아이콘.
 // 새 sub_kind 추가 시 supabase.ts 의 DailySubKind 와 함께 확장.
-const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; placeholder: string }[] = [
-  { id: 'meal',     label: '식사',   icon: Utensils,        placeholder: '뭘 얼마나 먹었나요?' },
-  { id: 'walk',     label: '산책',   icon: Footprints,      placeholder: '얼마나 산책했나요?' },
-  { id: 'poop',     label: '배변',   icon: CircleDot,       placeholder: '배변 상태는 어땠나요?' },
-  { id: 'grooming', label: '그루밍', icon: Scissors,        placeholder: '어떤 그루밍을 했나요?' },
-  { id: 'mood',     label: '기분',   icon: Smile,           placeholder: '오늘 기분은 어땠나요?' },
-  { id: 'other',    label: '기타',   icon: MoreHorizontal,  placeholder: '메모를 남겨주세요' },
+const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'meal',     label: '식사',   icon: Utensils       },
+  { id: 'walk',     label: '산책',   icon: Footprints     },
+  { id: 'poop',     label: '배변',   icon: CircleDot      },
+  { id: 'grooming', label: '그루밍', icon: Scissors       },
+  { id: 'mood',     label: '기분',   icon: Smile          },
+  { id: 'other',    label: '기타',   icon: MoreHorizontal },
 ];
+
+// 현재 시각 HH:MM 헬퍼.
+const nowHHMM = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+// 일상 entry 단일 단위 — 같은 sub_kind 가 여러 번 들어갈 수 있으므로 배열 + id.
+// id 는 React key 용. 저장 시엔 빼고 sub_entries 로 직렬화.
+interface DailyEntry {
+  id: string;
+  sub_kind: DailySubKind;
+  time: string;
+  memo: string;
+}
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -80,10 +95,10 @@ export default function RecordAddPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
   const [petId, setPetId] = useState('');
-  // 일상 세부 종류 입력 상태. id → {time, memo} 매핑.
-  // 키 존재 = "선택됨", 키 없음 = "선택 안 됨" (안 보임).
-  // 저장 시 키별로 sub_entries JSON 배열로 변환.
-  const [dailyEntries, setDailyEntries] = useState<Partial<Record<DailySubKind, { time: string; memo: string }>>>({});
+  // 일상 entry 배열 — 같은 sub_kind 여러 번 가능 (식사 #1, 식사 #2 등).
+  // 뱃지 ON/OFF 는 "그 sub_kind 의 entry 가 존재하는가" 로 판정.
+  // 저장 시 id 빼고 sub_entries 배열로 직렬화.
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
@@ -196,25 +211,30 @@ export default function RecordAddPage() {
     setRecordType(newType);
   };
 
-  // 일상 세부 종류 뱃지 토글 — 키 있으면 제거(접기), 없으면 추가(펼침).
-  // 기본 시간은 현재 시각 HH:MM. 메모는 빈 문자열.
+  // 뱃지 토글 — 그 sub_kind 의 entry 가 1개 이상 있으면 모두 제거 (OFF).
+  // 0개면 entry 1개 추가 (ON). 기본 시간 = 현재 시각.
   const toggleDailySubKind = (kind: DailySubKind) => {
     setDailyEntries((prev) => {
-      if (prev[kind]) {
-        const { [kind]: _drop, ...rest } = prev;
-        return rest;
+      const has = prev.some((e) => e.sub_kind === kind);
+      if (has) {
+        return prev.filter((e) => e.sub_kind !== kind);
       }
-      const now = new Date();
-      const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      return { ...prev, [kind]: { time, memo: '' } };
+      return [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: nowHHMM(), memo: '' }];
     });
   };
 
-  const updateDailyEntry = (kind: DailySubKind, field: 'time' | 'memo', value: string) => {
-    setDailyEntries((prev) => {
-      if (!prev[kind]) return prev;
-      return { ...prev, [kind]: { ...prev[kind]!, [field]: value } };
-    });
+  // 같은 sub_kind 에 entry 추가 (+ 더 추가 버튼).
+  const addDailyEntry = (kind: DailySubKind) => {
+    setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: nowHHMM(), memo: '' }]);
+  };
+
+  // entry 단일 삭제 — 마지막 entry 면 자동으로 뱃지도 OFF (배열에서 빠지므로).
+  const removeDailyEntry = (id: string) => {
+    setDailyEntries((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const updateDailyEntry = (id: string, field: 'time' | 'memo', value: string) => {
+    setDailyEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   };
 
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
@@ -441,11 +461,15 @@ export default function RecordAddPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
-    // 일상: 세부 종류 1개 이상 선택 필요. 제목/날짜는 자동 생성.
+    // 일상: 세부 종류 1개 이상 + 모든 entry 의 메모 필수 (빈값 저장 차단).
     if (recordType === 'daily') {
-      const keys = Object.keys(dailyEntries) as DailySubKind[];
-      if (keys.length === 0) {
+      if (dailyEntries.length === 0) {
         showError('세부 종류를 1개 이상 선택해주세요.'); return;
+      }
+      const emptyMemo = dailyEntries.find((e) => !e.memo.trim());
+      if (emptyMemo) {
+        const label = dailySubKinds.find((sk) => sk.id === emptyMemo.sub_kind)?.label ?? '항목';
+        showError(`${label} 메모를 입력해주세요.`); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -495,14 +519,13 @@ export default function RecordAddPage() {
       // title 은 NOT NULL 이라 "일상 기록" 로 채움 (펫 이름은 표시 시 join 으로 가져옴).
       let record;
       if (recordType === 'daily') {
-        // dailySubKinds 의 정의 순서대로 sub_entries 구성 (UI 표시 일관성).
-        const subEntries = dailySubKinds
-          .filter((sk) => dailyEntries[sk.id])
-          .map((sk) => ({
-            sub_kind: sk.id,
-            time: dailyEntries[sk.id]!.time || undefined,
-            memo: dailyEntries[sk.id]!.memo.trim() || undefined,
-          }));
+        // id 는 React key 용 — 직렬화 전에 제거. sub_kind 순서는 입력 순서 유지.
+        // memo 는 필수라 trim 후 항상 값 있음. time 은 빈 문자열 가능 (생략).
+        const subEntries = dailyEntries.map((e) => ({
+          sub_kind: e.sub_kind,
+          time: e.time || undefined,
+          memo: e.memo.trim(),
+        }));
         record = await createRecord({
           pet_id: petId,
           record_type: 'daily',
@@ -686,7 +709,7 @@ export default function RecordAddPage() {
           )}
         </div>
 
-        {/* 일상 — 세부 종류 멀티 선택 + 선택한 항목마다 펼침 양식 */}
+        {/* 일상 — 세부 종류 멀티 선택 + 같은 sub_kind 여러 entry 가능 */}
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -695,7 +718,7 @@ export default function RecordAddPage() {
             <div className="grid grid-cols-3 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
-                const selected = !!dailyEntries[sk.id];
+                const selected = dailyEntries.some((e) => e.sub_kind === sk.id);
                 return (
                   <button
                     key={sk.id}
@@ -714,35 +737,56 @@ export default function RecordAddPage() {
               })}
             </div>
 
-            {dailySubKinds
-              .filter((sk) => dailyEntries[sk.id])
-              .map((sk) => {
-                const Icon = sk.icon;
-                const entry = dailyEntries[sk.id]!;
-                return (
-                  <div key={sk.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2 mt-2">
-                    <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                      <Icon size={16} className="text-indigo-700" />
-                      <span className="text-sm font-semibold text-gray-800">{sk.label}</span>
+            {/* sub_kind 별로 그룹화해서 표시. 같은 sub_kind 안 entry 들을 묶고
+                "+ 더 추가" 는 그룹 마지막에 1번만 노출. */}
+            {dailySubKinds.map((sk) => {
+              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
+              if (entries.length === 0) return null;
+              const Icon = sk.icon;
+              return (
+                <div key={sk.id} className="space-y-2 mt-2">
+                  {entries.map((entry, idx) => (
+                    <div key={entry.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
+                      <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                        <Icon size={16} className="text-indigo-700" />
+                        <span className="text-sm font-semibold text-gray-800">
+                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { removeDailyEntry(entry.id); setIsDirty(true); }}
+                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label={`${sk.label} 삭제`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
+                        <TimePicker value={entry.time} onChange={(v) => updateDailyEntry(entry.id, 'time', v)} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">메모</label>
+                        <textarea
+                          value={entry.memo}
+                          onChange={(e) => updateDailyEntry(entry.id, 'memo', e.target.value)}
+                          maxLength={500}
+                          autoComplete="off"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
-                      <TimePicker value={entry.time} onChange={(v) => updateDailyEntry(sk.id, 'time', v)} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
-                      <textarea
-                        placeholder={sk.placeholder}
-                        value={entry.memo}
-                        onChange={(e) => updateDailyEntry(sk.id, 'memo', e.target.value)}
-                        maxLength={500}
-                        autoComplete="off"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { addDailyEntry(sk.id); setIsDirty(true); }}
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-indigo-700 hover:border-indigo-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Plus size={13} /> {sk.label} 더 추가
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 

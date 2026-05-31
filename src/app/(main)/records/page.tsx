@@ -16,13 +16,14 @@ import { PetFormFields } from '@/components/pets/PetFormFields';
 import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
 
 type Tab = 'records' | 'calendar';
-type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization';
+type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'daily';
 
 const filterOptions: { id: RecordFilter; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'symptom', label: '증상' },
   { id: 'visit', label: '진료' },
   { id: 'hospitalization', label: '입퇴원' },
+  { id: 'daily', label: '일상' },
 ];
 
 export default function RecordsPage() {

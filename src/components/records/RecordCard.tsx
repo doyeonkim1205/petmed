@@ -159,7 +159,10 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect, on
           {record.record_type === 'daily' ? (
             record.sub_entries && record.sub_entries.length > 0 ? (
               <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">
-                {record.sub_entries.map((e) => DAILY_SUB_LABEL[e.sub_kind]).join(' · ')}
+                {/* 같은 sub_kind 여러 entry 도 라벨은 1번만 (가독성). 등장 순서 유지. */}
+                {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
+                  .map((k) => DAILY_SUB_LABEL[k])
+                  .join(' · ')}
               </p>
             ) : null
           ) : record.description ? (

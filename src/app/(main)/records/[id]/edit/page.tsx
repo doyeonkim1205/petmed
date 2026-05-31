@@ -40,14 +40,26 @@ for (let h = 0; h < 24; h++) {
 }
 
 // 일상 세부 종류 — add 페이지와 동일한 정의. 호환 위해 동일 순서 유지.
-const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; placeholder: string }[] = [
-  { id: 'meal',     label: '식사',   icon: Utensils,        placeholder: '뭘 얼마나 먹었나요?' },
-  { id: 'walk',     label: '산책',   icon: Footprints,      placeholder: '얼마나 산책했나요?' },
-  { id: 'poop',     label: '배변',   icon: CircleDot,       placeholder: '배변 상태는 어땠나요?' },
-  { id: 'grooming', label: '그루밍', icon: Scissors,        placeholder: '어떤 그루밍을 했나요?' },
-  { id: 'mood',     label: '기분',   icon: Smile,           placeholder: '오늘 기분은 어땠나요?' },
-  { id: 'other',    label: '기타',   icon: MoreHorizontal,  placeholder: '메모를 남겨주세요' },
+const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'meal',     label: '식사',   icon: Utensils       },
+  { id: 'walk',     label: '산책',   icon: Footprints     },
+  { id: 'poop',     label: '배변',   icon: CircleDot      },
+  { id: 'grooming', label: '그루밍', icon: Scissors       },
+  { id: 'mood',     label: '기분',   icon: Smile          },
+  { id: 'other',    label: '기타',   icon: MoreHorizontal },
 ];
+
+const nowHHMM = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+interface DailyEntry {
+  id: string;
+  sub_kind: DailySubKind;
+  time: string;
+  memo: string;
+}
 
 interface MedicationInput {
   id?: string;
@@ -89,8 +101,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
-  // 일상: 기존 sub_entries 를 키 기반 객체로 복원. 신규 add 와 동일 구조.
-  const [dailyEntries, setDailyEntries] = useState<Partial<Record<DailySubKind, { time: string; memo: string }>>>({});
+  // 일상 entry 배열 — 같은 sub_kind 여러 개 가능. id 는 React key 용.
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [dischargeDate, setDischargeDate] = useState('');
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
@@ -160,12 +172,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         setExistingFiles(record.record_files);
       }
 
-      // 일상: sub_entries 배열 → 키 기반 객체로 복원 (UI 편집 형태)
+      // 일상: sub_entries 배열 → DailyEntry 배열로 복원 (id 새로 부여).
+      // 순서 유지 + 같은 sub_kind 여러 entry 도 모두 보존.
       if (record.record_type === 'daily' && record.sub_entries) {
-        const restored: Partial<Record<DailySubKind, { time: string; memo: string }>> = {};
-        for (const entry of record.sub_entries) {
-          restored[entry.sub_kind] = { time: entry.time || '', memo: entry.memo || '' };
-        }
+        const restored: DailyEntry[] = record.sub_entries.map((entry) => ({
+          id: crypto.randomUUID(),
+          sub_kind: entry.sub_kind,
+          time: entry.time || '',
+          memo: entry.memo || '',
+        }));
         setDailyEntries(restored);
       }
     } catch (error) {
@@ -306,9 +321,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (recordType === 'daily') {
-      const keys = Object.keys(dailyEntries) as DailySubKind[];
-      if (keys.length === 0) {
+      if (dailyEntries.length === 0) {
         showError('세부 종류를 1개 이상 선택해주세요.'); return;
+      }
+      const emptyMemo = dailyEntries.find((e) => !e.memo.trim());
+      if (emptyMemo) {
+        const label = dailySubKinds.find((sk) => sk.id === emptyMemo.sub_kind)?.label ?? '항목';
+        showError(`${label} 메모를 입력해주세요.`); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -355,14 +374,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       if (recordType === 'daily') {
-        // 일상: sub_entries 만 갱신. 다른 필드는 그대로.
-        const subEntries = dailySubKinds
-          .filter((sk) => dailyEntries[sk.id])
-          .map((sk) => ({
-            sub_kind: sk.id,
-            time: dailyEntries[sk.id]!.time || undefined,
-            memo: dailyEntries[sk.id]!.memo.trim() || undefined,
-          }));
+        // 일상: sub_entries 만 갱신. id 제거 + memo trim. 순서는 UI 그대로.
+        const subEntries = dailyEntries.map((e) => ({
+          sub_kind: e.sub_kind,
+          time: e.time || undefined,
+          memo: e.memo.trim(),
+        }));
         await updateRecord(id, { sub_entries: subEntries } as any);
       } else {
         await updateRecord(id, {
@@ -529,7 +546,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
-        {/* 일상 — 세부 종류 멀티 선택 + 펼침 양식 (수정용) */}
+        {/* 일상 — 멀티 선택 + 같은 sub_kind 여러 entry (수정용) */}
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -538,20 +555,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <div className="grid grid-cols-3 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
-                const selected = !!dailyEntries[sk.id];
+                const selected = dailyEntries.some((e) => e.sub_kind === sk.id);
                 return (
                   <button
                     key={sk.id}
                     type="button"
                     onClick={() => {
                       setDailyEntries((prev) => {
-                        if (prev[sk.id]) {
-                          const { [sk.id]: _drop, ...rest } = prev;
-                          return rest;
-                        }
-                        const now = new Date();
-                        const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                        return { ...prev, [sk.id]: { time, memo: '' } };
+                        const has = prev.some((e) => e.sub_kind === sk.id);
+                        if (has) return prev.filter((e) => e.sub_kind !== sk.id);
+                        return [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }];
                       });
                       setIsDirty(true);
                     }}
@@ -565,35 +578,54 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 );
               })}
             </div>
-            {dailySubKinds
-              .filter((sk) => dailyEntries[sk.id])
-              .map((sk) => {
-                const Icon = sk.icon;
-                const entry = dailyEntries[sk.id]!;
-                return (
-                  <div key={sk.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2 mt-2">
-                    <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                      <Icon size={16} className="text-indigo-700" />
-                      <span className="text-sm font-semibold text-gray-800">{sk.label}</span>
+            {dailySubKinds.map((sk) => {
+              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
+              if (entries.length === 0) return null;
+              const Icon = sk.icon;
+              return (
+                <div key={sk.id} className="space-y-2 mt-2">
+                  {entries.map((entry, idx) => (
+                    <div key={entry.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
+                      <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
+                        <Icon size={16} className="text-indigo-700" />
+                        <span className="text-sm font-semibold text-gray-800">
+                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setDailyEntries((prev) => prev.filter((e) => e.id !== entry.id)); setIsDirty(true); }}
+                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label={`${sk.label} 삭제`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
+                        <TimePicker value={entry.time} onChange={(v) => { setDailyEntries((prev) => prev.map((e) => e.id === entry.id ? { ...e, time: v } : e)); setIsDirty(true); }} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">메모</label>
+                        <textarea
+                          value={entry.memo}
+                          onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
+                          maxLength={500}
+                          autoComplete="off"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">시간 <span className="text-gray-400 font-normal">(선택)</span></label>
-                      <TimePicker value={entry.time} onChange={(v) => { setDailyEntries((prev) => prev[sk.id] ? { ...prev, [sk.id]: { ...prev[sk.id]!, time: v } } : prev); setIsDirty(true); }} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
-                      <textarea
-                        placeholder={sk.placeholder}
-                        value={entry.memo}
-                        onChange={(e) => { setDailyEntries((prev) => prev[sk.id] ? { ...prev, [sk.id]: { ...prev[sk.id]!, memo: e.target.value } } : prev); }}
-                        maxLength={500}
-                        autoComplete="off"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }]); setIsDirty(true); }}
+                    className="w-full py-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-indigo-700 hover:border-indigo-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Plus size={13} /> {sk.label} 더 추가
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
