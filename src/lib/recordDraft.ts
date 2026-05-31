@@ -22,7 +22,8 @@
 
 import type { RecordType, DailySubKind } from './supabase';
 
-const SCHEMA_VERSION = 1;
+// v2: isDirty 가드 추가 (실제 입력 시에만 저장). v1 에 저장된 빈/record-값 draft 자동 폐기용.
+const SCHEMA_VERSION = 2;
 const TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 /**
