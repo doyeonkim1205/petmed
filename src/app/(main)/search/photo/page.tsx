@@ -526,14 +526,14 @@ export default function PhotoAnalysisPage() {
               </h2>
               <textarea
                 value={hint}
-                onChange={(e) => setHint(e.target.value.slice(0, 200))}
+                onChange={(e) => setHint(e.target.value.slice(0, 500))}
                 placeholder="예: 3일 전부터 가려워해요. 오른쪽 귀 안쪽이에요."
                 rows={3}
                 className="w-full border border-gray-200 rounded-md p-2 text-sm resize-none focus:outline-none focus:border-blue-400"
               />
               <div className="flex items-center justify-between mt-1">
                 <p className="text-[10px] text-gray-400">언제부터·어디가·어떤지 알려주세요 (최소 5자)</p>
-                <p className="text-[11px] text-gray-400">{hint.length}/200</p>
+                <p className="text-[11px] text-gray-400">{hint.length}/500</p>
               </div>
             </section>
 
