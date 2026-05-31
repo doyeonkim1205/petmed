@@ -305,21 +305,23 @@ export default function RecordAddPage() {
   };
   const pendingDraftRef = useRef(pendingDraft);
   pendingDraftRef.current = pendingDraft;
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
 
-  // Draft 즉시 저장 — state 변경 시 fire. localStorage write < 1ms.
+  // Draft 즉시 저장 — state 변경 시 fire. 단, 사용자가 실제로 form 을 건드렸을 때만 (isDirty).
+  // → 페이지 열어보기만 하고 닫은 케이스에선 draft 안 만듦 → 다음 진입 시 모달 X.
   useEffect(() => {
-    if (!user || pendingDraft) return;
+    if (!user || pendingDraft || !isDirty) return;
     saveDraft(draftKey.add(user.id), stateRef.current);
-  }, [user, pendingDraft, recordType, title, description, hospitalName, cost, weight, symptomTime,
+  }, [user, pendingDraft, isDirty, recordType, title, description, hospitalName, cost, weight, symptomTime,
       visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
       petId, selectedSubKinds]);
 
   // 백그라운드 안전망 — listener 는 user 만 dep 으로 1회 attach. ref 로 최신값 읽음.
-  // visibility(hidden) + pagehide 둘 다 listen (모바일/TWA 신뢰성 보강).
   useEffect(() => {
     if (!user) return;
     const save = () => {
-      if (pendingDraftRef.current) return; // 복원 모달 중일 땐 skip
+      if (pendingDraftRef.current || !isDirtyRef.current) return; // 모달 중 / 변경 X 면 skip
       saveDraft(draftKey.add(user.id), stateRef.current);
     };
     const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };

@@ -132,12 +132,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
   const pendingDraftRef = useRef(pendingDraft);
   pendingDraftRef.current = pendingDraft;
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
 
-  // Draft 즉시 저장.
+  // Draft 즉시 저장 — 사용자가 실제로 form 을 건드렸을 때만 (isDirty).
+  // → record 로드만 하고 변경 없이 나간 케이스 / 그냥 들여다보기만 한 케이스에선
+  //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
   useEffect(() => {
-    if (!user || !recordUpdatedAt || pendingDraft) return;
+    if (!user || !recordUpdatedAt || pendingDraft || !isDirty) return;
     saveDraft(draftKey.edit(user.id, id), stateRef.current);
-  }, [user, id, recordUpdatedAt, pendingDraft, recordType, title, description, hospitalName,
+  }, [user, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
       recordColor, nextAppointmentColor, petId, selectedSubKinds]);
 
@@ -145,7 +149,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (!user || !recordUpdatedAt) return;
     const save = () => {
-      if (pendingDraftRef.current) return;
+      if (pendingDraftRef.current || !isDirtyRef.current) return;
       saveDraft(draftKey.edit(user.id, id), stateRef.current);
     };
     const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
