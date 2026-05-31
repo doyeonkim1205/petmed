@@ -1,5 +1,5 @@
-// PawDex Service Worker v51
-const CACHE_NAME = 'pawdex-v51';
+// PawDex Service Worker v52
+const CACHE_NAME = 'pawdex-v52';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources

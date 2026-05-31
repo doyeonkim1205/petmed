@@ -264,31 +264,32 @@ export default function RecordAddPage() {
     if (draft) setPendingDraft(draft);
   }, [user]);
 
-  // Draft 자동 저장 — 입력 변경 시 즉시 저장. debounce 안 씀 (setTimeout race 방지):
-  //   debounce 500ms 동안 다른 앱으로 가면 → visibilitychange 신뢰성 ↓ → OS 메모리 정리 시
-  //   cleanup 으로 setTimeout 취소돼 save 누락. localStorage write 자체는 < 1ms 라 부담 미미.
+  // 매 render 마다 최신 state 를 ref 에 mirror — pagehide/visibility 핸들러가 closure
+  // stale 안 되게. useRef 는 mutation 이 동기적이라 ms 단위 안전망에서 안전.
+  const stateRef = useRef<RecordDraft>({});
+  stateRef.current = {
+    recordType, title, description, hospitalName, cost, weight, symptomTime,
+    visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+    petId, selectedSubKinds,
+  };
+  const pendingDraftRef = useRef(pendingDraft);
+  pendingDraftRef.current = pendingDraft;
+
+  // Draft 즉시 저장 — state 변경 시 fire. localStorage write < 1ms.
   useEffect(() => {
-    if (!user || pendingDraft) return; // 복원 모달 떠있을 땐 저장 X (덮어쓰기 방지)
-    saveDraft(draftKey.add(user.id), {
-      recordType, title, description, hospitalName, cost, weight, symptomTime,
-      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-      petId, selectedSubKinds,
-    });
+    if (!user || pendingDraft) return;
+    saveDraft(draftKey.add(user.id), stateRef.current);
   }, [user, pendingDraft, recordType, title, description, hospitalName, cost, weight, symptomTime,
       visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
       petId, selectedSubKinds]);
 
-  // 백그라운드 진입 안전망 — visibilitychange + pagehide 둘 다 listen.
-  // visibilitychange 는 일부 모바일/TWA 환경에서 신뢰성 낮음 → pagehide 로 보강.
-  // (이미 useEffect 즉시 저장이라 대부분 OK, 이건 마지막 안전망.)
+  // 백그라운드 안전망 — listener 는 user 만 dep 으로 1회 attach. ref 로 최신값 읽음.
+  // visibility(hidden) + pagehide 둘 다 listen (모바일/TWA 신뢰성 보강).
   useEffect(() => {
     if (!user) return;
     const save = () => {
-      saveDraft(draftKey.add(user.id), {
-        recordType, title, description, hospitalName, cost, weight, symptomTime,
-        visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-        petId, selectedSubKinds,
-      });
+      if (pendingDraftRef.current) return; // 복원 모달 중일 땐 skip
+      saveDraft(draftKey.add(user.id), stateRef.current);
     };
     const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
     document.addEventListener('visibilitychange', onVisibility);
@@ -297,9 +298,7 @@ export default function RecordAddPage() {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', save);
     };
-  }, [user, recordType, title, description, hospitalName, cost, weight, symptomTime,
-      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-      petId, selectedSubKinds]);
+  }, [user]);
 
   // 복원 모달 [불러오기] — draft 의 모든 필드를 state 에 적용 후 isDirty 켜기.
   const applyDraft = () => {
