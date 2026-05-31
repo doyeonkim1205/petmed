@@ -167,9 +167,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               if (!meta) return null;
               const SubIcon = meta.icon;
               return (
-                <div key={idx} className="border border-gray-200 border-l-4 border-l-purple-500 rounded-lg p-3 bg-white">
+                <div key={idx} className="border border-gray-200 border-l-4 border-l-blue-500 rounded-lg p-3 bg-white">
                   <div className="flex items-center gap-1.5 pb-2 border-b border-dashed border-gray-200">
-                    <SubIcon size={16} className="text-purple-500" />
+                    <SubIcon size={16} className="text-blue-500" />
                     <span className="text-sm font-semibold text-gray-800">{meta.label}</span>
                     {entry.time && (
                       <span className="text-xs text-gray-400 ml-auto">{entry.time}</span>
