@@ -14,7 +14,7 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료 기록', color: 'bg-blue-100 text-blue-600' },
   hospitalization: { icon: Building2, label: '입퇴원 기록', color: 'bg-emerald-100 text-emerald-600' },
   manual: { icon: FileEdit, label: '직접 입력', color: 'bg-green-100 text-green-600' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-blue-100 text-blue-900' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-sky-100 text-sky-800' },
 };
 
 // 일상 세부 종류 → 라벨/아이콘 매핑 (상세 페이지 섹션 헤더).

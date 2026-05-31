@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, PawPrint } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -531,10 +531,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
 
-        {/* ── 기본 정보 섹션 ── */}
+        {/* ── 섹션 헤더 — 일상은 "일상 기록", 그 외는 "기본 정보" ── */}
         <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
-          <Stethoscope size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
+          {recordType === 'daily' ? (
+            <PawPrint size={16} className="text-gray-400" />
+          ) : (
+            <Stethoscope size={16} className="text-gray-400" />
+          )}
+          <h3 className="text-sm font-semibold text-gray-800">
+            {recordType === 'daily' ? '일상 기록' : '기본 정보'}
+          </h3>
         </div>
 
         <div className="space-y-2">

@@ -21,7 +21,7 @@ const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
-  { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+  { id: 'daily' as RecordType, label: '일상', icon: PawPrint, color: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-300' },
 ];
 
 // 일상 세부 종류 — 라벨/아이콘.
@@ -694,10 +694,16 @@ export default function RecordAddPage() {
           </div>
         </div>
 
-        {/* ── 기본 정보 섹션 ── */}
+        {/* ── 섹션 헤더 — 일상은 "일상 기록", 그 외는 "기본 정보" ── */}
         <div className="flex items-center gap-2 py-2 bg-blue-50 -mx-4 px-4">
-          <Stethoscope size={16} className="text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-800">기본 정보</h3>
+          {recordType === 'daily' ? (
+            <PawPrint size={16} className="text-gray-400" />
+          ) : (
+            <Stethoscope size={16} className="text-gray-400" />
+          )}
+          <h3 className="text-sm font-semibold text-gray-800">
+            {recordType === 'daily' ? '일상 기록' : '기본 정보'}
+          </h3>
         </div>
 
         {/* Pet Selection */}
