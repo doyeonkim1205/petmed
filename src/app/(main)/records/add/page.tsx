@@ -711,7 +711,7 @@ export default function RecordAddPage() {
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                maxLength={1000}
+                maxLength={2000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[140px] resize-none"
               />
@@ -814,6 +814,7 @@ export default function RecordAddPage() {
               placeholder="상세 내용을 입력하세요"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              maxLength={1000}
               autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
