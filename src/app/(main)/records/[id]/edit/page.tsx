@@ -49,11 +49,7 @@ const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentTyp
   { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
-const nowHHMM = () => {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
-
+// v11: time UI 미입력 (빈 문자열로 두고 저장 시 undefined). DB 스키마는 유지.
 interface DailyEntry {
   id: string;
   sub_kind: DailySubKind;
@@ -570,7 +566,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       setDailyEntries((prev) => {
                         const has = prev.some((e) => e.sub_kind === sk.id);
                         if (has) return prev.filter((e) => e.sub_kind !== sk.id);
-                        return [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: nowHHMM(), memo: '' }];
+                        return [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: '', memo: '' }];
                       });
                       setIsDirty(true);
                     }}
@@ -584,26 +580,46 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 );
               })}
             </div>
-            {/* sub_kind 별 — 박스 X, 시간 X, "더 추가" X. 기존 데이터에 같은 sub_kind 여러 entry 가 있어도
-                v11 디자인은 첫 entry 만 편집 가능. 사용자가 새로 입력하는 데이터는 sub_kind 당 1개 보장. */}
+            {/* sub_kind 별 — 박스/시간 X, 같은 sub_kind 여러 entry + ✕ 삭제 + "+ 더 추가". */}
             {dailySubKinds.map((sk) => {
-              const entry = dailyEntries.find((e) => e.sub_kind === sk.id);
-              if (!entry) return null;
+              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
+              if (entries.length === 0) return null;
               const Icon = sk.icon;
               return (
                 <div key={sk.id} className="mt-4">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Icon size={16} className="text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-700">{sk.label}</span>
-                  </div>
-                  <textarea
-                    placeholder="메모를 입력하세요"
-                    value={entry.memo}
-                    onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
-                    maxLength={500}
-                    autoComplete="off"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                  />
+                  {entries.map((entry, idx) => (
+                    <div key={entry.id} className={idx > 0 ? 'mt-3' : ''}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Icon size={16} className="text-blue-500" />
+                        <span className="text-sm font-semibold text-gray-700">
+                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setDailyEntries((prev) => prev.filter((e) => e.id !== entry.id)); setIsDirty(true); }}
+                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label={`${sk.label} 삭제`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <textarea
+                        placeholder="메모를 입력하세요"
+                        value={entry.memo}
+                        onChange={(e) => { setDailyEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, memo: e.target.value } : it)); setIsDirty(true); }}
+                        maxLength={500}
+                        autoComplete="off"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: sk.id, time: '', memo: '' }]); setIsDirty(true); }}
+                    className="w-full py-2 mt-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Plus size={13} /> {sk.label} 더 추가
+                  </button>
                 </div>
               );
             })}

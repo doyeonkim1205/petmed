@@ -36,14 +36,9 @@ const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentTyp
   { id: 'other',     label: '기타', icon: MoreHorizontal },
 ];
 
-// 현재 시각 HH:MM 헬퍼.
-const nowHHMM = () => {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
-
-// 일상 entry 단일 단위 — 같은 sub_kind 가 여러 번 들어갈 수 있으므로 배열 + id.
-// id 는 React key 용. 저장 시엔 빼고 sub_entries 로 직렬화.
+// 일상 entry 단일 단위.
+// id 는 React key 용 (저장 시 제외). time 은 v11 에서 UI 미입력 — 빈 문자열로 두고
+// 저장 시 undefined 로 빠짐. DB 스키마는 그대로 유지 (호환성).
 interface DailyEntry {
   id: string;
   sub_kind: DailySubKind;
@@ -212,24 +207,21 @@ export default function RecordAddPage() {
     setRecordType(newType);
   };
 
-  // 뱃지 토글 — 그 sub_kind 의 entry 가 1개 이상 있으면 모두 제거 (OFF).
-  // 0개면 entry 1개 추가 (ON). 기본 시간 = 현재 시각.
+  // 뱃지 토글 — 그 sub_kind 의 entry 가 있으면 모두 제거 (OFF), 없으면 1개 추가 (ON).
   const toggleDailySubKind = (kind: DailySubKind) => {
     setDailyEntries((prev) => {
       const has = prev.some((e) => e.sub_kind === kind);
-      if (has) {
-        return prev.filter((e) => e.sub_kind !== kind);
-      }
-      return [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: nowHHMM(), memo: '' }];
+      if (has) return prev.filter((e) => e.sub_kind !== kind);
+      return [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: '', memo: '' }];
     });
   };
 
-  // 같은 sub_kind 에 entry 추가 (+ 더 추가 버튼).
+  // 같은 sub_kind 에 entry 1개 더 추가 (+ 식사 더 추가 등).
   const addDailyEntry = (kind: DailySubKind) => {
-    setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: nowHHMM(), memo: '' }]);
+    setDailyEntries((prev) => [...prev, { id: crypto.randomUUID(), sub_kind: kind, time: '', memo: '' }]);
   };
 
-  // entry 단일 삭제 — 마지막 entry 면 자동으로 뱃지도 OFF (배열에서 빠지므로).
+  // entry 단일 삭제 — 같은 sub_kind 의 마지막 entry 까지 제거되면 뱃지도 자동 OFF.
   const removeDailyEntry = (id: string) => {
     setDailyEntries((prev) => prev.filter((e) => e.id !== id));
   };
@@ -743,26 +735,47 @@ export default function RecordAddPage() {
               })}
             </div>
 
-            {/* sub_kind 별 표시 — 박스 X, 시간 X, "더 추가" X.
-                sub_kind 당 entry 1개만 (toggle 로 추가/제거). 진료기록 description 톤. */}
+            {/* sub_kind 별 표시 — 박스/시간 X (진료기록 description 톤).
+                같은 sub_kind 여러 entry 가능 — 헤더 #1/#2 + ✕ 삭제, 그룹 마지막 "+ 더 추가". */}
             {dailySubKinds.map((sk) => {
-              const entry = dailyEntries.find((e) => e.sub_kind === sk.id);
-              if (!entry) return null;
+              const entries = dailyEntries.filter((e) => e.sub_kind === sk.id);
+              if (entries.length === 0) return null;
               const Icon = sk.icon;
               return (
                 <div key={sk.id} className="mt-4">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Icon size={16} className="text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-700">{sk.label}</span>
-                  </div>
-                  <textarea
-                    placeholder="메모를 입력하세요"
-                    value={entry.memo}
-                    onChange={(e) => updateDailyEntry(entry.id, 'memo', e.target.value)}
-                    maxLength={500}
-                    autoComplete="off"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
-                  />
+                  {entries.map((entry, idx) => (
+                    <div key={entry.id} className={idx > 0 ? 'mt-3' : ''}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Icon size={16} className="text-blue-500" />
+                        <span className="text-sm font-semibold text-gray-700">
+                          {sk.label}{entries.length > 1 ? ` #${idx + 1}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { removeDailyEntry(entry.id); setIsDirty(true); }}
+                          className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label={`${sk.label} 삭제`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <textarea
+                        placeholder="메모를 입력하세요"
+                        value={entry.memo}
+                        onChange={(e) => updateDailyEntry(entry.id, 'memo', e.target.value)}
+                        maxLength={500}
+                        autoComplete="off"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[70px] resize-none"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { addDailyEntry(sk.id); setIsDirty(true); }}
+                    className="w-full py-2 mt-2 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Plus size={13} /> {sk.label} 더 추가
+                  </button>
                 </div>
               );
             })}
