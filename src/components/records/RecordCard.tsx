@@ -24,7 +24,7 @@ const typeConfig = {
   visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
   hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
   manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-[#C2CDFF] text-[#000B3D]' },
+  daily: { icon: PawPrint, label: '일상', color: 'bg-[#d8c7fa] text-[#2c0a71]' },
 };
 
 // 500ms = Material Design 의 표준 long-press 시간. 짧은 탭과 명확히 구분되면서

@@ -164,7 +164,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
     visit: 'text-blue-500',
     hospitalization: 'text-emerald-500',
     manual: 'text-gray-500',
-    daily: 'text-[#000B3D]',
+    daily: 'text-[#2c0a71]',
   };
 
   const typeLabel = {
