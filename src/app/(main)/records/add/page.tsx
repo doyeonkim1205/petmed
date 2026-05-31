@@ -492,12 +492,10 @@ export default function RecordAddPage() {
   };
 
   // ── 변경 감지 + 이탈 방어 ──
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
+  // beforeunload 가드 제거 — 브라우저 네이티브 "사이트를 새로고침하겠습니까?" 다이얼로그는
+  // 디자인 커스텀 불가하고 못생김. draft 자동 저장으로 데이터 보호하므로 가드 자체 불필요.
+  // 새로고침/탭 닫기 시 pagehide 가 draft 저장 보장 → 다시 진입 시 자동 복원.
+  // 뒤로가기는 popstate guard + ConfirmModal 로 별도 처리 (커스텀 UI).
 
   // ⚠️ 빠른 연속 back press race 방어 (Chrome 네이티브 다이얼로그 추가 노출 버그):
   //   이전 코드는 popstate handler 안에서 setTimeout(50ms) 후에 fake state 를

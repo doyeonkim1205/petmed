@@ -293,14 +293,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   // ── 변경 감지 + 이탈 방어 ──
-
-  // 브라우저 닫기/새로고침 방어
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
+  // beforeunload 가드 제거 — 브라우저 네이티브 "사이트를 새로고침하겠습니까?" 다이얼로그는
+  // 디자인 커스텀 불가. draft 자동 저장이 데이터 보호하므로 불필요.
+  // 새로고침/탭 닫기는 pagehide 가 draft 저장 → 다시 진입 시 복원.
+  // 뒤로가기는 popstate guard + ConfirmModal (커스텀 UI) 로 처리.
 
   // 하드웨어 뒤로가기 버튼 방어 (Android TWA / 모바일 브라우저)
   // isDirty 되면 가짜 히스토리 항목 push → popstate 로 가로채기
