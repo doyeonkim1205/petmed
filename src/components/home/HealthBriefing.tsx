@@ -57,7 +57,7 @@ function WelcomeCard() {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-800 mb-0.5">소중한 가족을 등록해주세요</p>
-          <p className="text-[11px] text-gray-500 leading-snug">PawDex 와 함께해요</p>
+          <p className="text-[11px] font-normal text-gray-500 leading-snug">PawDex 와 함께해요</p>
         </div>
         <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
@@ -92,13 +92,14 @@ function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
         </div>
         <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
-      {/* 본문 — 일반 카드와 같은 2행 형식. pl-9 로 헤더 아바타 라인과 정렬. */}
+      {/* 본문 — 일반 카드와 같은 2행 형식. pl-9 로 헤더 아바타 라인과 정렬.
+          첫 기록 메시지만 강조 (font-bold), 예약 없음은 평소대로 normal. */}
       <div className="pl-9 pr-4 pb-3.5 pt-1 space-y-1.5">
         <div className="flex items-center gap-2 text-[12px] text-gray-700">
           <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
-          <span>첫 기록을 남겨볼까요?</span>
+          <span className="font-bold">첫 기록을 남겨볼까요?</span>
         </div>
-        <div className="flex items-center gap-2 text-[12px] text-gray-400">
+        <div className="flex items-center gap-2 text-[12px] text-gray-400 font-normal">
           <Calendar size={13} className="flex-shrink-0" />
           <span>예약 없음</span>
         </div>
