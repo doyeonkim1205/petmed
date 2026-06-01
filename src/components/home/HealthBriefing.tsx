@@ -92,8 +92,8 @@ function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
         </div>
         <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
-      {/* 본문 — 일반 카드와 같은 2행 형식 */}
-      <div className="px-4 pb-3.5 pt-1 space-y-1.5">
+      {/* 본문 — 일반 카드와 같은 2행 형식. pl-9 로 헤더 아바타 라인과 정렬. */}
+      <div className="pl-9 pr-4 pb-3.5 pt-1 space-y-1.5">
         <div className="flex items-center gap-2 text-[12px] text-gray-700">
           <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
           <span>첫 기록을 남겨볼까요?</span>
@@ -208,8 +208,9 @@ function BriefingCard({
         {showIndicator && indicator}
       </div>
 
-      {/* 본문 — 항상 메트릭 2행 고정 */}
-      <div className="px-4 pb-3.5 pt-1 space-y-1.5">
+      {/* 본문 — 항상 메트릭 2행 고정. 좌측 padding 을 헤더의 펫 아바타 끝
+          (16px + 28px + gap 적당) 에 맞춰 pl-9 (36px) — 헤더와 시각적 정렬. */}
+      <div className="pl-9 pr-4 pb-3.5 pt-1 space-y-1.5">
         <LastRecordRow briefing={briefing} />
         <NextAppointmentRow briefing={briefing} />
       </div>
@@ -218,17 +219,17 @@ function BriefingCard({
 }
 
 // 마지막 기록 행 — daysSinceLastRecord 만으로 독립 판단 (highlight 의존 X).
-// 이유: highlight.type 이 'birthday' 이면 강조 분기를 못 타서 잘못 표시되는 버그 방지.
-//   - 0일 (오늘): green + bold + "오늘 기록 완료"
+// 강조 시 blue (앱 메인 톤) + bold.
+//   - 0일 (오늘): blue + bold + "오늘 기록 완료"
 //   - 1~6일: gray + "N일 전"
-//   - 7일+ (포함): green + bold + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
+//   - 7일+ (포함): blue + bold + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
 //   - 기록 없음: gray + "아직 기록 없음"
 function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   const { daysSinceLastRecord, pet } = briefing;
   if (daysSinceLastRecord !== null && daysSinceLastRecord >= 7) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-green-700 font-bold">
-        <MessageSquare size={13} className="text-green-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-blue-700 font-bold">
+        <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
         <span>
           {daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
         </span>
@@ -237,8 +238,8 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   }
   if (daysSinceLastRecord === 0) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-green-700 font-bold">
-        <MessageSquare size={13} className="text-green-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-blue-700 font-bold">
+        <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
         <span>오늘 기록 완료</span>
       </div>
     );

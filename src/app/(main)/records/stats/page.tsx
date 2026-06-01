@@ -7,6 +7,7 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
+import { todayLocalISO } from '@/lib/date';
 
 type StatsTab = 'cost' | 'weight';
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
@@ -159,7 +160,7 @@ export default function StatsPage() {
   const [weightLoading, setWeightLoading] = useState(false);
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [newWeight, setNewWeight] = useState('');
-  const [newWeightDate, setNewWeightDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newWeightDate, setNewWeightDate] = useState(todayLocalISO());
   const [weightSaving, setWeightSaving] = useState(false);
 
   useEffect(() => {
@@ -322,7 +323,7 @@ export default function StatsPage() {
   const handleAddWeight = async () => {
     if (!user || !newWeight || !selectedPetId) return;
     const w = Math.round(Math.min(Math.max(0.1, Number(newWeight)), 100) * 100) / 100;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalISO();
     const date = newWeightDate > today ? today : newWeightDate;
     setWeightSaving(true);
     await supabase.from('weight_logs').insert({ user_id: user.id, pet_id: selectedPetId, weight: w, measured_at: date });
@@ -549,7 +550,7 @@ export default function StatsPage() {
                         placeholder="체중 (kg)" value={newWeight} onChange={(e) => setNewWeight(e.target.value)}
                         className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                       <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
+                        max={todayLocalISO()}
                         className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                     </div>
                     <div className="flex gap-2">

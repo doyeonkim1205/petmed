@@ -18,6 +18,7 @@ import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { type RecordDraft } from '@/lib/recordDraft';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
+import { todayLocalISO } from '@/lib/date';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -91,7 +92,10 @@ export default function RecordAddPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
-  const [visitDate, setVisitDate] = useState(new Date().toISOString().split('T')[0]);
+  // ⚠️ toISOString() 은 UTC 라 한국 시간 새벽엔 어제 ISO date 반환 → 사용자가
+  // 그대로 저장하면 visit_date 가 어제로 기록되어 홈 "마지막 기록 1일 전" 버그.
+  // todayLocalISO 는 로컬 자정 기준이라 사용자 시계와 일치.
+  const [visitDate, setVisitDate] = useState(todayLocalISO());
   const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
   const [weight, setWeight] = useState('');
