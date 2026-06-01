@@ -140,6 +140,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
   useEffect(() => {
     if (!user || !recordUpdatedAt || pendingDraft || !isDirty) return;
+    console.log('[draft:edit] save (state change)', { isDirty, hasPending: !!pendingDraft, recordUpdatedAt });
     saveDraft(draftKey.edit(user.id, id), stateRef.current);
   }, [user, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
@@ -148,16 +149,19 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   // 백그라운드 안전망 — listener 는 user/id/loaded 만 dep. ref 로 최신값 읽음.
   useEffect(() => {
     if (!user || !recordUpdatedAt) return;
-    const save = () => {
+    const save = (reason: string) => () => {
+      console.log('[draft:edit] save trigger', { reason, isDirty: isDirtyRef.current, hasPending: !!pendingDraftRef.current });
       if (pendingDraftRef.current || !isDirtyRef.current) return;
       saveDraft(draftKey.edit(user.id, id), stateRef.current);
+      console.log('[draft:edit] saved to localStorage', { key: draftKey.edit(user.id, id) });
     };
-    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') save('visibility-hidden')(); };
+    const onPagehide = save('pagehide');
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', save);
+    window.addEventListener('pagehide', onPagehide);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', save);
+      window.removeEventListener('pagehide', onPagehide);
     };
   }, [user, id, recordUpdatedAt]);
 
@@ -253,11 +257,25 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       const sessionKey = `pawdex-edit-session-${id}`;
       if (!draftCheckedRef.current && user) {
         draftCheckedRef.current = true;
+        // raw ts 디버그 (loadDraft 가 stale 폐기로 null 리턴해도 ts 확인 가능)
+        let rawTs: number | null = null;
+        try {
+          const raw = localStorage.getItem(draftKey.edit(user.id, id));
+          if (raw) rawTs = JSON.parse(raw)?.ts ?? null;
+        } catch {}
         const draft = loadDraft(draftKey.edit(user.id, id), { serverUpdatedAt: record.updated_at });
         let sameSession = false;
         try { sameSession = sessionStorage.getItem(sessionKey) === '1'; } catch {}
+        console.log('[draft:edit] mount check', {
+          recordId: id,
+          hasDraft: !!draft,
+          rawTs: rawTs ? new Date(rawTs).toISOString() : null,
+          recordUpdatedAt: record.updated_at,
+          sameSession,
+        });
         if (draft) {
           if (sameSession) {
+            console.log('[draft:edit] auto-restore (same session)', Object.keys(draft));
             // 같은 세션 — 모달 없이 직접 복원 (record 값 위에 덮어씀)
             if (draft.title !== undefined) setTitle(draft.title);
             if (draft.description !== undefined) setDescription(draft.description);
@@ -277,6 +295,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             // 그 전까진 isDirty=false 유지 → 새 draft 저장 안 됨 → 사용자가 진짜
             // 손 안 대면 다음 진입 시 모달도 안 뜨고 깔끔.
           } else {
+            console.log('[draft:edit] open recovery modal (new session)');
             // 새 세션 — 모달
             setPendingDraft(draft);
           }
@@ -1139,9 +1158,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         cancelLabel="계속 수정"
         variant="danger"
         onConfirm={() => {
+          // "나가기" = 수정 포기. draft + 세션 마커 모두 정리 → 다음 진입 시 모달 안 뜸.
           setShowExitConfirm(false);
           setIsDirty(false);
           guardPushedRef.current = false;
+          if (user) clearDraft(draftKey.edit(user.id, id));
+          try { sessionStorage.removeItem(`pawdex-edit-session-${id}`); } catch {}
           // 가짜 히스토리 항목 + 실제 뒤로가기 → 2단계 back
           window.history.go(-2);
         }}

@@ -1287,7 +1287,15 @@ export default function RecordAddPage() {
         confirmLabel="나가기"
         cancelLabel="계속 작성"
         variant="danger"
-        onConfirm={() => { setShowExitConfirm(false); setIsDirty(false); guardPushedRef.current = false; window.history.go(-2); }}
+        onConfirm={() => {
+          // "나가기" = 작성 포기. draft + 세션 마커 모두 정리 → 다음 진입 시 모달 안 뜸.
+          setShowExitConfirm(false);
+          setIsDirty(false);
+          guardPushedRef.current = false;
+          if (user) clearDraft(draftKey.add(user.id));
+          try { sessionStorage.removeItem('pawdex-add-session'); } catch {}
+          window.history.go(-2);
+        }}
         onCancel={() => setShowExitConfirm(false)}
       />
 
