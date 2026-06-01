@@ -168,28 +168,30 @@ function BriefingCard({
 
   return (
     <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-      {/* 헤더 */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <PetAvatar />
+      {/* 헤더 — 한 줄.
+          평소: 펫 아이콘 + 이름 + (나이 · 체중)
+          생일: 펫 아이콘 + "{name}의 생일이에요, 축하합니다!" + Cake 아이콘 (rose 포인트)
+          → 생일 당일엔 나이/체중 자리에 메시지가 대체됨. 카드 높이 항상 일정. */}
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <PetAvatar />
+          {briefing.isBirthday ? (
+            <p className="text-sm font-bold text-gray-800 truncate flex items-center gap-1.5 min-w-0">
+              <span className="truncate">
+                {briefing.pet.name}의 생일이에요, 축하합니다!
+              </span>
+              <Cake size={14} className="text-rose-500 flex-shrink-0" />
+            </p>
+          ) : (
             <p className="text-sm font-bold text-gray-800 truncate">
               {briefing.pet.name}
               {meta && (
                 <span className="text-[10px] font-medium text-gray-400 ml-1.5">{meta}</span>
               )}
             </p>
-          </div>
-          {showIndicator && indicator}
+          )}
         </div>
-
-        {/* 생일 메시지 — 헤더 안 두 번째 줄. 본문 메트릭 행에는 영향 없음 */}
-        {briefing.isBirthday && (
-          <p className="flex items-center gap-1.5 mt-1.5 text-[11px] text-rose-600 font-semibold">
-            <Cake size={12} className="text-rose-500 flex-shrink-0" />
-            오늘 {briefing.pet.name}의 생일이에요, 축하합니다! 🎂
-          </p>
-        )}
+        {showIndicator && indicator}
       </div>
 
       {/* 본문 — 항상 메트릭 2행 고정 */}
@@ -210,8 +212,8 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   const { daysSinceLastRecord, highlight, pet } = briefing;
   if (highlight.type === 'inactive') {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-blue-700 font-bold">
-        <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-green-700 font-bold">
+        <MessageSquare size={13} className="text-green-600 flex-shrink-0" />
         <span>
           {highlight.daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
         </span>
@@ -248,8 +250,8 @@ function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
   const { nextAppointmentDate, highlight } = briefing;
   if (highlight.type === 'appointment' && nextAppointmentDate) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-amber-700 font-bold">
-        <Calendar size={13} className="text-amber-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-orange-600 font-bold">
+        <Calendar size={13} className="text-orange-500 flex-shrink-0" />
         <span>
           예약 D-{highlight.daysUntilAppointment} · {formatShortDate(nextAppointmentDate)}
         </span>
@@ -270,11 +272,11 @@ function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
   );
 }
 
-// 펫 아바타
+// 펫 아바타 — 앱 메인 톤 (파랑). 건강 기록 섹션(그린) 과 색상 중복 방지.
 function PetAvatar() {
   return (
-    <span className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
-      <PawPrint size={14} className="text-green-700" />
+    <span className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+      <PawPrint size={14} className="text-blue-600" />
     </span>
   );
 }
