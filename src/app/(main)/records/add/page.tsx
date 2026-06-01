@@ -287,7 +287,8 @@ export default function RecordAddPage() {
       if (draft.recordColor) setRecordColor(draft.recordColor);
       if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
       if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
-      setIsDirty(true);
+      // setIsDirty 호출 X — 자동 복원만으로는 dirty 안 켬.
+      // 사용자가 실제 form 건드려야 form onChange 로 자동 dirty.
     } else {
       // 새 세션 — 모달로 확인
       setPendingDraft(draft);

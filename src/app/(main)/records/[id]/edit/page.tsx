@@ -272,7 +272,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
             if (draft.petId) setPetId(draft.petId);
             if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
-            setIsDirty(true);
+            // setIsDirty 호출 X — 자동 복원만으로는 dirty 안 켬.
+            // 사용자가 실제로 form 을 추가로 건드리면 form onChange 로 자동 dirty 됨.
+            // 그 전까진 isDirty=false 유지 → 새 draft 저장 안 됨 → 사용자가 진짜
+            // 손 안 대면 다음 진입 시 모달도 안 뜨고 깔끔.
           } else {
             // 새 세션 — 모달
             setPendingDraft(draft);
