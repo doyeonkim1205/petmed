@@ -1,5 +1,5 @@
-// PawDex Service Worker v59
-const CACHE_NAME = 'pawdex-v59';
+// PawDex Service Worker v60
+const CACHE_NAME = 'pawdex-v60';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
@@ -27,14 +27,19 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches → claim → 모든 클라이언트에 SW_ACTIVATED 메시지.
+//
+// 클라이언트는 이 메시지를 받고 reload — TWA 에서 controllerchange 가 늦거나
+// fire 안 되는 race 를 우회. 첫 SW 설치 시에도 메시지가 가지만 클라이언트의
+// UpdateToast 는 controller 없으면 listener 미등록이라 무시됨.
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)));
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach((c) => c.postMessage({ type: 'SW_ACTIVATED' }));
+  })());
 });
 
 // Fetch strategy

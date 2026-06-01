@@ -108,13 +108,14 @@ export function UpdateToast() {
 
     if (retry >= 1) {
       // 1차 적용 시도 후에도 같은 toast 가 또 보였다 = SW activate 실패 또는
-      // controllerchange race. 모든 등록을 강제 해제 후 reload — 클린 슬레이트.
+      // controllerchange race. SW 자체는 unregister 하지 않고 (push subscription
+      // 보호) 캐시만 모두 비워서 fresh network load 강제.
       try { sessionStorage.removeItem('sw-apply-retry'); } catch {}
       try {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        const names = await caches.keys();
+        await Promise.all(names.map((n) => caches.delete(n)));
       } catch (e) {
-        console.error('[UpdateToast] force unregister failed:', e);
+        console.error('[UpdateToast] cache clear failed:', e);
       }
       window.location.reload();
       return;
@@ -129,6 +130,7 @@ export function UpdateToast() {
       if (triggered) return;
       triggered = true;
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      navigator.serviceWorker.removeEventListener('message', onSwMessage);
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
       const isIOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
       if (isIOS) {
@@ -141,15 +143,21 @@ export function UpdateToast() {
     };
 
     const onControllerChange = () => performReload();
+    // SW 의 activate 핸들러가 보낸 SW_ACTIVATED 메시지 — race-free 신호.
+    // 새 SW 가 정말로 activate 완료된 후에만 도착하므로 가장 신뢰 가능한 트리거.
+    const onSwMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'SW_ACTIVATED') performReload();
+    };
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    navigator.serviceWorker.addEventListener('message', onSwMessage);
 
     // waiting SW 에게 skipWaiting 지시.
     waitingSW.postMessage({ type: 'SKIP_WAITING' });
 
-    // ⏱️ TWA / 일부 환경에서 controllerchange 가 늦게 fire 되거나 안 오는
-    // 케이스 방어 — 3초 안에 안 오면 강제 reload. SW 는 이미 skipWaiting
-    // 받아 활성화 진행 중이므로 reload 후 새 버전 로드됨.
-    setTimeout(performReload, 3000);
+    // ⏱️ 최후 안전망 — 위 두 신호 (SW_ACTIVATED / controllerchange) 가 모두
+    // 안 와도 5초 후 강제 reload. SW message-based 신호가 race 를 99% 차단하므로
+    // 이 timeout 까지 가는 케이스는 거의 없음.
+    setTimeout(performReload, 5000);
   };
 
   if (!show) return null;
