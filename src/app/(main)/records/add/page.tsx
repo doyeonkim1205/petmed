@@ -213,8 +213,11 @@ export default function RecordAddPage() {
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
   const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
 
+  // ⚠️ dep 에 `user` 객체 X — Supabase auth 가 토큰 refresh 시 setUser(new ref)
+  // 호출하면 effect 재실행되어 setPetId 가 사용자 선택을 덮어쓰는 버그 가능.
+  // user?.id (primitive) 로 비교해야 안전.
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     supabase
       .from('pets')
       .select('*')
@@ -254,7 +257,7 @@ export default function RecordAddPage() {
         }
       } catch {}
     })();
-  }, [user]);
+  }, [user?.id]);
 
   // Draft 로드 — 마운트 시 1회.
   // - 같은 PWA 세션 (사용자가 입력 중 다른 앱 갔다 옴) → 모달 없이 자동 복원

@@ -122,9 +122,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
 
+  // ⚠️ dep 에 `user` 객체 쓰지 말 것 — Supabase auth 가 visibility 변경 / 토큰
+  // refresh 시 setUser(new object) 를 호출해 reference 가 바뀌면 effect 가 다시 fire,
+  // loadData() 가 record 값으로 state 를 reset → 사용자 입력 손실.
+  // user?.id (primitive) 로 비교해야 안전.
   useEffect(() => {
-    if (id && user) loadData();
-  }, [id, user]);
+    if (id && user?.id) loadData();
+  }, [id, user?.id]);
 
   // ref mirror — closure stale 방지. 매 render 동기 mutation.
   const stateRef = useRef<RecordDraft>({});
@@ -181,24 +185,25 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   // → record 로드만 하고 변경 없이 나간 케이스 / 그냥 들여다보기만 한 케이스에선
   //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
   useEffect(() => {
-    if (!user || !recordUpdatedAt || pendingDraft || !isDirty) return;
+    if (!user?.id || !recordUpdatedAt || pendingDraft || !isDirty) return;
     console.log('[draft:edit] save (state change)', { isDirty, hasPending: !!pendingDraft, recordUpdatedAt });
     saveDraft(draftKey.edit(user.id, id), stateRef.current);
-  }, [user, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
+  }, [user?.id, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
       recordColor, nextAppointmentColor, petId, selectedSubKinds]);
 
-  // 백그라운드 안전망 — listener 는 user/id/loaded 만 dep. ref 로 최신값 읽음.
+  // 백그라운드 안전망 — listener 는 user?.id/id/loaded 만 dep. ref 로 최신값 읽음.
   // isDirty state 가 stale 인 race 까지 방어하려고 hasFormDiverged() 도 가드로 사용.
   useEffect(() => {
-    if (!user || !recordUpdatedAt) return;
+    if (!user?.id || !recordUpdatedAt) return;
+    const userId = user.id;
     const save = (reason: string) => () => {
       const diverged = hasFormDiverged();
       console.log('[draft:edit] save trigger', { reason, isDirty: isDirtyRef.current, diverged, hasPending: !!pendingDraftRef.current });
       if (pendingDraftRef.current) return;
       if (!isDirtyRef.current && !diverged) return;
-      saveDraft(draftKey.edit(user.id, id), stateRef.current);
-      console.log('[draft:edit] saved to localStorage', { key: draftKey.edit(user.id, id) });
+      saveDraft(draftKey.edit(userId, id), stateRef.current);
+      console.log('[draft:edit] saved to localStorage', { key: draftKey.edit(userId, id) });
     };
     const onVisibility = () => { if (document.visibilityState === 'hidden') save('visibility-hidden')(); };
     const onPagehide = save('pagehide');
@@ -208,7 +213,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', onPagehide);
     };
-  }, [user, id, recordUpdatedAt]);
+  }, [user?.id, id, recordUpdatedAt]);
 
   // 복원 모달 [불러오기] — draft 값 적용 + isDirty.
   const applyDraft = () => {
