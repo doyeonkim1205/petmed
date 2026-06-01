@@ -120,7 +120,7 @@ function BriefingSlider({ briefings }: { briefings: PetBriefing[] }) {
   return (
     <div
       ref={containerRef}
-      className="overflow-x-auto snap-x snap-mandatory flex no-scrollbar"
+      className="overflow-x-auto snap-x snap-proximity flex no-scrollbar"
       style={{ scrollbarWidth: 'none' }}
     >
       {briefings.map((b, i) => (

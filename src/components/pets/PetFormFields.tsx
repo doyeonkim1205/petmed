@@ -72,14 +72,19 @@ export function PetFormFields({
         className="w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
       />
 
-      {/* 생년월일 */}
+      {/* 생년월일 — max=오늘 (오늘 포함 이전만 허용).
+          ⚠️ toISOString() 은 UTC 라 한국 시간 새벽엔 max 가 어제로 보임.
+          getFullYear/getMonth/getDate 로 로컬 ISO 생성. */}
       <div>
         <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
         <input
           type="date"
           value={form.birth_date}
           onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
-          max={new Date().toISOString().split('T')[0]}
+          max={(() => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          })()}
           className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
         />
       </div>

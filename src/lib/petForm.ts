@@ -73,10 +73,11 @@ export function validatePetForm(form: PetFormState): string | null {
   }
   if (form.birth_date) {
     // input max 우회 (직접 타이핑 / 모바일 키보드 등) 방어용 이중 검증.
-    const birth = new Date(form.birth_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (!isNaN(birth.getTime()) && birth > today) {
+    // 시간대 안전: YYYY-MM-DD 문자열 사전순 비교 (사전순 = 날짜순).
+    const now = new Date();
+    const todayStr =
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (form.birth_date > todayStr) {
       return '생년월일은 오늘 이전 날짜로 입력해주세요';
     }
   }
