@@ -18,7 +18,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
-import { saveDraft, loadDraft, clearDraft, draftKey, type RecordDraft } from '@/lib/recordDraft';
+import { saveDraft, loadDraft, clearDraft, draftKey, captureFocusedInputValue, type RecordDraft } from '@/lib/recordDraft';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -174,7 +174,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (!recordUpdatedAt) return;
     if (!isDirtyRef.current && hasFormDiverged()) {
-      console.log('[draft:edit] auto-dirty (state diverged from record)');
       setIsDirty(true);
     }
   }, [recordUpdatedAt, recordType, title, description, hospitalName, cost, weight, symptomTime,
@@ -186,7 +185,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
   useEffect(() => {
     if (!user?.id || !recordUpdatedAt || pendingDraft || !isDirty) return;
-    console.log('[draft:edit] save (state change)', { isDirty, hasPending: !!pendingDraft, recordUpdatedAt });
     saveDraft(draftKey.edit(user.id, id), stateRef.current);
   }, [user?.id, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
       cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
@@ -197,16 +195,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     if (!user?.id || !recordUpdatedAt) return;
     const userId = user.id;
-    const save = (reason: string) => () => {
+    const save = () => {
       const diverged = hasFormDiverged();
-      console.log('[draft:edit] save trigger', { reason, isDirty: isDirtyRef.current, diverged, hasPending: !!pendingDraftRef.current });
       if (pendingDraftRef.current) return;
       if (!isDirtyRef.current && !diverged) return;
-      saveDraft(draftKey.edit(userId, id), stateRef.current);
-      console.log('[draft:edit] saved to localStorage', { key: draftKey.edit(userId, id) });
+      // captureFocusedInputValue: IME 조합 중 글자도 DOM 에서 직접 읽어 override.
+      const snapshot = captureFocusedInputValue(stateRef.current);
+      saveDraft(draftKey.edit(userId, id), snapshot);
     };
-    const onVisibility = () => { if (document.visibilityState === 'hidden') save('visibility-hidden')(); };
-    const onPagehide = save('pagehide');
+    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
+    const onPagehide = save;
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPagehide);
     return () => {
@@ -332,26 +330,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       const sessionKey = `pawdex-edit-session-${id}`;
       if (!draftCheckedRef.current && user) {
         draftCheckedRef.current = true;
-        // raw ts 디버그 (loadDraft 가 stale 폐기로 null 리턴해도 ts 확인 가능)
-        let rawTs: number | null = null;
-        try {
-          const raw = localStorage.getItem(draftKey.edit(user.id, id));
-          if (raw) rawTs = JSON.parse(raw)?.ts ?? null;
-        } catch {}
         const draft = loadDraft(draftKey.edit(user.id, id), { serverUpdatedAt: record.updated_at });
         let sameSession = false;
         try { sameSession = sessionStorage.getItem(sessionKey) === '1'; } catch {}
-        console.log('[draft:edit] mount check', {
-          recordId: id,
-          hasDraft: !!draft,
-          rawTs: rawTs ? new Date(rawTs).toISOString() : null,
-          recordUpdatedAt: record.updated_at,
-          sameSession,
-        });
         if (draft) {
           if (sameSession) {
-            console.log('[draft:edit] auto-restore (same session)', Object.keys(draft));
-            // 같은 세션 — 모달 없이 직접 복원 (record 값 위에 덮어씀)
+            // 같은 세션 — 모달 없이 직접 복원 (record 값 위에 덮어씀).
+            // setIsDirty 는 호출 X — state 비교 useEffect 가 자동으로 dirty 켜줌.
             if (draft.title !== undefined) setTitle(draft.title);
             if (draft.description !== undefined) setDescription(draft.description);
             if (draft.hospitalName !== undefined) setHospitalName(draft.hospitalName);
@@ -365,12 +350,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
             if (draft.petId) setPetId(draft.petId);
             if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
-            // setIsDirty 호출 X — 자동 복원만으로는 dirty 안 켬.
-            // 사용자가 실제로 form 을 추가로 건드리면 form onChange 로 자동 dirty 됨.
-            // 그 전까진 isDirty=false 유지 → 새 draft 저장 안 됨 → 사용자가 진짜
-            // 손 안 대면 다음 진입 시 모달도 안 뜨고 깔끔.
           } else {
-            console.log('[draft:edit] open recovery modal (new session)');
             // 새 세션 — 모달
             setPendingDraft(draft);
           }
@@ -719,7 +699,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
@@ -761,7 +741,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     type="button"
                     onClick={() => {
                       setSelectedSubKinds((prev) => prev.includes(sk.id) ? prev.filter((k) => k !== sk.id) : [...prev, sk.id]);
-                      setIsDirty(true);
+                      // dirty 는 state 비교 useEffect 가 자동 처리
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-medium border-2 transition-colors ${
                       selected ? 'bg-white text-blue-600 border-blue-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
@@ -777,9 +757,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <div className="mt-4">
               <label className="text-sm font-medium block mb-2">메모</label>
               <textarea
+                name="description"
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
-                onChange={(e) => { setDescription(e.target.value); setIsDirty(true); }}
+                onChange={(e) => setDescription(e.target.value)}
+                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
                 maxLength={1000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
@@ -818,6 +800,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               placeholder="예: 3.5"
               autoComplete="off"
               maxLength={6}
+              name="pet-weight-kg"
               value={weight}
               onChange={(e) => {
                 const v = e.target.value;
@@ -837,6 +820,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             type="date"
             value={visitDate}
             onChange={(e) => setVisitDate(e.target.value)}
+            name="visit-date"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {(recordType === 'visit' || recordType === 'hospitalization') && (
@@ -865,6 +849,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               type="date"
               value={dischargeDate}
               onChange={(e) => setDischargeDate(e.target.value)}
+              name="discharge-date"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
             <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
@@ -878,8 +863,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               설명 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
             <textarea
+              name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
               maxLength={700}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
@@ -900,8 +887,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 설명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <textarea
+                name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
                 maxLength={700}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
@@ -922,6 +911,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+                name="pet-weight-kg"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -953,6 +943,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
                 autoComplete="off"
+                name="cost"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -966,6 +957,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 type="date"
                 value={nextAppointmentDate}
                 onChange={(e) => setNextAppointmentDate(e.target.value)}
+                name="next-appointment-date"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
               {nextAppointmentDate && (

@@ -16,7 +16,7 @@ import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
-import { saveDraft, loadDraft, clearDraft, draftKey, type RecordDraft } from '@/lib/recordDraft';
+import { saveDraft, loadDraft, clearDraft, draftKey, captureFocusedInputValue, type RecordDraft } from '@/lib/recordDraft';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -321,12 +321,15 @@ export default function RecordAddPage() {
       visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
       petId, selectedSubKinds]);
 
-  // 백그라운드 안전망 — listener 는 user 만 dep 으로 1회 attach. ref 로 최신값 읽음.
+  // 백그라운드 안전망 — listener 는 user?.id 만 dep 으로 1회 attach. ref 로 최신값 읽음.
+  // captureFocusedInputValue: IME 한글 조합 중 이탈 시 마지막 글자 유실 방지 (DOM value override).
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+    const userId = user.id;
     const save = () => {
-      if (pendingDraftRef.current || !isDirtyRef.current) return; // 모달 중 / 변경 X 면 skip
-      saveDraft(draftKey.add(user.id), stateRef.current);
+      if (pendingDraftRef.current || !isDirtyRef.current) return;
+      const snapshot = captureFocusedInputValue(stateRef.current);
+      saveDraft(draftKey.add(userId), snapshot);
     };
     const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
     document.addEventListener('visibilitychange', onVisibility);
@@ -335,7 +338,7 @@ export default function RecordAddPage() {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', save);
     };
-  }, [user]);
+  }, [user?.id]);
 
   // 복원 모달 [불러오기] — draft 의 모든 필드를 state 에 적용 후 isDirty 켜기.
   const applyDraft = () => {
@@ -825,9 +828,11 @@ export default function RecordAddPage() {
             <div className="mt-4">
               <label className="text-sm font-medium block mb-2">메모</label>
               <textarea
+                name="description"
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
                 maxLength={1000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
@@ -873,6 +878,7 @@ export default function RecordAddPage() {
               }}
               maxLength={6}
               autoComplete="off"
+              name="pet-weight-kg"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -888,6 +894,7 @@ export default function RecordAddPage() {
             type="date"
             value={visitDate}
             onChange={(e) => setVisitDate(e.target.value)}
+            name="visit-date"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {showHospitalFields && (
@@ -916,6 +923,7 @@ export default function RecordAddPage() {
               type="date"
               value={dischargeDate}
               onChange={(e) => setDischargeDate(e.target.value)}
+              name="discharge-date"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
             <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
@@ -929,9 +937,11 @@ export default function RecordAddPage() {
               설명 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
             <textarea
+              name="description"
               placeholder="상세 내용을 입력하세요"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
               maxLength={700}
               autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
@@ -952,9 +962,11 @@ export default function RecordAddPage() {
                 설명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <textarea
+                name="description"
                 placeholder="상세 내용을 입력하세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
                 autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
@@ -1046,6 +1058,7 @@ export default function RecordAddPage() {
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
                 autoComplete="off"
+                name="cost"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -1058,6 +1071,7 @@ export default function RecordAddPage() {
                 type="date"
                 value={nextAppointmentDate}
                 onChange={(e) => setNextAppointmentDate(e.target.value)}
+                name="next-appointment-date"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
               {nextAppointmentDate && (

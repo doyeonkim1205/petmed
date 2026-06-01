@@ -115,3 +115,84 @@ export function clearDraft(key: string): void {
     // ignore
   }
 }
+
+/**
+ * input/textarea 의 `name` 속성 → RecordDraft 필드 이름 매핑.
+ *
+ * pagehide 안전망 (IME 한글 조합 중 이탈 시 마지막 글자 유실 방지) 에서 사용:
+ *   document.activeElement 가 input/textarea 면 그 DOM 의 `.value` 를 직접
+ *   읽어 React state 우회 → setState batching/microtask race 가 발생해도 손실 X.
+ *
+ * autoComplete 회피용으로 의도된 변별 이름 (record-title, hospital-name, etc.)
+ * 은 그대로 두고, 매핑 테이블로 RecordDraft 키와 연결.
+ */
+export const NAME_TO_FIELD: Record<string, keyof RecordDraft> = {
+  'description': 'description',
+  'record-title': 'title',
+  'hospital-name': 'hospitalName',
+  'pet-weight-kg': 'weight',
+  'weight': 'weight',
+  'cost': 'cost',
+  'visit-date': 'visitDate',
+  'discharge-date': 'dischargeDate',
+  'next-appointment-date': 'nextAppointmentDate',
+  'symptom-time': 'symptomTime',
+};
+
+/**
+ * pagehide / visibilitychange 시점에 호출 — 현재 focus 된 input/textarea 가
+ * 있으면 그 DOM 값을 snapshot 에 강제 override.
+ *
+ * 한글 IME 조합 중 (composition 미완료 상태) focus 잃을 때 React setState 가
+ * 비동기로 큐잉되어 stateRef 가 stale 일 수 있다. DOM 의 `.value` 는 IME
+ * 조합 중에도 즉시 최신값을 가지므로 신뢰 가능. el.blur() 로 compositionend
+ * 강제 발생 후 value 읽음 (일부 환경에서 blur 가 composition 마무리 신호).
+ */
+export function captureFocusedInputValue(snapshot: RecordDraft): RecordDraft {
+  try {
+    const el = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
+    if (!el) return snapshot;
+    const tag = el.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') return snapshot;
+    // compositionend 강제 — IME 조합 중 글자 확정시킴.
+    el.blur();
+    const name = el.getAttribute('name');
+    if (!name) return snapshot;
+    const field = NAME_TO_FIELD[name];
+    if (!field) return snapshot;
+    return { ...snapshot, [field]: el.value };
+  } catch {
+    return snapshot;
+  }
+}
+
+/**
+ * 로그아웃 시 모든 사용자의 draft localStorage / sessionStorage 키 정리.
+ * 격리는 이미 보장되지만 (key 에 userId 포함) 디스크 정리 + defense in depth.
+ */
+export function clearAllDraftStorage(): void {
+  try {
+    // localStorage: pawdex-record-draft-*
+    const lsKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('pawdex-record-draft-')) lsKeys.push(k);
+    }
+    lsKeys.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+  try {
+    // sessionStorage: pawdex-add-session, pawdex-edit-session-*
+    const ssKeys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && (k === 'pawdex-add-session' || k.startsWith('pawdex-edit-session-'))) {
+        ssKeys.push(k);
+      }
+    }
+    ssKeys.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+}

@@ -502,6 +502,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch {}
 
+    // 2.5) Clear all record draft storage — defense in depth.
+    // Draft 키에 userId 가 포함되어 격리는 보장되지만, 같은 디바이스에서 사용자
+    // 전환 시 이전 사용자의 draft 잔존 방지 + 디스크 정리.
+    try {
+      const { clearAllDraftStorage } = await import('@/lib/recordDraft');
+      clearAllDraftStorage();
+    } catch {}
+
     // 3) Tell Supabase to sign out (fire-and-forget)
     supabase.auth.signOut({ scope: 'global' }).catch(() => {});
   };
