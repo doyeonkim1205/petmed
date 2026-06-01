@@ -71,7 +71,7 @@ export function useDraftPersistence(
 ): UseDraftPersistenceReturn {
   const { variant, userId, recordId, ready, formState, recordOrigin, serverUpdatedAt, onApplyDraft } = opts;
 
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirtyState] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<RecordDraft | null>(null);
 
   // ref mirror — 매 render 동기 mutation. listener / effect 안에서 stale closure 방지.
@@ -87,6 +87,18 @@ export function useDraftPersistence(
   onApplyRef.current = onApplyDraft;
 
   const draftCheckedRef = useRef(false);
+
+  // 저장 직후 자동 draft 재생성 차단용 flag.
+  // - clearDraftAndSession 호출 시 true → 모든 save 경로 (즉시 saveDraft useEffect
+  //   + pagehide listener) 가드.
+  // - 사용자가 다시 form 을 만져 isDirty=true 가 되면 false 로 reset (재 작성 의도).
+  const savedRef = useRef(false);
+
+  // setIsDirty wrapper — true 로 설정 시 savedRef 자동 reset (재 입력 시작).
+  const setIsDirty = useCallback((v: boolean) => {
+    if (v) savedRef.current = false;
+    setIsDirtyState(v);
+  }, []);
 
   // record 원본 vs 현재 form state 비교 — form onChange race 우회용 (edit 모드 전용).
   const hasFormDiverged = useCallback((): boolean => {
@@ -141,15 +153,14 @@ export function useDraftPersistence(
   useEffect(() => {
     if (!ready || variant !== 'edit') return;
     if (!isDirtyRef.current && hasFormDiverged()) {
-      setIsDirty(true);
+      setIsDirty(true);  // wrapper 가 savedRef.current = false 자동 reset
     }
-    // formState 의 모든 필드를 dep 으로 — 호출부에서 동일 객체 reference 면 fire X.
-    // 새 객체 reference (매 render 마다 새로) 면 fire 됨. 호출부 책임.
-  }, [ready, variant, formState, hasFormDiverged]);
+  }, [ready, variant, formState, hasFormDiverged, setIsDirty]);
 
   // 3) saveDraft 즉시 — formState 변화 + isDirty true 시 동기 저장.
   useEffect(() => {
     if (!ready || !userId || pendingDraft || !isDirty) return;
+    if (savedRef.current) return;  // 저장 직후엔 재생성 차단
     const key = getKey(variant, userId, recordId);
     saveDraft(key, stateRef.current);
   }, [ready, userId, recordId, variant, pendingDraft, isDirty, formState]);
@@ -160,6 +171,10 @@ export function useDraftPersistence(
     if (!ready || !userId) return;
     const key = getKey(variant, userId, recordId);
     const save = () => {
+      // 저장 성공 후 navigate 시 pagehide 가 발생하는데, 그 시점 hasFormDiverged
+      // 는 여전히 true (recordOrigin 은 옛값) → save 호출되어 draft 가 다시 만들어짐.
+      // savedRef 가 이 race 를 차단.
+      if (savedRef.current) return;
       if (pendingDraftRef.current) return;
       const diverged = variant === 'edit' ? hasFormDiverged() : false;
       if (!isDirtyRef.current && !diverged) return;
@@ -192,7 +207,9 @@ export function useDraftPersistence(
     setPendingDraft(null);
   }, [userId, recordId, variant]);
 
-  // 7) 저장 성공 / 나가기 시 — draft + 세션 마커 정리 + isDirty 해제.
+  // 7) 저장 성공 / 나가기 시 — draft + 세션 마커 정리 + isDirty 해제 + savedRef set.
+  // savedRef 가 true 가 되면 이후 pagehide / 즉시 save useEffect 둘 다 차단되어
+  // navigate 직전 race 로 draft 가 다시 만들어지는 버그 방지.
   const clearDraftAndSession = useCallback(() => {
     if (userId) {
       const key = getKey(variant, userId, recordId);
@@ -200,7 +217,8 @@ export function useDraftPersistence(
     }
     const sessionKey = getSessionKey(variant, recordId);
     try { sessionStorage.removeItem(sessionKey); } catch {}
-    setIsDirty(false);
+    savedRef.current = true;
+    setIsDirtyState(false);
   }, [userId, recordId, variant]);
 
   return {
