@@ -71,12 +71,12 @@ export default function HomePage() {
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 */}
       <div className="px-4 pt-4 space-y-3">
-        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <section className="bg-white rounded-2xl p-4 border border-gray-100">
           <SectionTitle icon={Stethoscope} title="AI 케어" />
           <MenuGrid items={AI_CARE} />
         </section>
 
-        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <section className="bg-white rounded-2xl p-4 border border-gray-100">
           <SectionTitle icon={ClipboardList} title="건강 기록" />
           <MenuGrid items={HEALTH} />
         </section>

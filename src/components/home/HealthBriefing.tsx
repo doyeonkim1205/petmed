@@ -26,7 +26,7 @@ export function HealthBriefing() {
   const { briefings, petsCount, loading } = useHealthBriefing(user?.id);
 
   if (loading) {
-    return <div className="rounded-2xl bg-white border border-gray-100 shadow-sm h-[88px]" />;
+    return <div className="rounded-2xl bg-white border border-gray-100 h-[88px]" />;
   }
 
   if (petsCount === 0) {
@@ -48,7 +48,7 @@ function WelcomeCard() {
   return (
     <Link
       href="/profile"
-      className="block rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-4 active:scale-[0.99] transition-transform"
+      className="block rounded-2xl bg-white border border-gray-100 px-4 py-4 active:scale-[0.99] transition-transform"
     >
       <div className="flex items-center gap-3">
         <span className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -76,7 +76,7 @@ function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
   return (
     <Link
       href="/records/add"
-      className="block rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition-transform"
+      className="block rounded-2xl bg-white border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform"
     >
       <div className="px-4 pt-3 pb-2 flex items-center gap-2">
         <PetAvatar />
@@ -167,7 +167,7 @@ function BriefingCard({
     .join(' · ');
 
   return (
-    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
       {/* 헤더 — 한 줄.
           평소: 펫 아이콘 + 이름 + (나이 · 체중)
           생일: 펫 아이콘 + "{name}의 생일이에요, 축하합니다!" + Cake 아이콘 (rose 포인트)
@@ -179,7 +179,7 @@ function BriefingCard({
             <p className="text-sm font-bold text-gray-800 flex items-center gap-1 min-w-0">
               <Cake size={14} className="text-rose-500 flex-shrink-0" />
               <span className="truncate">
-                오늘은 {briefing.pet.name}의 생일! 오늘 더 행복하자
+                {briefing.pet.name}의 소중한 생일을 축하해요
               </span>
               <Heart size={14} className="text-rose-500 fill-rose-500 flex-shrink-0" />
             </p>
@@ -255,11 +255,13 @@ function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
     daysUntilAppointment <= 3 &&
     nextAppointmentDate
   ) {
+    // D-0 (당일) → "D-Day" 로 강조. D-1, D-2, D-3 은 그대로.
+    const dLabel = daysUntilAppointment === 0 ? 'D-Day' : `D-${daysUntilAppointment}`;
     return (
       <div className="flex items-center gap-2 text-[12px] text-orange-600 font-bold">
         <Calendar size={13} className="text-orange-500 flex-shrink-0" />
         <span>
-          예약 D-{daysUntilAppointment} · {formatShortDate(nextAppointmentDate)}
+          예약 {dLabel} · {formatShortDate(nextAppointmentDate)}
         </span>
       </div>
     );
