@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PawPrint, MessageSquare, Calendar, Cake, Heart } from 'lucide-react';
+import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
 import { formatAge } from '@/lib/healthBriefing';
@@ -43,6 +43,7 @@ export function HealthBriefing() {
 
 // ────────────────────────────────────────────────
 // 환영 카드 (펫 0마리)
+// 카드 전체 클릭 → /profile (펫 등록). 우측 chevron 으로 affordance.
 // ────────────────────────────────────────────────
 function WelcomeCard() {
   return (
@@ -55,10 +56,10 @@ function WelcomeCard() {
           <PawPrint size={18} className="text-blue-600" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800 mb-0.5">반려동물을 등록해주세요</p>
-          <p className="text-[11px] text-gray-500 leading-snug">가족의 건강을 함께 챙겨드릴게요</p>
+          <p className="text-sm font-bold text-gray-800 mb-0.5">소중한 가족을 등록해주세요</p>
+          <p className="text-[11px] text-gray-500 leading-snug">PawDex 와 함께해요</p>
         </div>
-        <span className="text-[11px] font-bold text-blue-600 flex-shrink-0">등록 →</span>
+        <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
     </Link>
   );
@@ -66,6 +67,8 @@ function WelcomeCard() {
 
 // ────────────────────────────────────────────────
 // 첫 기록 CTA (펫 있음, 기록 0)
+// 일반 펫 카드와 같은 2행 레이아웃 (헤더 + 본문 2줄). 카드 전체 클릭 → /records/add.
+// → 슬라이드 시 다른 펫 카드와 높이 동일. 시각적 일관성.
 // ────────────────────────────────────────────────
 function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
   const first = briefings[0];
@@ -78,17 +81,27 @@ function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
       href="/records/add"
       className="block rounded-2xl bg-white border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform"
     >
-      <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-        <PetAvatar />
-        <p className="text-sm font-bold text-gray-800">
-          {first.pet.name}
-          {meta && <span className="text-[10px] font-medium text-gray-400 ml-1.5">{meta}</span>}
-        </p>
+      {/* 헤더 — 펫 정보 + chevron */}
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <PetAvatar />
+          <p className="text-sm font-bold text-gray-800 truncate">
+            {first.pet.name}
+            {meta && <span className="text-[10px] font-medium text-gray-400 ml-1.5">{meta}</span>}
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
-      <div className="px-4 pb-4 pt-1">
-        <p className="text-[13px] text-gray-700 mb-1.5">첫 기록을 남겨볼까요?</p>
-        <p className="text-[11px] text-gray-500 mb-2">{first.pet.name}의 건강을 기록하기 시작해요</p>
-        <span className="text-[11px] font-bold text-green-700">기록 추가 →</span>
+      {/* 본문 — 일반 카드와 같은 2행 형식 */}
+      <div className="px-4 pb-3.5 pt-1 space-y-1.5">
+        <div className="flex items-center gap-2 text-[12px] text-gray-700">
+          <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
+          <span>첫 기록을 남겨볼까요?</span>
+        </div>
+        <div className="flex items-center gap-2 text-[12px] text-gray-400">
+          <Calendar size={13} className="flex-shrink-0" />
+          <span>예약 없음</span>
+        </div>
       </div>
     </Link>
   );
