@@ -16,7 +16,8 @@ import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
-import { saveDraft, loadDraft, clearDraft, draftKey, captureFocusedInputValue, type RecordDraft } from '@/lib/recordDraft';
+import { type RecordDraft } from '@/lib/recordDraft';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -97,15 +98,10 @@ export default function RecordAddPage() {
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
-  // Draft 복원 모달 — 진입 시 draft 있으면 모달 띄움.
-  const [pendingDraft, setPendingDraft] = useState<RecordDraft | null>(null);
-  // draft 로드 1회만 (마운트 시) — 초기 폼에 draft 적용 후 isDirty 켜야 하므로 별도 flag.
-  const draftCheckedRef = useRef(false);
   const [dischargeDate, setDischargeDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [saving, setSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const guardPushedRef = useRef(false);
   const [error, setError] = useState('');
@@ -259,115 +255,45 @@ export default function RecordAddPage() {
     })();
   }, [user?.id]);
 
-  // Draft 로드 — 마운트 시 1회.
-  // - 같은 PWA 세션 (사용자가 입력 중 다른 앱 갔다 옴) → 모달 없이 자동 복원
-  // - 새 세션 (PWA 종료 후 재실행, 어제 멈춘 draft) → 모달로 [불러오기]/[새로 시작] 묻기
-  // sessionStorage 는 PWA 닫으면 초기화되므로 자연스럽게 세션 구분됨.
-  useEffect(() => {
-    if (!user || draftCheckedRef.current) return;
-    draftCheckedRef.current = true;
-    const draft = loadDraft(draftKey.add(user.id));
-    if (!draft) {
-      // draft 없어도 세션 마커는 켜둠 (앞으로 저장될 draft 의 세션 기준)
-      try { sessionStorage.setItem('pawdex-add-session', '1'); } catch {}
-      return;
-    }
-    let sameSession = false;
-    try { sameSession = sessionStorage.getItem('pawdex-add-session') === '1'; } catch {}
-    if (sameSession) {
-      // 같은 세션 — 모달 없이 직접 복원
-      if (draft.recordType) setRecordType(draft.recordType);
-      if (draft.petId) setPetId(draft.petId);
-      if (draft.title !== undefined) setTitle(draft.title);
-      if (draft.description !== undefined) setDescription(draft.description);
-      if (draft.hospitalName !== undefined) setHospitalName(draft.hospitalName);
-      if (draft.cost !== undefined) setCost(draft.cost);
-      if (draft.weight !== undefined) setWeight(draft.weight);
-      if (draft.symptomTime !== undefined) setSymptomTime(draft.symptomTime);
-      if (draft.visitDate) setVisitDate(draft.visitDate);
-      if (draft.dischargeDate !== undefined) setDischargeDate(draft.dischargeDate);
-      if (draft.nextAppointmentDate !== undefined) setNextAppointmentDate(draft.nextAppointmentDate);
-      if (draft.recordColor) setRecordColor(draft.recordColor);
-      if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
-      if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
-      // setIsDirty 호출 X — 자동 복원만으로는 dirty 안 켬.
-      // 사용자가 실제 form 건드려야 form onChange 로 자동 dirty.
-    } else {
-      // 새 세션 — 모달로 확인
-      setPendingDraft(draft);
-    }
-    try { sessionStorage.setItem('pawdex-add-session', '1'); } catch {}
-  }, [user]);
+  // 자동 복원 / [불러오기] 시 form 적용 콜백 — 모든 setter 한 곳에 모음.
+  const applyDraftValues = (d: RecordDraft) => {
+    if (d.recordType) setRecordType(d.recordType);
+    if (d.petId) setPetId(d.petId);
+    if (d.title !== undefined) setTitle(d.title);
+    if (d.description !== undefined) setDescription(d.description);
+    if (d.hospitalName !== undefined) setHospitalName(d.hospitalName);
+    if (d.cost !== undefined) setCost(d.cost);
+    if (d.weight !== undefined) setWeight(d.weight);
+    if (d.symptomTime !== undefined) setSymptomTime(d.symptomTime);
+    if (d.visitDate) setVisitDate(d.visitDate);
+    if (d.dischargeDate !== undefined) setDischargeDate(d.dischargeDate);
+    if (d.nextAppointmentDate !== undefined) setNextAppointmentDate(d.nextAppointmentDate);
+    if (d.recordColor) setRecordColor(d.recordColor);
+    if (d.nextAppointmentColor) setNextAppointmentColor(d.nextAppointmentColor);
+    if (d.selectedSubKinds) setSelectedSubKinds(d.selectedSubKinds);
+  };
 
-  // 매 render 마다 최신 state 를 ref 에 mirror — pagehide/visibility 핸들러가 closure
-  // stale 안 되게. useRef 는 mutation 이 동기적이라 ms 단위 안전망에서 안전.
-  const stateRef = useRef<RecordDraft>({});
-  stateRef.current = {
+  // hook 에 전달할 현재 form state — 매 render 마다 새 객체 (hook 안에서 ref mirror).
+  const formState: RecordDraft = {
     recordType, title, description, hospitalName, cost, weight, symptomTime,
     visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
     petId, selectedSubKinds,
   };
-  const pendingDraftRef = useRef(pendingDraft);
-  pendingDraftRef.current = pendingDraft;
-  const isDirtyRef = useRef(isDirty);
-  isDirtyRef.current = isDirty;
 
-  // Draft 즉시 저장 — state 변경 시 fire. 단, 사용자가 실제로 form 을 건드렸을 때만 (isDirty).
-  // → 페이지 열어보기만 하고 닫은 케이스에선 draft 안 만듦 → 다음 진입 시 모달 X.
-  useEffect(() => {
-    if (!user || pendingDraft || !isDirty) return;
-    saveDraft(draftKey.add(user.id), stateRef.current);
-  }, [user, pendingDraft, isDirty, recordType, title, description, hospitalName, cost, weight, symptomTime,
-      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-      petId, selectedSubKinds]);
-
-  // 백그라운드 안전망 — listener 는 user?.id 만 dep 으로 1회 attach. ref 로 최신값 읽음.
-  // captureFocusedInputValue: IME 한글 조합 중 이탈 시 마지막 글자 유실 방지 (DOM value override).
-  useEffect(() => {
-    if (!user?.id) return;
-    const userId = user.id;
-    const save = () => {
-      if (pendingDraftRef.current || !isDirtyRef.current) return;
-      const snapshot = captureFocusedInputValue(stateRef.current);
-      saveDraft(draftKey.add(userId), snapshot);
-    };
-    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', save);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', save);
-    };
-  }, [user?.id]);
-
-  // 복원 모달 [불러오기] — draft 의 모든 필드를 state 에 적용 후 isDirty 켜기.
-  const applyDraft = () => {
-    if (!pendingDraft) return;
-    if (pendingDraft.recordType) setRecordType(pendingDraft.recordType);
-    if (pendingDraft.petId) setPetId(pendingDraft.petId);
-    if (pendingDraft.title !== undefined) setTitle(pendingDraft.title);
-    if (pendingDraft.description !== undefined) setDescription(pendingDraft.description);
-    if (pendingDraft.hospitalName !== undefined) setHospitalName(pendingDraft.hospitalName);
-    if (pendingDraft.cost !== undefined) setCost(pendingDraft.cost);
-    if (pendingDraft.weight !== undefined) setWeight(pendingDraft.weight);
-    if (pendingDraft.symptomTime !== undefined) setSymptomTime(pendingDraft.symptomTime);
-    if (pendingDraft.visitDate) setVisitDate(pendingDraft.visitDate);
-    if (pendingDraft.dischargeDate !== undefined) setDischargeDate(pendingDraft.dischargeDate);
-    if (pendingDraft.nextAppointmentDate !== undefined) setNextAppointmentDate(pendingDraft.nextAppointmentDate);
-    if (pendingDraft.recordColor) setRecordColor(pendingDraft.recordColor);
-    if (pendingDraft.nextAppointmentColor) setNextAppointmentColor(pendingDraft.nextAppointmentColor);
-    if (pendingDraft.selectedSubKinds) setSelectedSubKinds(pendingDraft.selectedSubKinds);
-    setIsDirty(true);
-    setPendingDraft(null);
-  };
-
-  // 복원 모달 [새로 시작] — draft 폐기 + 모달 닫기.
-  // 세션 마커는 그대로 유지 (이미 켜져 있음). 새 입력 → save 후 다른 앱 갔다 와도
-  // 같은 세션 → 자동 복원되어 입력 그대로 보임.
-  const discardDraft = () => {
-    if (user) clearDraft(draftKey.add(user.id));
-    setPendingDraft(null);
-  };
+  const {
+    isDirty,
+    setIsDirty,
+    pendingDraft,
+    applyDraft,
+    discardDraft,
+    clearDraftAndSession,
+  } = useDraftPersistence({
+    variant: 'add',
+    userId: user?.id,
+    ready: !!user?.id,
+    formState,
+    onApplyDraft: applyDraftValues,
+  });
 
   const addMedicationRow = () => {
     // alarm_enabled 디폴트 false: 사용자의 명시적 opt-in 요구. 이전에는
@@ -715,12 +641,9 @@ export default function RecordAddPage() {
         }
       }
 
-      // 저장 성공 → draft 삭제 + 세션 마커 해제 + dirty 해제 후 이동.
-      // 세션 마커 해제: 다음 add 진입 시 (예: 같은 PWA 세션 안에서 곧바로 또 작성)
-      // 모달 없이 빈 폼으로 시작. 새 draft 저장되면 자동으로 다시 마커 켜짐.
-      if (user) clearDraft(draftKey.add(user.id));
-      try { sessionStorage.removeItem('pawdex-add-session'); } catch {}
-      setIsDirty(false);
+      // 저장 성공 → draft + 세션 마커 정리 + dirty 해제 후 이동.
+      // 다음 add 진입 시 모달 없이 빈 폼으로 시작 (마커가 비어있어 새 세션 인식).
+      clearDraftAndSession();
       guardPushedRef.current = false;
       router.push('/records');
     } catch (err) {
@@ -832,7 +755,7 @@ export default function RecordAddPage() {
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={1000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
@@ -941,7 +864,7 @@ export default function RecordAddPage() {
               placeholder="상세 내용을 입력하세요"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+              onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
               maxLength={700}
               autoComplete="off"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
@@ -966,7 +889,7 @@ export default function RecordAddPage() {
                 placeholder="상세 내용을 입력하세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 autoComplete="off"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
@@ -1307,10 +1230,8 @@ export default function RecordAddPage() {
         onConfirm={() => {
           // "나가기" = 작성 포기. draft + 세션 마커 모두 정리 → 다음 진입 시 모달 안 뜸.
           setShowExitConfirm(false);
-          setIsDirty(false);
+          clearDraftAndSession();
           guardPushedRef.current = false;
-          if (user) clearDraft(draftKey.add(user.id));
-          try { sessionStorage.removeItem('pawdex-add-session'); } catch {}
           window.history.go(-2);
         }}
         onCancel={() => setShowExitConfirm(false)}

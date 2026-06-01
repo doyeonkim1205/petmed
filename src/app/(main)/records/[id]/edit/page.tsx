@@ -18,7 +18,9 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
-import { saveDraft, loadDraft, clearDraft, draftKey, captureFocusedInputValue, type RecordDraft } from '@/lib/recordDraft';
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { type RecordDraft } from '@/lib/recordDraft';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -74,7 +76,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const medEndRef = useRef<HTMLDivElement>(null);
   const fileEndRef = useRef<HTMLDivElement>(null);
 
-  const [isDirty, setIsDirty] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [pets, setPets] = useState<Pet[]>([]);
@@ -92,18 +93,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
-  // v12: 선택한 sub_kind 목록만 추적 (멀티 선택, 중복 X). 메모는 description state 활용.
   const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [dischargeDate, setDischargeDate] = useState('');
-  // Draft 복원 모달.
-  const [pendingDraft, setPendingDraft] = useState<RecordDraft | null>(null);
   // record updated_at — draft stale 판정용. record 로드 후 set.
   const [recordUpdatedAt, setRecordUpdatedAt] = useState<string | null>(null);
-  // draft 체크 1회만.
-  const draftCheckedRef = useRef(false);
-  // record 원본 (form 비교 기준) — form onChange 가 일부 환경에서 안 fire 되는
-  // 케이스 방어용. state vs origin 직접 비교로 dirty 자동 검출.
-  const recordOriginalRef = useRef<RecordDraft | null>(null);
+  // record 원본 (RecordDraft 형태) — useDraftPersistence 의 비교 기준.
+  const [recordOrigin, setRecordOrigin] = useState<RecordDraft | null>(null);
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -112,7 +107,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState('');
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
-  // 토글 ON 시 subscribe 진행 중 표시 (-1 = 없음)
   const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
@@ -130,115 +124,48 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     if (id && user?.id) loadData();
   }, [id, user?.id]);
 
-  // ref mirror — closure stale 방지. 매 render 동기 mutation.
-  const stateRef = useRef<RecordDraft>({});
-  stateRef.current = {
+  // 자동 복원 콜백 — hook 이 draft 발견 시 호출. 모든 setter 한 곳에 모음.
+  const applyDraftValues = (d: RecordDraft) => {
+    if (d.recordType) setRecordType(d.recordType);
+    if (d.petId) setPetId(d.petId);
+    if (d.title !== undefined) setTitle(d.title);
+    if (d.description !== undefined) setDescription(d.description);
+    if (d.hospitalName !== undefined) setHospitalName(d.hospitalName);
+    if (d.cost !== undefined) setCost(d.cost);
+    if (d.weight !== undefined) setWeight(d.weight);
+    if (d.symptomTime !== undefined) setSymptomTime(d.symptomTime);
+    if (d.visitDate) setVisitDate(d.visitDate);
+    if (d.dischargeDate !== undefined) setDischargeDate(d.dischargeDate);
+    if (d.nextAppointmentDate !== undefined) setNextAppointmentDate(d.nextAppointmentDate);
+    if (d.recordColor) setRecordColor(d.recordColor);
+    if (d.nextAppointmentColor) setNextAppointmentColor(d.nextAppointmentColor);
+    if (d.selectedSubKinds) setSelectedSubKinds(d.selectedSubKinds);
+  };
+
+  // hook 에 전달할 현재 form state — 매 render 마다 새 객체 (hook 안에서 ref 로 mirror).
+  const formState: RecordDraft = {
     recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
     cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
     recordColor, nextAppointmentColor, petId, selectedSubKinds,
   };
-  const pendingDraftRef = useRef(pendingDraft);
-  pendingDraftRef.current = pendingDraft;
-  const isDirtyRef = useRef(isDirty);
-  isDirtyRef.current = isDirty;
 
-  // record 원본 vs 현재 state 비교 — form 값이 정말 변경됐는지 직접 검출.
-  // form onChange bubble 이 일부 환경 (TWA 등) 에서 안 fire 되는 케이스 방어용.
-  const hasFormDiverged = (): boolean => {
-    const orig = recordOriginalRef.current;
-    if (!orig) return false;
-    const cur = stateRef.current;
-    const a = [...(cur.selectedSubKinds || [])].sort().join(',');
-    const b = [...(orig.selectedSubKinds || [])].sort().join(',');
-    return (
-      cur.recordType !== orig.recordType ||
-      cur.title !== orig.title ||
-      cur.description !== orig.description ||
-      cur.hospitalName !== orig.hospitalName ||
-      cur.cost !== orig.cost ||
-      cur.weight !== orig.weight ||
-      cur.symptomTime !== orig.symptomTime ||
-      cur.visitDate !== orig.visitDate ||
-      cur.dischargeDate !== orig.dischargeDate ||
-      cur.nextAppointmentDate !== orig.nextAppointmentDate ||
-      cur.recordColor !== orig.recordColor ||
-      cur.nextAppointmentColor !== orig.nextAppointmentColor ||
-      cur.petId !== orig.petId ||
-      a !== b
-    );
-  };
-
-  // form onChange 가 누락된 환경 대비 — state diff 보이면 자동 dirty 켜기.
-  // record 로드 직후엔 cur == orig 이라 dirty 안 켜짐. 사용자 입력 후 또는 자동
-  // 복원 후 state 가 origin 과 달라지면 즉시 isDirty=true → saveDraft 동작.
-  useEffect(() => {
-    if (!recordUpdatedAt) return;
-    if (!isDirtyRef.current && hasFormDiverged()) {
-      setIsDirty(true);
-    }
-  }, [recordUpdatedAt, recordType, title, description, hospitalName, cost, weight, symptomTime,
-      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-      petId, selectedSubKinds]);
-
-  // Draft 즉시 저장 — 사용자가 실제로 form 을 건드렸을 때만 (isDirty).
-  // → record 로드만 하고 변경 없이 나간 케이스 / 그냥 들여다보기만 한 케이스에선
-  //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
-  useEffect(() => {
-    if (!user?.id || !recordUpdatedAt || pendingDraft || !isDirty) return;
-    saveDraft(draftKey.edit(user.id, id), stateRef.current);
-  }, [user?.id, id, recordUpdatedAt, pendingDraft, isDirty, recordType, title, description, hospitalName,
-      cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
-      recordColor, nextAppointmentColor, petId, selectedSubKinds]);
-
-  // 백그라운드 안전망 — listener 는 user?.id/id/loaded 만 dep. ref 로 최신값 읽음.
-  // isDirty state 가 stale 인 race 까지 방어하려고 hasFormDiverged() 도 가드로 사용.
-  useEffect(() => {
-    if (!user?.id || !recordUpdatedAt) return;
-    const userId = user.id;
-    const save = () => {
-      const diverged = hasFormDiverged();
-      if (pendingDraftRef.current) return;
-      if (!isDirtyRef.current && !diverged) return;
-      // captureFocusedInputValue: IME 조합 중 글자도 DOM 에서 직접 읽어 override.
-      const snapshot = captureFocusedInputValue(stateRef.current);
-      saveDraft(draftKey.edit(userId, id), snapshot);
-    };
-    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
-    const onPagehide = save;
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', onPagehide);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', onPagehide);
-    };
-  }, [user?.id, id, recordUpdatedAt]);
-
-  // 복원 모달 [불러오기] — draft 값 적용 + isDirty.
-  const applyDraft = () => {
-    if (!pendingDraft) return;
-    if (pendingDraft.recordType) setRecordType(pendingDraft.recordType);
-    if (pendingDraft.petId) setPetId(pendingDraft.petId);
-    if (pendingDraft.title !== undefined) setTitle(pendingDraft.title);
-    if (pendingDraft.description !== undefined) setDescription(pendingDraft.description);
-    if (pendingDraft.hospitalName !== undefined) setHospitalName(pendingDraft.hospitalName);
-    if (pendingDraft.cost !== undefined) setCost(pendingDraft.cost);
-    if (pendingDraft.weight !== undefined) setWeight(pendingDraft.weight);
-    if (pendingDraft.symptomTime !== undefined) setSymptomTime(pendingDraft.symptomTime);
-    if (pendingDraft.visitDate) setVisitDate(pendingDraft.visitDate);
-    if (pendingDraft.dischargeDate !== undefined) setDischargeDate(pendingDraft.dischargeDate);
-    if (pendingDraft.nextAppointmentDate !== undefined) setNextAppointmentDate(pendingDraft.nextAppointmentDate);
-    if (pendingDraft.recordColor) setRecordColor(pendingDraft.recordColor);
-    if (pendingDraft.nextAppointmentColor) setNextAppointmentColor(pendingDraft.nextAppointmentColor);
-    if (pendingDraft.selectedSubKinds) setSelectedSubKinds(pendingDraft.selectedSubKinds);
-    setIsDirty(true);
-    setPendingDraft(null);
-  };
-
-  // 복원 모달 [새로 시작] — draft 폐기 (서버 record 그대로 사용).
-  const discardDraft = () => {
-    if (user) clearDraft(draftKey.edit(user.id, id));
-    setPendingDraft(null);
-  };
+  const {
+    isDirty,
+    setIsDirty,
+    pendingDraft,
+    applyDraft,
+    discardDraft,
+    clearDraftAndSession,
+  } = useDraftPersistence({
+    variant: 'edit',
+    userId: user?.id,
+    recordId: id,
+    ready: !!recordUpdatedAt,  // record 로드 완료 후 활성
+    formState,
+    recordOrigin,
+    serverUpdatedAt: recordUpdatedAt,
+    onApplyDraft: applyDraftValues,
+  });
 
   const loadData = async () => {
     try {
@@ -299,13 +226,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
 
-      // record 원본 스냅샷 (RecordDraft 형태) — state vs origin 비교로 dirty 자동 검출.
-      // description legacyMemos 합본은 reset 직전 값과 동일하게 맞춰 false-positive 방지.
+      // record 원본 스냅샷 — useDraftPersistence 의 state vs origin 비교 기준.
+      // legacy memo 합본을 description 원본으로 사용 (false-positive dirty 방지).
       const originalDescription = record.description
         || (record.record_type === 'daily' && record.sub_entries
             ? record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n')
             : '');
-      recordOriginalRef.current = {
+      setRecordOrigin({
         recordType: record.record_type,
         title: record.title,
         description: originalDescription,
@@ -320,46 +247,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         nextAppointmentColor: record.next_appointment_color || '#8B5CF6',
         petId: record.pet_id,
         selectedSubKinds: initialSubKinds,
-      };
+      });
 
-      // Draft 체크 — record 로드 완료 후 1회.
-      // 1) 같은 PWA 세션 (sessionStorage 세션 마커 있음) → 모달 없이 자동 복원
-      //    (사용자가 작성 중 다른 앱 갔다 온 케이스)
-      // 2) 새 세션 → 모달
-      // serverUpdatedAt 비교는 stale draft 폐기에 사용.
-      const sessionKey = `pawdex-edit-session-${id}`;
-      if (!draftCheckedRef.current && user) {
-        draftCheckedRef.current = true;
-        const draft = loadDraft(draftKey.edit(user.id, id), { serverUpdatedAt: record.updated_at });
-        let sameSession = false;
-        try { sameSession = sessionStorage.getItem(sessionKey) === '1'; } catch {}
-        if (draft) {
-          if (sameSession) {
-            // 같은 세션 — 모달 없이 직접 복원 (record 값 위에 덮어씀).
-            // setIsDirty 는 호출 X — state 비교 useEffect 가 자동으로 dirty 켜줌.
-            if (draft.title !== undefined) setTitle(draft.title);
-            if (draft.description !== undefined) setDescription(draft.description);
-            if (draft.hospitalName !== undefined) setHospitalName(draft.hospitalName);
-            if (draft.cost !== undefined) setCost(draft.cost);
-            if (draft.weight !== undefined) setWeight(draft.weight);
-            if (draft.symptomTime !== undefined) setSymptomTime(draft.symptomTime);
-            if (draft.visitDate) setVisitDate(draft.visitDate);
-            if (draft.dischargeDate !== undefined) setDischargeDate(draft.dischargeDate);
-            if (draft.nextAppointmentDate !== undefined) setNextAppointmentDate(draft.nextAppointmentDate);
-            if (draft.recordColor) setRecordColor(draft.recordColor);
-            if (draft.nextAppointmentColor) setNextAppointmentColor(draft.nextAppointmentColor);
-            if (draft.petId) setPetId(draft.petId);
-            if (draft.selectedSubKinds) setSelectedSubKinds(draft.selectedSubKinds);
-          } else {
-            // 새 세션 — 모달
-            setPendingDraft(draft);
-          }
-        }
-        try { sessionStorage.setItem(sessionKey, '1'); } catch {}
-      }
-      // recordUpdatedAt 은 가장 마지막에 set — draft 즉시 저장 useEffect 의 트리거.
-      // 위의 draft 체크/setPendingDraft 가 같은 batch 에 들어가, useEffect 첫 fire 시
-      // pendingDraft 가 truthy 면 saveDraft 차단되어 record 값으로 덮어쓰기 방지.
+      // recordUpdatedAt 은 가장 마지막에 set — useDraftPersistence 의 ready 트리거.
+      // ready=true 가 되면 hook 이 draft 체크 + 자동 복원 또는 모달 표시 진행.
       setRecordUpdatedAt(record.updated_at ?? null);
     } catch (error) {
       Sentry.captureException(error, {
@@ -655,10 +546,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       // 저장 성공 → draft + 세션 마커 정리, dirty 해제 (popstate guard 가 가로채지 않도록)
-      if (user) clearDraft(draftKey.edit(user.id, id));
-      try { sessionStorage.removeItem(`pawdex-edit-session-${id}`); } catch {}
+      clearDraftAndSession();
       const hadGuard = guardPushedRef.current;
-      setIsDirty(false);
       guardPushedRef.current = false;
       // edit 엔트리만 pop 해서 기존 detail 로 복귀
       if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -682,11 +571,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-500">로딩 중...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -761,7 +646,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 placeholder="오늘 하루를 기록해보세요"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={1000}
                 autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
@@ -866,7 +751,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+              onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
               maxLength={700}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
@@ -890,7 +775,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => { setDescription(e.currentTarget.value); stateRef.current.description = e.currentTarget.value; }}
+                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={700}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
@@ -1227,10 +1112,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         onConfirm={() => {
           // "나가기" = 수정 포기. draft + 세션 마커 모두 정리 → 다음 진입 시 모달 안 뜸.
           setShowExitConfirm(false);
-          setIsDirty(false);
+          clearDraftAndSession();
           guardPushedRef.current = false;
-          if (user) clearDraft(draftKey.edit(user.id, id));
-          try { sessionStorage.removeItem(`pawdex-edit-session-${id}`); } catch {}
           // 가짜 히스토리 항목 + 실제 뒤로가기 → 2단계 back
           window.history.go(-2);
         }}

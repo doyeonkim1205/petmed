@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase, DailySubKind } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
@@ -92,11 +93,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-500">로딩 중...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!record) {
