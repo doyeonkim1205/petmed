@@ -7,7 +7,7 @@ import {
   Stethoscope, LucideIcon,
 } from 'lucide-react';
 import { HomeBanner } from '@/components/home/HomeBanner';
-import { HealthTip } from '@/components/home/HealthTip';
+import { HealthBriefing } from '@/components/home/HealthBriefing';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
@@ -64,9 +64,9 @@ export default function HomePage() {
       {/* 상단 배너 캐러셀 */}
       <HomeBanner />
 
-      {/* 오늘의 건강 팁 */}
+      {/* 건강 브리핑 — 펫별 메트릭 + 동적 강조 */}
       <div className="px-4 pt-3">
-        <HealthTip />
+        <HealthBriefing />
       </div>
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 */}

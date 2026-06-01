@@ -79,6 +79,7 @@ export function PetFormFields({
           type="date"
           value={form.birth_date}
           onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+          max={new Date().toISOString().split('T')[0]}
           className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
         />
       </div>

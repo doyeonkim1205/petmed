@@ -71,5 +71,14 @@ export function validatePetForm(form: PetFormState): string | null {
     const w = parseFloat(form.weight.trim());
     if (isNaN(w) || w <= 0) return '체중은 양수로 입력해주세요 (예: 4.2)';
   }
+  if (form.birth_date) {
+    // input max 우회 (직접 타이핑 / 모바일 키보드 등) 방어용 이중 검증.
+    const birth = new Date(form.birth_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!isNaN(birth.getTime()) && birth > today) {
+      return '생년월일은 오늘 이전 날짜로 입력해주세요';
+    }
+  }
   return null;
 }
