@@ -102,13 +102,13 @@ export function daysBetween(date1: string, date2: string): number {
 }
 
 /**
- * 동적 강조 우선순위 — 가장 의미 있는 알림 1개만 카드 상단 강조.
+ * 동적 강조 우선순위 — 가장 의미 있는 알림 1개만 텍스트 색/볼드로 강조.
  *
  * 우선순위:
- *   1. 생일 당일 (rose)
- *   2. 다음 예약 D-7 이내 (amber)
- *   3. 마지막 기록 7일 초과 (blue)
- *   4. 없음 (강조 박스 안 보임 → 메트릭만)
+ *   1. 생일 당일 → 헤더에 별도 두 번째 줄로 표시 (rose)
+ *   2. 다음 예약 D-3 이내 → "다음 예약" 메트릭 행 색/볼드 (amber)
+ *   3. 마지막 기록 7일 초과 → "마지막 기록" 메트릭 행 색/볼드 (blue)
+ *   4. 없음 → 메트릭 2행 회색 (평소)
  */
 export type HighlightType = 'birthday' | 'appointment' | 'inactive' | null;
 
@@ -124,7 +124,7 @@ export function pickHighlight(opts: {
   daysSinceLastRecord: number | null;
 }): Highlight {
   if (opts.isBirthday) return { type: 'birthday' };
-  if (opts.daysUntilAppointment !== null && opts.daysUntilAppointment <= 7) {
+  if (opts.daysUntilAppointment !== null && opts.daysUntilAppointment <= 3) {
     return { type: 'appointment', daysUntilAppointment: opts.daysUntilAppointment };
   }
   if (opts.daysSinceLastRecord !== null && opts.daysSinceLastRecord >= 7) {
