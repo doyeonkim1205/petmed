@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight } from 'lucide-react';
+import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
 import { formatAge } from '@/lib/healthBriefing';
@@ -219,17 +219,17 @@ function BriefingCard({
 }
 
 // 마지막 기록 행 — daysSinceLastRecord 만으로 독립 판단 (highlight 의존 X).
-// 강조 시 blue (앱 메인 톤) + bold.
-//   - 0일 (오늘): blue + bold + "오늘 기록 완료"
-//   - 1~6일: gray + "N일 전"
-//   - 7일+ (포함): blue + bold + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
+// 카드 전체 톤 통일 (gray). 강조는 텍스트 메시지 + 아이콘 차별로.
+//   - 0일 (오늘): gray + bold + Check 아이콘 + "오늘 기록 완료" — 완료 의미 명확
+//   - 1~6일: gray normal + 말풍선 + "N일 전"
+//   - 7일+ (포함): gray normal + 말풍선 + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
 //   - 기록 없음: gray + "아직 기록 없음"
 function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   const { daysSinceLastRecord, pet } = briefing;
   if (daysSinceLastRecord !== null && daysSinceLastRecord >= 7) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-blue-700 font-bold">
-        <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-gray-700">
+        <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
         <span>
           {daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
         </span>
@@ -238,8 +238,8 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   }
   if (daysSinceLastRecord === 0) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-blue-700 font-bold">
-        <MessageSquare size={13} className="text-blue-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-[12px] text-gray-700 font-bold">
+        <Check size={13} className="text-gray-500 flex-shrink-0" />
         <span>오늘 기록 완료</span>
       </div>
     );
