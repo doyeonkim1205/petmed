@@ -28,6 +28,19 @@ export function UpdateToast() {
     // 첫 설치 (컨트롤러 없음) → 업데이트 아님
     if (!navigator.serviceWorker.controller) return;
 
+    // ⚠️ 적용 시도 직후 mount (reload 이후) 면 5분 silence 강제.
+    // TWA / 일부 환경에서 controllerchange 가 늦게 fire 되어 timeout reload 가
+    // 옛 controller 상태로 페이지를 다시 띄우는 race → 같은 waiting 이 또 보여
+    // 토스트 무한 반복. 이 마커로 한 번 reload 후엔 5분 동안 토스트 자체를 차단.
+    try {
+      if (sessionStorage.getItem('sw-applying') === '1') {
+        sessionStorage.removeItem('sw-applying');
+        sessionStorage.setItem('sw-toast-silent-until', String(Date.now() + 5 * 60 * 1000));
+        // 적용 성공으로 간주 — retry 카운터도 초기화
+        sessionStorage.removeItem('sw-apply-retry');
+      }
+    } catch {}
+
     // 사용자가 X 로 dismiss 한 직후 5분간은 새 toast 안 띄움.
     // sessionStorage 라 PWA 닫으면 초기화 (의도적).
     const reveal = (sw: ServiceWorker) => {
@@ -77,13 +90,35 @@ export function UpdateToast() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
-  const applyUpdate = () => {
+  const applyUpdate = async () => {
     if (!waitingSW || applying) return;
     setApplying(true);
 
     // 이전 B안 (reg.update() 호출) 은 부작용으로 토스트 무한 반복 야기 → 제거.
-    // [지금 적용] 시점의 waitingSW 를 그대로 활성화. 짧은 시간 연속 푸시가 있어도
-    // 다음 reload 후 새 toast 한 번 더 거치는 게 안전 (race 없음).
+    // [지금 적용] 시점의 waitingSW 를 그대로 활성화.
+
+    // 적용 시도 마커 — reload 후 mount 시 silence 5분 자동 적용 (race 차단).
+    // 두 번째 시도면 강제 unregister 로 escape hatch.
+    let retry = 0;
+    try {
+      retry = parseInt(sessionStorage.getItem('sw-apply-retry') || '0', 10);
+      sessionStorage.setItem('sw-applying', '1');
+      sessionStorage.setItem('sw-apply-retry', String(retry + 1));
+    } catch {}
+
+    if (retry >= 1) {
+      // 1차 적용 시도 후에도 같은 toast 가 또 보였다 = SW activate 실패 또는
+      // controllerchange race. 모든 등록을 강제 해제 후 reload — 클린 슬레이트.
+      try { sessionStorage.removeItem('sw-apply-retry'); } catch {}
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      } catch (e) {
+        console.error('[UpdateToast] force unregister failed:', e);
+      }
+      window.location.reload();
+      return;
+    }
 
     // 페이지 갱신 로직.
     // - iOS Safari: reload() 가 BFCache 에서 복원되는 quirk → URL 에
