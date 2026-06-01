@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PawPrint, MessageSquare, Calendar, Cake } from 'lucide-react';
+import { PawPrint, MessageSquare, Calendar, Cake, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
 import { formatAge } from '@/lib/healthBriefing';
@@ -176,11 +176,12 @@ function BriefingCard({
         <div className="flex items-center gap-2 min-w-0">
           <PetAvatar />
           {briefing.isBirthday ? (
-            <p className="text-sm font-bold text-gray-800 truncate flex items-center gap-1.5 min-w-0">
-              <span className="truncate">
-                {briefing.pet.name}의 생일이에요, 축하합니다!
-              </span>
+            <p className="text-sm font-bold text-gray-800 flex items-center gap-1 min-w-0">
               <Cake size={14} className="text-rose-500 flex-shrink-0" />
+              <span className="truncate">
+                오늘은 {briefing.pet.name}의 생일! 오늘 더 행복하자
+              </span>
+              <Heart size={14} className="text-rose-500 fill-rose-500 flex-shrink-0" />
             </p>
           ) : (
             <p className="text-sm font-bold text-gray-800 truncate">
@@ -203,26 +204,27 @@ function BriefingCard({
   );
 }
 
-// 마지막 기록 행
-// - 강조 (7일 초과): blue + bold + "N일째 기록 없어요"
-// - 오늘 (0일): green + "오늘 기록 완료"
-// - 평소: gray + "N일 전"
-// - 기록 없음: gray + "아직 기록 없음"
+// 마지막 기록 행 — daysSinceLastRecord 만으로 독립 판단 (highlight 의존 X).
+// 이유: highlight.type 이 'birthday' 이면 강조 분기를 못 타서 잘못 표시되는 버그 방지.
+//   - 0일 (오늘): green + bold + "오늘 기록 완료"
+//   - 1~6일: gray + "N일 전"
+//   - 7일+ (포함): green + bold + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
+//   - 기록 없음: gray + "아직 기록 없음"
 function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
-  const { daysSinceLastRecord, highlight, pet } = briefing;
-  if (highlight.type === 'inactive') {
+  const { daysSinceLastRecord, pet } = briefing;
+  if (daysSinceLastRecord !== null && daysSinceLastRecord >= 7) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-green-700 font-bold">
         <MessageSquare size={13} className="text-green-600 flex-shrink-0" />
         <span>
-          {highlight.daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
+          {daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
         </span>
       </div>
     );
   }
   if (daysSinceLastRecord === 0) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-green-700">
+      <div className="flex items-center gap-2 text-[12px] text-green-700 font-bold">
         <MessageSquare size={13} className="text-green-600 flex-shrink-0" />
         <span>오늘 기록 완료</span>
       </div>
@@ -242,18 +244,22 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   );
 }
 
-// 다음 예약 행
-// - 강조 (D-3 이내): amber + bold + "예약 D-N · M/D"
-// - 평소: gray + "다음 예약 M/D"
-// - 없음: gray + "예약 없음"
+// 다음 예약 행 — daysUntilAppointment 만으로 독립 판단 (highlight 의존 X).
+//   - D-0 ~ D-3 (당일 포함): orange + bold + "예약 D-N · M/D"
+//   - D-4 이상: gray + "다음 예약 M/D"
+//   - 없음: gray + "예약 없음"
 function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
-  const { nextAppointmentDate, highlight } = briefing;
-  if (highlight.type === 'appointment' && nextAppointmentDate) {
+  const { nextAppointmentDate, daysUntilAppointment } = briefing;
+  if (
+    daysUntilAppointment !== null &&
+    daysUntilAppointment <= 3 &&
+    nextAppointmentDate
+  ) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-orange-600 font-bold">
         <Calendar size={13} className="text-orange-500 flex-shrink-0" />
         <span>
-          예약 D-{highlight.daysUntilAppointment} · {formatShortDate(nextAppointmentDate)}
+          예약 D-{daysUntilAppointment} · {formatShortDate(nextAppointmentDate)}
         </span>
       </div>
     );
