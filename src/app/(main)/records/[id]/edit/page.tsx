@@ -101,6 +101,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordUpdatedAt, setRecordUpdatedAt] = useState<string | null>(null);
   // draft 체크 1회만.
   const draftCheckedRef = useRef(false);
+  // record 원본 (form 비교 기준) — form onChange 가 일부 환경에서 안 fire 되는
+  // 케이스 방어용. state vs origin 직접 비교로 dirty 자동 검출.
+  const recordOriginalRef = useRef<RecordDraft | null>(null);
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -135,6 +138,45 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
 
+  // record 원본 vs 현재 state 비교 — form 값이 정말 변경됐는지 직접 검출.
+  // form onChange bubble 이 일부 환경 (TWA 등) 에서 안 fire 되는 케이스 방어용.
+  const hasFormDiverged = (): boolean => {
+    const orig = recordOriginalRef.current;
+    if (!orig) return false;
+    const cur = stateRef.current;
+    const a = [...(cur.selectedSubKinds || [])].sort().join(',');
+    const b = [...(orig.selectedSubKinds || [])].sort().join(',');
+    return (
+      cur.recordType !== orig.recordType ||
+      cur.title !== orig.title ||
+      cur.description !== orig.description ||
+      cur.hospitalName !== orig.hospitalName ||
+      cur.cost !== orig.cost ||
+      cur.weight !== orig.weight ||
+      cur.symptomTime !== orig.symptomTime ||
+      cur.visitDate !== orig.visitDate ||
+      cur.dischargeDate !== orig.dischargeDate ||
+      cur.nextAppointmentDate !== orig.nextAppointmentDate ||
+      cur.recordColor !== orig.recordColor ||
+      cur.nextAppointmentColor !== orig.nextAppointmentColor ||
+      cur.petId !== orig.petId ||
+      a !== b
+    );
+  };
+
+  // form onChange 가 누락된 환경 대비 — state diff 보이면 자동 dirty 켜기.
+  // record 로드 직후엔 cur == orig 이라 dirty 안 켜짐. 사용자 입력 후 또는 자동
+  // 복원 후 state 가 origin 과 달라지면 즉시 isDirty=true → saveDraft 동작.
+  useEffect(() => {
+    if (!recordUpdatedAt) return;
+    if (!isDirtyRef.current && hasFormDiverged()) {
+      console.log('[draft:edit] auto-dirty (state diverged from record)');
+      setIsDirty(true);
+    }
+  }, [recordUpdatedAt, recordType, title, description, hospitalName, cost, weight, symptomTime,
+      visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+      petId, selectedSubKinds]);
+
   // Draft 즉시 저장 — 사용자가 실제로 form 을 건드렸을 때만 (isDirty).
   // → record 로드만 하고 변경 없이 나간 케이스 / 그냥 들여다보기만 한 케이스에선
   //    draft 안 만듦 → 다음 진입 시 의미 없는 모달 X.
@@ -147,11 +189,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       recordColor, nextAppointmentColor, petId, selectedSubKinds]);
 
   // 백그라운드 안전망 — listener 는 user/id/loaded 만 dep. ref 로 최신값 읽음.
+  // isDirty state 가 stale 인 race 까지 방어하려고 hasFormDiverged() 도 가드로 사용.
   useEffect(() => {
     if (!user || !recordUpdatedAt) return;
     const save = (reason: string) => () => {
-      console.log('[draft:edit] save trigger', { reason, isDirty: isDirtyRef.current, hasPending: !!pendingDraftRef.current });
-      if (pendingDraftRef.current || !isDirtyRef.current) return;
+      const diverged = hasFormDiverged();
+      console.log('[draft:edit] save trigger', { reason, isDirty: isDirtyRef.current, diverged, hasPending: !!pendingDraftRef.current });
+      if (pendingDraftRef.current) return;
+      if (!isDirtyRef.current && !diverged) return;
       saveDraft(draftKey.edit(user.id, id), stateRef.current);
       console.log('[draft:edit] saved to localStorage', { key: draftKey.edit(user.id, id) });
     };
@@ -240,14 +285,39 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       // v12: sub_entries 에서 sub_kind 만 복원 (중복 제거). 메모는 description 으로 통합 사용.
       // 기존 데이터 호환: description 비어있고 sub_entries[i].memo 가 있으면 합쳐서 description 으로.
+      const initialSubKinds: DailySubKind[] = record.record_type === 'daily' && record.sub_entries
+        ? Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
+        : [];
       if (record.record_type === 'daily' && record.sub_entries) {
-        const kinds = Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)));
-        setSelectedSubKinds(kinds);
+        setSelectedSubKinds(initialSubKinds);
         if (!record.description) {
           const legacyMemos = record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n');
           if (legacyMemos) setDescription(legacyMemos);
         }
       }
+
+      // record 원본 스냅샷 (RecordDraft 형태) — state vs origin 비교로 dirty 자동 검출.
+      // description legacyMemos 합본은 reset 직전 값과 동일하게 맞춰 false-positive 방지.
+      const originalDescription = record.description
+        || (record.record_type === 'daily' && record.sub_entries
+            ? record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n')
+            : '');
+      recordOriginalRef.current = {
+        recordType: record.record_type,
+        title: record.title,
+        description: originalDescription,
+        hospitalName: record.hospital_name || '',
+        cost: record.cost ? String(record.cost) : '',
+        weight: record.weight ? String(record.weight) : '',
+        symptomTime: record.symptom_time || '',
+        visitDate: record.visit_date.split('T')[0],
+        dischargeDate: record.discharge_date ? record.discharge_date.split('T')[0] : '',
+        nextAppointmentDate: record.next_appointment_date ? record.next_appointment_date.split('T')[0] : '',
+        recordColor: record.color || '#3B82F6',
+        nextAppointmentColor: record.next_appointment_color || '#8B5CF6',
+        petId: record.pet_id,
+        selectedSubKinds: initialSubKinds,
+      };
 
       // Draft 체크 — record 로드 완료 후 1회.
       // 1) 같은 PWA 세션 (sessionStorage 세션 마커 있음) → 모달 없이 자동 복원
