@@ -12,18 +12,45 @@ function isInAppBrowser(): boolean {
   return /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|Snapchat|Twitter/.test(ua);
 }
 
+// 개발자용 이메일/패스워드 로그인 UI 노출 조건.
+// test.pawdex.store (Vercel Preview 도메인) 또는 localhost 에서만 표시.
+// prod 도메인 (pawdex.store) 에선 hostname 분기로 자동 비활성 — 사용자 노출 0.
+function isDevLoginEnv(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1';
+}
+
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [inApp, setInApp] = useState(false);
-  const { signInWithGoogle, signInWithKakao } = useAuth();
+  const [devLogin, setDevLogin] = useState(false);
+  const [devEmail, setDevEmail] = useState('');
+  const [devPassword, setDevPassword] = useState('');
+  const [devLoading, setDevLoading] = useState(false);
+  const [showDevToggle, setShowDevToggle] = useState(false);
+  const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
 
   useEffect(() => {
     setInApp(isInAppBrowser());
+    setShowDevToggle(isDevLoginEnv());
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
       setError('다른 기기에서 로그인하여 이 기기는 자동 로그아웃됐어요. 다시 로그인해주세요.');
     }
   }, []);
+
+  const handleDevLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setDevLoading(true);
+    try {
+      const { error } = await signIn(devEmail, devPassword);
+      if (error) setError(error.message);
+    } finally {
+      setDevLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     if (inApp) {
@@ -96,6 +123,49 @@ export default function LoginPage() {
             로그인 시 <a href="/terms" className="underline">이용약관</a> 및{' '}
             <a href="/privacy" className="underline">개인정보처리방침</a>에 동의하게 됩니다.
           </p>
+
+          {/* 개발자 로그인 — test.pawdex.store / localhost 에서만 표시.
+              prod (pawdex.store) 에선 hostname 분기로 안 보임. */}
+          {showDevToggle && (
+            <div className="pt-4 mt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setDevLogin(v => !v)}
+                className="text-[10px] text-gray-300 hover:text-gray-400 w-full text-center"
+              >
+                🛠️ 개발자 로그인 {devLogin ? '닫기' : '열기'}
+              </button>
+              {devLogin && (
+                <form onSubmit={handleDevLogin} className="mt-3 space-y-2">
+                  <input
+                    type="email"
+                    value={devEmail}
+                    onChange={e => setDevEmail(e.target.value)}
+                    placeholder="dummy1@pawdex-test.local"
+                    className="w-full h-10 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    autoComplete="email"
+                    required
+                  />
+                  <input
+                    type="password"
+                    value={devPassword}
+                    onChange={e => setDevPassword(e.target.value)}
+                    placeholder="test1234!"
+                    className="w-full h-10 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={devLoading}
+                    className="w-full h-10 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium disabled:opacity-50 hover:bg-gray-200 transition-colors"
+                  >
+                    {devLoading ? '로그인 중...' : '로그인'}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
