@@ -16,14 +16,24 @@ import { checkRateLimit } from '@/lib/rateLimit';
 const BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const NCBI_API_KEY = process.env.NCBI_API_KEY;
 
+// NCBI E-utilities 권장 메타데이터.
+// - tool: 호출 주체 식별 — abuse 감지 시 본인 표시 없는 호출 우선 차단됨
+// - email: NCBI 가 정책 위반 시 사전 알림 보내는 연락처
+// 둘 다 NCBI 가이드라인의 "should be set" 사항. 학술 사용 매너 + 정상 운영 보호.
+const TOOL = 'PawDex';
+const EMAIL = 'dylabs.pawdex@gmail.com';
+
 /**
- * API key 파라미터를 붙여준다. key 없으면 비워둠 (3 req/sec 제한).
- * key 있으면 10 req/sec 로 상승 → "심장병" 같은 빈번 검색도 429 회피.
+ * API key + tool/email 파라미터를 자동 부착.
+ * - key 없을 때도 tool/email 은 항상 붙음
+ * - key 있으면 10 req/sec, 없으면 3 req/sec
  */
 function withApiKey(url: string): string {
-  if (!NCBI_API_KEY) return url;
   const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}api_key=${NCBI_API_KEY}`;
+  const meta = `tool=${TOOL}&email=${encodeURIComponent(EMAIL)}`;
+  const withMeta = `${url}${sep}${meta}`;
+  if (!NCBI_API_KEY) return withMeta;
+  return `${withMeta}&api_key=${NCBI_API_KEY}`;
 }
 
 /**
