@@ -1,16 +1,20 @@
 /**
- * 펫 컨텍스트 빌더 — AI 증상 분석에 펫의 의료적 배경 정보를 주입하기 위한
+ * 펫 컨텍스트 빌더 — AI 증상/사진 분석에 펫의 의료적 배경 정보를 주입하기 위한
  * 데이터 fetch + 프롬프트 문자열 변환 헬퍼.
  *
  * 사용처:
  *   - /api/symptom-analysis (텍스트 증상 분석)
- *   - 향후 /api/symptom-analysis-image (사진 분석) 에서도 동일하게 재사용
+ *   - /api/symptom-analysis-image (사진 분석)
  *
  * 데이터 출처:
  *   - pets             : 기본 정보 (종, 품종, 나이, 성별, 중성화, 체중, 만성질환)
- *   - medications      : 현재 복용 중인 약 (start_date ≤ today 이고 end_date 미경과)
- *                        record_id → health_records 통해 pet_id 매칭
- *   - health_records   : 최근 3개월 진료성 record (visit / hospitalization / symptom)
+ *   - health_records   : 최근 3개월 진료성 record (visit / hospitalization 만)
+ *                        - 사용자가 자유롭게 적는 symptom 기록은 노이즈가 많아 제외
+ *                        - 동물병원 방문 기반 사건만 의료적 ground truth 로 신뢰
+ *                        - 최근 3건 + 모든 record 에 description (200자 cap) 포함
+ *
+ *   ✗ medications      : 사용자 입력 이름이 모호하면("약" 만 적음 등) AI 가
+ *                        오히려 잘못 추측할 위험 → 컨텍스트에서 제외.
  *
  * 보안:
  *   - 호출 측이 반드시 user_id 검증 후 호출해야 함 (이 헬퍼는 user 검증 X)
@@ -25,23 +29,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Pet } from './supabase';
 
-export interface PetMedication {
-  name: string;
-  dosage: string | null;
-  frequency: string;
-}
-
 export interface PetRecentRecord {
   visit_date: string;
   title: string;
   record_type: string;
-  /** 진료 본문 — 최근 3건만 포함 + 100자 cap (token / 개인정보 균형) */
+  /** 진료 본문 — 200자 cap (token / 개인정보 균형) */
   description?: string;
 }
 
 export interface PetContext {
   pet: Pet;
-  medications: PetMedication[];
   recentRecords: PetRecentRecord[];
 }
 
@@ -60,9 +57,9 @@ export function formatAge(birthDate: string | null | undefined): string {
 }
 
 /**
- * 펫 ID 와 user_id 로 펫 + 약 + 최근 진료 한꺼번에 fetch.
+ * 펫 ID 와 user_id 로 펫 + 최근 진료(visit/hospitalization) 한꺼번에 fetch.
  * - 다른 유저의 펫 ID 면 null 반환 (silent fail — 보안 핵심)
- * - 펫만 있고 약/기록 없어도 정상 반환 (빈 배열)
+ * - 펫만 있고 기록 없어도 정상 반환 (빈 배열)
  */
 export async function fetchPetContext(
   supabaseAdmin: SupabaseClient,
@@ -78,32 +75,9 @@ export async function fetchPetContext(
     .maybeSingle();
   if (!pet) return null;
 
-  const todayISO = new Date().toISOString().split('T')[0];
-
-  // 2. 복용 중인 약 — record_id → health_records 통해 pet_id 매칭 (JOIN).
-  //    !inner 로 INNER JOIN 강제 (health_records 없는 medications 는 제외).
-  const { data: medRows } = await supabaseAdmin
-    .from('medications')
-    .select('name, dosage, frequency, start_date, end_date, health_records!inner(pet_id)')
-    .eq('user_id', userId)
-    .lte('start_date', todayISO)
-    .or(`end_date.gte.${todayISO},end_date.is.null`);
-
-  const medications: PetMedication[] = [];
-  for (const m of medRows || []) {
-    // Supabase nested select 타입 한계로 health_records 가 array/object 둘 다 가능 → 양쪽 처리
-    const hr = (m as unknown as { health_records: { pet_id: string } | { pet_id: string }[] }).health_records;
-    const matchPetId = Array.isArray(hr) ? hr[0]?.pet_id : hr?.pet_id;
-    if (matchPetId === petId) {
-      medications.push({
-        name: m.name,
-        dosage: m.dosage ?? null,
-        frequency: m.frequency,
-      });
-    }
-  }
-
-  // 3. 최근 3개월 진료 기록 — 진료성 record_type 만
+  // 2. 최근 3개월 진료 기록 — visit / hospitalization 만.
+  //    symptom (사용자 자유 입력 증상 메모) 은 노이즈 가능성 ↑ 라 제외.
+  //    daily (일상) 도 의료적 의미 약해 제외 (애초에 in 절에 없음).
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
   const threeMonthsAgoISO = threeMonthsAgo.toISOString().split('T')[0];
@@ -113,26 +87,24 @@ export async function fetchPetContext(
     .select('visit_date, title, record_type, description')
     .eq('user_id', userId)
     .eq('pet_id', petId)
-    .in('record_type', ['visit', 'hospitalization', 'symptom'])
+    .in('record_type', ['visit', 'hospitalization'])
     .gte('visit_date', threeMonthsAgoISO)
     .order('visit_date', { ascending: false })
-    .limit(5);
+    .limit(3);
 
-  // description 은 최근 3건만 포함 + 100자 cap.
-  // 이유:
-  //  - 제목만 보면 정보 부실 (유저가 "검사" 같이 대충 적는 경우 많음)
-  //  - description 까지 풍부히 넣으면 token 폭증 + 개인정보 노출 ↑
-  //  - 최근 3건 (가장 최근 진료 위주) + 100자 cap 으로 핵심 정보 + 비용 균형.
-  const recentRecords: PetRecentRecord[] = (recordRows || []).map((r, idx) => ({
+  // 모든 fetched record 에 description 포함 (일관). cap 200 자.
+  // 이전엔 limit(5) + 최근 3건만 description 이라 4~5번째 record 가 title 만 잡혀
+  // AI 가 어떤 진료인지 추측 어려웠음. 3건 모두 풍부히 → token / 정보 균형.
+  const recentRecords: PetRecentRecord[] = (recordRows || []).map((r) => ({
     visit_date: r.visit_date,
     title: r.title,
     record_type: r.record_type,
-    ...(idx < 3 && r.description
-      ? { description: r.description.length > 100 ? r.description.slice(0, 100) + '…' : r.description }
+    ...(r.description
+      ? { description: r.description.length > 200 ? r.description.slice(0, 200) + '…' : r.description }
       : {}),
   }));
 
-  return { pet, medications, recentRecords };
+  return { pet, recentRecords };
 }
 
 /**
@@ -142,7 +114,7 @@ export async function fetchPetContext(
  */
 export function buildPetContextPrompt(ctx: PetContext | null): string {
   if (!ctx) return '';
-  const { pet, medications, recentRecords } = ctx;
+  const { pet, recentRecords } = ctx;
 
   const lines: string[] = ['[환자 정보]'];
 
@@ -176,19 +148,8 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
     lines.push('');
     lines.push('[최근 3개월 진료]');
     for (const r of recentRecords) {
-      // description 있으면 제목 + 짧은 본문 (최근 3건만 — fetchPetContext 에서 cap 처리됨).
-      // 형태: "2026-04-06: 구토 증상 — 사료 30분 후, 노란 거품"
       const body = r.description ? ` — ${r.description}` : '';
       lines.push(`- ${r.visit_date}: ${r.title}${body}`);
-    }
-  }
-
-  if (medications.length > 0) {
-    lines.push('');
-    lines.push('[복용 중인 약]');
-    for (const m of medications) {
-      const dosageStr = m.dosage ? ` ${m.dosage}` : '';
-      lines.push(`- ${m.name}${dosageStr} (${m.frequency})`);
     }
   }
 
