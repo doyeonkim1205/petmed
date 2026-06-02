@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 function isInAppBrowser(): boolean {
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const [devPassword, setDevPassword] = useState('');
   const [devLoading, setDevLoading] = useState(false);
   const [showDevToggle, setShowDevToggle] = useState(false);
+  const router = useRouter();
   const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
 
   useEffect(() => {
@@ -46,8 +48,17 @@ export default function LoginPage() {
     setDevLoading(true);
     try {
       const { error } = await signIn(devEmail, devPassword);
-      if (error) setError(error.message);
-    } finally {
+      if (error) {
+        setError(error.message);
+        setDevLoading(false);
+      } else {
+        // 성공 — 메인으로 이동. OAuth 흐름은 /auth/callback 이 자동 라우팅하지만
+        // email/password 는 redirect 없이 즉시 응답하므로 수동 push 필요.
+        // setDevLoading 은 false 안 해줌 — 메인 이동 중 폼 활성화돼 보이지 않게.
+        router.push('/');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '로그인 실패');
       setDevLoading(false);
     }
   };
