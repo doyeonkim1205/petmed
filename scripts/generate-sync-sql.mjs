@@ -88,6 +88,26 @@ for (const { indexname, indexdef } of prodIdx) {
 }
 sql += '\n';
 
+// 4b. Foreign Keys — PROD 에만 있는 FK 추가.
+//
+// ⚠️ PostgREST embedding (예: pets:pet_id(...), medications(*)) 은 FK 가 있어야 동작.
+// FK 누락 시 클라이언트 측 select 가 400 Bad Request → 상세 페이지 진입 불가.
+// 2026-06-02 작업에서 dev DB 에 FK 18개 전부 누락된 게 발견됨 — 그 후 추가됨.
+const prodFks = await q(PROD, "SELECT conrelid::regclass::text AS tbl, conname, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname='public') AND contype='f'");
+const devFks = new Set((await q('lzmmiksdvioidcldrnvh', "SELECT conname FROM pg_constraint WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname='public') AND contype='f'")).map(r => r.conname));
+sql += `-- ── 4b. 누락 FK (PostgREST embedding 위해 필수) ──\n`;
+for (const { tbl, conname, def } of prodFks) {
+  if (devFks.has(conname)) continue;
+  sql += `DO $do$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '${conname}') THEN
+    ALTER TABLE ${tbl} ADD CONSTRAINT ${conname} ${def};
+  END IF;
+END $do$;
+`;
+}
+sql += `-- PostgREST schema cache 강제 reload — FK 적용 후 즉시 embedding 동작하도록.\nNOTIFY pgrst, 'reload schema';\n\n`;
+
 // 5. CHECK constraints — PROD 에만 있는 거 추가
 const ccSkip = new Set(['subscription_events_event_type_check', 'subscription_events_plan_check']);  // 위에서 처리됨
 const prodCC = await q(PROD, "SELECT conrelid::regclass::text AS tbl, conname, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE connamespace = (SELECT oid FROM pg_namespace WHERE nspname='public') AND contype='c'");
