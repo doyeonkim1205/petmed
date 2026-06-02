@@ -9,6 +9,7 @@ import {
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
@@ -231,7 +232,7 @@ export default function SubscriptionPage() {
   };
 
   if (authLoading || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin text-gray-400" size={24} /></div>;
+    return <LoadingScreen />;
   }
 
   return (
