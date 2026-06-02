@@ -510,6 +510,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAllDraftStorage();
     } catch {}
 
+    // 2.6) Clear all SWR memory cache — 공유 기기에서 다른 사용자 로그인 시
+    // 이전 사용자의 캐시 (건강 브리핑 등) 가 잠깐 노출되는 보안 risk 차단.
+    try {
+      const { clearAllSWRCache } = await import('@/lib/swrCache');
+      clearAllSWRCache();
+    } catch {}
+
     // 3) Tell Supabase to sign out (fire-and-forget)
     supabase.auth.signOut({ scope: 'global' }).catch(() => {});
   };

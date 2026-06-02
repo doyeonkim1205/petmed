@@ -70,6 +70,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     setShowDeleteConfirm(false);
     try {
       await deleteRecord(record.id);
+      // 홈 브리핑 캐시 무효화 — 삭제된 기록이 즉시 메트릭에서 제외.
+      if (user?.id) {
+        const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+        invalidateHealthBriefing(user.id);
+      }
       router.push('/records');
     } catch (error) {
       Sentry.captureException(error, {

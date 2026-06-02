@@ -648,6 +648,11 @@ export default function RecordAddPage() {
       // 저장 성공 → draft + 세션 마커 정리 + dirty 해제 후 이동.
       // 다음 add 진입 시 모달 없이 빈 폼으로 시작 (마커가 비어있어 새 세션 인식).
       clearDraftAndSession();
+      // 홈 브리핑 캐시 무효화 — 새 기록이 즉시 "마지막 기록" / "다음 예약" 에 반영.
+      {
+        const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+        invalidateHealthBriefing(user.id);
+      }
       guardPushedRef.current = false;
       router.push('/records');
     } catch (err) {

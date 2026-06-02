@@ -547,6 +547,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       // 저장 성공 → draft + 세션 마커 정리, dirty 해제 (popstate guard 가 가로채지 않도록)
       clearDraftAndSession();
+      // 홈 브리핑 캐시 무효화 — 수정된 record 가 홈 메트릭에 즉시 반영.
+      if (user?.id) {
+        const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+        invalidateHealthBriefing(user.id);
+      }
       const hadGuard = guardPushedRef.current;
       guardPushedRef.current = false;
       // edit 엔트리만 pop 해서 기존 detail 로 복귀

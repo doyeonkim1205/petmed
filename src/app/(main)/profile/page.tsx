@@ -204,6 +204,9 @@ function PetModal({
           return;
         }
         logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+        // 홈 브리핑 캐시 무효화 — 펫 이름/생일/체중 변경이 헤더 표시에 영향
+        const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+        invalidateHealthBriefing(userId);
         closeForm();
         fetchPets();
         return;
@@ -239,6 +242,11 @@ function PetModal({
         return;
       }
       if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
+      // 홈 브리핑 캐시 무효화 — 새 펫이 즉시 카드에 반영되도록.
+      {
+        const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+        invalidateHealthBriefing(userId);
+      }
       closeForm();
       fetchPets();
     } finally {
@@ -250,6 +258,9 @@ function PetModal({
   const handleDelete = async (petId: string) => {
     await supabase.from('pets').delete().eq('id', petId).eq('user_id', userId);
     logActivity(userId, 'pet.delete', { resourceType: 'pet', resourceId: petId });
+    // 홈 브리핑 캐시 무효화 — 삭제된 펫이 카드에서 즉시 제거되도록.
+    const { invalidateHealthBriefing } = await import('@/lib/swrCache');
+    invalidateHealthBriefing(userId);
     fetchPets();
   };
 
