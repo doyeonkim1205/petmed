@@ -829,7 +829,7 @@ export default function RecordAddPage() {
             name="visit-date"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
-          {showHospitalFields && (
+          {recordType === 'visit' && (
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
@@ -859,6 +859,7 @@ export default function RecordAddPage() {
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
             <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           </div>
         )}
 

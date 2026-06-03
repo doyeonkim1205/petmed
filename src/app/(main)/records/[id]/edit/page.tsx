@@ -109,12 +109,30 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
   const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
+  const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
+  const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
+
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
     setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
   }, []);
+
+  // 최근 병원명 DB 에서 로드 — add 페이지와 동일 패턴.
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const { authFetch } = await import('@/lib/authFetch');
+        const res = await authFetch('/api/recent-hospitals');
+        if (res.ok) {
+          const names: string[] = await res.json();
+          setHospitalSuggestions(names);
+        }
+      } catch {}
+    })();
+  }, [user?.id]);
 
   // ⚠️ dep 에 `user` 객체 쓰지 말 것 — Supabase auth 가 visibility 변경 / 토큰
   // refresh 시 setUser(new object) 를 호출해 reference 가 바뀌면 effect 가 다시 fire,
@@ -713,7 +731,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             name="visit-date"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
-          {(recordType === 'visit' || recordType === 'hospitalization') && (
+          {recordType === 'visit' && (
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
@@ -743,6 +761,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
             <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
+            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
           </div>
         )}
 
@@ -810,16 +829,55 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               <label className="text-sm font-medium">
                 병원명 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
-              <input
-                type="search"
-                value={hospitalName}
-                onChange={(e) => setHospitalName(e.target.value)}
-                maxLength={30}
-                autoComplete="off"
-                enterKeyHint="next"
-                name="hospital-name"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
-              />
+              <div className="relative">
+                <input
+                  type="search"
+                  placeholder="병원명을 입력하세요"
+                  value={hospitalName}
+                  onChange={(e) => { setHospitalName(e.target.value); setShowHospitalSuggestions(true); }}
+                  onFocus={() => setShowHospitalSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowHospitalSuggestions(false), 150)}
+                  maxLength={30}
+                  autoComplete="off"
+                  enterKeyHint="next"
+                  name="hospital-name"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+                />
+                {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                    {hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).map((name) => (
+                      <div key={name} className="flex items-center hover:bg-blue-50 transition-colors">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setHospitalName(name); setShowHospitalSuggestions(false); setIsDirty(true); }}
+                          className="flex-1 text-left px-4 py-2.5 text-sm text-gray-700"
+                        >
+                          {name}
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={async () => {
+                            setHospitalSuggestions(prev => prev.filter(h => h !== name));
+                            try {
+                              const { authFetch } = await import('@/lib/authFetch');
+                              await authFetch('/api/recent-hospitals', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name }),
+                              });
+                            } catch {}
+                          }}
+                          className="px-3 py-2.5 text-gray-300 hover:text-red-400"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

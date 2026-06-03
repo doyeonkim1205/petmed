@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, ExternalLink, Download, Dog, Cat, Calendar, Image, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, Image, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -37,6 +37,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [record, setRecord] = useState<HealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // 첨부 사진 미리보기 모달 — 클릭 시 새 탭(window.open)으로 열면 URL 이 사용자에게 노출되므로
+  // 모달 안에서 보여줘 URL 을 숨김. 비이미지 파일은 다운로드 버튼만 노출.
+  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; isImage: boolean; downloadUrl: string } | null>(null);
 
   useEffect(() => {
     if (id && user) {
@@ -307,11 +310,13 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               const isImage = file.file_type?.startsWith('image/');
               const FileIcon = isImage ? Image : FileText;
 
+              const openPreview = () => setPreviewFile({ url: fileUrl, name: file.file_name, isImage, downloadUrl });
               return (
                 <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
                   {isImage && (
                     <button
-                      onClick={() => window.open(fileUrl, '_blank')}
+                      type="button"
+                      onClick={openPreview}
                       className="w-full block cursor-pointer"
                     >
                       <img
@@ -324,7 +329,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                   <div className="flex items-center gap-3 p-3 bg-gray-50">
                     <FileIcon size={16} className={isImage ? 'text-green-500' : 'text-blue-500'} />
                     <button
-                      onClick={() => window.open(fileUrl, '_blank')}
+                      type="button"
+                      onClick={openPreview}
                       className="flex-1 text-sm text-gray-700 truncate text-left hover:text-blue-600 transition-colors"
                     >
                       {file.file_name}
@@ -339,13 +345,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     >
                       <Download size={16} />
                     </a>
-                    <button
-                      onClick={() => window.open(fileUrl, '_blank')}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
-                      title="새 탭에서 열기"
-                    >
-                      <ExternalLink size={16} />
-                    </button>
                   </div>
                 </div>
               );
@@ -364,6 +363,47 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {previewFile && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewFile(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewFile(null)}
+            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white"
+            aria-label="닫기"
+          >
+            <X size={24} />
+          </button>
+          <div
+            className="max-w-full max-h-full flex flex-col items-center gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {previewFile.isImage ? (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div className="bg-white rounded-lg p-6 text-center">
+                <FileText size={48} className="text-blue-500 mx-auto mb-2" />
+                <p className="text-sm text-gray-700 break-all">{previewFile.name}</p>
+                <p className="text-xs text-gray-400 mt-1">미리보기는 지원하지 않습니다</p>
+              </div>
+            )}
+            <a
+              href={previewFile.downloadUrl}
+              className="flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white text-gray-700 text-sm font-medium rounded-full"
+            >
+              <Download size={16} />
+              다운로드
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
