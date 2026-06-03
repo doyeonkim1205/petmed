@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, TrendingUp, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -192,9 +192,7 @@ export default function StatsPage() {
   const stats = useMemo(() => {
     let total = 0;
     for (const r of filteredRecords) total += r.cost!;
-    const count = filteredRecords.length;
-    const avg = count > 0 ? Math.round(total / count) : 0;
-    return { total, count, avg };
+    return { total, count: filteredRecords.length };
   }, [filteredRecords]);
 
   const monthlyGroups = useMemo(() => {
@@ -423,7 +421,7 @@ export default function StatsPage() {
               <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <div className="bg-blue-50 rounded-xl p-3 text-center">
                     <Wallet size={18} className="mx-auto text-blue-500 mb-1" />
                     <p className="text-[10px] text-blue-400 font-medium">총 의료비</p>
@@ -433,11 +431,6 @@ export default function StatsPage() {
                     <Stethoscope size={18} className="mx-auto text-emerald-500 mb-1" />
                     <p className="text-[10px] text-emerald-400 font-medium">진료 횟수</p>
                     <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-xl p-3 text-center">
-                    <TrendingUp size={18} className="mx-auto text-purple-500 mb-1" />
-                    <p className="text-[10px] text-purple-400 font-medium">평균 비용</p>
-                    <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.avg > 0 ? formatCost(stats.avg) : '-'}</p>
                   </div>
                 </div>
 
@@ -546,8 +539,13 @@ export default function StatsPage() {
                 {showWeightInput ? (
                   <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                     <div className="flex gap-2">
-                      <input type="number" inputMode="decimal" step="0.01" min="0.1" max="100"
-                        placeholder="체중 (kg)" value={newWeight} onChange={(e) => setNewWeight(e.target.value)}
+                      <input type="text" inputMode="decimal"
+                        placeholder="체중 (kg)" value={newWeight}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
+                        }}
+                        autoComplete="off" name="weight-log-kg"
                         className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                       <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
                         max={todayLocalISO()}

@@ -826,15 +826,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <input
-                type="number"
-                step="0.1"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="예: 3.5"
                 value={weight}
                 onChange={(e) => {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+                autoComplete="off"
                 name="pet-weight-kg"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
@@ -900,13 +900,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 비용 (원) <span className="text-gray-400 font-normal">(선택)</span>
               </label>
               <input
-                type="number"
+                type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
                 autoComplete="off"
-                name="cost"
+                name="record-cost-amount"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>

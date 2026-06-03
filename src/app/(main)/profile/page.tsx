@@ -855,7 +855,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           </div>
         </div>
 
-        <div className="p-5 pt-3 border-t border-gray-100">
+        <div className="p-5 pt-3">
           <button onClick={onClose} className="w-full h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
         </div>
       </div>
