@@ -8,9 +8,16 @@ interface FileUploaderProps {
   onFilesChange: (files: File[]) => void;
   maxFiles?: number;
   placeholder?: string;
+  // 첨부 저장 공간 — 부모가 /api/storage-usage 결과 전달. 없으면 표시 X.
+  storageUsage?: { usedMB: number; limitMB: number } | null;
 }
 
-export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '파일을 첨부하세요' }: FileUploaderProps) {
+function formatStorageMB(mb: number): string {
+  if (mb >= 1000) return `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)}GB`;
+  return `${Math.round(mb)}MB`;
+}
+
+export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '파일을 첨부하세요', storageUsage }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +72,11 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
           <Upload className="mx-auto mb-2 text-gray-400" size={24} />
           <p className="text-sm text-gray-600">{placeholder}</p>
           <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF (최대 5MB, {maxFiles}개까지)</p>
+          {storageUsage && storageUsage.limitMB > 0 && (
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              남은 용량 <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
+            </p>
+          )}
           <input
             ref={inputRef}
             type="file"
