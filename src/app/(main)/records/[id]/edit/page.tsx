@@ -115,6 +115,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
   const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
 
+  // Chrome autofill 차단 readonly trick — focus 전 readOnly 라 Chrome 휴리스틱이 input 분류 안 함.
+  const [costFocused, setCostFocused] = useState(false);
+  const [weightFocused, setWeightFocused] = useState(false);
+
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
@@ -834,6 +838,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+                readOnly={!weightFocused}
+                onFocus={() => setWeightFocused(true)}
+                onBlur={() => setWeightFocused(false)}
                 autoComplete="one-time-code"
                 data-form-type="other"
                 data-1p-ignore="true"
@@ -908,6 +915,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 pattern="[0-9]*"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+                readOnly={!costFocused}
+                onFocus={() => setCostFocused(true)}
+                onBlur={() => setCostFocused(false)}
                 autoComplete="one-time-code"
                 data-form-type="other"
                 data-1p-ignore="true"

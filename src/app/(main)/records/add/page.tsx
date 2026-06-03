@@ -121,6 +121,11 @@ export default function RecordAddPage() {
   // "처리 중" 표시 필요. -1 = 아무 토글도 진행 안 함.
   const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
 
+  // Chrome autofill 차단 readonly trick — focus 전에는 readOnly 라 Chrome 휴리스틱이 input 분류 안 함.
+  // focus 시 readOnly 풀려 정상 입력 가능. blur 시 다시 readOnly.
+  const [costFocused, setCostFocused] = useState(false);
+  const [weightFocused, setWeightFocused] = useState(false);
+
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
 
@@ -809,6 +814,9 @@ export default function RecordAddPage() {
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
               maxLength={6}
+              readOnly={!weightFocused}
+              onFocus={() => setWeightFocused(true)}
+              onBlur={() => setWeightFocused(false)}
               autoComplete="one-time-code"
               data-form-type="other"
               data-1p-ignore="true"
@@ -921,6 +929,9 @@ export default function RecordAddPage() {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
+                readOnly={!weightFocused}
+                onFocus={() => setWeightFocused(true)}
+                onBlur={() => setWeightFocused(false)}
                 autoComplete="one-time-code"
                 data-form-type="other"
                 data-1p-ignore="true"
@@ -996,6 +1007,9 @@ export default function RecordAddPage() {
                 placeholder="0"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
+                readOnly={!costFocused}
+                onFocus={() => setCostFocused(true)}
+                onBlur={() => setCostFocused(false)}
                 autoComplete="one-time-code"
                 data-form-type="other"
                 data-1p-ignore="true"

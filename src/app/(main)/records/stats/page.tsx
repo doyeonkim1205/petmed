@@ -161,6 +161,8 @@ export default function StatsPage() {
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [newWeight, setNewWeight] = useState('');
   const [newWeightDate, setNewWeightDate] = useState(todayLocalISO());
+  // Chrome autofill 차단 readonly trick.
+  const [newWeightFocused, setNewWeightFocused] = useState(false);
   const [weightSaving, setWeightSaving] = useState(false);
 
   useEffect(() => {
@@ -429,7 +431,7 @@ export default function StatsPage() {
                   </div>
                   <div className="bg-emerald-50 rounded-xl p-3 text-center">
                     <Stethoscope size={18} className="mx-auto text-emerald-500 mb-1" />
-                    <p className="text-[10px] text-emerald-400 font-medium">비용 기록</p>
+                    <p className="text-[10px] text-emerald-400 font-medium">지출 건수</p>
                     <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
                   </div>
                 </div>
@@ -545,6 +547,9 @@ export default function StatsPage() {
                           const v = e.target.value;
                           if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
                         }}
+                        readOnly={!newWeightFocused}
+                        onFocus={() => setNewWeightFocused(true)}
+                        onBlur={() => setNewWeightFocused(false)}
                         autoComplete="one-time-code"
                         data-form-type="other"
                         data-1p-ignore="true"
