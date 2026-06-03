@@ -602,10 +602,8 @@ export default function RecordAddPage() {
         }
       }
       if (fileUploadErrors.length > 0) {
-        // 기록 자체는 저장됐지만 일부/전체 첨부 실패. 사용자에게 즉시 알림 (이후 navigate 됨).
-        const msg = `기록은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`;
-        setError(msg);
-        if (typeof window !== 'undefined') window.alert(msg);
+        // 기록 자체는 저장됐지만 일부/전체 첨부 실패. inline 에러 + Sentry 보고만 유지 (alert X).
+        setError(`기록은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`);
       }
 
       for (const med of medications) {

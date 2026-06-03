@@ -553,9 +553,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         }
       }
       if (fileUploadErrors.length > 0) {
-        const msg = `수정은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`;
-        setError(msg);
-        if (typeof window !== 'undefined') window.alert(msg);
+        setError(`수정은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`);
       }
 
       // Delete removed medications
