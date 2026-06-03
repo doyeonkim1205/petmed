@@ -725,6 +725,12 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     { value: '18', label: '크게' },
   ];
 
+  // ─── 임시 숨김 플래그 ─────────────────────────────────────
+  // 다크 모드: 일관성 fix 전까지 토글 숨김 (코드는 보존, 추후 부활 쉬움).
+  // 언어: 현재 한국에서만 서비스 → 영어 토글 숨김.
+  const SHOW_DARK_MODE = false;
+  const SHOW_LANGUAGE = false;
+
   return (
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs max-h-[85vh] flex flex-col shadow-lg">
@@ -734,33 +740,15 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-5">
-          {/* Dark Mode */}
-          <div>
-            <SectionHeader icon={darkMode ? Moon : Sun} iconColor={darkMode ? 'text-blue-500' : 'text-orange-400'} label="화면 모드" />
-            <ToggleRow label="다크 모드" desc="어두운 배경으로 눈의 피로를 줄입니다" checked={darkMode} onChange={handleDarkToggle} />
-          </div>
-
-          {/* Font Size */}
-          <div>
-            <SectionHeader icon={Type} iconColor="text-gray-400" label="글자 크기" />
-            <div className="flex gap-2">
-              {fontSizes.map((fs) => (
-                <button
-                  key={fs.value}
-                  onClick={() => handleFontSize(fs.value)}
-                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                    fontSize === fs.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-600'
-                      : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                  }`}
-                >
-                  {fs.label}
-                </button>
-              ))}
+          {/* Dark Mode (현재 숨김) */}
+          {SHOW_DARK_MODE && (
+            <div>
+              <SectionHeader icon={darkMode ? Moon : Sun} iconColor={darkMode ? 'text-blue-500' : 'text-orange-400'} label="화면 모드" />
+              <ToggleRow label="다크 모드" desc="어두운 배경으로 눈의 피로를 줄입니다" checked={darkMode} onChange={handleDarkToggle} />
             </div>
-          </div>
+          )}
 
-          {/* Default Pet */}
+          {/* 1. 기본 반려동물 */}
           {pets.length > 0 && (
             <div>
               <SectionHeader icon={Dog} iconColor="text-gray-400" label="기본 반려동물" />
@@ -793,46 +781,67 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             </div>
           )}
 
-          {/* Auto Login */}
+          {/* 2. 보안 */}
           <div>
             <SectionHeader icon={Shield} iconColor="text-gray-400" label="보안" />
             <ToggleRow label="자동 로그인" desc="앱 재시작 시 자동으로 로그인합니다" checked={autoLogin} onChange={handleAutoLogin} />
           </div>
 
-          {/* Accessibility */}
+          {/* 3. 접근성 */}
           <div>
             <SectionHeader icon={Eye} iconColor="text-gray-400" label="접근성" />
             <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
           </div>
 
-          {/* Language */}
+          {/* 4. 글자 크기 */}
           <div>
-            <SectionHeader icon={Globe} iconColor="text-gray-400" label="언어" />
+            <SectionHeader icon={Type} iconColor="text-gray-400" label="글자 크기" />
             <div className="flex gap-2">
-              <button
-                onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
-                className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                  language === 'ko' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                }`}
-              >
-                한국어
-              </button>
-              <button
-                onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
-                className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                  language === 'en' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                }`}
-              >
-                English
-              </button>
+              {fontSizes.map((fs) => (
+                <button
+                  key={fs.value}
+                  onClick={() => handleFontSize(fs.value)}
+                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
+                    fontSize === fs.value
+                      ? 'border-blue-500 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                  }`}
+                >
+                  {fs.label}
+                </button>
+              ))}
             </div>
-            {language === 'en' && (
-              <p className="text-[11px] text-orange-500 mt-2">영어 지원은 준비 중입니다.</p>
-            )}
           </div>
 
-          {/* Cache Management */}
-          {/* App Info */}
+          {/* 5. 언어 (현재 숨김 — 한국에서만 서비스) */}
+          {SHOW_LANGUAGE && (
+            <div>
+              <SectionHeader icon={Globe} iconColor="text-gray-400" label="언어" />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
+                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
+                    language === 'ko' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  한국어
+                </button>
+                <button
+                  onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
+                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
+                    language === 'en' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+              {language === 'en' && (
+                <p className="text-[11px] text-orange-500 mt-2">영어 지원은 준비 중입니다.</p>
+              )}
+            </div>
+          )}
+
+          {/* 6. 앱 정보 */}
           <div>
             <SectionHeader icon={Info} iconColor="text-gray-400" label="앱 정보" />
             <div className="space-y-1.5 text-xs text-gray-400">
