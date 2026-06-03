@@ -579,6 +579,7 @@ export default function RecordAddPage() {
         });
       }
 
+      const fileUploadErrors: string[] = [];
       for (const file of files) {
         try {
           const { path } = await uploadFile(file, user.id, record.id);
@@ -591,8 +592,20 @@ export default function RecordAddPage() {
             file_size: file.size,
           });
         } catch (err) {
+          Sentry.captureException(err, {
+            tags: { feature: 'records', action: 'file-upload' },
+            extra: { userId: user.id, recordId: record.id, fileName: file.name, fileSize: file.size, fileType: file.type },
+          });
           console.error('File upload error:', err);
+          const msg = err instanceof Error ? err.message : String(err);
+          fileUploadErrors.push(`${file.name}: ${msg}`);
         }
+      }
+      if (fileUploadErrors.length > 0) {
+        // 기록 자체는 저장됐지만 일부/전체 첨부 실패. 사용자에게 즉시 알림 (이후 navigate 됨).
+        const msg = `기록은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`;
+        setError(msg);
+        if (typeof window !== 'undefined') window.alert(msg);
       }
 
       for (const med of medications) {

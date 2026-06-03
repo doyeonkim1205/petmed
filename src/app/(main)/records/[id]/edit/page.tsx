@@ -530,6 +530,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       // Upload new files
+      const fileUploadErrors: string[] = [];
       for (const file of newFiles) {
         try {
           const { path } = await uploadFile(file, user.id, id);
@@ -544,10 +545,17 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         } catch (err) {
           Sentry.captureException(err, {
             tags: { feature: 'records', action: 'file-upload-edit' },
-            extra: { recordId: id, userId: user?.id, fileName: file.name },
+            extra: { recordId: id, userId: user?.id, fileName: file.name, fileSize: file.size, fileType: file.type },
           });
           console.error('File upload error:', err);
+          const msg = err instanceof Error ? err.message : String(err);
+          fileUploadErrors.push(`${file.name}: ${msg}`);
         }
+      }
+      if (fileUploadErrors.length > 0) {
+        const msg = `수정은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`;
+        setError(msg);
+        if (typeof window !== 'undefined') window.alert(msg);
       }
 
       // Delete removed medications
