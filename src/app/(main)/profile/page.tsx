@@ -728,8 +728,11 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   // ─── 임시 숨김 플래그 ─────────────────────────────────────
   // 다크 모드: 일관성 fix 전까지 토글 숨김 (코드는 보존, 추후 부활 쉬움).
   // 언어: 현재 한국에서만 서비스 → 영어 토글 숨김.
+  // 고대비: 토글만 숨김 — 기본 ON 으로 동작 중 (layout.tsx 가 hc !== 'false' 면 자동 ON).
+  //         현재 모든 사용자가 고대비 ON 상태로 PawDex 외형 인식. 토글 노출 안 함.
   const SHOW_DARK_MODE = false;
   const SHOW_LANGUAGE = false;
+  const SHOW_HIGH_CONTRAST = false;
 
   return (
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
@@ -787,11 +790,13 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             <ToggleRow label="자동 로그인" desc="앱 재시작 시 자동으로 로그인합니다" checked={autoLogin} onChange={handleAutoLogin} />
           </div>
 
-          {/* 3. 접근성 */}
-          <div>
-            <SectionHeader icon={Eye} iconColor="text-gray-400" label="접근성" />
-            <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
-          </div>
+          {/* 3. 접근성 (현재 숨김 — 기본 ON 으로 자동 적용) */}
+          {SHOW_HIGH_CONTRAST && (
+            <div>
+              <SectionHeader icon={Eye} iconColor="text-gray-400" label="접근성" />
+              <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
+            </div>
+          )}
 
           {/* 4. 글자 크기 */}
           <div>
