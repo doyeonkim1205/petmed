@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Upload, X, FileText, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 
 interface FileUploaderProps {
   files: File[];
@@ -19,17 +19,44 @@ function formatStorageMB(mb: number): string {
 
 export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '여기를 눌러 사진이나 파일을 올려주세요', storageUsage }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
+  // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
+  const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const handleFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;
 
-    const validFiles = Array.from(newFiles).filter((f) => {
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-      if (!validTypes.includes(f.type)) return false;
-      if (f.size > 5 * 1024 * 1024) return false;
-      return true;
-    });
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const rejected: { name: string; reason: string }[] = [];
+    const validFiles: File[] = [];
+
+    for (const f of Array.from(newFiles)) {
+      if (!validTypes.includes(f.type)) {
+        rejected.push({ name: f.name, reason: 'JPG, PNG, PDF 만 가능' });
+        continue;
+      }
+      // 이미지는 업로드 시점에 자동 압축되므로 원본 크기 무관.
+      // PDF 만 원본 5MB 검사 (PDF 는 압축 안 함).
+      if (f.type === 'application/pdf' && f.size > 5 * 1024 * 1024) {
+        const mb = (f.size / (1024 * 1024)).toFixed(1);
+        rejected.push({ name: f.name, reason: `PDF 는 5MB 이하만 가능 (${mb}MB)` });
+        continue;
+      }
+      validFiles.push(f);
+    }
+
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    setRejectedFiles(rejected);
+    if (rejected.length > 0) {
+      errorTimerRef.current = setTimeout(() => setRejectedFiles([]), 5000);
+    }
 
     const combined = [...files, ...validFiles].slice(0, maxFiles);
     onFilesChange(combined);
@@ -54,6 +81,28 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
 
   return (
     <div className="space-y-3">
+      {rejectedFiles.length > 0 && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+          <div className="leading-snug flex-1 min-w-0">
+            {rejectedFiles.length === 1 ? (
+              <>
+                <p className="text-xs font-medium break-all">{rejectedFiles[0].name} 는 추가하지 못했어요</p>
+                <p className="text-[11px] text-red-500 mt-0.5">{rejectedFiles[0].reason}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-medium">{rejectedFiles.length}개 파일이 추가되지 못했어요</p>
+                <ul className="text-[11px] text-red-500 mt-0.5 list-disc list-inside space-y-0.5">
+                  {rejectedFiles.map((r, i) => (
+                    <li key={i} className="break-all">{r.name} — {r.reason}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {atLimit ? (
         // 한도 도달: 업로드 영역 대신 안내 문구만 (파일 리스트는 아래 유지)
         <p className="text-xs text-gray-400 text-center py-2">
