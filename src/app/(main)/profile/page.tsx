@@ -10,7 +10,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
-  Globe, Trash, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
+  Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
   CreditCard, MapPin, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -832,27 +832,11 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           </div>
 
           {/* Cache Management */}
-          <div>
-            <SectionHeader icon={Trash} iconColor="text-gray-400" label="캐시 관리" />
-            <button
-              onClick={() => {
-                try { localStorage.removeItem('pawdex_translation_cache'); } catch {}
-                try { sessionStorage.clear(); } catch {}
-                alert('캐시가 삭제되었습니다.');
-              }}
-              className="w-full h-9 rounded-full border border-gray-200 text-xs font-medium text-gray-400 hover:border-red-300 hover:bg-red-50 hover:text-red-500 transition-colors"
-            >
-              캐시 삭제
-            </button>
-            <p className="text-[10px] text-gray-400 mt-1">검색 결과, 번역 등 임시 데이터를 정리합니다.</p>
-          </div>
-
           {/* App Info */}
           <div>
             <SectionHeader icon={Info} iconColor="text-gray-400" label="앱 정보" />
             <div className="space-y-1.5 text-xs text-gray-400">
               <div className="flex justify-between"><span>버전</span><span className="text-gray-600">{APP_VERSION}</span></div>
-              <div className="flex justify-between"><span>개발</span><span className="text-gray-600">PawDex Team</span></div>
             </div>
           </div>
         </div>
