@@ -530,7 +530,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       // Upload new files
-      const fileUploadErrors: string[] = [];
       for (const file of newFiles) {
         try {
           const { path } = await uploadFile(file, user.id, id);
@@ -543,17 +542,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             file_size: file.size,
           });
         } catch (err) {
+          // 첨부 실패는 Sentry 로만 보고 — add page 와 동일 정책.
           Sentry.captureException(err, {
             tags: { feature: 'records', action: 'file-upload-edit' },
             extra: { recordId: id, userId: user?.id, fileName: file.name, fileSize: file.size, fileType: file.type },
           });
           console.error('File upload error:', err);
-          const msg = err instanceof Error ? err.message : String(err);
-          fileUploadErrors.push(`${file.name}: ${msg}`);
         }
-      }
-      if (fileUploadErrors.length > 0) {
-        setError(`수정은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`);
       }
 
       // Delete removed medications

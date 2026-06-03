@@ -579,7 +579,6 @@ export default function RecordAddPage() {
         });
       }
 
-      const fileUploadErrors: string[] = [];
       for (const file of files) {
         try {
           const { path } = await uploadFile(file, user.id, record.id);
@@ -592,18 +591,15 @@ export default function RecordAddPage() {
             file_size: file.size,
           });
         } catch (err) {
+          // 첨부 실패는 Sentry 로만 보고. 사용자에겐 표시 X — record 는 이미 저장됐고
+          // 약 알람 같은 후속 await 사이에 빨간 박스가 깜빡 보이는 불규칙 동작 회피.
+          // 사용자가 detail 페이지 들어가서 사진 없는 거 인지 + 다시 첨부 가능.
           Sentry.captureException(err, {
             tags: { feature: 'records', action: 'file-upload' },
             extra: { userId: user.id, recordId: record.id, fileName: file.name, fileSize: file.size, fileType: file.type },
           });
           console.error('File upload error:', err);
-          const msg = err instanceof Error ? err.message : String(err);
-          fileUploadErrors.push(`${file.name}: ${msg}`);
         }
-      }
-      if (fileUploadErrors.length > 0) {
-        // 기록 자체는 저장됐지만 일부/전체 첨부 실패. inline 에러 + Sentry 보고만 유지 (alert X).
-        setError(`기록은 저장됐어요. 단 일부 첨부에 실패했어요:\n${fileUploadErrors.join('\n')}`);
       }
 
       for (const med of medications) {
