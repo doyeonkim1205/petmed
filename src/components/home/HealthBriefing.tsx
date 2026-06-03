@@ -73,7 +73,7 @@ function WelcomeCard() {
 function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
   const first = briefings[0];
   const ageLabel = formatAge(first.age);
-  const meta = [ageLabel, first.pet.weight ? `${first.pet.weight}kg` : null]
+  const meta = [ageLabel, first.latestWeight ? `${first.latestWeight}kg` : null]
     .filter(Boolean)
     .join(' · ');
   return (
@@ -176,7 +176,7 @@ function BriefingCard({
   indicator: React.ReactNode;
 }) {
   const ageLabel = formatAge(briefing.age);
-  const meta = [ageLabel, briefing.pet.weight ? `${briefing.pet.weight}kg` : null]
+  const meta = [ageLabel, briefing.latestWeight ? `${briefing.latestWeight}kg` : null]
     .filter(Boolean)
     .join(' · ');
 
