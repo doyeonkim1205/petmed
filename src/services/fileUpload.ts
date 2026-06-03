@@ -64,17 +64,23 @@ export async function uploadFile(
   userId: string,
   recordId: string,
 ): Promise<{ path: string; url: string }> {
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error('파일 크기는 5MB 이하만 가능합니다.');
-  }
-
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
   if (!allowedTypes.includes(file.type)) {
     throw new Error('JPG, PNG, WebP, PDF 파일만 업로드 가능합니다.');
   }
 
+  // PDF 는 압축 안 되므로 원본 5MB 검사. 이미지는 압축 후 검사 (보통 1MB 미만).
+  if (file.type === 'application/pdf' && file.size > MAX_FILE_SIZE) {
+    throw new Error('PDF 는 5MB 이하만 가능합니다.');
+  }
+
   // 이미지면 압축
   const uploadTarget = isImageType(file.type) ? await compressImage(file) : file;
+
+  // 압축 후에도 5MB 초과면 거부 (1600px + WebP 면 사실상 안 발생).
+  if (uploadTarget.size > MAX_FILE_SIZE) {
+    throw new Error('파일이 너무 커서 업로드할 수 없어요. 다른 파일을 시도해주세요.');
+  }
 
   const ext = uploadTarget.type === 'image/webp' ? 'webp' : file.name.split('.').pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
