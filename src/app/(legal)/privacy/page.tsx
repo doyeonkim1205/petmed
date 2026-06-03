@@ -262,7 +262,7 @@ export default function PrivacyPage() {
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 5월 22일 (개정 — 사진 증상 분석 데이터 처리 섹션 추가)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / 펫 상세 정보 항목 추가)</p>
     </article>
   );
 }

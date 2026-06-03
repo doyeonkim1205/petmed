@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "PawDex - 반려동물 건강 정보 플랫폼",
+  "name": "PawDex - AI 반려동물 건강 케어",
   "short_name": "PawDex",
-  "description": "반려동물 질병 정보, 건강 기록장, 동물병원 찾기",
+  "description": "반려동물 건강 정보, AI 증상/사진 분석, 진료·일상·투약 기록 한 곳에",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

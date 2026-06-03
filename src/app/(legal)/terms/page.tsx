@@ -170,7 +170,7 @@ export default function TermsPage() {
         </ol>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / AI 사진 증상 분석 명시)</p>
     </article>
   );
 }
