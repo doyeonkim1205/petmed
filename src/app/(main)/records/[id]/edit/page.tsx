@@ -16,6 +16,7 @@ import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -100,6 +101,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   // record 원본 (RecordDraft 형태) — useDraftPersistence 의 비교 기준.
   const [recordOrigin, setRecordOrigin] = useState<RecordDraft | null>(null);
   const [existingFiles, setExistingFiles] = useState<RecordFile[]>([]);
+  // 파일 ID → display 용 signedUrl. record 로드 시 일괄 발급, SafeImage 의 onError 재발급 시 동기화.
+  const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
   const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,6 +232,18 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       if (record.record_files) {
         setExistingFiles(record.record_files);
+        // 첨부 파일별 1시간 signedUrl 일괄 발급 — bucket private 전환 후엔 이게 유일한 접근 경로.
+        const entries = await Promise.all(
+          record.record_files.map(async (f: RecordFile) => {
+            try {
+              const { data } = await supabase.storage.from('medical-files').createSignedUrl(f.file_path, 3600);
+              return [f.id, data?.signedUrl ?? ''] as const;
+            } catch {
+              return [f.id, ''] as const;
+            }
+          })
+        );
+        setFileUrls(Object.fromEntries(entries));
       }
 
       // v12: sub_entries 에서 sub_kind 만 복원 (중복 제거). 메모는 description 으로 통합 사용.
@@ -1064,16 +1079,38 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               {existingFiles.map((file) => {
                 const isImage = file.file_type?.startsWith('image/');
                 const FileIcon = isImage ? ImageIcon : FileText;
-                const { data: urlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path);
-                const { data: dlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path, { download: file.file_name });
+                const fileUrl = fileUrls[file.id] || '';
+
+                const refetch = async () => {
+                  const { data } = await supabase.storage.from('medical-files').createSignedUrl(file.file_path, 3600);
+                  if (!data) throw new Error('signed url failed');
+                  setFileUrls((prev) => ({ ...prev, [file.id]: data.signedUrl }));
+                  return data.signedUrl;
+                };
+
+                const handleDownload = async () => {
+                  const { data } = await supabase.storage
+                    .from('medical-files')
+                    .createSignedUrl(file.file_path, 60, { download: file.file_name });
+                  if (!data) return;
+                  const a = document.createElement('a');
+                  a.href = data.signedUrl;
+                  a.download = file.file_name;
+                  a.style.display = 'none';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                };
 
                 return (
                   <div key={file.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     {isImage ? (
-                      <img
-                        src={urlData.publicUrl}
+                      <SafeImage
+                        src={fileUrl}
                         alt={file.file_name}
-                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                        onRefetchUrl={refetch}
+                        className="w-10 h-10 rounded flex-shrink-0"
+                        imgClassName="w-10 h-10 rounded object-cover"
                       />
                     ) : (
                       <FileIcon size={20} className="text-gray-400 flex-shrink-0" />
@@ -1082,13 +1119,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       <p className="text-sm font-medium text-gray-700 truncate">{file.file_name}</p>
                       <p className="text-xs text-gray-400">{(file.file_size / 1024).toFixed(0)}KB</p>
                     </div>
-                    <a
-                      href={dlData.publicUrl}
+                    <button
+                      type="button"
+                      onClick={handleDownload}
                       className="p-1.5 text-gray-400 hover:text-blue-600"
                       title="다운로드"
                     >
                       <Download size={16} />
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={() => removeExistingFile(file.id)}

@@ -77,10 +77,6 @@ export async function uploadFile(
   const uploadTarget = isImageType(file.type) ? await compressImage(file) : file;
 
   const ext = uploadTarget.type === 'image/webp' ? 'webp' : file.name.split('.').pop();
-  // 파일명에 crypto.randomUUID() 포함 — URL 예측 가능성 제거.
-  // 기존 Date.now() 는 업로드 시각 대략 알면 수백만 가지로 좁혀져서
-  // userId + recordId UUID 를 안다는 전제에서 취약. UUID 로 바꿔 완전 무작위화.
-  // medical-files 버킷이 public 이라도 URL 추측 불가 → 사실상 signed URL 수준 안전.
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const filePath = `${userId}/${recordId}/${fileName}`;
 
@@ -90,9 +86,12 @@ export async function uploadFile(
 
   if (error) throw error;
 
-  const { data: urlData } = supabase.storage
+  // bucket 은 private — signedUrl 만 발급. 1시간 유효, 만료 시 UI 측에서 onError 핸들러로 재발급.
+  const { data: urlData, error: urlError } = await supabase.storage
     .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
+    .createSignedUrl(filePath, 3600);
+
+  if (urlError) throw urlError;
 
   logActivity(userId, 'file.upload', {
     resourceType: 'record_file',
@@ -100,7 +99,7 @@ export async function uploadFile(
     details: { fileName: file.name, fileSize: file.size, fileType: file.type },
   });
 
-  return { path: filePath, url: urlData.publicUrl };
+  return { path: filePath, url: urlData.signedUrl };
 }
 
 export async function deleteFile(filePath: string, userId?: string): Promise<void> {

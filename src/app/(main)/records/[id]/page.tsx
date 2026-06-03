@@ -9,6 +9,30 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { HealthRecord, Medication, RecordFile, supabase, DailySubKind } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { SafeImage } from '@/components/ui/SafeImage';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+
+// 첨부 파일 1시간 유효 signedUrl 발급 — bucket 이 private 으로 전환된 후 RLS 통과한 사용자만 받음.
+async function createDisplayUrl(filePath: string): Promise<string> {
+  const { data, error } = await supabase.storage.from('medical-files').createSignedUrl(filePath, 3600);
+  if (error || !data) throw error ?? new Error('signed url failed');
+  return data.signedUrl;
+}
+
+// 다운로드는 click 시점에 60초짜리 단명 URL 발급 → 즉시 다운로드. DOM 에 href 영구 노출 X.
+async function triggerDownload(filePath: string, fileName: string) {
+  const { data, error } = await supabase.storage
+    .from('medical-files')
+    .createSignedUrl(filePath, 60, { download: fileName });
+  if (error || !data) return;
+  const a = document.createElement('a');
+  a.href = data.signedUrl;
+  a.download = fileName;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 const typeConfig = {
   symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
@@ -37,9 +61,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [record, setRecord] = useState<HealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  // 첨부 사진 미리보기 모달 — 클릭 시 새 탭(window.open)으로 열면 URL 이 사용자에게 노출되므로
-  // 모달 안에서 보여줘 URL 을 숨김. 비이미지 파일은 다운로드 버튼만 노출.
-  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; isImage: boolean; downloadUrl: string } | null>(null);
+  // 파일 ID → display 용 signedUrl. record 로드 시 일괄 발급, SafeImage 의 onError 재발급 시도 동기화.
+  const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
+  // 모달 미리보기 — 본문 썸네일 클릭 시 큰 화면 + 핀치/더블탭 줌. fileId 로 fileUrls 에서 lookup.
+  const [previewFile, setPreviewFile] = useState<{ fileId: string; name: string; isImage: boolean } | null>(null);
 
   useEffect(() => {
     if (id && user) {
@@ -51,6 +76,19 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     try {
       const data = await getRecord(id);
       setRecord(data);
+      if (data?.record_files && data.record_files.length > 0) {
+        // 파일별 signedUrl 일괄 발급. 하나 실패해도 나머지는 진행.
+        const entries = await Promise.all(
+          data.record_files.map(async (f: RecordFile) => {
+            try {
+              return [f.id, await createDisplayUrl(f.file_path)] as const;
+            } catch {
+              return [f.id, ''] as const;
+            }
+          })
+        );
+        setFileUrls(Object.fromEntries(entries));
+      }
     } catch (error) {
       Sentry.captureException(error, {
         tags: { feature: 'records', action: 'fetch-detail' },
@@ -61,6 +99,13 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     } finally {
       setLoading(false);
     }
+  };
+
+  // SafeImage onError 시 호출 — 새 signedUrl 발급 + state 동기화.
+  const refetchUrl = async (file: RecordFile): Promise<string> => {
+    const url = await createDisplayUrl(file.file_path);
+    setFileUrls((prev) => ({ ...prev, [file.id]: url }));
+    return url;
   };
 
   const handleDelete = () => {
@@ -303,14 +348,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           </h3>
           <div className="space-y-2">
             {record.record_files.map((file) => {
-              const { data: urlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path);
-              const fileUrl = urlData.publicUrl;
-              const { data: downloadUrlData } = supabase.storage.from('medical-files').getPublicUrl(file.file_path, { download: file.file_name });
-              const downloadUrl = downloadUrlData.publicUrl;
+              const fileUrl = fileUrls[file.id] || '';
               const isImage = file.file_type?.startsWith('image/');
               const FileIcon = isImage ? Image : FileText;
-
-              const openPreview = () => setPreviewFile({ url: fileUrl, name: file.file_name, isImage, downloadUrl });
+              const openPreview = () => setPreviewFile({ fileId: file.id, name: file.file_name, isImage: !!isImage });
               return (
                 <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
                   {isImage && (
@@ -319,10 +360,12 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                       onClick={openPreview}
                       className="w-full block cursor-pointer"
                     >
-                      <img
+                      <SafeImage
                         src={fileUrl}
                         alt={file.file_name}
-                        className="w-full max-h-48 object-cover bg-gray-100"
+                        onRefetchUrl={() => refetchUrl(file)}
+                        className="w-full h-48"
+                        imgClassName="w-full h-48 object-cover"
                       />
                     </button>
                   )}
@@ -338,13 +381,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     <span className="text-xs text-gray-400 flex-shrink-0">
                       {(file.file_size / 1024).toFixed(0)}KB
                     </span>
-                    <a
-                      href={downloadUrl}
+                    <button
+                      type="button"
+                      onClick={() => triggerDownload(file.file_path, file.file_name)}
                       className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
                       title="다운로드"
                     >
                       <Download size={16} />
-                    </a>
+                    </button>
                   </div>
                 </div>
               );
@@ -366,42 +410,53 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
       {previewFile && (
         <div
-          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center"
           onClick={() => setPreviewFile(null)}
         >
           <button
             type="button"
             onClick={() => setPreviewFile(null)}
-            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white"
+            className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white"
             aria-label="닫기"
           >
             <X size={24} />
           </button>
-          <div
-            className="max-w-full max-h-full flex flex-col items-center gap-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {previewFile.isImage ? (
-              <img
-                src={previewFile.url}
-                alt={previewFile.name}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg"
-              />
-            ) : (
-              <div className="bg-white rounded-lg p-6 text-center">
-                <FileText size={48} className="text-blue-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-700 break-all">{previewFile.name}</p>
-                <p className="text-xs text-gray-400 mt-1">미리보기는 지원하지 않습니다</p>
-              </div>
-            )}
-            <a
-              href={previewFile.downloadUrl}
-              className="flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white text-gray-700 text-sm font-medium rounded-full"
+          {previewFile.isImage ? (
+            <div
+              className="w-full h-full flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Download size={16} />
-              다운로드
-            </a>
-          </div>
+              <TransformWrapper
+                initialScale={1}
+                minScale={1}
+                maxScale={5}
+                doubleClick={{ mode: 'toggle', step: 2 }}
+                wheel={{ step: 0.2 }}
+                pinch={{ step: 5 }}
+              >
+                <TransformComponent
+                  wrapperStyle={{ width: '100vw', height: '100vh' }}
+                  contentStyle={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <img
+                    src={fileUrls[previewFile.fileId] || ''}
+                    alt={previewFile.name}
+                    className="max-w-full max-h-full object-contain select-none"
+                    draggable={false}
+                  />
+                </TransformComponent>
+              </TransformWrapper>
+            </div>
+          ) : (
+            <div
+              className="bg-white rounded-lg p-6 text-center mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FileText size={48} className="text-blue-500 mx-auto mb-2" />
+              <p className="text-sm text-gray-700 break-all">{previewFile.name}</p>
+              <p className="text-xs text-gray-400 mt-1">미리보기는 지원하지 않습니다</p>
+            </div>
+          )}
         </div>
       )}
     </div>
