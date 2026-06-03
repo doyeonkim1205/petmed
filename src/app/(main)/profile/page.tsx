@@ -871,7 +871,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                 <SectionHeader icon={HardDrive} iconColor="text-gray-400" label="저장 공간" />
                 <div className="space-y-1.5">
                   <div className="flex items-baseline justify-between">
-                    <span className={`text-xs ${labelColor}`}>사진 첨부</span>
+                    <span className={`text-xs ${labelColor}`}>첨부 파일</span>
                     <span className="text-xs">
                       <span className="font-semibold text-gray-700">{formatMB(storage.usedMB)}</span>
                       <span className="text-gray-400"> / {formatMB(storage.limitMB)}</span>
