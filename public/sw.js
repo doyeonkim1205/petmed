@@ -1,14 +1,13 @@
-// PawDex Service Worker v80
-const CACHE_NAME = 'pawdex-v80';
+// PawDex Service Worker v81
+const CACHE_NAME = 'pawdex-v81';
 const PRECACHE_URLS = ['/', '/offline.html', '/icons/icon-192x192.png', '/icons/icon-512x512.png', '/icons/notification-icon.png', '/icons/offline-illustration.svg'];
 
 // Install: precache essential resources
 // 저가형 기기에서 QuotaExceededError 발생해도 SW 설치 자체는 성공하도록 try-catch
 //
-// 출시 초기: skipWaiting 활성화 — autofill 차단 등 critical UX 변경을 옛 SW 캐시에
-// 갇힌 유저에게 즉시 전달하기 위함. install 즉시 activate 로 진입, activate 핸들러의
-// clients.claim + SW_ACTIVATED 메시지로 ServiceWorkerRegister 가 자동 reload.
-// 사용자 0 명대 출시 직후라 편집 손실 위험 거의 0. 정착 후 정책 복원 검토.
+// skipWaiting 을 호출하지 않음 → 새 SW 는 "waiting" 상태로 머물고,
+// 유저가 UpdateToast 의 [지금 적용] 을 눌러야 활성화됨. 편집 중인 작업
+// 날리는 자동 업데이트를 방지하기 위함. (v80 에서 한 번 강제 적용 후 복원)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -18,7 +17,6 @@ self.addEventListener('install', (event) => {
       } catch (err) {
         console.warn('SW precache failed (continuing without):', err?.name || err);
       }
-      await self.skipWaiting();
     })()
   );
 });
