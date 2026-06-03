@@ -1216,7 +1216,6 @@ export default function RecordAddPage() {
                   }
                 }}
                 maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
-                placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
                 storageUsage={storageUsage}
               />
               <div ref={fileEndRef} />

@@ -1185,7 +1185,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               }
             }}
             maxFiles={Math.max(maxNewFiles, 0)}
-            placeholder={recordType === 'symptom' ? '증상 관련 사진이나 파일을 첨부하세요' : '진료 서류를 첨부하세요'}
             storageUsage={storageUsage}
           />
           <div ref={fileEndRef} />
