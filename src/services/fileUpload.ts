@@ -2,7 +2,8 @@ import { supabase } from '@/lib/supabase';
 import { logActivity } from '@/lib/activityLog';
 
 const BUCKET_NAME = 'medical-files';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — 압축 성공 케이스의 상한
+const MAX_UNCOMPRESSED_SIZE = 30 * 1024 * 1024; // 30MB — 압축 실패 fallback 시 원본 상한 (Supabase Pro 파일당 50MB 보다 보수적)
 const IMAGE_MAX_DIMENSION = 1600; // px
 const IMAGE_QUALITY = 0.8;
 
@@ -10,24 +11,42 @@ function isImageType(type: string): boolean {
   return ['image/jpeg', 'image/png', 'image/webp'].includes(type);
 }
 
-async function compressImage(file: File): Promise<File> {
-  // <img> 태그는 8MB+ 카메라 원본에서 모바일 OOM 또는 디코더 timeout 으로 onerror 빈번.
-  // createImageBitmap 은 modern decode API — 메모리 효율적이고 큰 이미지에 안정적.
-  // iOS Safari 14+ / Android Chrome / 데스크탑 모두 지원.
-  let bitmap: ImageBitmap;
+// <img> 폴백 디코더 — createImageBitmap 이 fail 했을 때 시도.
+function decodeViaImgTag(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img tag decode failed')); };
+    img.src = url;
+  });
+}
+
+// 압축 성공 = File 반환, 압축 fail = null (호출 측이 원본 사용)
+async function compressImage(file: File): Promise<File | null> {
+  // 디코딩 1차: createImageBitmap (modern API, 메모리 효율적)
+  // 디코딩 2차: <img> 태그 (legacy fallback)
+  // 둘 다 fail → null 반환 → 호출 측이 원본 그대로 업로드
+  let source: ImageBitmap | HTMLImageElement | null = null;
+  let bitmap: ImageBitmap | null = null;
   try {
     bitmap = await createImageBitmap(file);
-  } catch (err) {
-    // HEIC 같은 미지원 포맷 또는 손상 파일.
-    console.error('createImageBitmap failed:', err);
-    throw new Error('이미지를 읽을 수 없어요. 다른 사진을 시도해주세요.');
+    source = bitmap;
+  } catch (err1) {
+    console.warn('createImageBitmap failed, trying <img>:', err1);
+    try {
+      source = await decodeViaImgTag(file);
+    } catch (err2) {
+      console.error('both decoders failed:', err1, err2);
+      return null; // 압축 불가 → 호출 측이 원본 사용
+    }
   }
 
-  let { width, height } = bitmap;
+  let { width, height } = source;
 
   // 이미 작으면 압축 불필요
   if (width <= IMAGE_MAX_DIMENSION && height <= IMAGE_MAX_DIMENSION && file.size < 500 * 1024) {
-    bitmap.close();
+    bitmap?.close();
     return file;
   }
 
@@ -43,11 +62,11 @@ async function compressImage(file: File): Promise<File> {
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    bitmap.close();
+    bitmap?.close();
     return file;
   }
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close(); // 명시적 메모리 해제 — 모바일에서 중요
+  ctx.drawImage(source, 0, 0, width, height);
+  bitmap?.close(); // 명시적 메모리 해제 — 모바일에서 중요
 
   return new Promise((resolve) => {
     canvas.toBlob(
@@ -83,12 +102,26 @@ export async function uploadFile(
     throw new Error('PDF 는 5MB 이하만 가능합니다.');
   }
 
-  // 이미지면 압축
-  const uploadTarget = isImageType(file.type) ? await compressImage(file) : file;
-
-  // 압축 후에도 5MB 초과면 거부 (1600px + WebP 면 사실상 안 발생).
-  if (uploadTarget.size > MAX_FILE_SIZE) {
-    throw new Error('파일이 너무 커서 업로드할 수 없어요. 다른 파일을 시도해주세요.');
+  // 이미지면 압축 시도. compressImage 가 null 반환 = 디코딩 실패 (HEIC 등 비표준).
+  // 그 경우 원본 그대로 업로드 (30MB 한도 안에서).
+  let uploadTarget: File;
+  if (isImageType(file.type)) {
+    const compressed = await compressImage(file);
+    if (compressed === null) {
+      // 압축 fail → 원본 사용. 30MB 한도 안에서 허용.
+      if (file.size > MAX_UNCOMPRESSED_SIZE) {
+        throw new Error('사진을 처리할 수 없어요. 다른 사진을 시도해주세요.');
+      }
+      uploadTarget = file;
+    } else {
+      uploadTarget = compressed;
+      // 압축 성공 케이스만 5MB 검사 (1600px + WebP 면 사실상 안 발생).
+      if (uploadTarget.size > MAX_FILE_SIZE) {
+        throw new Error('파일이 너무 커서 업로드할 수 없어요. 다른 파일을 시도해주세요.');
+      }
+    }
+  } else {
+    uploadTarget = file;
   }
 
   const ext = uploadTarget.type === 'image/webp' ? 'webp' : file.name.split('.').pop();
