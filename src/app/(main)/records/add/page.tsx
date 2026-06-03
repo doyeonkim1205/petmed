@@ -809,8 +809,11 @@ export default function RecordAddPage() {
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
               maxLength={6}
-              autoComplete="off"
-              name="pet-weight-kg"
+              autoComplete="one-time-code"
+              data-form-type="other"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              name="record-weight-value"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
@@ -918,8 +921,11 @@ export default function RecordAddPage() {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
-                autoComplete="off"
-                name="pet-weight-kg"
+                autoComplete="one-time-code"
+                data-form-type="other"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                name="record-weight-value"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -990,7 +996,10 @@ export default function RecordAddPage() {
                 placeholder="0"
                 value={cost}
                 onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
-                autoComplete="off"
+                autoComplete="one-time-code"
+                data-form-type="other"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 name="record-cost-amount"
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />

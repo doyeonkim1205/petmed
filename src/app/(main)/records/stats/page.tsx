@@ -429,7 +429,7 @@ export default function StatsPage() {
                   </div>
                   <div className="bg-emerald-50 rounded-xl p-3 text-center">
                     <Stethoscope size={18} className="mx-auto text-emerald-500 mb-1" />
-                    <p className="text-[10px] text-emerald-400 font-medium">진료 횟수</p>
+                    <p className="text-[10px] text-emerald-400 font-medium">비용 기록</p>
                     <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
                   </div>
                 </div>
@@ -545,7 +545,11 @@ export default function StatsPage() {
                           const v = e.target.value;
                           if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
                         }}
-                        autoComplete="off" name="weight-log-kg"
+                        autoComplete="one-time-code"
+                        data-form-type="other"
+                        data-1p-ignore="true"
+                        data-lpignore="true"
+                        name="weight-log-value"
                         className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                       <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
                         max={todayLocalISO()}
