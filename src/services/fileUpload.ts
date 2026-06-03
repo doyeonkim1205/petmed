@@ -11,51 +11,60 @@ function isImageType(type: string): boolean {
 }
 
 async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
+  // <img> 태그는 8MB+ 카메라 원본에서 모바일 OOM 또는 디코더 timeout 으로 onerror 빈번.
+  // createImageBitmap 은 modern decode API — 메모리 효율적이고 큰 이미지에 안정적.
+  // iOS Safari 14+ / Android Chrome / 데스크탑 모두 지원.
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (err) {
+    // HEIC 같은 미지원 포맷 또는 손상 파일.
+    console.error('createImageBitmap failed:', err);
+    throw new Error('이미지를 읽을 수 없어요. 다른 사진을 시도해주세요.');
+  }
 
-      // 이미 작으면 압축 불필요
-      if (width <= IMAGE_MAX_DIMENSION && height <= IMAGE_MAX_DIMENSION && file.size < 500 * 1024) {
-        resolve(file);
-        return;
-      }
+  let { width, height } = bitmap;
 
-      // 비율 유지하며 리사이즈
-      if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
-        const ratio = Math.min(IMAGE_MAX_DIMENSION / width, IMAGE_MAX_DIMENSION / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
+  // 이미 작으면 압축 불필요
+  if (width <= IMAGE_MAX_DIMENSION && height <= IMAGE_MAX_DIMENSION && file.size < 500 * 1024) {
+    bitmap.close();
+    return file;
+  }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { resolve(file); return; }
-      ctx.drawImage(img, 0, 0, width, height);
+  // 비율 유지하며 리사이즈
+  if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
+    const ratio = Math.min(IMAGE_MAX_DIMENSION / width, IMAGE_MAX_DIMENSION / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
 
-      canvas.toBlob(
-        (blob) => {
-          if (!blob || blob.size >= file.size) {
-            resolve(file); // 압축 후 더 커지면 원본 사용
-            return;
-          }
-          const compressed = new File([blob], file.name, {
-            type: 'image/webp',
-            lastModified: Date.now(),
-          });
-          resolve(compressed);
-        },
-        'image/webp',
-        IMAGE_QUALITY,
-      );
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없습니다.')); };
-    img.src = url;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close(); // 명시적 메모리 해제 — 모바일에서 중요
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob || blob.size >= file.size) {
+          resolve(file); // 압축 후 더 커지면 원본 사용
+          return;
+        }
+        const compressed = new File([blob], file.name, {
+          type: 'image/webp',
+          lastModified: Date.now(),
+        });
+        resolve(compressed);
+      },
+      'image/webp',
+      IMAGE_QUALITY,
+    );
   });
 }
 
