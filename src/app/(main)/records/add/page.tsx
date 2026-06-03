@@ -19,6 +19,7 @@ import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { type RecordDraft } from '@/lib/recordDraft';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { todayLocalISO } from '@/lib/date';
+import { sortPetsWithDefault } from '@/lib/petSort';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -228,15 +229,13 @@ export default function RecordAddPage() {
       .select('*')
       .eq('user_id', user.id)
       .then(({ data }) => {
-        const petList = data || [];
+        const defaultId = localStorage.getItem('defaultPetId');
+        const petList = sortPetsWithDefault(data || [], defaultId);
         setPets(petList);
         if (petList.length === 1) {
           setPetId(petList[0].id);
-        } else {
-          const defaultId = localStorage.getItem('defaultPetId');
-          if (defaultId && petList.some(p => p.id === defaultId)) {
-            setPetId(defaultId);
-          }
+        } else if (defaultId && petList.some(p => p.id === defaultId)) {
+          setPetId(defaultId);
         }
       });
     // 최근 병원명 DB 에서 로드 (기기 간 동기화). 기존 localStorage 값이 있으면

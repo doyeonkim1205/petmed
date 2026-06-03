@@ -6,6 +6,7 @@ import { Camera, X, ArrowLeft, ArrowRight, Sparkles, AlertCircle, Cat, Dog, Info
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Pet } from '@/lib/supabase';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { compressImage } from '@/lib/imageCompress';
 import { authFetch } from '@/lib/authFetch';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -138,9 +139,9 @@ export default function PhotoAnalysisPage() {
         authFetch('/api/photo-analysis/usage').then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       if (!alive) return;
-      const petList = petsRes.data ?? [];
+      const petList = sortPetsWithDefault(petsRes.data ?? [], readDefaultPetId());
       setPets(petList);
-      // 캐시 selectedPetId 유효성 검증 후 적용, 무효면 첫 펫.
+      // 캐시 selectedPetId 유효성 검증 후 적용, 무효면 첫 펫(=기본 펫).
       if (petList.length > 0) {
         const cachedPetId = cached?.selectedPetId;
         const validCached = cachedPetId && petList.some(p => p.id === cachedPetId) ? cachedPetId : null;

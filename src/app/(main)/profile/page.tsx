@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import {
@@ -137,7 +138,7 @@ function PetModal({
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
       if (error) throw error;
-      setPets(data ?? []);
+      setPets(sortPetsWithDefault(data ?? [], readDefaultPetId()));
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'pets', action: 'fetch' },
@@ -671,7 +672,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
-        .then(({ data }) => setPets(data || []));
+        .then(({ data }) => setPets(sortPetsWithDefault(data || [], localStorage.getItem('defaultPetId'))));
     }
   }, [open, userId]);
 

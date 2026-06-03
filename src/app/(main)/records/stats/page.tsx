@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 import { todayLocalISO } from '@/lib/date';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 
 type StatsTab = 'cost' | 'weight';
 type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
@@ -170,8 +171,9 @@ export default function StatsPage() {
     supabase.from('pets').select('*').eq('user_id', user.id)
       .then(({ data }) => {
         if (data) {
-          setPets(data);
-          if (data.length === 1) setSelectedPetId(data[0].id);
+          const sorted = sortPetsWithDefault(data, readDefaultPetId());
+          setPets(sorted);
+          if (sorted.length === 1) setSelectedPetId(sorted[0].id);
         }
         // 펫 로딩 + selectedPetId 결정 완료 표시 — 이 전엔 통계 스켈레톤 유지(빈 값 깜빡임 방지)
         setPetsLoaded(true);

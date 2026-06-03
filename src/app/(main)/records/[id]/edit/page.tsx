@@ -17,6 +17,7 @@ import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { SafeImage } from '@/components/ui/SafeImage';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -199,7 +200,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         supabase.from('pets').select('*').eq('user_id', user!.id),
       ]);
 
-      setPets(petData.data || []);
+      setPets(sortPetsWithDefault(petData.data || [], readDefaultPetId()));
       setPetId(record.pet_id);
       setTitle(record.title);
       setDescription(record.description || '');

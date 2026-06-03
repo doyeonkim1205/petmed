@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { supabase, Pet } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 
 
 interface PetSelectorProps {
@@ -31,7 +32,7 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
           .eq('user_id', userId)
           .order('created_at', { ascending: true });
         if (error) console.error('PetSelector fetch error:', error);
-        const petList = data || [];
+        const petList = sortPetsWithDefault(data || [], readDefaultPetId());
         setPets(petList);
         onPetsLoaded?.(petList.length);
         if (selectedPetId && petList.length > 0 && !petList.find(p => p.id === selectedPetId)) {

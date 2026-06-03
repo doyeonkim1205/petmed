@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import useSWR from 'swr';
 import { supabase, type Pet } from '@/lib/supabase';
+import { readDefaultPetId } from '@/lib/petSort';
 import {
   calculateAge,
   daysBetween,
@@ -149,8 +151,20 @@ export function useHealthBriefing(userId: string | undefined): UseHealthBriefing
     },
   );
 
+  // 기본 반려동물(localStorage 'defaultPetId') 을 항상 맨 위로 정렬.
+  const sortedBriefings = useMemo(() => {
+    const list = data?.briefings ?? [];
+    const defaultId = readDefaultPetId();
+    if (!defaultId || list.length <= 1) return list;
+    return [...list].sort((a, b) => {
+      if (a.pet.id === defaultId && b.pet.id !== defaultId) return -1;
+      if (b.pet.id === defaultId && a.pet.id !== defaultId) return 1;
+      return 0;
+    });
+  }, [data]);
+
   return {
-    briefings: data?.briefings ?? [],
+    briefings: sortedBriefings,
     petsCount: data?.petsCount ?? 0,
     loading: isLoading,
   };

@@ -113,6 +113,15 @@ export default function RecordsPage() {
     ? records
     : records.filter(r => r.record_type === recordFilter);
 
+  // 필터 뱃지에 표시할 건수 — 선택된 뱃지에만 옆에 숫자 보이게 사용.
+  const filterCounts = (() => {
+    const c: Record<RecordFilter, number> = { all: records.length, symptom: 0, visit: 0, hospitalization: 0, daily: 0 };
+    for (const r of records) {
+      if (r.record_type in c) c[r.record_type as RecordFilter] += 1;
+    }
+    return c;
+  })();
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -251,7 +260,7 @@ export default function RecordsPage() {
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {f.label}
+                  {f.label}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
                 </button>
               ))}
               {filteredRecords.length > 0 && (

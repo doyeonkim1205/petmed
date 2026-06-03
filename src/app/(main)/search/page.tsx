@@ -13,6 +13,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { TextField } from '@/components/TextField';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { supabase, Pet } from '@/lib/supabase';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 
 type SearchMode = 'disease' | 'symptom';
 
@@ -308,7 +309,7 @@ function SearchContent() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: true });
         if (!alive) return;
-        const petList = data ?? [];
+        const petList = sortPetsWithDefault(data ?? [], readDefaultPetId());
         setPets(petList);
         // 캐시 검증: selectedPetId 가 fetched 목록에 없으면 reset
         setSelectedPetId(prev => (prev && petList.some(p => p.id === prev) ? prev : null));
