@@ -171,6 +171,8 @@ function SearchContent() {
   const [symptomUsageInfo, setSymptomUsageInfo] = useState<{ search: { used: number; limit: number }; refine: { used: number; limit: number }; plan: string } | null>(null);
   const [bookmarkedPapers, setBookmarkedPapers] = useState<Set<number>>(new Set());
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  // 완전 거부 / 완전 한도 도달 — 빨강. saveWarning(주황: 일부 잘림) 과 분리.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
   const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(cachedSymptom?.result || null);
@@ -618,10 +620,19 @@ function SearchContent() {
           selectedPapers: papers,
         }),
       });
+      const result = await res.json();
       if (res.ok) {
-        const result = await res.json();
         setSaved(true);
-        if (result.warning) setSaveWarning(result.warning);
+        setSaveError(null);
+        if (result.warning) {
+          // warningKind: 'partial' = 주황(일부 잘림), 'limit_reached' = 빨강(완전 도달)
+          if (result.warningKind === 'limit_reached') {
+            setSaveError(result.warning);
+            setSaveWarning(null);
+          } else {
+            setSaveWarning(result.warning);
+          }
+        }
         try {
           const raw = sessionStorage.getItem('searchCache');
           if (raw) {
@@ -630,11 +641,15 @@ function SearchContent() {
             sessionStorage.setItem('searchCache', JSON.stringify(c));
           }
         } catch {}
+      } else {
+        // 403 (논문 분석 cap 도달, plus 가 500편 채운 케이스) — 빨강.
+        setSaveError(result?.error || '저장에 실패했어요.');
       }
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'search', action: 'save-analysis' },
       });
+      setSaveError('네트워크 오류가 발생했어요.');
     } finally {
       setSaving(false);
     }
@@ -1457,7 +1472,10 @@ function SearchContent() {
       {/* Bottom Sticky Bookmark Bar */}
       {showBottomBar && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-30">
-          {saveWarning && (
+          {saveError && (
+            <p className="text-xs text-red-600 mb-2 text-center">{saveError}</p>
+          )}
+          {saveWarning && !saveError && (
             <p className="text-xs text-orange-500 mb-2 text-center">{saveWarning}</p>
           )}
           <button

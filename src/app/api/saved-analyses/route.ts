@@ -188,18 +188,22 @@ export async function POST(request: NextRequest) {
 
     if (remaining <= 0) {
       // 여기는 plan === 'plus' 일 때만 도달 (free 는 위에서 이미 403).
+      // 완전 도달 (논문 0편 저장) — 클라이언트에서 빨강(error) 처리.
       return NextResponse.json({
         ...data,
         savedPaperCount: 0,
-        warning: `📌 논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`,
+        warning: `논문 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다. 추가 용량이 필요하시면 문의해 주세요.`,
+        warningKind: 'limit_reached',
       });
     }
 
     if (papersToSave.length < selectedPapers.length) {
+      // 일부 잘림 — 클라이언트에서 주황(warning) 처리.
       return NextResponse.json({
         ...data,
         savedPaperCount,
-        warning: `📌 논문 저장 한도로 ${papersToSave.length}편만 저장되었습니다.`,
+        warning: `논문 저장 한도로 ${papersToSave.length}편만 저장되었습니다.`,
+        warningKind: 'partial',
       });
     }
   }
