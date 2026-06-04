@@ -12,14 +12,14 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "PawDex - 쉬운 반려동물 건강기록",
+  title: "PawDex - 쉬운 반려동물 건강기록장",
   description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
-    title: "PawDex - 쉬운 반려동물 건강기록",
+    title: "PawDex - 쉬운 반려동물 건강기록장",
     description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
     url: "https://pawdex.store",
     siteName: "PawDex",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PawDex - 쉬운 반려동물 건강기록",
+    title: "PawDex - 쉬운 반려동물 건강기록장",
     description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
     images: ["/icons/og-image-v2.png"],
   },
