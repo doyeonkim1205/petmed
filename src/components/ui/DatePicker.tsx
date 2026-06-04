@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
+import { format, addMonths, subMonths } from 'date-fns';
+import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -46,7 +47,13 @@ export function DatePicker({
   inputClassName = '',
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState<Date>(() => parseYmd(value) || new Date());
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // 모달 열릴 때 현재 value 의 month 로 동기화.
+  useEffect(() => {
+    if (open) setMonth(parseYmd(value) || new Date());
+  }, [open, value]);
 
   // 모달 열렸을 때 body 스크롤 lock
   useEffect(() => {
@@ -89,9 +96,45 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* 헤더 — 요일과 같은 7-col 그리드:
+                  [일 빈] [월: ←] [화 빈] [수목: 년월 (중앙 2칸)] [금: →] [토: ×]
+                day 셀의 위치와 시각 정렬. */}
+            <div className="grid grid-cols-7 items-center mb-1 px-0.5">
+              <div />
+              <button
+                type="button"
+                onClick={() => setMonth(subMonths(month, 1))}
+                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="이전 달"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="col-span-3 text-center text-sm font-semibold text-gray-700">
+                {format(month, 'yyyy년 M월', { locale: ko })}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMonth(addMonths(month, 1))}
+                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="다음 달"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="닫기"
+              >
+                <X size={16} />
+              </button>
+            </div>
             <DayPicker
               mode="single"
               selected={selected}
+              month={month}
+              onMonthChange={setMonth}
+              hideNavigation
               onSelect={(d) => {
                 if (d) {
                   onChange(toYmd(d));
