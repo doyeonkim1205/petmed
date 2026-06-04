@@ -96,12 +96,9 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 — 각 column 36px 고정 (day 셀과 동일). 모달 가운데 정렬.
+            {/* 헤더 — grid-cols-7 w-full (day grid 와 동일 width).
                   [일:←] [월~금: 년월 5칸 중앙] [토:→] */}
-            <div
-              className="grid items-center mb-2 mx-auto"
-              style={{ gridTemplateColumns: 'repeat(7, 36px)', width: 'fit-content' }}
-            >
+            <div className="grid grid-cols-7 items-center mb-2 w-full">
               <button
                 type="button"
                 onClick={() => setMonth(subMonths(month, 1))}

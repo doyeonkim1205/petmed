@@ -177,7 +177,6 @@ input, textarea, select {
   --rdp-accent-color: #2563eb;             /* blue-600 */
   --rdp-accent-background-color: #eff6ff;  /* blue-50 */
   --rdp-day-height: 36px;
-  --rdp-day-width: 36px;
   --rdp-day_button-height: 32px;
   --rdp-day_button-width: 32px;
   --rdp-day_button-border-radius: 9999px;
@@ -187,6 +186,15 @@ input, textarea, select {
   --rdp-months-gap: 1rem;
   --rdp-today-color: #2563eb;
   font-size: 13px;
+}
+/* day grid table 의 width 100% + 7 column 균등 분할 → 헤더 grid-cols-7 과 정확 정렬 */
+.pawdex-dp .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.pawdex-dp .rdp-day {
+  width: auto;
 }
 /* react-day-picker 기본 month_caption 숨김 — 우리가 직접 헤더 그림 (7-col 그리드 정렬) */
 .pawdex-dp .rdp-month_caption {
