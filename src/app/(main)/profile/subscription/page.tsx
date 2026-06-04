@@ -70,9 +70,8 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
     title: '총 한도',
     features: [
       { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
-      // 보관함 (논문 + 사진 분석 통합): Plus 는 사용자 대상으로는 무제한.
-      // 내부 500 cap (각 kind 별) 은 매크로 스팸 방어용이라 UI 에 노출 X.
-      { label: '보관함', key: 'saved', format: (p) => p === 'free' ? '-' : '무제한', unavailable: (p) => p === 'free' },
+      // 보관함 라인은 비교표에서 제거 — 사용자에게는 "무제한"으로 보이는데 내부 500 cap 이라
+      // 도달 시 모순 메시지. Free vs Plus 차이는 분석 화면 저장 버튼 비활성으로 충분히 노출.
       { label: '반려동물', key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? '무제한' : `${PLANS[p].maxPets}마리` },
       { label: '첨부파일', key: 'attach', format: (p) => `기록당 ${PLANS[p].attachmentsPerRecord}개` },
       // "저장 용량" 라인은 비교표에서 제거 — 사용자가 plan 결정에 큰 영향 X.
