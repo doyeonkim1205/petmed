@@ -14,9 +14,9 @@ type StatsTab = 'cost' | 'weight';
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
-  { id: 'month', label: '최근 1개월', months: 1 },
-  { id: '3month', label: '최근 3개월', months: 3 },
-  { id: 'year', label: '최근 1년', months: 12 },
+  { id: 'month', label: '1개월', months: 1 },
+  { id: '3month', label: '3개월', months: 3 },
+  { id: 'year', label: '1년', months: 12 },
   // "전체" 와 "직접 선택" 은 큰 값 (200 개월 = 16년+) 으로 Free(3) 에선 자물쇠,
   // Plus(999) 에선 사용 가능하게 분류.
   { id: 'all', label: '전체', months: 200 },
@@ -26,9 +26,13 @@ const allPeriodOptions: { id: Period; label: string; months: number }[] = [
 function getStartDate(period: Period, customStart?: string): Date {
   const now = new Date();
   switch (period) {
+    // 1개월: 일별 데이터 보는 게 의미 → 날짜 기반 (오늘 - 30일).
     case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); d.setHours(0, 0, 0, 0); return d; }
-    case '3month': { const d = new Date(now); d.setMonth(d.getMonth() - 3); d.setHours(0, 0, 0, 0); return d; }
-    case 'year': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); d.setHours(0, 0, 0, 0); return d; }
+    // 3개월/1년: 월별 합계 보는 게 의미 → 캘린더 월 기반.
+    //   3개월 = 최근 3개 캘린더 월 (예: 오늘 6/4 → 4/1 ~ 6/4 = 4, 5, 6월 3개월)
+    case '3month': return new Date(now.getFullYear(), now.getMonth() - 2, 1, 0, 0, 0, 0);
+    //   1년 = 최근 12개 캘린더 월 (예: 오늘 6/4 → 2025/7/1 ~ 2026/6/4 = 12개월)
+    case 'year': return new Date(now.getFullYear(), now.getMonth() - 11, 1, 0, 0, 0, 0);
     case 'all': return new Date(2000, 0, 1);  // 사실상 모든 기록 포함 (PawDex 출시 2026)
     case 'custom': return customStart ? new Date(customStart) : new Date(now.getFullYear(), now.getMonth(), 1);
   }
