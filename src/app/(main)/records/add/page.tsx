@@ -1231,7 +1231,7 @@ export default function RecordAddPage() {
       </form>
 
       {/* Bottom Save Button */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-10">
+      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-10 keyboard-hide-on-open">
         <button
           type="button"
           onClick={() => handleSubmit()}

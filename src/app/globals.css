@@ -173,6 +173,13 @@ input, textarea, select {
   scroll-margin-bottom: 200px;
 }
 
+/* 모바일 키보드 ON 시 fixed 저장 버튼 / Footer 같은 하단 영역 자동 숨김.
+   KeyboardScrollFix 가 visualViewport.resize 로 body 에 'keyboard-open' 토글.
+   이 class 가 켜진 동안 .keyboard-hide-on-open 요소들이 가려져 input 가림 해소. */
+body.keyboard-open .keyboard-hide-on-open {
+  display: none;
+}
+
 /* react-day-picker 커스터마이즈 — PawDex 컬러 + 모바일 친화 크기.
    .pawdex-dp 가 .rdp-root 와 동일 element 에 붙음. */
 .pawdex-dp.rdp-root {

@@ -15,7 +15,7 @@ export function Footer() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] h-18 flex items-center justify-around z-50 safe-area-bottom px-2 py-2">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] h-18 flex items-center justify-around z-50 safe-area-bottom px-2 py-2 keyboard-hide-on-open">
       {navItems.map((item) => {
         const isActive = pathname === item.path ||
           (item.path !== '/' && pathname.startsWith(item.path));
