@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
-import { Calendar, X } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -89,17 +89,6 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-1 pb-1">
-              <p className="text-sm font-semibold text-gray-700">날짜 선택</p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1 text-gray-300 hover:text-gray-500"
-                aria-label="닫기"
-              >
-                <X size={16} />
-              </button>
-            </div>
             <DayPicker
               mode="single"
               selected={selected}
