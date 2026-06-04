@@ -769,7 +769,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           {pets.length > 0 && (
             <div>
               <SectionHeader icon={Dog} iconColor="text-gray-400" label="기본 반려동물" />
-              <p className="text-[11px] text-gray-400 mb-2">기록장 진입 시 자동 선택됩니다</p>
+              <p className="text-[11px] text-gray-400 mb-2">모든 화면에서 우선 표시됩니다</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => handleDefaultPet('')}

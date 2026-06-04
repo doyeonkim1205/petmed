@@ -54,6 +54,9 @@ export function SafeImage({
         src={currentSrc}
         onError={handleError}
         onLoad={() => setIsLoading(false)}
+        onContextMenu={(e) => e.preventDefault()}
+        draggable={false}
+        style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
         className={`${isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-200'} ${imgClassName}`}
       />
     </div>

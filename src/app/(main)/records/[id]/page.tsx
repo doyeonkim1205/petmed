@@ -443,6 +443,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     alt={previewFile.name}
                     className="max-w-full max-h-full object-contain select-none"
                     draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
                   />
                 </TransformComponent>
               </TransformWrapper>

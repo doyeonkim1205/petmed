@@ -171,9 +171,15 @@ export default function StatsPage() {
     supabase.from('pets').select('*').eq('user_id', user.id)
       .then(({ data }) => {
         if (data) {
-          const sorted = sortPetsWithDefault(data, readDefaultPetId());
+          const defaultId = readDefaultPetId();
+          const sorted = sortPetsWithDefault(data, defaultId);
           setPets(sorted);
-          if (sorted.length === 1) setSelectedPetId(sorted[0].id);
+          // 1마리면 그것 / 여러 마리면 defaultPet / 셋 다 아니면 미선택(전체)
+          if (sorted.length === 1) {
+            setSelectedPetId(sorted[0].id);
+          } else if (defaultId && sorted.some(p => p.id === defaultId)) {
+            setSelectedPetId(defaultId);
+          }
         }
         // 펫 로딩 + selectedPetId 결정 완료 표시 — 이 전엔 통계 스켈레톤 유지(빈 값 깜빡임 방지)
         setPetsLoaded(true);
