@@ -165,10 +165,12 @@ html.dark {
   }
 }
 
-/* 키보드 가림 fix — scrollIntoView 시 input 이 화면 가운데로 가도록 위 여유 공간.
-   KeyboardScrollFix 컴포넌트의 focus 리스너와 짝. */
+/* 키보드 가림 fix — scrollIntoView({ block: 'nearest' }) 시 input 이
+   sticky 헤더 (위 약 56px) + 키보드 + fixed 저장 영역 + Footer (아래 약 130px)
+   에 가려지지 않도록 비대칭 scroll-margin. */
 input, textarea, select {
-  scroll-margin-block: 120px;
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 200px;
 }
 
 /* react-day-picker 커스터마이즈 — PawDex 컬러 + 모바일 친화 크기.

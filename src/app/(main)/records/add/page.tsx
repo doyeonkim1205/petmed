@@ -707,7 +707,7 @@ export default function RecordAddPage() {
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-36 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}

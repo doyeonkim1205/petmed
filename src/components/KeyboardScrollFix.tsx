@@ -8,9 +8,10 @@ import { useEffect } from 'react';
  * 흐름:
  *   1. focusin 이벤트 — 모든 input/textarea/select 잡힘
  *   2. 300ms 대기 (키보드 올라오는 시간)
- *   3. element.scrollIntoView({ block: 'center' }) — 화면 가운데로
+ *   3. element.scrollIntoView({ block: 'nearest' }) — 최소 스크롤 (보이면 안 움직임)
  *
- * CSS scroll-margin-block 과 함께 — globals.css 에 100-120px 마진.
+ * CSS scroll-margin (globals.css) 의 top/bottom 마진과 함께 — fixed 저장 영역 + Footer
+ * 위로 input 이 충분히 떨어진 위치에 보이도록.
  *
  * layout 의 root 에 한 번만 mount.
  */
@@ -27,7 +28,7 @@ export function KeyboardScrollFix() {
       }
       setTimeout(() => {
         try {
-          t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } catch {}
       }, 300);
     };
