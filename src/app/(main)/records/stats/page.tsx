@@ -568,10 +568,10 @@ export default function StatsPage() {
                         data-1p-ignore="true"
                         data-lpignore="true"
                         name="weight-log-value"
-                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                        className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                       <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
                         max={todayLocalISO()}
-                        className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                        className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => setShowWeightInput(false)}
