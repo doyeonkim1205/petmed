@@ -858,7 +858,7 @@ export default function RecordAddPage() {
           </label>
           <DatePicker
             value={visitDate}
-            onChange={setVisitDate}
+            onChange={(v) => { setVisitDate(v); setIsDirty(true); }}
             name="visit-date"
           />
           {recordType === 'visit' && (
@@ -885,7 +885,7 @@ export default function RecordAddPage() {
             </label>
             <DatePicker
               value={dischargeDate}
-              onChange={setDischargeDate}
+              onChange={(v) => { setDischargeDate(v); setIsDirty(true); }}
               name="discharge-date"
               min={visitDate}
             />
@@ -1045,7 +1045,7 @@ export default function RecordAddPage() {
               </label>
               <DatePicker
                 value={nextAppointmentDate}
-                onChange={setNextAppointmentDate}
+                onChange={(v) => { setNextAppointmentDate(v); setIsDirty(true); }}
                 name="next-appointment-date"
                 min={visitDate}
               />
@@ -1120,7 +1120,7 @@ export default function RecordAddPage() {
                     <label className="text-xs text-gray-400">시작일</label>
                     <DatePicker
                       value={med.start_date}
-                      onChange={(v) => updateMedication(i, 'start_date', v)}
+                      onChange={(v) => { updateMedication(i, 'start_date', v); setIsDirty(true); }}
                       inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
@@ -1128,7 +1128,7 @@ export default function RecordAddPage() {
                     <label className="text-xs text-gray-400">종료일</label>
                     <DatePicker
                       value={med.end_date}
-                      onChange={(v) => updateMedication(i, 'end_date', v)}
+                      onChange={(v) => { updateMedication(i, 'end_date', v); setIsDirty(true); }}
                       min={med.start_date}
                       inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                     />
