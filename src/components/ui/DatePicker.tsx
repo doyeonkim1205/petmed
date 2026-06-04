@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
+import { Calendar, X } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -12,11 +12,12 @@ interface DatePickerProps {
   placeholder?: string;
   /** YYYY-MM-DD, 이 날짜 초과 선택 불가 (예: 미래 차단) */
   max?: string;
-  /** YYYY-MM-DD, 이 날짜 미만 선택 불가 (예: 입원일 이전 차단) */
+  /** YYYY-MM-DD, 이 날짜 미만 선택 불가 */
   min?: string;
   name?: string;
+  /** wrapper div 클래스 */
   className?: string;
-  /** input 자체 클래스 (border / padding 등 외부 컨테이너와 통일용) */
+  /** input 자체 클래스 (border / padding 등) */
   inputClassName?: string;
 }
 
@@ -29,7 +30,6 @@ function toYmd(d: Date): string {
 
 function parseYmd(s: string): Date | undefined {
   if (!s) return undefined;
-  // YYYY-MM-DD 또는 ISO. 시간대 안전 위해 local 파싱.
   const [y, m, d] = s.split('T')[0].split('-').map(Number);
   if (!y || !m || !d) return undefined;
   return new Date(y, m - 1, d);
@@ -46,15 +46,16 @@ export function DatePicker({
   inputClassName = '',
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
+  // 모달 열렸을 때 body 스크롤 lock
   useEffect(() => {
     if (!open) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
     };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
   }, [open]);
 
   const selected = parseYmd(value);
@@ -65,50 +66,55 @@ export function DatePicker({
   if (maxDate) disabled.push({ after: maxDate });
   if (minDate) disabled.push({ before: minDate });
 
-  const display = value || '';
-
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div className={`relative ${className}`}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         name={name}
         className={`w-full text-left flex items-center justify-between ${inputClassName || 'px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'}`}
       >
         <span className={value ? 'text-gray-900' : 'text-gray-400'}>
-          {display || placeholder}
+          {value || placeholder}
         </span>
         <Calendar size={16} className="text-gray-400 flex-shrink-0" />
       </button>
       {open && (
         <div
-          className="absolute top-full left-0 mt-2 z-30 bg-white rounded-2xl shadow-xl border border-gray-100 p-2"
-          style={{ minWidth: 280 }}
+          className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+          onClick={() => setOpen(false)}
         >
-          <DayPicker
-            mode="single"
-            selected={selected}
-            onSelect={(d) => {
-              if (d) {
-                onChange(toYmd(d));
-                setOpen(false);
-              }
-            }}
-            locale={ko}
-            disabled={disabled.length > 0 ? disabled : undefined}
-            showOutsideDays
-            classNames={{
-              root: 'pawdex-day-picker',
-              caption_label: 'text-sm font-semibold text-gray-800',
-              nav_button: 'p-1.5 hover:bg-gray-100 rounded-lg',
-              weekday: 'text-[10px] font-medium text-gray-400 py-1',
-              day: 'rounded-full text-sm hover:bg-blue-50 transition-colors aspect-square w-9 inline-flex items-center justify-center',
-              selected: 'bg-blue-600 text-white hover:bg-blue-700',
-              today: 'font-bold text-blue-600',
-              outside: 'text-gray-300',
-              disabled: 'text-gray-300 cursor-not-allowed hover:bg-transparent',
-            }}
-          />
+          <div
+            ref={modalRef}
+            className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-1 pb-1">
+              <p className="text-sm font-semibold text-gray-700">날짜 선택</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="p-1 text-gray-300 hover:text-gray-500"
+                aria-label="닫기"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <DayPicker
+              mode="single"
+              selected={selected}
+              onSelect={(d) => {
+                if (d) {
+                  onChange(toYmd(d));
+                  setOpen(false);
+                }
+              }}
+              locale={ko}
+              disabled={disabled.length > 0 ? disabled : undefined}
+              showOutsideDays
+              className="pawdex-dp"
+            />
+          </div>
         </div>
       )}
     </div>

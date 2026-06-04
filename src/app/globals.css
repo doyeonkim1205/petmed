@@ -171,6 +171,46 @@ input, textarea, select {
   scroll-margin-block: 120px;
 }
 
+/* react-day-picker 커스터마이즈 — PawDex 컬러 + 모바일 친화 크기.
+   .pawdex-dp 가 .rdp-root 와 동일 element 에 붙음. */
+.pawdex-dp.rdp-root {
+  --rdp-accent-color: #2563eb;             /* blue-600 */
+  --rdp-accent-background-color: #eff6ff;  /* blue-50 */
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-day_button-border-radius: 9999px;
+  --rdp-nav_button-height: 1.75rem;
+  --rdp-nav_button-width: 1.75rem;
+  --rdp-nav-height: 2.25rem;
+  --rdp-months-gap: 1rem;
+  --rdp-today-color: #2563eb;
+  font-size: 13px;
+}
+.pawdex-dp .rdp-month_caption {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.pawdex-dp .rdp-weekday {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+.pawdex-dp .rdp-day_button {
+  font-weight: 500;
+}
+.pawdex-dp .rdp-selected .rdp-day_button {
+  color: white;
+  background-color: var(--rdp-accent-color);
+  border-color: var(--rdp-accent-color);
+}
+.pawdex-dp .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--rdp-today-color);
+  font-weight: 700;
+}
+
 /* 텍스트 선택 + long-press 컨텍스트 메뉴 ("크롬 검색" 등) 차단.
    의료 데이터 외부 유출 방어 + UX 거슬림 해소.
    입력창(input/textarea/contenteditable)은 예외 처리 — 정상 입력 가능. */
