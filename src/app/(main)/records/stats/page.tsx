@@ -11,17 +11,16 @@ import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 
 type StatsTab = 'cost' | 'weight';
-type Period = 'month' | '3month' | '6month' | 'year' | 'all' | 'custom';
+type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
   { id: 'month', label: '최근 1개월', months: 1 },
   { id: '3month', label: '최근 3개월', months: 3 },
-  { id: '6month', label: '최근 6개월', months: 6 },
   { id: 'year', label: '최근 1년', months: 12 },
-  // "전체" 와 "직접 선택" 은 plan 한도(costStatsMonths)에 묶이지 않는 Plus 전용 옵션.
-  // months: 999 로 maxMonths 보다 큰 값을 줘서 Free 에선 자물쇠 표시.
-  { id: 'all', label: '전체', months: 999 },
-  { id: 'custom', label: '직접 선택', months: 999 },
+  // "전체" 와 "직접 선택" 은 큰 값 (200 개월 = 16년+) 으로 Free(3) 에선 자물쇠,
+  // Plus(999) 에선 사용 가능하게 분류.
+  { id: 'all', label: '전체', months: 200 },
+  { id: 'custom', label: '직접 선택', months: 200 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
@@ -29,7 +28,6 @@ function getStartDate(period: Period, customStart?: string): Date {
   switch (period) {
     case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); d.setHours(0, 0, 0, 0); return d; }
     case '3month': { const d = new Date(now); d.setMonth(d.getMonth() - 3); d.setHours(0, 0, 0, 0); return d; }
-    case '6month': { const d = new Date(now); d.setMonth(d.getMonth() - 6); d.setHours(0, 0, 0, 0); return d; }
     case 'year': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); d.setHours(0, 0, 0, 0); return d; }
     case 'all': return new Date(2000, 0, 1);  // 사실상 모든 기록 포함 (PawDex 출시 2026)
     case 'custom': return customStart ? new Date(customStart) : new Date(now.getFullYear(), now.getMonth(), 1);
@@ -49,12 +47,12 @@ function formatMonthLabel(year: number, month: number): string {
   return `${year}년 ${month + 1}월`;
 }
 
-// Sample data for chart: 1month=all, 3month=7day interval, 6month+=monthly
+// Sample data for chart: 1month=all, 3month=7day interval, year+=monthly
 function sampleForChart(data: { date: string; weight: number }[], period: Period): { date: string; weight: number }[] {
   if (data.length <= 30) return data;
   if (period === 'month') return data;
 
-  if (period === '3month' || period === '6month') {
+  if (period === '3month') {
     // 7-day interval: keep last value per 7-day bucket
     const result: { date: string; weight: number }[] = [];
     let lastBucket = '';

@@ -61,7 +61,9 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     // 평균 유저는 평생 100편 내외 저장. 500편 상한은 매크로 스팸 방어용.
     // 유저가 도달하면 경고 메시지 + CS 문의로 상향 가능 (내부 규칙).
     maxSavedAnalyses: 500,
-    costStatsMonths: 12,
+    // 999 = 사실상 무제한. 통계 페이지가 "전체" / "직접 선택" 옵션을 lock 해제하는 데 사용.
+    // 비교표는 plan === 'plus' 분기로 "전체 (제한 없음)" 표시.
+    costStatsMonths: 999,
     // 무제한 → 10 (악용 방어). 일반 가구 평균 1-3마리, 5마리 넘는 다묘 가구도 드뭄.
     // 한 사용자가 100마리 등록해서 storage/AI 컨텍스트 우회하는 케이스 차단.
     maxPets: 10,
