@@ -199,11 +199,13 @@ input, textarea, select {
 }
 .pawdex-dp .rdp-day_button {
   font-weight: 500;
+  border: none;
 }
 .pawdex-dp .rdp-selected .rdp-day_button {
   color: white;
   background-color: var(--rdp-accent-color);
-  border-color: var(--rdp-accent-color);
+  border: none;
+  font-weight: 500;
 }
 .pawdex-dp .rdp-today:not(.rdp-selected) .rdp-day_button {
   color: var(--rdp-today-color);

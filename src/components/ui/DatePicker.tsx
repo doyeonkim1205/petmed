@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
 import { format, addMonths, subMonths } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -116,14 +116,6 @@ export function DatePicker({
                 aria-label="다음 달"
               >
                 <ChevronRight size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="w-8 h-8 ml-1 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                aria-label="닫기"
-              >
-                <X size={16} />
               </button>
             </div>
             <DayPicker
