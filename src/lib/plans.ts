@@ -62,7 +62,9 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     // 유저가 도달하면 경고 메시지 + CS 문의로 상향 가능 (내부 규칙).
     maxSavedAnalyses: 500,
     costStatsMonths: 12,
-    maxPets: 0,
+    // 무제한 → 10 (악용 방어). 일반 가구 평균 1-3마리, 5마리 넘는 다묘 가구도 드뭄.
+    // 한 사용자가 100마리 등록해서 storage/AI 컨텍스트 우회하는 케이스 차단.
+    maxPets: 10,
     attachmentsPerRecord: 5,
     maxDevices: 3,
     maxStorageMB: 1000,
