@@ -96,10 +96,9 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 — 요일/날짜 7-col 그리드와 정렬:
-                  [일:빈] [월:←] [화:빈] [수목:년월 2칸] [금:빈] [토:→] */}
+            {/* 헤더 — 7-col 그리드, 요일과 정렬:
+                  [일:←] [월~금: 년월 5칸 중앙] [토:→] */}
             <div className="grid grid-cols-7 items-center mb-2">
-              <div />
               <button
                 type="button"
                 onClick={() => setMonth(subMonths(month, 1))}
@@ -108,11 +107,9 @@ export function DatePicker({
               >
                 <ChevronLeft size={16} />
               </button>
-              <div />
-              <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
+              <div className="col-span-5 text-center text-sm font-semibold text-gray-700">
                 {format(month, 'yyyy년 M월', { locale: ko })}
               </div>
-              <div />
               <button
                 type="button"
                 onClick={() => setMonth(addMonths(month, 1))}
