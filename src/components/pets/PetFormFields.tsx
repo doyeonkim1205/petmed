@@ -2,6 +2,7 @@
 
 import { Dog, Cat } from 'lucide-react';
 import { TextField } from '@/components/TextField';
+import { DatePicker } from '@/components/ui/DatePicker';
 import type { PetFormState } from '@/lib/petForm';
 
 /**
@@ -77,15 +78,14 @@ export function PetFormFields({
           getFullYear/getMonth/getDate 로 로컬 ISO 생성. */}
       <div>
         <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
-        <input
-          type="date"
+        <DatePicker
           value={form.birth_date}
-          onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
+          onChange={(v) => setForm(f => ({ ...f, birth_date: v }))}
           max={(() => {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           })()}
-          className={`w-full px-3 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 ${!form.birth_date ? 'date-empty' : ''}`}
+          inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white"
         />
       </div>
 

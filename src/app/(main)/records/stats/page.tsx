@@ -9,6 +9,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 type StatsTab = 'cost' | 'weight';
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
@@ -419,11 +420,14 @@ export default function StatsPage() {
         {period === 'custom' && (
           <div>
             <div className="flex gap-2 items-center">
-              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <DatePicker value={customStart} onChange={setCustomStart}
+                className="flex-1 min-w-0"
+                inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
               <span className="text-gray-400 text-sm">~</span>
-              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <DatePicker value={customEnd} onChange={setCustomEnd}
+                min={customStart}
+                className="flex-1 min-w-0"
+                inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
             </div>
             <p className="text-[11px] text-gray-400 mt-1">시작/종료 날짜를 자유롭게 선택하세요</p>
           </div>
@@ -569,9 +573,10 @@ export default function StatsPage() {
                         data-lpignore="true"
                         name="weight-log-value"
                         className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
-                      <input type="date" value={newWeightDate} onChange={(e) => setNewWeightDate(e.target.value)}
+                      <DatePicker value={newWeightDate} onChange={setNewWeightDate}
                         max={todayLocalISO()}
-                        className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                        className="flex-1 min-w-0"
+                        inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => setShowWeightInput(false)}

@@ -165,6 +165,12 @@ html.dark {
   }
 }
 
+/* 키보드 가림 fix — scrollIntoView 시 input 이 화면 가운데로 가도록 위 여유 공간.
+   KeyboardScrollFix 컴포넌트의 focus 리스너와 짝. */
+input, textarea, select {
+  scroll-margin-block: 120px;
+}
+
 /* 텍스트 선택 + long-press 컨텍스트 메뉴 ("크롬 검색" 등) 차단.
    의료 데이터 외부 유출 방어 + UX 거슬림 해소.
    입력창(input/textarea/contenteditable)은 예외 처리 — 정상 입력 가능. */

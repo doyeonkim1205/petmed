@@ -20,6 +20,7 @@ import { type RecordDraft } from '@/lib/recordDraft';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault } from '@/lib/petSort';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
@@ -855,12 +856,10 @@ export default function RecordAddPage() {
           <label className="text-sm font-medium">
             {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
           </label>
-          <input
-            type="date"
+          <DatePicker
             value={visitDate}
-            onChange={(e) => setVisitDate(e.target.value)}
+            onChange={setVisitDate}
             name="visit-date"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {recordType === 'visit' && (
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
@@ -884,12 +883,11 @@ export default function RecordAddPage() {
             <label className="text-sm font-medium">
               퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={dischargeDate}
-              onChange={(e) => setDischargeDate(e.target.value)}
+              onChange={setDischargeDate}
               name="discharge-date"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              min={visitDate}
             />
             <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
             <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
@@ -1045,12 +1043,11 @@ export default function RecordAddPage() {
               <label className="text-sm font-medium">
                 다음 예약일 <span className="text-gray-400 font-normal">(선택)</span>
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={nextAppointmentDate}
-                onChange={(e) => setNextAppointmentDate(e.target.value)}
+                onChange={setNextAppointmentDate}
                 name="next-appointment-date"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                min={visitDate}
               />
               {nextAppointmentDate && (
                 <div className="ml-3 pl-3 border-l-2 border-purple-200">
@@ -1121,20 +1118,19 @@ export default function RecordAddPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-400">시작일</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={med.start_date}
-                      onChange={(e) => updateMedication(i, 'start_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                      onChange={(v) => updateMedication(i, 'start_date', v)}
+                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">종료일</label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={med.end_date}
-                      onChange={(e) => updateMedication(i, 'end_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                      onChange={(v) => updateMedication(i, 'end_date', v)}
+                      min={med.start_date}
+                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                 </div>
