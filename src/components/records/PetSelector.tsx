@@ -54,8 +54,8 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
   // Don't render until loaded; if loaded and no pets, hide
   if (!loaded || pets.length === 0) return null;
 
-  // 펫 ≤ 3마리: 가운데 정렬 (미관). 4마리+ : 왼쪽 정렬 (justify-center 면 양쪽 잘림).
-  const alignClass = pets.length <= 3 ? 'justify-center' : '';
+  // 펫 ≤ 4마리: 가운데 정렬 (미관). 5마리+ : 왼쪽 정렬 (justify-center 면 양쪽 잘림).
+  const alignClass = pets.length <= 4 ? 'justify-center' : '';
   return (
     <div className={`flex gap-2 overflow-x-auto px-4 py-3 ${alignClass}`}>
       <button
