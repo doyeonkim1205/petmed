@@ -92,6 +92,26 @@ export async function POST(request: NextRequest) {
   const kind: 'paper' | 'symptom_photo' =
     body.kind === 'symptom_photo' ? 'symptom_photo' : 'paper';
 
+  // 사진 분석 저장 cap 검사 — 논문(saved_papers)과 동일 maxSavedAnalyses(500) 적용.
+  // 일반 사용자 도달 거의 0 (월 10건 가정 4년+), 매크로 스팸 방어용.
+  if (kind === 'symptom_photo') {
+    const { getPlanConfig } = await import('@/lib/plans');
+    const config = getPlanConfig(plan);
+    if (config.maxSavedAnalyses > 0) {
+      const { count } = await supabaseAdmin
+        .from('saved_analyses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('kind', 'symptom_photo');
+      if ((count || 0) >= config.maxSavedAnalyses) {
+        return NextResponse.json(
+          { error: `사진 분석 저장 한도(${config.maxSavedAnalyses}개)에 도달했습니다.\n추가 용량이 필요하시면 문의해 주세요.`, limitReached: true },
+          { status: 403 },
+        );
+      }
+    }
+  }
+
   // 사진 분석 (kind='symptom_photo') 은 analysis 객체 전체를 그대로 저장.
   // 논문 분석 (kind='paper') 은 precautions / ingredients 만 추려 저장.
   const analysisPayload = kind === 'symptom_photo'
