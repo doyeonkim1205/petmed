@@ -96,26 +96,23 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 — 요일과 같은 7-col 그리드:
-                  [일 빈] [월: ←] [화 빈] [수목: 년월 (중앙 2칸)] [금: →] [토: ×]
-                day 셀의 위치와 시각 정렬. */}
-            <div className="grid grid-cols-7 items-center mb-1 px-0.5">
-              <div />
+            {/* 헤더: ← 2026년 6월 → ×  한 줄 */}
+            <div className="flex items-center mb-2 px-1">
               <button
                 type="button"
                 onClick={() => setMonth(subMonths(month, 1))}
-                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
                 aria-label="이전 달"
               >
                 <ChevronLeft size={16} />
               </button>
-              <div className="col-span-3 text-center text-sm font-semibold text-gray-700">
+              <span className="flex-1 text-center text-sm font-semibold text-gray-700">
                 {format(month, 'yyyy년 M월', { locale: ko })}
-              </div>
+              </span>
               <button
                 type="button"
                 onClick={() => setMonth(addMonths(month, 1))}
-                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
                 aria-label="다음 달"
               >
                 <ChevronRight size={16} />
@@ -123,7 +120,7 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="w-8 h-8 ml-1 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 aria-label="닫기"
               >
                 <X size={16} />
