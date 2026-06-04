@@ -12,15 +12,15 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "PawDex - 반려동물 건강 정보 플랫폼",
-  description: "AI 증상 분석, 의학 논문 검색, 건강 기록장, 동물병원 찾기까지. 반려동물 건강을 스마트하게 관리하세요.",
+  title: "PawDex - 쉬운 반려동물 건강기록",
+  description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
-    title: "PawDex - 반려동물 건강 정보 플랫폼",
-    description: "AI 증상 분석, 의학 논문 검색, 건강 기록장, 동물병원 찾기까지. 반려동물 건강을 스마트하게 관리하세요.",
+    title: "PawDex - 쉬운 반려동물 건강기록",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
     url: "https://pawdex.store",
     siteName: "PawDex",
     locale: "ko_KR",
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PawDex - 반려동물 건강 정보 플랫폼",
-    description: "AI 증상 분석, 의학 논문 검색, 건강 기록장, 동물병원 찾기까지. 반려동물 건강을 스마트하게 관리하세요.",
+    title: "PawDex - 쉬운 반려동물 건강기록",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
     images: ["/icons/og-image-v2.png"],
   },
   robots: {
