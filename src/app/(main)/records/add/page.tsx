@@ -331,7 +331,7 @@ export default function RecordAddPage() {
       { name: '', dosage: '', start_date: visitDate, end_date: '', frequency: '1일 1회', color: '#EC4899', alarm_enabled: false, alarm_times: ['09:00'] },
     ]);
     setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      medEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }, 200);
   };
 
@@ -707,7 +707,7 @@ export default function RecordAddPage() {
         <div className="w-10" />
       </header>
 
-      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-36 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
         )}
@@ -1215,7 +1215,7 @@ export default function RecordAddPage() {
                   const added = newFiles.length > files.length;
                   setFiles(newFiles);
                   if (added) {
-                    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 200);
+                    setTimeout(() => fileEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 200);
                   }
                 }}
                 maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
@@ -1225,6 +1225,9 @@ export default function RecordAddPage() {
             </div>
           </>
         )}
+        {/* 키보드 + fixed 저장 버튼 + Footer 영역(약 130px)에 마지막 input 이 가려지지 않도록
+            form 의 가동 영역을 명시적으로 확보. pb 클래스 대비 더 명확. */}
+        <div className="h-[180px]" aria-hidden="true" />
       </form>
 
       {/* Bottom Save Button */}
