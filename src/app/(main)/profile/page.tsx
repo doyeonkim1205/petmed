@@ -257,12 +257,13 @@ function PetModal({
   };
 
   const handleDelete = async (petId: string) => {
+    // Optimistic update — UI 먼저 갱신해 fetchPets 의 로딩 스피너로 인한 카드 깜빡임/흔들림 방지.
+    setPets(prev => prev.filter(p => p.id !== petId));
     await supabase.from('pets').delete().eq('id', petId).eq('user_id', userId);
     logActivity(userId, 'pet.delete', { resourceType: 'pet', resourceId: petId });
     // 홈 브리핑 캐시 무효화 — 삭제된 펫이 카드에서 즉시 제거되도록.
     const { invalidateHealthBriefing } = await import('@/lib/swrCache');
     invalidateHealthBriefing(userId);
-    fetchPets();
   };
 
   return (

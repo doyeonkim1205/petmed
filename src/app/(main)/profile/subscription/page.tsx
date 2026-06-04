@@ -74,13 +74,14 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '논문 저장', key: 'saved', format: (p) => p === 'free' ? '-' : '무제한', unavailable: (p) => p === 'free' },
       { label: '반려동물', key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? '무제한' : `${PLANS[p].maxPets}마리` },
       { label: '첨부파일', key: 'attach', format: (p) => `기록당 ${PLANS[p].attachmentsPerRecord}개` },
-      { label: '저장 용량', key: 'storage', format: (p) => `총 ${PLANS[p].maxStorageMB >= 1000 ? `${PLANS[p].maxStorageMB / 1000}GB` : `${PLANS[p].maxStorageMB}MB`}` },
+      // "저장 용량" 라인은 비교표에서 제거 — 사용자가 plan 결정에 큰 영향 X.
+      // 마이페이지 > 앱 설정의 "저장 공간" 섹션 + 첨부 시 안내로 충분히 노출.
     ],
   },
   {
     title: '기능',
     features: [
-      { label: '건강 통계', key: 'cost', format: (p) => PLANS[p].costStatsMonths === 12 ? '최근 1년' : `최근 ${PLANS[p].costStatsMonths}개월` },
+      { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체 (제한 없음)' },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
         label: '푸시 알림',

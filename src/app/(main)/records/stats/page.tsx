@@ -11,14 +11,17 @@ import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 
 type StatsTab = 'cost' | 'weight';
-type Period = 'month' | '3month' | '6month' | 'year' | 'custom';
+type Period = 'month' | '3month' | '6month' | 'year' | 'all' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
   { id: 'month', label: '최근 1개월', months: 1 },
   { id: '3month', label: '최근 3개월', months: 3 },
   { id: '6month', label: '최근 6개월', months: 6 },
   { id: 'year', label: '최근 1년', months: 12 },
-  { id: 'custom', label: '직접 선택', months: 12 },
+  // "전체" 와 "직접 선택" 은 plan 한도(costStatsMonths)에 묶이지 않는 Plus 전용 옵션.
+  // months: 999 로 maxMonths 보다 큰 값을 줘서 Free 에선 자물쇠 표시.
+  { id: 'all', label: '전체', months: 999 },
+  { id: 'custom', label: '직접 선택', months: 999 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
@@ -28,6 +31,7 @@ function getStartDate(period: Period, customStart?: string): Date {
     case '3month': { const d = new Date(now); d.setMonth(d.getMonth() - 3); d.setHours(0, 0, 0, 0); return d; }
     case '6month': { const d = new Date(now); d.setMonth(d.getMonth() - 6); d.setHours(0, 0, 0, 0); return d; }
     case 'year': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); d.setHours(0, 0, 0, 0); return d; }
+    case 'all': return new Date(2000, 0, 1);  // 사실상 모든 기록 포함 (PawDex 출시 2026)
     case 'custom': return customStart ? new Date(customStart) : new Date(now.getFullYear(), now.getMonth(), 1);
   }
 }
@@ -414,13 +418,12 @@ export default function StatsPage() {
           <div>
             <div className="flex gap-2 items-center">
               <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
-                min={(() => { const d = new Date(); d.setMonth(d.getMonth() - maxMonths); return d.toISOString().split('T')[0]; })()}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               <span className="text-gray-400 text-sm">~</span>
               <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">최대 {maxMonths === 12 ? '1년' : `${maxMonths}개월`}까지 조회 가능</p>
+            <p className="text-[11px] text-gray-400 mt-1">시작/종료 날짜를 자유롭게 선택하세요</p>
           </div>
         )}
 
