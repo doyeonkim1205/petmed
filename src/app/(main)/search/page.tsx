@@ -697,7 +697,7 @@ function SearchContent() {
             "전체"(미선택) 일 땐 기존 강아지/고양이 토글로 fallback → 펫 미등록
             유저나 일반 질문하고 싶은 유저 UX 유지. */}
         {searchMode === 'symptom' && pets.length > 0 && (
-          <div className="max-w-sm mx-auto mb-2 flex gap-1.5 overflow-x-auto hide-scrollbar px-1">
+          <div className="max-w-sm mx-auto mb-2 flex gap-1.5 overflow-x-auto px-1">
             <button
               type="button"
               onClick={() => setSelectedPetId(null)}

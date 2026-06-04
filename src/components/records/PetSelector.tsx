@@ -54,14 +54,16 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
   // Don't render until loaded; if loaded and no pets, hide
   if (!loaded || pets.length === 0) return null;
 
+  // 펫 ≤ 3마리: 가운데 정렬 (미관). 4마리+ : 왼쪽 정렬 (justify-center 면 양쪽 잘림).
+  const alignClass = pets.length <= 3 ? 'justify-center' : '';
   return (
-    <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-3 justify-center">
+    <div className={`flex gap-2 overflow-x-auto px-4 py-3 ${alignClass}`}>
       <button
         onClick={() => onSelect(null)}
         className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
           selectedPetId === null
-            ? 'bg-blue-600 text-[#fff]'
-            : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+            ? 'bg-gray-800 text-white'
+            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
         }`}
       >
         전체
@@ -72,8 +74,8 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
             onClick={() => onSelect(pet.id)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               selectedPetId === pet.id
-                ? 'bg-blue-600 text-[#fff]'
-                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}
           >
             {pet.name}

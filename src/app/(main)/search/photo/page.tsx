@@ -392,7 +392,7 @@ export default function PhotoAnalysisPage() {
             {!petsLoading && hasPets && (
               <section className="bg-white rounded-lg p-4 shadow-sm">
                 <h2 className="text-xs font-semibold text-gray-500 mb-2">분석할 반려동물</h2>
-                <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
+                <div className="flex gap-1.5 overflow-x-auto">
                   {pets.map(pet => {
                     const active = selectedPetId === pet.id;
                     const Icon = pet.type === 'dog' ? Dog : Cat;
