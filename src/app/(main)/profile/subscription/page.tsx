@@ -248,7 +248,7 @@ export default function SubscriptionPage() {
         <h1 className="text-sm font-semibold text-gray-700">구독/결제 관리</h1>
       </header>
 
-      <div className="px-4 pt-5">
+      <div className="px-4 pt-2">
         {/* ── Trial 안내 카드 (트라이얼 기간 중에만 표시) ── */}
         {isTrialActive() && (
           <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5 mb-5 text-center">

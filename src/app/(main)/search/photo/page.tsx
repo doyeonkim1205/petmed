@@ -313,7 +313,7 @@ export default function PhotoAnalysisPage() {
   const showInputArea = !result;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-white pb-20">
       <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
         {/* 뒤로가기 — 결과 화면일 땐 입력 화면으로 복귀 (handleReset),
             그 외엔 표준 뒤로가기 (이전 페이지). 시스템 백 버튼과 동일 흐름. */}
@@ -331,7 +331,7 @@ export default function PhotoAnalysisPage() {
         <h1 className="text-sm font-semibold text-gray-700">사진 분석</h1>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-3 space-y-4">
+      <main className="max-w-md mx-auto px-4 pt-1 space-y-4">
         {showInputArea && (
           <>
             {/* Free 한도 소진 안내 — 텍스트 분석/논문 한도 박스와 동일한 톤
@@ -362,14 +362,14 @@ export default function PhotoAnalysisPage() {
 
             {/* 펫 fetch 중 스피너 — 펫 미등록 안내가 잠깐 깜빡이지 않도록 */}
             {petsLoading && (
-              <div className="bg-white rounded-lg p-6 shadow-sm flex justify-center">
+              <div className="bg-white rounded-lg p-6 flex justify-center">
                 <Loader2 size={20} className="animate-spin text-gray-300" />
               </div>
             )}
 
             {/* 펫 미등록 안내 */}
             {!petsLoading && !hasPets && (
-              <section className="bg-white rounded-lg p-5 shadow-sm text-center">
+              <section className="bg-white rounded-lg p-5 text-center">
                 <PawPrint size={32} className="mx-auto mb-2 text-blue-300" />
                 <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">
@@ -388,7 +388,7 @@ export default function PhotoAnalysisPage() {
 
             {/* 펫 선택 */}
             {!petsLoading && hasPets && (
-              <section className="bg-white rounded-lg p-4 shadow-sm">
+              <section className="bg-white rounded-lg p-4">
                 <h2 className="text-xs font-semibold text-gray-500 mb-2">분석할 반려동물</h2>
                 <div className="flex gap-1.5 overflow-x-auto">
                   {pets.map(pet => {
@@ -413,7 +413,7 @@ export default function PhotoAnalysisPage() {
             )}
 
             {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬. 필수. */}
-            <section className="bg-white rounded-lg p-4 shadow-sm">
+            <section className="bg-white rounded-lg p-4">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
                 증상 부위 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
@@ -435,7 +435,7 @@ export default function PhotoAnalysisPage() {
             </section>
 
             {/* 증상 사진 첨부 — 헤더 우측에 사용량 칩 (Plus/Free 통일 톤) */}
-            <section className="bg-white rounded-lg p-4 shadow-sm">
+            <section className="bg-white rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold text-gray-500">
                   증상 사진 첨부 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
@@ -519,7 +519,7 @@ export default function PhotoAnalysisPage() {
             </section>
 
             {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
-            <section className="bg-white rounded-lg p-4 shadow-sm">
+            <section className="bg-white rounded-lg p-4">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
                 증상 상세 내용 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
@@ -623,7 +623,7 @@ function ResultPanel({
     <section id="photo-result" className="space-y-3 pt-2">
       {/* 분석한 사진 + i 아이콘 (개인정보 안내) */}
       {imageDataUrl && (
-        <div className="bg-white rounded-lg p-3 shadow-sm">
+        <div className="bg-white rounded-lg p-3">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imageDataUrl} alt="분석한 사진" className="w-16 h-16 rounded-md object-cover border border-gray-200" />
@@ -652,7 +652,7 @@ function ResultPanel({
           액션 버튼은 박스 안에 두지 않음 — 결과 화면 하단의 통일 버튼 사용.
           박스는 안내 (다시 찍어주세요 + 이유) 만 담당해서 시각 잡음 ↓ */}
       {result.is_valid_photo === false && (
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-amber-200">
+        <div className="bg-white rounded-lg p-4 border border-amber-200">
           <p className="text-sm font-semibold text-amber-900 mb-1">사진을 다시 찍어주세요</p>
           <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || '사진이 분석에 적합하지 않아요'}</p>
         </div>
@@ -660,7 +660,7 @@ function ResultPanel({
 
       {/* 관찰 사항 — 본문 폰트를 다른 섹션과 동일하게 text-xs 로 통일 */}
       {result.observations && result.observations.length > 0 && (
-        <div className="bg-white rounded-lg p-4 shadow-sm">
+        <div className="bg-white rounded-lg p-4">
           <h3 className="text-xs font-semibold text-gray-500 mb-2">사진에서 관찰된 내용</h3>
           <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
             {result.observations.map((o, i) => <li key={i}>{o}</li>)}
