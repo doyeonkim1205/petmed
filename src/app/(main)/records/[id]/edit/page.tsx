@@ -632,7 +632,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen inMain />;
   }
 
   return (

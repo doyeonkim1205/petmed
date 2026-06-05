@@ -146,7 +146,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen inMain />;
   }
 
   if (!record) {

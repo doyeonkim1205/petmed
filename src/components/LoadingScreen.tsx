@@ -1,14 +1,20 @@
 import { Loader2 } from 'lucide-react';
 
 /**
- * 앱 초기 로딩 중 (AuthContext 가 세션 검증 중) 표시되는 풀스크린.
- * 이전에는 빈 흰 div 였는데 TWA 에서 아무 것도 안 보여서 "앱이 멈췄나?"
- * 느낌이 났음. 스피너 하나만으로 "진행 중" 시그널.
- * motion-reduce 접근성 설정이 켜진 기기에선 스피너 회전이 멈춤.
+ * 로딩 중 스피너.
+ *
+ * - 기본 (inMain=false): viewport 전체 (min-h-screen). auth 가드 등 fullscreen 용도.
+ * - inMain=true: (main)/layout 의 Header(56px) + Footer(72px) 제외한 영역 중앙.
+ *   페이지 안에서 사용 시 정확한 중앙 정렬.
+ *
+ * motion-reduce 접근성 설정이 켜진 기기에선 스피너 회전 멈춤.
  */
-export function LoadingScreen() {
+export function LoadingScreen({ inMain = false }: { inMain?: boolean }) {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
+    <div
+      className="flex items-center justify-center bg-white"
+      style={{ minHeight: inMain ? 'calc(100vh - 128px)' : '100vh' }}
+    >
       <Loader2
         size={28}
         className="text-blue-400 animate-spin motion-reduce:animate-none"

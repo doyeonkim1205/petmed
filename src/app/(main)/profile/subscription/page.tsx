@@ -9,6 +9,7 @@ import {
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
@@ -235,12 +236,7 @@ export default function SubscriptionPage() {
   };
 
   if (authLoading || loading) {
-    // main layout 의 Header(56px) + Footer(72px) 제외한 정확한 영역에서 중앙 정렬.
-    return (
-      <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 128px)' }}>
-        <Loader2 size={28} className="text-blue-400 animate-spin" aria-label="로딩 중" />
-      </div>
-    );
+    return <LoadingScreen inMain />;
   }
 
   return (

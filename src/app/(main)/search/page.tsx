@@ -1527,7 +1527,7 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<LoadingScreen inMain />}>
       <SearchContent />
     </Suspense>
   );

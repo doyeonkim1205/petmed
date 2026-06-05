@@ -166,7 +166,7 @@ export default function PhotoAnalysisPage() {
     saveCache(user.id, { imageDataUrl, hint, category, selectedPetId, result, savedId });
   }, [user, imageDataUrl, hint, category, selectedPetId, result, savedId]);
 
-  if (authLoading) return <LoadingScreen />;
+  if (authLoading) return <LoadingScreen inMain />;
   if (!user) {
     router.replace('/login');
     return null;
