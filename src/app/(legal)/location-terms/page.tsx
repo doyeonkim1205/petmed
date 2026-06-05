@@ -3,7 +3,7 @@ import { LegalPage } from '../_components/LegalHeader';
 export default function LocationTermsPage() {
   return (
     <LegalPage title="위치기반서비스 이용약관">
-    <article className="prose prose-sm dark:prose-invert max-w-none">
+    <article className="prose prose-sm dark:prose-invert max-w-none" style={{ fontSize: '13px' }}>
 
       <Section title="제1조 (목적)">
         <p>

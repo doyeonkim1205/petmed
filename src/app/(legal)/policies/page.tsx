@@ -26,7 +26,7 @@ export default function PoliciesPage() {
             >
               <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
                 <Icon size={18} className="text-gray-400" />
-                <span className="text-sm">{item.label}</span>
+                <span className="text-[13px]">{item.label}</span>
               </div>
               <ChevronRight size={14} className="text-gray-300" />
             </Link>
