@@ -18,6 +18,9 @@ function isInAppBrowser(): boolean {
 // prod 도메인 (pawdex.store) 에선 hostname 분기로 자동 비활성 — 사용자 노출 0.
 function isDevLoginEnv(): boolean {
   if (typeof window === 'undefined') return false;
+  // 토스 심사 중 prod 에서도 임시 노출 (이메일/비밀번호 로그인 폼).
+  // ENABLE_PAYMENT_REVIEW 와 같이 켜고, 심사 통과 후 둘 다 끔.
+  if (process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true') return true;
   const host = window.location.hostname;
   return host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1';
 }
