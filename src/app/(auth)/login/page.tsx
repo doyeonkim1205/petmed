@@ -155,7 +155,6 @@ export default function LoginPage() {
                     type="email"
                     value={devEmail}
                     onChange={e => setDevEmail(e.target.value)}
-                    placeholder="dummy1@pawdex-test.local"
                     className="w-full h-10 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     autoComplete="email"
                     required
@@ -164,7 +163,6 @@ export default function LoginPage() {
                     type="password"
                     value={devPassword}
                     onChange={e => setDevPassword(e.target.value)}
-                    placeholder="test1234!"
                     className="w-full h-10 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     autoComplete="current-password"
                     required
