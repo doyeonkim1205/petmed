@@ -1,7 +1,9 @@
+import { LegalPage } from '../_components/LegalHeader';
+
 export default function PrivacyPage() {
   return (
+    <LegalPage title="개인정보처리방침">
     <article className="prose prose-sm dark:prose-invert max-w-none">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">개인정보처리방침</h1>
 
       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
         PawDex(이하 &quot;서비스&quot;)는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.
@@ -264,6 +266,7 @@ export default function PrivacyPage() {
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / 펫 상세 정보 항목 추가)</p>
     </article>
+    </LegalPage>
   );
 }
 

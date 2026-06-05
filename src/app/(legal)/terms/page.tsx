@@ -1,7 +1,9 @@
+import { LegalPage } from '../_components/LegalHeader';
+
 export default function TermsPage() {
   return (
+    <LegalPage title="이용약관">
     <article className="prose prose-sm dark:prose-invert max-w-none">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">이용약관</h1>
 
       <Section title="제1조 (목적)">
         <p>
@@ -172,6 +174,7 @@ export default function TermsPage() {
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / AI 사진 증상 분석 명시)</p>
     </article>
+    </LegalPage>
   );
 }
 

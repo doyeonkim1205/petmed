@@ -2,6 +2,7 @@
 
 import { FileText, Shield, CreditCard, MapPin, Building2, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { LegalPage } from '../_components/LegalHeader';
 
 const policies = [
   { href: '/terms', label: '이용약관', icon: FileText },
@@ -13,8 +14,7 @@ const policies = [
 
 export default function PoliciesPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">약관 및 정책</h1>
+    <LegalPage title="약관 및 정책">
       <div className="space-y-1">
         {policies.map((item) => {
           const Icon = item.icon;
@@ -33,6 +33,6 @@ export default function PoliciesPage() {
           );
         })}
       </div>
-    </div>
+    </LegalPage>
   );
 }

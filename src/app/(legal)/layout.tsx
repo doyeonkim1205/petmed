@@ -1,26 +1,11 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-
+/**
+ * 약관/정책 페이지 layout — 각 페이지가 자체 헤더 (LegalHeader) 를 렌더하므로
+ * 여기서는 wrapper 만 담당. 헤더 + 콘텐츠 영역은 page 가 직접 구성.
+ */
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center h-14 px-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-          >
-            <ArrowLeft size={20} />
-          </button>
-        </div>
-      </header>
-      <main className="px-6 py-6 max-w-2xl mx-auto">
-        {children}
-      </main>
+      {children}
     </div>
   );
 }

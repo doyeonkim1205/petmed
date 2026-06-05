@@ -1,7 +1,9 @@
+import { LegalPage } from '../_components/LegalHeader';
+
 export default function BusinessPage() {
   return (
+    <LegalPage title="사업자 정보">
     <article className="prose prose-sm dark:prose-invert max-w-none">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">사업자 정보</h1>
 
       <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 space-y-4">
         <InfoRow label="상호명" value="디와이랩스(DYLabs)" />
@@ -16,6 +18,7 @@ export default function BusinessPage() {
         본 사업자 정보는 「전자상거래 등에서의 소비자보호에 관한 법률」 제13조에 따라 공시합니다.
       </p>
     </article>
+    </LegalPage>
   );
 }
 

@@ -1,7 +1,9 @@
+import { LegalPage } from '../_components/LegalHeader';
+
 export default function RefundPage() {
   return (
+    <LegalPage title="환불 정책">
     <article className="prose prose-sm dark:prose-invert max-w-none">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">환불 정책</h1>
 
       <Section title="1. 환불 정책 개요">
         <p>PawDex(이하 &quot;서비스&quot;)는 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 다음과 같은 환불 정책을 운영합니다.</p>
@@ -80,6 +82,7 @@ export default function RefundPage() {
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
     </article>
+    </LegalPage>
   );
 }
 
