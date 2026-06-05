@@ -113,8 +113,8 @@ export default function PaymentClient({ product }: Props) {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-6">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 mb-6">
-        <ArrowLeft size={16} /> 돌아가기
+      <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500 mb-4">
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
       <div className="bg-gray-50 rounded-2xl p-5 mb-6">
