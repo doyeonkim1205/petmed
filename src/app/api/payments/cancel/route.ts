@@ -36,56 +36,38 @@ export async function POST(request: NextRequest) {
     const useBillingKey = subscription.billing_type === 'recurring';
 
     // Handle refund if requested. If refund fails, cancel is BLOCKED (user keeps subscription).
+    // 모든 plan 통일: 24시간 + 미사용 만 환불. yearly 비율 환불 로직 제거 (정책과 일치).
     if (withRefund) {
-      {
-        const { data: payment } = await supabaseAdmin
-          .from('payment_history')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('status', 'done')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+      const { data: payment } = await supabaseAdmin
+        .from('payment_history')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'done')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-        if (payment) {
-          const hoursSincePayment = (Date.now() - new Date(payment.created_at).getTime()) / 3600000;
-          const isYearly = subscription.product_id?.includes('yearly');
+      if (payment) {
+        const hoursSincePayment = (Date.now() - new Date(payment.created_at).getTime()) / 3600000;
 
-          if (isYearly && hoursSincePayment <= 24) {
-            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (연간, 24시간 이내)', useBillingKey);
+        if (hoursSincePayment <= 24) {
+          // refund-check 와 동일한 4가지 사용 이력 체크
+          const paymentDate = payment.created_at;
+          const [{ count: a }, { count: r }, { count: u }, { count: s }] = await Promise.all([
+            supabaseAdmin.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+            supabaseAdmin.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+            supabaseAdmin.from('activity_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('action', 'analysis.save').gte('created_at', paymentDate),
+            supabaseAdmin.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', paymentDate),
+          ]);
+
+          if ((a || 0) + (r || 0) + (u || 0) + (s || 0) === 0) {
+            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (24시간 이내, 미이용)', useBillingKey);
             refundedAmount = payment.amount;
-          } else if (isYearly && hoursSincePayment > 24) {
-            const startDate = new Date(subscription.period_start || payment.created_at);
-            const now = new Date();
-            const monthsUsed = Math.ceil((now.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000));
-            const remainingMonths = Math.max(0, 12 - monthsUsed);
-            const refundAmount = Math.round(payment.amount * (remainingMonths / 12));
-            if (refundAmount > 0) {
-              await cancelPayment(payment.toss_payment_key, `사용자 환불 요청 (연간, ${monthsUsed}개월 사용, ${remainingMonths}개월분 환불)`, useBillingKey);
-              refundedAmount = refundAmount;
-            }
-          } else if (!isYearly && hoursSincePayment <= 24) {
-            const paymentDate = payment.created_at;
-            const { count: usage } = await supabaseAdmin
-              .from('activity_logs')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', userId)
-              .eq('action', 'analysis.save')
-              .gte('created_at', paymentDate);
-            const { count: records } = await supabaseAdmin
-              .from('health_records')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', userId)
-              .gte('created_at', paymentDate);
-            if ((usage || 0) + (records || 0) === 0) {
-              await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (월간, 24시간 이내, 미이용)', useBillingKey);
-              refundedAmount = payment.amount;
-            }
           }
+        }
 
-          if (refundedAmount !== null) {
-            await supabaseAdmin.from('payment_history').update({ status: 'refunded' }).eq('id', payment.id);
-          }
+        if (refundedAmount !== null) {
+          await supabaseAdmin.from('payment_history').update({ status: 'refunded' }).eq('id', payment.id);
         }
       }
     }
