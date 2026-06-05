@@ -141,13 +141,13 @@ export default function LoginPage() {
           {/* 개발자 로그인 — test.pawdex.store / localhost 에서만 표시.
               prod (pawdex.store) 에선 hostname 분기로 안 보임. */}
           {showDevToggle && (
-            <div className="pt-4 mt-2 border-t border-gray-100">
+            <div className="pt-1 mt-6 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setDevLogin(v => !v)}
-                className="text-[10px] text-gray-300 hover:text-gray-400 w-full text-center"
+                className="text-[10px] text-gray-300 hover:text-gray-400 w-full text-center pt-3"
               >
-                🛠️ 개발자 로그인 {devLogin ? '닫기' : '열기'}
+                개발자 로그인 {devLogin ? '닫기' : '열기'}
               </button>
               {devLogin && (
                 <form onSubmit={handleDevLogin} className="mt-3 space-y-2">
