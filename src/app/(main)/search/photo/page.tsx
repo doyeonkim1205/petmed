@@ -158,7 +158,9 @@ export default function PhotoAnalysisPage() {
       cacheRestoredRef.current = true;
     })();
     return () => { alive = false; };
-  }, [user]);
+    // dep 에 user 객체 X — visibility/token refresh 시 reference 바뀌어 재실행되면
+    // fetch 진행 중 잠시 빈 배열 → "펫 미등록" 안내 깜빡임. user.id (primitive) 로 비교.
+  }, [user?.id]);
 
   // state → sessionStorage 저장 (복원 끝난 후만).
   useEffect(() => {
@@ -362,14 +364,14 @@ export default function PhotoAnalysisPage() {
 
             {/* 펫 fetch 중 스피너 — 펫 미등록 안내가 잠깐 깜빡이지 않도록 */}
             {petsLoading && (
-              <div className="bg-white rounded-lg p-6 flex justify-center">
+              <div className="bg-white rounded-lg p-6 flex justify-center border border-gray-200">
                 <Loader2 size={20} className="animate-spin text-gray-300" />
               </div>
             )}
 
             {/* 펫 미등록 안내 */}
             {!petsLoading && !hasPets && (
-              <section className="bg-white rounded-lg p-5 text-center">
+              <section className="bg-white rounded-lg p-5 text-center border border-gray-200">
                 <PawPrint size={32} className="mx-auto mb-2 text-blue-300" />
                 <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">
@@ -388,7 +390,7 @@ export default function PhotoAnalysisPage() {
 
             {/* 펫 선택 */}
             {!petsLoading && hasPets && (
-              <section className="bg-white rounded-lg p-4">
+              <section className="bg-white rounded-lg p-4 border border-gray-200">
                 <h2 className="text-xs font-semibold text-gray-500 mb-2">분석할 반려동물</h2>
                 <div className="flex gap-1.5 overflow-x-auto">
                   {pets.map(pet => {
@@ -413,7 +415,7 @@ export default function PhotoAnalysisPage() {
             )}
 
             {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬. 필수. */}
-            <section className="bg-white rounded-lg p-4">
+            <section className="bg-white rounded-lg p-4 border border-gray-200">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
                 증상 부위 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
@@ -435,7 +437,7 @@ export default function PhotoAnalysisPage() {
             </section>
 
             {/* 증상 사진 첨부 — 헤더 우측에 사용량 칩 (Plus/Free 통일 톤) */}
-            <section className="bg-white rounded-lg p-4">
+            <section className="bg-white rounded-lg p-4 border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold text-gray-500">
                   증상 사진 첨부 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
@@ -519,7 +521,7 @@ export default function PhotoAnalysisPage() {
             </section>
 
             {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
-            <section className="bg-white rounded-lg p-4">
+            <section className="bg-white rounded-lg p-4 border border-gray-200">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
                 증상 상세 내용 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
               </h2>
@@ -623,7 +625,7 @@ function ResultPanel({
     <section id="photo-result" className="space-y-3 pt-2">
       {/* 분석한 사진 + i 아이콘 (개인정보 안내) */}
       {imageDataUrl && (
-        <div className="bg-white rounded-lg p-3">
+        <div className="bg-white rounded-lg p-3 border border-gray-200">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imageDataUrl} alt="분석한 사진" className="w-16 h-16 rounded-md object-cover border border-gray-200" />
@@ -660,7 +662,7 @@ function ResultPanel({
 
       {/* 관찰 사항 — 본문 폰트를 다른 섹션과 동일하게 text-xs 로 통일 */}
       {result.observations && result.observations.length > 0 && (
-        <div className="bg-white rounded-lg p-4">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
           <h3 className="text-xs font-semibold text-gray-500 mb-2">사진에서 관찰된 내용</h3>
           <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
             {result.observations.map((o, i) => <li key={i}>{o}</li>)}
