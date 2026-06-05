@@ -97,6 +97,9 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
 const MONTHLY_ONETIME = 3900;  // 1회 결제 (기준가)
 const MONTHLY_AUTO = 3500;     // 자동 결제 (10.3% 할인)
 const YEARLY_PRICE = 40000;    // 연간 (14.5% 할인)
+// 연간 결제 표시용 — 월 환산 + 할인율. 가격 상수 변경 시 자동 반영.
+const YEARLY_MONTHLY_EQUIV = Math.round(YEARLY_PRICE / 12);                                        // 3333
+const YEARLY_DISCOUNT_PCT = Math.round((1 - YEARLY_PRICE / (MONTHLY_ONETIME * 12)) * 1000) / 10;   // 14.5
 
 // ── Page ──
 
@@ -299,8 +302,9 @@ export default function SubscriptionPage() {
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
+                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
+                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
@@ -388,8 +392,9 @@ export default function SubscriptionPage() {
                 title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
                 sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 결제" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
+                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
+                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
@@ -418,8 +423,9 @@ export default function SubscriptionPage() {
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 이용권으로 변경" price={`연 ${YEARLY_PRICE.toLocaleString()}원`}
-                sub={`월간 단건 기준 연 ${(MONTHLY_ONETIME * 12 - YEARLY_PRICE).toLocaleString()}원 절약`}
+                title="연간 이용권으로 변경" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
+                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
+                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
                 badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
             )}
 
@@ -643,14 +649,14 @@ function ActionBtn({ children, onClick, variant = 'default' }: { children: React
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
 }
 
-function PlanBtn({ onClick, title, price, sub, badge, badgeColor }: {
-  onClick: () => void; title: string; price: string; sub?: string;
+function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor }: {
+  onClick: () => void; title: string; price: string; priceSub?: string; sub?: string;
   badge?: string; badgeColor?: string;
 }) {
   return (
     <button onClick={onClick}
       className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50">
-      <div className="flex items-center justify-between mb-0.5">
+      <div className="flex items-start justify-between mb-0.5">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-gray-700">{title}</span>
           {badge && (
@@ -659,7 +665,10 @@ function PlanBtn({ onClick, title, price, sub, badge, badgeColor }: {
             </span>
           )}
         </div>
-        <span className="text-sm font-bold text-gray-900">{price}</span>
+        <div className="text-right">
+          <span className="text-sm font-bold text-gray-900">{price}</span>
+          {priceSub && <p className="text-[9px] text-gray-400 mt-0.5">{priceSub}</p>}
+        </div>
       </div>
       {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
     </button>
