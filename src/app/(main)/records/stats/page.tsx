@@ -379,12 +379,11 @@ export default function StatsPage() {
     <div className="bg-white min-h-full pb-20">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white">
-        <header className="flex items-center justify-between px-4 py-3 max-w-sm mx-auto">
-          <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+        <header className="relative flex items-center justify-center px-4 py-3 max-w-sm mx-auto">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-sm font-semibold text-gray-700">건강 통계</h1>
-          <div className="w-10" />
         </header>
         <div className="flex max-w-sm mx-auto">
           <button onClick={() => setTab('cost')}

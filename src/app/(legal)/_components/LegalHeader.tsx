@@ -12,15 +12,14 @@ import { ArrowLeft } from 'lucide-react';
 export function LegalHeader({ title }: { title: string }) {
   const router = useRouter();
   return (
-    <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-10 bg-white dark:bg-gray-900">
+    <header className="relative flex items-center justify-center px-4 py-3 sticky top-0 z-10 bg-white dark:bg-gray-900">
       <button
         onClick={() => router.back()}
-        className="p-2 -ml-2 text-gray-500 dark:text-gray-300"
+        className="absolute left-2 p-2 text-gray-500 dark:text-gray-300"
       >
         <ArrowLeft className="w-5 h-5" />
       </button>
       <h1 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title}</h1>
-      <div className="w-10" />
     </header>
   );
 }

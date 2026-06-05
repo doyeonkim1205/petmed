@@ -163,12 +163,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-10">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500">
+      <header className="relative flex items-center justify-center px-4 py-3 bg-white sticky top-0 z-10">
+        <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
-        <div className="w-10" />
       </header>
 
       <div className="p-4 max-w-sm mx-auto w-full">
