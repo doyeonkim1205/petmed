@@ -30,7 +30,7 @@ export default function LocationTermsPage() {
 
       <Section title="제4조 (제3자 제공)">
         <p>서비스는 동물병원 찾기 기능 제공을 위해 다음 제3자 서비스를 이용합니다.</p>
-        <table className="w-full text-sm border-collapse mt-2">
+        <table className="w-full text-[13px] border-collapse mt-2">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700">
               <th className="text-left py-2 font-medium">제공받는 자</th>

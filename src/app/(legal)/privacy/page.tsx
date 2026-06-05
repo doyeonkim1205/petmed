@@ -59,7 +59,7 @@ export default function PrivacyPage() {
 
       <Section title="5. 개인정보 처리의 위탁">
         <p>서비스는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다.</p>
-        <table className="w-full text-sm border-collapse mt-2">
+        <table className="w-full text-[13px] border-collapse mt-2">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700">
               <th className="text-left py-2 font-medium">수탁자</th>
