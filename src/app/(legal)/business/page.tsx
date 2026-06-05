@@ -27,7 +27,7 @@ function InfoRow({ label, value, href }: { label: string; value: string; href?: 
     <div className="flex items-start gap-4">
       <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 w-28 flex-shrink-0">{label}</span>
       {href ? (
-        <a href={href} className="text-[13px] text-gray-800 dark:text-gray-200">{value}</a>
+        <a href={href} className="text-[13px] text-gray-800 dark:text-gray-200 font-normal no-underline">{value}</a>
       ) : (
         <span className="text-[13px] text-gray-800 dark:text-gray-200">{value}</span>
       )}
