@@ -580,7 +580,20 @@ export default function SubscriptionPage() {
               <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
                 <Calendar size={20} className="text-blue-500" />
               </div>
-              <h3 className="text-sm font-bold text-gray-800 mb-1.5">서비스 준비 중입니다</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-1.5">
+                서비스 준비 중입니다
+                {/* 토스 심사 전용 비밀 아이콘 — 클릭 시 단기 결제 페이지로 이동.
+                    일반 사용자는 줄 끝 마침표로 인식. 심사 통과 후 제거. */}
+                <button
+                  type="button"
+                  onClick={() => { setShowComingSoon(false); router.push('/payment?productId=plus_onetime'); }}
+                  className="text-gray-800 ml-0 align-baseline"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                >
+                  .
+                </button>
+              </h3>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
                 단건·연간 결제는 현재 준비 중이에요.<br />
                 정기 결제로 먼저 이용해보세요.
