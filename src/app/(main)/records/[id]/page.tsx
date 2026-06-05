@@ -198,7 +198,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <h2 className={`text-xl font-bold text-gray-900 ${record.record_type === 'daily' ? 'mb-1' : 'mb-3'}`}>
+        <h2 className={`text-base font-bold text-gray-900 ${record.record_type === 'daily' ? 'mb-1' : 'mb-3'}`}>
           {record.record_type === 'daily'
             ? `${record.pets?.name ?? ''}의 일상 기록`
             : record.title}
