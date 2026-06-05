@@ -4,7 +4,7 @@ export default function RefundPage() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">환불 정책</h1>
 
       <Section title="1. 환불 정책 개요">
-        <p>PawDex(이하 &quot;서비스&quot;)는 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 다음과 같은 환불 정책을 운영합니다. 결제 상품(월간/연간)에 따라 환불 기준이 다릅니다.</p>
+        <p>PawDex(이하 &quot;서비스&quot;)는 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 다음과 같은 환불 정책을 운영합니다.</p>
       </Section>
 
       <Section title="2. 월간 구독 환불">
@@ -25,15 +25,11 @@ export default function RefundPage() {
         </ul>
       </Section>
 
-      <Section title="3. 연간 구독 환불 (비율 환불)">
-        <p>연간 구독은 남은 기간에 비례하여 환불됩니다.</p>
+      <Section title="3. 연간 구독 환불">
         <ul>
           <li>결제일로부터 <strong>24시간 이내</strong>이고, 유료 서비스를 이용하지 않은 경우 <strong>전액 환불</strong>이 가능합니다.</li>
-          <li>24시간 경과 후에는 남은 개월 수에 비례한 금액이 환불됩니다.</li>
-          <li>이용 개월 수는 결제일로부터 환불 신청일까지의 기간을 기준으로 산정하며, 1일이라도 사용한 달은 1개월로 계산됩니다.</li>
-          <li><strong>환불 가능 금액 = 결제 금액 × (남은 개월 수 / 12)</strong></li>
-          <li className="text-gray-500">예시: 40,000원으로 연간 구독 후 3개월 사용 시 → 남은 9개월 → 환불액 = 40,000 × (9/12) = <strong>30,000원</strong></li>
-          <li>남은 개월 수가 0 이하인 경우 환불이 불가합니다.</li>
+          <li>결제 후 24시간이 경과하였거나 유료 서비스를 이용한 경우 환불이 불가합니다.</li>
+          <li>월간 구독과 동일한 환불 기준이 적용됩니다.</li>
         </ul>
       </Section>
 
@@ -59,8 +55,8 @@ export default function RefundPage() {
 
       <Section title="6. 환불 불가 사유">
         <ul>
-          <li>월간 구독: 결제 후 24시간이 경과하였거나 유료 서비스를 이용한 경우</li>
-          <li>연간 구독: 남은 개월 수가 0 이하인 경우</li>
+          <li>결제 후 24시간이 경과한 경우</li>
+          <li>유료 서비스를 이용한 경우</li>
           <li>구독 기간이 만료된 경우</li>
           <li>이용약관 위반으로 서비스가 제한된 경우</li>
         </ul>

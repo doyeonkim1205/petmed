@@ -305,7 +305,7 @@ export default function SubscriptionPage() {
                 title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
                 priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
                 sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function SubscriptionPage() {
                 title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
                 priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
                 sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function SubscriptionPage() {
                 title="연간 이용권으로 변경" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
                 priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
                 sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="가장 저렴" badgeColor="bg-green-100 text-green-600" />
+                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
             )}
 
             {/* 자동 갱신 → 카드 변경 */}
