@@ -656,21 +656,24 @@ function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor }: {
   return (
     <button onClick={onClick}
       className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50">
-      <div className="flex items-start justify-between mb-0.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-700">{title}</span>
-          {badge && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${badgeColor || 'bg-blue-100 text-blue-600'}`}>
-              {badge}
-            </span>
-          )}
+      {/* 좌우 2-column: 왼쪽 = title + sub / 오른쪽 = price + priceSub */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-700">{title}</span>
+            {badge && (
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${badgeColor || 'bg-blue-100 text-blue-600'}`}>
+                {badge}
+              </span>
+            )}
+          </div>
+          {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <span className="text-sm font-bold text-gray-900">{price}</span>
           {priceSub && <p className="text-[9px] text-gray-400 mt-0.5">{priceSub}</p>}
         </div>
       </div>
-      {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
     </button>
   );
 }
