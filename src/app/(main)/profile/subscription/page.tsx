@@ -9,7 +9,6 @@ import {
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
@@ -236,7 +235,12 @@ export default function SubscriptionPage() {
   };
 
   if (authLoading || loading) {
-    return <LoadingScreen />;
+    // main layout 안에서는 min-h-screen 대신 min-h-[60vh] 로 영역 안 중앙 정렬.
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 size={28} className="text-blue-400 animate-spin" aria-label="로딩 중" />
+      </div>
+    );
   }
 
   return (
