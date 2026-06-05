@@ -235,9 +235,9 @@ export default function SubscriptionPage() {
   };
 
   if (authLoading || loading) {
-    // main layout 안에서는 min-h-screen 대신 min-h-[60vh] 로 영역 안 중앙 정렬.
+    // main layout 의 Header(56px) + Footer(72px) 제외한 정확한 영역에서 중앙 정렬.
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 128px)' }}>
         <Loader2 size={28} className="text-blue-400 animate-spin" aria-label="로딩 중" />
       </div>
     );
