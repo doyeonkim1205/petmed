@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, CreditCard, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Loader2, CreditCard, ShieldCheck } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import * as Sentry from '@sentry/nextjs';
 import type { PaymentProduct } from '@/lib/products';
@@ -113,10 +113,6 @@ export default function PaymentClient({ product }: Props) {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-6">
-      <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500 mb-4">
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
       <div className="bg-gray-50 rounded-2xl p-5 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <CreditCard size={18} className="text-blue-500" />

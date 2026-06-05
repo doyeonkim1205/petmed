@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ShieldCheck, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import * as Sentry from '@sentry/nextjs';
 import type { PaymentProduct } from '@/lib/products';
@@ -70,10 +70,6 @@ export default function BillingAuthClient({ product, mode = 'register' }: Props)
 
   return (
     <div className="max-w-sm mx-auto px-4 py-6">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 mb-6">
-        <ArrowLeft size={16} /> 돌아가기
-      </button>
-
       <div className="text-center mb-6">
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
           <ShieldCheck className="text-blue-500" size={28} />
