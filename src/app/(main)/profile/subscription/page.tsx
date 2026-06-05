@@ -501,8 +501,13 @@ export default function SubscriptionPage() {
                   <div>
                     <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
                     <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
-                      {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                      {isRecurring && ' 자동 결제도 중지됩니다.'}
+                      {refundCheck?.refundable && cancelWithRefund
+                        ? '지금 해지하시면 즉시 Free 플랜으로 전환되며, 결제 금액이 전액 환불됩니다.'
+                        : <>
+                            {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                            {isRecurring && ' 자동 결제도 중지됩니다.'}
+                          </>
+                      }
                     </p>
                   </div>
                 </div>
@@ -525,10 +530,11 @@ export default function SubscriptionPage() {
                 )}
                 {refundCheck && !refundCheck.refundable && refundCheck.reason !== '결제 내역이 없습니다.' && (
                   <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-[11px] text-gray-500">
-                      {refundCheck.reason || '환불 조건을 충족하지 않아 환불이 불가합니다.'}
+                    <p className="text-[11px] text-gray-500 leading-relaxed">
+                      {refundCheck.reason || '환불 조건을 충족하지 않습니다.'}{refundCheck.reason && refundCheck.reason.endsWith('.') ? '' : '.'} 환불이 불가합니다.{' '}
+                      남은 이용 기간 동안 Plus 혜택은 그대로 유지되며{isRecurring ? ', 다음 결제일에 자동 갱신되지 않습니다.' : '.'}
                     </p>
-                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
+                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">환불 정책 보기</a>
                   </div>
                 )}
 
@@ -552,7 +558,14 @@ export default function SubscriptionPage() {
                     className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
                   <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
                     className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
-                    {actionLoading === 'cancel' ? '처리 중...' : cancelWithRefund ? '환불 후 해지' : '해지 확인'}
+                    {actionLoading === 'cancel'
+                      ? '처리 중...'
+                      : cancelWithRefund
+                        ? '환불 및 해지'
+                        : isRecurring
+                          ? '자동 결제 해지'
+                          : '구독 해지'
+                    }
                   </button>
                 </div>
               </div>
