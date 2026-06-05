@@ -228,13 +228,22 @@ export default function MapPage() {
     };
 
     if (navigator.geolocation) {
+      // 1차: HighAccuracy GPS (7s 안에 안 잡히면 fallback).
       navigator.geolocation.getCurrentPosition(
         (pos) => createMap(pos.coords.latitude, pos.coords.longitude, true),
         () => {
-          setLocationFailed(true);
-          createMap(DEFAULT_LAT, DEFAULT_LNG, false);
+          // 2차: LowAccuracy (wifi/IP 기반). 실내 / GPS 약한 환경 fallback.
+          //   동물병원 검색은 도시 단위 OK 라 정확도 약간 ↓ 수용.
+          navigator.geolocation.getCurrentPosition(
+            (pos) => createMap(pos.coords.latitude, pos.coords.longitude, true),
+            () => {
+              setLocationFailed(true);
+              createMap(DEFAULT_LAT, DEFAULT_LNG, false);
+            },
+            { timeout: 5000, enableHighAccuracy: false }
+          );
         },
-        { timeout: 10000, enableHighAccuracy: true }
+        { timeout: 7000, enableHighAccuracy: true }
       );
     } else {
       setLocationFailed(true);
@@ -551,8 +560,8 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* "이 지역 검색" 버튼 */}
-      {showResearch && !locationFailed && (
+      {/* "이 지역 검색" 버튼 — 위치 실패 케이스에서도 사용자가 지도 끌어 검색 가능해야 표시 */}
+      {showResearch && (
         <div className="absolute top-28 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={handleResearchArea}
