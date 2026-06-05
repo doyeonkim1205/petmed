@@ -495,7 +495,7 @@ export default function SubscriptionPage() {
             )}
 
             {showCancelConfirm && (
-              <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
                 <div className="flex items-start gap-2.5">
                   <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
                   <div>
@@ -514,7 +514,9 @@ export default function SubscriptionPage() {
 
                 {refundCheck?.refundable && (
                   <div className="bg-white rounded-xl border border-green-200 p-3">
-                    <p className="text-xs font-semibold text-green-700">환불됩니다 ({refundCheck.amount?.toLocaleString()}원)</p>
+                    <p className="text-xs text-green-700">
+                      예상 환불 금액 : <span className="font-bold">{refundCheck.amount?.toLocaleString()}원</span>
+                    </p>
                     <p className="text-[10px] text-green-600/70 mt-0.5 leading-relaxed">
                       {refundCheck.reason && <span>{refundCheck.reason}. </span>}
                       카드사에 따라 반영에 3~10영업일 소요됩니다.
