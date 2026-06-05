@@ -180,6 +180,14 @@ body.keyboard-open .keyboard-hide-on-open {
   display: none;
 }
 
+/* input/textarea placeholder 색 연하게 통일 (gray-300 정도).
+   라벨이 메인 정보이고 placeholder 는 보조 가이드라서 살짝 빠지는 톤이 깔끔. */
+input::placeholder,
+textarea::placeholder {
+  color: #d1d5db;  /* gray-300 */
+  opacity: 1;       /* 일부 브라우저 (Firefox) 의 기본 opacity 감소 무력화 */
+}
+
 /* react-day-picker 커스터마이즈 — PawDex 컬러 + 모바일 친화 크기.
    .pawdex-dp 가 .rdp-root 와 동일 element 에 붙음. */
 .pawdex-dp.rdp-root {
