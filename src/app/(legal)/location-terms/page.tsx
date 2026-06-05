@@ -81,8 +81,8 @@ export default function LocationTermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{title}</h2>
-      <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_li]:text-gray-600 [&_li]:dark:text-gray-400">
+      <h2 className="text-[13px] font-bold text-gray-900 dark:text-white mb-3">{title}</h2>
+      <div className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_li]:text-gray-600 [&_li]:dark:text-gray-400">
         {children}
       </div>
     </section>
