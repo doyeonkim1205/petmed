@@ -314,23 +314,21 @@ export default function PhotoAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
-          {/* 뒤로가기 — 결과 화면일 땐 입력 화면으로 복귀 (handleReset),
-              그 외엔 표준 뒤로가기 (이전 페이지). 시스템 백 버튼과 동일 흐름. */}
-          <button
-            type="button"
-            onClick={() => {
-              if (result) handleReset();
-              else router.back();
-            }}
-            className="-ml-2 p-2 rounded-full hover:bg-gray-100"
-            aria-label="뒤로 가기"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-base font-bold">사진 분석</h1>
-        </div>
+      <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
+        {/* 뒤로가기 — 결과 화면일 땐 입력 화면으로 복귀 (handleReset),
+            그 외엔 표준 뒤로가기 (이전 페이지). 시스템 백 버튼과 동일 흐름. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (result) handleReset();
+            else router.back();
+          }}
+          className="absolute left-2 p-2 text-gray-500"
+          aria-label="뒤로 가기"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-sm font-semibold text-gray-700">사진 분석</h1>
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-3 space-y-4">

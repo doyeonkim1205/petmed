@@ -241,11 +241,12 @@ export default function SubscriptionPage() {
 
   return (
     <div className="max-w-lg mx-auto pb-24">
-      <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10 border-b border-gray-100">
-        <button onClick={() => router.push('/profile')} className="p-2 -ml-2 text-gray-500"><ArrowLeft size={20} /></button>
+      <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
+        <button onClick={() => router.push('/profile')} className="absolute left-2 p-2 text-gray-500">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
         <h1 className="text-sm font-semibold text-gray-700">구독/결제 관리</h1>
-        <div className="w-10" />
-      </div>
+      </header>
 
       <div className="px-4 pt-5">
         {/* ── Trial 안내 카드 (트라이얼 기간 중에만 표시) ── */}

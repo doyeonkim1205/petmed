@@ -699,12 +699,11 @@ export default function RecordAddPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
-      <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-white z-10">
-        <button onClick={handleBack} className="p-2 -ml-2 text-gray-500">
+      <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
+        <button onClick={handleBack} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">기록 추가</h1>
-        <div className="w-10" />
       </header>
 
       <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
