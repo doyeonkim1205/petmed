@@ -25,11 +25,11 @@ export default function BusinessPage() {
 function InfoRow({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="flex items-start gap-4">
-      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-28 flex-shrink-0">{label}</span>
+      <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 w-28 flex-shrink-0">{label}</span>
       {href ? (
-        <a href={href} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{value}</a>
+        <a href={href} className="text-[13px] text-blue-600 dark:text-blue-400 hover:underline">{value}</a>
       ) : (
-        <span className="text-sm text-gray-800 dark:text-gray-200">{value}</span>
+        <span className="text-[13px] text-gray-800 dark:text-gray-200">{value}</span>
       )}
     </div>
   );
