@@ -495,22 +495,20 @@ export default function SubscriptionPage() {
             )}
 
             {showCancelConfirm && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle size={14} className="text-orange-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
-                    <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
-                      {refundCheck?.refundable
-                        ? '지금 해지하시면 즉시 Free 플랜으로 전환되며, 결제 금액이 전액 환불됩니다.'
-                        : <>
-                            {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                            {isRecurring && ' 자동 결제도 중지됩니다.'}
-                          </>
-                      }
-                    </p>
-                  </div>
+              <div className="rounded-2xl border border-orange-500 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <AlertTriangle size={14} className="text-orange-400 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
                 </div>
+                <p className="text-[11px] text-orange-500/80 leading-relaxed">
+                  {refundCheck?.refundable
+                    ? '지금 해지하시면 즉시 Free 플랜으로 전환되며, 결제 금액이 전액 환불됩니다.'
+                    : <>
+                        {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
+                        {isRecurring && ' 자동 결제도 중지됩니다.'}
+                      </>
+                  }
+                </p>
 
                 {refundCheck?.refundable && (
                   <div className="bg-white rounded-xl border border-green-200 p-3">
