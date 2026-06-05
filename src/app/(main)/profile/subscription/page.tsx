@@ -586,7 +586,7 @@ export default function SubscriptionPage() {
                     일반 사용자는 줄 끝 마침표로 인식. 심사 통과 후 제거. */}
                 <button
                   type="button"
-                  onClick={() => { setShowComingSoon(false); router.push('/payment?productId=plus_onetime'); }}
+                  onClick={() => { setShowComingSoon(false); router.push('/payment?productId=plus_monthly_onetime'); }}
                   className="text-gray-800 ml-0 align-baseline"
                   aria-hidden="true"
                   tabIndex={-1}
