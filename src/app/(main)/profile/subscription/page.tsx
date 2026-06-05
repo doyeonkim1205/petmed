@@ -113,7 +113,8 @@ export default function SubscriptionPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
-  const [cancelWithRefund, setCancelWithRefund] = useState(false);
+  // 환불 여부는 refundCheck.refundable 결과로 자동 결정 — 사용자 선택 X.
+  // (24h 이내 + 미사용 = 무조건 환불 + 즉시 free. 별도 토글 의미 없음)
   const [cancelError, setCancelError] = useState('');
   const [showComingSoon, setShowComingSoon] = useState(false);
   // 트라이얼 기간 중 정기 결제 버튼 누르면 뜨는 안내 모달.
@@ -180,25 +181,24 @@ export default function SubscriptionPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('세션이 만료되었습니다.');
+      const withRefund = refundCheck?.refundable === true;
       const res = await fetch('/api/payments/cancel', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancelReason || undefined, withRefund: cancelWithRefund }),
+        body: JSON.stringify({ reason: cancelReason || undefined, withRefund }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setActionMessage(data.message);
       setShowCancelConfirm(false);
-      setCancelWithRefund(false);
       setCancelReason('');
       setCancelError('');
       await fetchData();
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'subscription', action: 'cancel' },
-        extra: { userId: user?.id, withRefund: cancelWithRefund, reason: cancelReason },
+        extra: { userId: user?.id, withRefund: refundCheck?.refundable === true, reason: cancelReason },
       });
-      // Error stays in modal — user can retry or uncheck refund
       setCancelError(err instanceof Error ? err.message : '처리에 실패했습니다.');
     } finally {
       setActionLoading(null);
@@ -501,7 +501,7 @@ export default function SubscriptionPage() {
                   <div>
                     <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
                     <p className="text-[11px] text-orange-500/80 mt-1 leading-relaxed">
-                      {refundCheck?.refundable && cancelWithRefund
+                      {refundCheck?.refundable
                         ? '지금 해지하시면 즉시 Free 플랜으로 전환되며, 결제 금액이 전액 환불됩니다.'
                         : <>
                             {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
@@ -514,18 +514,12 @@ export default function SubscriptionPage() {
 
                 {refundCheck?.refundable && (
                   <div className="bg-white rounded-xl border border-green-200 p-3">
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input type="checkbox" checked={cancelWithRefund} onChange={(e) => setCancelWithRefund(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-green-600" />
-                      <div>
-                        <p className="text-xs font-semibold text-green-700">환불 받기 ({refundCheck.amount?.toLocaleString()}원)</p>
-                        <p className="text-[10px] text-green-600/70 mt-0.5">
-                          {refundCheck.reason && <span>{refundCheck.reason}. </span>}
-                          카드사에 따라 반영에 3~10영업일 소요.
-                        </p>
-                        <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline">환불 정책 보기</a>
-                      </div>
-                    </label>
+                    <p className="text-xs font-semibold text-green-700">환불됩니다 ({refundCheck.amount?.toLocaleString()}원)</p>
+                    <p className="text-[10px] text-green-600/70 mt-0.5 leading-relaxed">
+                      {refundCheck.reason && <span>{refundCheck.reason}. </span>}
+                      카드사에 따라 반영에 3~10영업일 소요됩니다.
+                    </p>
+                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">환불 정책 보기</a>
                   </div>
                 )}
                 {refundCheck && !refundCheck.refundable && refundCheck.reason !== '결제 내역이 없습니다.' && (
@@ -554,13 +548,13 @@ export default function SubscriptionPage() {
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelWithRefund(false); setCancelError(''); }}
+                  <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelError(''); }}
                     className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
                   <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
                     className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
                     {actionLoading === 'cancel'
                       ? '처리 중...'
-                      : cancelWithRefund
+                      : refundCheck?.refundable
                         ? '환불 및 해지'
                         : isRecurring
                           ? '자동 결제 해지'
