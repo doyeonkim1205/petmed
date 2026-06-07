@@ -81,7 +81,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   {
     title: '기능',
     features: [
-      { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체 (제한 없음)' },
+      { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
         label: '푸시 알림',
