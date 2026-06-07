@@ -4,12 +4,12 @@ import { verifyAdmin } from '@/lib/adminAuth';
 /**
  * 관리자 에러 패널 — Sentry Issues API 에서 최근 미해결 에러를 가져온다.
  *
- * 토큰: SENTRY_API_TOKEN (읽기 전용, scope project:read + event:read) 우선,
- *   없으면 빌드용 SENTRY_AUTH_TOKEN fallback (스코프 부족 시 401/403 가능).
+ * 토큰: SENTRY_API_TOKEN (읽기 전용, scope project:read + event:read) 만 사용.
+ *   ※ 빌드용 SENTRY_AUTH_TOKEN 은 소스맵 업로드 스코프라 issues 조회 시 403 →
+ *     fallback 하면 "권한 부족" 으로 오인되므로 사용하지 않는다.
  * org/project: 환경변수 우선, 없으면 next.config 의 값 (dylabs / javascript-nextjs).
  *
- * 토큰 미설정/권한부족이면 configured:false 또는 명확한 error 메시지를 반환해
- *   UI 가 "토큰 설정 필요" 안내를 띄울 수 있게 한다.
+ * 토큰 미설정이면 configured:false ("설정 필요"), 권한/오류면 명확한 error 메시지 반환.
  */
 const ORG = process.env.SENTRY_ORG || 'dylabs';
 const PROJECT = process.env.SENTRY_PROJECT || 'javascript-nextjs';
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const { error } = await verifyAdmin(request);
   if (error) return error;
 
-  const token = process.env.SENTRY_API_TOKEN || process.env.SENTRY_AUTH_TOKEN;
+  const token = process.env.SENTRY_API_TOKEN;
   if (!token) {
     return NextResponse.json({ configured: false, issues: [] });
   }
@@ -41,9 +41,13 @@ export async function GET(request: Request) {
     });
 
     if (!res.ok) {
-      const detail = res.status === 401 || res.status === 403
-        ? '토큰 권한이 부족합니다 (project:read + event:read 필요).'
-        : `Sentry 응답 오류 (${res.status})`;
+      const detail = res.status === 401
+        ? '토큰이 유효하지 않습니다. SENTRY_API_TOKEN 값을 확인하고 재배포했는지 확인하세요.'
+        : res.status === 403
+          ? '토큰 권한이 부족합니다 (scope project:read + event:read 필요). 또는 Vercel 재배포가 필요합니다.'
+          : res.status === 404
+            ? `org/project slug 가 맞지 않습니다 (${ORG}/${PROJECT}).`
+            : `Sentry 응답 오류 (${res.status})`;
       return NextResponse.json({ configured: true, error: detail, issues: [] }, { status: 200 });
     }
 
