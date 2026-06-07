@@ -367,7 +367,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); triggerDownload(file.file_path, file.file_name); }}
-                      className="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+                      className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition-colors"
                       title="다운로드"
                     >
                       <Download size={16} />
@@ -379,22 +379,22 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               // 비이미지(PDF 등): 미리보기 불가 → 이름 + 다운로드 행 유지
               return (
                 <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50">
-                    <FileText size={16} className="text-blue-500" />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
+                    <FileText size={14} className="text-blue-500 flex-shrink-0" />
                     <button
                       type="button"
                       onClick={openPreview}
-                      className="flex-1 text-sm text-gray-700 truncate text-left hover:text-blue-600 transition-colors"
+                      className="flex-1 text-xs text-gray-700 truncate text-left hover:text-blue-600 transition-colors"
                     >
                       {file.file_name}
                     </button>
                     <button
                       type="button"
                       onClick={() => triggerDownload(file.file_path, file.file_name)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
                       title="다운로드"
                     >
-                      <Download size={16} />
+                      <Download size={14} />
                     </button>
                   </div>
                 </div>
