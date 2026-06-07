@@ -36,11 +36,24 @@ export default function MainLayout({
   }, [loading, user, router]);
 
   // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
-  // - loading 중: LoadingScreen (로고 + 스피너) 표시
+  // - loading 중: 인증 후와 '동일한' chrome(Header/Footer) + inMain 스피너를 렌더한다.
+  //   → 콜드스타트(auth 로딩) → 페이지 데이터 로딩 → 컨텐츠 로 이어질 때
+  //     헤더/하단탭과 스피너 위치가 그대로 유지돼, "재로드되며 스피너가 다른 위치에
+  //     다시 뜨는" 이중 로딩처럼 보이는 현상을 없앤다. (풀스크린→inMain 스피너 점프 제거)
   // - 미인증 (loading 끝났는데 user 없음): 위 useEffect 가 /login 으로 리다이렉트
   //   중이므로 깜빡임 방지 차 빈 흰 화면 유지
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex justify-center">
+        <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-1 pb-16">
+            <LoadingScreen inMain />
+          </main>
+          <Footer />
+        </div>
+      </div>
+    );
   }
   if (!user) {
     return <div className="min-h-screen bg-white" />;
