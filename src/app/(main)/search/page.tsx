@@ -944,7 +944,7 @@ function SearchContent() {
                     <Sparkles size={13} className="text-blue-500 flex-shrink-0" />
                     <p className="text-xs text-gray-500">
                       <span className="font-semibold text-gray-600">{symptomResult.pet_name}</span>
-                      의 의료 정보를 반영한 분석이에요
+                      의 정보를 반영한 분석이에요
                     </p>
                   </div>
                 )}
