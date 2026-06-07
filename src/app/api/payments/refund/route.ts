@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
-import { cancelPayment } from '@/lib/toss';
+import { cancelPaymentAutoKey } from '@/lib/toss';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,8 +93,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // 4. Process refund via Toss
-    await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (24시간 이내, 미이용)');
+    // 4. Process refund via Toss — 구독 billing_type 으로 키 추정 + 불일치 시 자동 재시도.
+    await cancelPaymentAutoKey(
+      payment.toss_payment_key,
+      '사용자 환불 요청 (24시간 이내, 미이용)',
+      subscription.billing_type === 'recurring',
+    );
 
     // 5. Update payment history
     await supabaseAdmin

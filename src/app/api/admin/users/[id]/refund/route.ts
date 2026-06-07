@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
-import { cancelPayment } from '@/lib/toss';
+import { cancelPaymentAutoKey } from '@/lib/toss';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,7 +37,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .maybeSingle();
     const useBillingKey = sub?.billing_type === 'recurring';
 
-    await cancelPayment(payment.toss_payment_key, '관리자 환불 처리', useBillingKey);
+    // 키 불일치(one_time↔recurring 전환 이력) 대비 자동 키 재시도.
+    await cancelPaymentAutoKey(payment.toss_payment_key, '관리자 환불 처리', useBillingKey);
 
     await supabaseAdmin.from('payment_history').update({ status: 'refunded' }).eq('id', paymentId);
     await supabaseAdmin.from('subscriptions').update({

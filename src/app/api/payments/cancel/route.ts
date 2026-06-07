@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
-import { cancelPayment } from '@/lib/toss';
+import { cancelPaymentAutoKey } from '@/lib/toss';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
           ]);
 
           if ((a || 0) + (r || 0) + (u || 0) + (s || 0) === 0) {
-            await cancelPayment(payment.toss_payment_key, '사용자 환불 요청 (24시간 이내, 미이용)', useBillingKey);
+            await cancelPaymentAutoKey(payment.toss_payment_key, '사용자 환불 요청 (24시간 이내, 미이용)', useBillingKey);
             refundedAmount = payment.amount;
           }
         }
