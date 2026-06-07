@@ -343,7 +343,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <div className="p-4 max-w-sm mx-auto w-full">
           <h3 className="flex items-center gap-2 font-semibold text-sm text-gray-700 mb-3">
             <Paperclip size={16} className="text-blue-500" />
-            첨부 파일
+            {record.record_type === 'daily' ? '오늘을 담은 한 컷' : '첨부 파일'}
           </h3>
           <div className="space-y-2">
             {record.record_files.map((file) => {

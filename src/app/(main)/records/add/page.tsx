@@ -1199,31 +1199,32 @@ export default function RecordAddPage() {
           </div>
         )}
 
-        {/* ── 첨부파일 섹션 (일상 제외 — v1.0 에선 첨부 미지원, 용량 부담 회피) ── */}
-        {recordType !== 'daily' && (
-          <>
-            <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
-              <Paperclip size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">첨부파일</h3>
-            </div>
+        {/* ── 첨부 섹션 — 일상은 '오늘을 담은 한 컷' (사진 1장), 그 외는 플랜별 첨부 ── */}
+        <>
+          <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
+            <Paperclip size={16} className="text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-800">
+              {recordType === 'daily' ? '오늘을 담은 한 컷' : '첨부파일'}
+            </h3>
+          </div>
 
-            <div className="space-y-2">
-              <FileUploader
-                files={files}
-                onFilesChange={(newFiles) => {
-                  const added = newFiles.length > files.length;
-                  setFiles(newFiles);
-                  if (added) {
-                    setTimeout(() => fileEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 200);
-                  }
-                }}
-                maxFiles={getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
-                storageUsage={storageUsage}
-              />
-              <div ref={fileEndRef} />
-            </div>
-          </>
-        )}
+          <div className="space-y-2">
+            <FileUploader
+              files={files}
+              onFilesChange={(newFiles) => {
+                const added = newFiles.length > files.length;
+                setFiles(newFiles);
+                if (added) {
+                  setTimeout(() => fileEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 200);
+                }
+              }}
+              maxFiles={recordType === 'daily' ? 1 : getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
+              placeholder={recordType === 'daily' ? '오늘 하루를 담은 사진 한 장을 올려보세요' : undefined}
+              storageUsage={storageUsage}
+            />
+            <div ref={fileEndRef} />
+          </div>
+        </>
         {/* 키보드 + fixed 저장 버튼 + Footer 영역(약 130px)에 마지막 input 이 가려지지 않도록
             form 의 가동 영역을 명시적으로 확보. pb 클래스 대비 더 명확. */}
         <div className="h-[180px]" aria-hidden="true" />
