@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Search, CreditCard, UserCheck, Database, AlertTriangle, Bookmark, Camera } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { TrendChart } from '@/components/admin/TrendChart';
 
 interface HeavyUser {
   email: string;
@@ -32,9 +33,26 @@ interface DashboardStats {
   };
 }
 
+type TrendPoint = { bucket: string; signups: number; searches: number; revenue: number };
+type Bucket = 'day' | 'week' | 'month';
+type Metric = 'signups' | 'searches' | 'revenue';
+
+const BUCKET_LABEL: Record<Bucket, string> = { day: '일', week: '주', month: '월' };
+const METRIC_META: Record<Metric, { label: string; color: string; isMoney?: boolean }> = {
+  signups: { label: '가입', color: '#3B82F6' },
+  searches: { label: '검색', color: '#10B981' },
+  revenue: { label: '매출', color: '#8B5CF6', isMoney: true },
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 트래픽 추세
+  const [trends, setTrends] = useState<TrendPoint[]>([]);
+  const [bucket, setBucket] = useState<Bucket>('day');
+  const [metric, setMetric] = useState<Metric>('signups');
+  const [trendLoading, setTrendLoading] = useState(true);
 
   useEffect(() => {
     authFetch('/api/admin/stats')
@@ -43,6 +61,21 @@ export default function DashboardPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const fetchTrends = useCallback(async () => {
+    setTrendLoading(true);
+    try {
+      const res = await authFetch(`/api/admin/trends?bucket=${bucket}`);
+      const json = await res.json();
+      setTrends(json.trends || []);
+    } catch {
+      setTrends([]);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [bucket]);
+
+  useEffect(() => { fetchTrends(); }, [fetchTrends]);
 
   if (loading) {
     return (
@@ -110,6 +143,59 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 트래픽 추세 그래프 — 가입/검색/매출 시계열 (KST 버킷, gap-fill) */}
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-medium text-gray-500">트래픽 추세</CardTitle>
+            <div className="flex items-center gap-3">
+              {/* 지표 토글 */}
+              <div className="flex gap-1">
+                {(Object.keys(METRIC_META) as Metric[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMetric(m)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                      metric === m ? 'text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                    style={metric === m ? { backgroundColor: METRIC_META[m].color } : undefined}
+                  >
+                    {METRIC_META[m].label}
+                  </button>
+                ))}
+              </div>
+              {/* 버킷 토글 */}
+              <div className="flex gap-1">
+                {(Object.keys(BUCKET_LABEL) as Bucket[]).map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setBucket(b)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                      bucket === b ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {BUCKET_LABEL[b]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {trendLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+            </div>
+          ) : (
+            <TrendChart
+              data={trends.map((t) => ({ bucket: t.bucket, value: t[metric] }))}
+              color={METRIC_META[metric].color}
+              format={METRIC_META[metric].isMoney ? (n) => `₩${n.toLocaleString()}` : (n) => n.toLocaleString()}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Data Usage Summary
           - 총 저장논문 = saved_papers (개별 PubMed 논문, 보관함의 자식)
