@@ -311,10 +311,21 @@ function SearchContent() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: true });
         if (!alive) return;
-        const petList = sortPetsWithDefault(data ?? [], readDefaultPetId());
+        const defaultId = readDefaultPetId();
+        const petList = sortPetsWithDefault(data ?? [], defaultId);
         setPets(petList);
-        // 캐시 검증: selectedPetId 가 fetched 목록에 없으면 reset
-        setSelectedPetId(prev => (prev && petList.some(p => p.id === prev) ? prev : null));
+        setSelectedPetId(prev => {
+          // 1) 현재 선택이 유효하면 유지
+          if (prev && petList.some(p => p.id === prev)) return prev;
+          // 2) 이전 분석 캐시가 있으면 그 선택을 존중 (사용자가 '전체'=null 로 둔 것도 존중)
+          if (cachedSymptom) {
+            return cachedSymptom.petId && petList.some(p => p.id === cachedSymptom.petId)
+              ? cachedSymptom.petId
+              : null;
+          }
+          // 3) 신규 진입 — 기본 반려동물(정렬상 첫 번째) 자동 선택. 펫 없으면 '전체'.
+          return petList[0]?.id ?? null;
+        });
       } catch (err) {
         Sentry.captureException(err, { tags: { feature: 'pets', action: 'search-fetch' } });
       }
