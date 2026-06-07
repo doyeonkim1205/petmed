@@ -29,9 +29,9 @@ export async function GET(request: Request) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .ilike('email', `%${userSearch}%`)
+        .ilike('email', `%${userSearch.replace(/[%,()\\*"]/g, '')}%`)
         .limit(1)
-        .single();
+        .maybeSingle();
       if (profile) resolvedUserId = profile.id;
       else return NextResponse.json({ logs: [], total: 0, page, totalPages: 0 });
     } else {

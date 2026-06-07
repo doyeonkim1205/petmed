@@ -96,17 +96,18 @@ export async function GET(request: Request) {
     .map((p: any) => p.id)
     .filter((id: string) => !subscribedUserIds.has(id));
 
-  // 유령 후보의 이메일 조회 (관리자가 빠르게 식별 가능하도록)
+  // 유령 후보의 이메일 조회 (관리자가 빠르게 식별 가능하도록).
+  //   auth.admin.listUsers 는 perPage 1000 cap 이라 유저 1000+ 시 누락 → profiles.email 로
+  //   유령 후보 id 만 직접 조회 (cap 없음 + 필요한 row 만).
   let ghostCandidates: Array<{ id: string; email: string | null }> = [];
   if (ghostCandidateIds.length > 0) {
-    const { data: { users } = { users: [] } } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    const emailById = new Map<string, string>();
-    for (const u of users || []) {
-      if (u.id && u.email) emailById.set(u.id, u.email);
-    }
+    const { data: ghostProfiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email')
+      .in('id', ghostCandidateIds);
+    const emailById = new Map<string, string>(
+      (ghostProfiles || []).map((p: any) => [p.id, p.email]),
+    );
     ghostCandidates = ghostCandidateIds.map((id: string) => ({
       id,
       email: emailById.get(id) ?? null,
