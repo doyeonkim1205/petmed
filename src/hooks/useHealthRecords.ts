@@ -150,6 +150,19 @@ export function useHealthRecords(petId?: string) {
   const deleteRecord = async (id: string) => {
     if (!user) throw new Error('로그인이 필요합니다');
 
+    // 1) 첨부 경로 미리 수집 — record 삭제 시 record_files row 가 FK CASCADE 로 사라지므로
+    //    그 전에 조회해 둔다.
+    let paths: string[] = [];
+    try {
+      const { data: files } = await supabase
+        .from('record_files')
+        .select('file_path')
+        .eq('record_id', id)
+        .eq('user_id', user.id);
+      paths = (files || []).map((f) => f.file_path).filter(Boolean);
+    } catch { /* 조회 실패 시 스토리지 정리만 생략 */ }
+
+    // 2) record 삭제 (record_files DB row 는 FK CASCADE). 실패하면 throw → blob 은 그대로.
     const { error } = await supabase
       .from('health_records')
       .delete()
@@ -157,6 +170,19 @@ export function useHealthRecords(petId?: string) {
       .eq('user_id', user.id);
 
     if (error) throw error;
+
+    // 3) record 삭제 성공 후에만 스토리지 blob 정리 (best-effort — 실패해도 오펀 blob 만 남음).
+    if (paths.length > 0) {
+      try {
+        await supabase.storage.from('medical-files').remove(paths);
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'records', action: 'delete-storage-cleanup' },
+          extra: { recordId: id, userId: user.id },
+        });
+      }
+    }
+
     logActivity(user.id, 'record.delete', { resourceType: 'health_record', resourceId: id });
     await fetchRecords();
   };
@@ -165,6 +191,18 @@ export function useHealthRecords(petId?: string) {
     if (!user) throw new Error('로그인이 필요합니다');
     if (ids.length === 0) return;
 
+    // 1) 첨부 경로 미리 수집 (CASCADE 전).
+    let paths: string[] = [];
+    try {
+      const { data: files } = await supabase
+        .from('record_files')
+        .select('file_path')
+        .in('record_id', ids)
+        .eq('user_id', user.id);
+      paths = (files || []).map((f) => f.file_path).filter(Boolean);
+    } catch { /* 조회 실패 시 스토리지 정리만 생략 */ }
+
+    // 2) record 일괄 삭제 (record_files DB row 는 FK CASCADE).
     const { error } = await supabase
       .from('health_records')
       .delete()
@@ -172,6 +210,19 @@ export function useHealthRecords(petId?: string) {
       .eq('user_id', user.id);
 
     if (error) throw error;
+
+    // 3) 삭제 성공 후 스토리지 blob 정리 (best-effort).
+    if (paths.length > 0) {
+      try {
+        await supabase.storage.from('medical-files').remove(paths);
+      } catch (err) {
+        Sentry.captureException(err, {
+          tags: { feature: 'records', action: 'bulk-delete-storage-cleanup' },
+          extra: { userId: user.id, count: ids.length },
+        });
+      }
+    }
+
     logActivity(user.id, 'record.bulk_delete', { resourceType: 'health_record', details: { count: ids.length } });
     await fetchRecords();
   };
