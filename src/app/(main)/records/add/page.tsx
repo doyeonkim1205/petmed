@@ -128,21 +128,6 @@ export default function RecordAddPage() {
   const [costFocused, setCostFocused] = useState(false);
   const [weightFocused, setWeightFocused] = useState(false);
 
-  // 첨부 저장 공간 (FileUploader 에 "남은 용량" 표시용)
-  const [storageUsage, setStorageUsage] = useState<{ usedMB: number; limitMB: number } | null>(null);
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        const { authFetch } = await import('@/lib/authFetch');
-        const res = await authFetch('/api/storage-usage');
-        if (res.ok) {
-          const json = await res.json();
-          setStorageUsage({ usedMB: json.usedMB, limitMB: json.limitMB });
-        }
-      } catch {}
-    })();
-  }, [user?.id]);
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
   const canUseAlarm = isPWA && isPaidUser;
@@ -1220,7 +1205,6 @@ export default function RecordAddPage() {
               }}
               maxFiles={recordType === 'daily' ? 1 : getPlanConfig(getEffectivePlan(profile?.plan)).attachmentsPerRecord}
               placeholder={recordType === 'daily' ? '오늘 하루를 담은 사진 한 장을 올려보세요' : undefined}
-              storageUsage={storageUsage}
             />
             <div ref={fileEndRef} />
           </div>
