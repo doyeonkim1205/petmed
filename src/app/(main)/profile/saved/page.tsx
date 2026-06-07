@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SavedAnalysis } from '@/lib/supabase';
 import { getPubMedUrl } from '@/services/pubmed';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { getThumbnailsBulk, deleteThumbnail } from '@/lib/photoThumbnailStore';
+import { deleteThumbnail } from '@/lib/photoThumbnailStore';
 
 type FilterKind = 'all' | 'paper' | 'symptom_photo';
 
@@ -15,7 +15,6 @@ export default function SavedAnalysesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKind>('all');
@@ -34,12 +33,6 @@ export default function SavedAnalysesPage() {
         if (res.ok) {
           const data: SavedAnalysis[] = await res.json();
           setAnalyses(data);
-          // 사진 분석 항목들의 썸네일 일괄 로드 (IndexedDB)
-          const photoIds = data.filter(a => a.kind === 'symptom_photo').map(a => a.id);
-          if (photoIds.length > 0) {
-            const thumbs = await getThumbnailsBulk(photoIds);
-            setThumbnails(thumbs);
-          }
         }
       } catch {} finally {
         setLoading(false);
@@ -153,7 +146,6 @@ export default function SavedAnalysesPage() {
                   isExpanded={isExpanded}
                   onToggle={() => setExpandedId(isExpanded ? null : item.id)}
                   onDelete={() => setConfirmTarget({ kind: 'analysis', id: item.id })}
-                  thumbnail={thumbnails[item.id] || null}
                   formatDate={formatDate}
                 />
               );
@@ -193,13 +185,12 @@ export default function SavedAnalysesPage() {
 
 /* ─── 사진 분석 카드 ────────────────────────────────────────────── */
 function PhotoAnalysisCard({
-  item, isExpanded, onToggle, onDelete, thumbnail, formatDate,
+  item, isExpanded, onToggle, onDelete, formatDate,
 }: {
   item: SavedAnalysis;
   isExpanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
-  thumbnail: string | null;
   formatDate: (d: string) => string;
 }) {
   const analysis = item.analysis || {};
@@ -212,14 +203,6 @@ function PhotoAnalysisCard({
     <div className="rounded-xl border border-gray-100 overflow-hidden">
       <button onClick={onToggle} className="w-full p-3 text-left">
         <div className="flex items-start gap-3">
-          {thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumbnail} alt="" className="w-14 h-14 rounded-md object-cover border border-gray-200 flex-shrink-0" />
-          ) : (
-            <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <Camera size={20} className="text-gray-300" />
-            </div>
-          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.query}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
