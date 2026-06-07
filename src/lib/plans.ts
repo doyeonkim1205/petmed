@@ -26,7 +26,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     name: 'Free',
     nameKo: '무료',
     price: 0,
-    maxRecords: 15,
+    maxRecords: 50,
     searchPerDay: 2,
     symptomSearchPerDay: 2,
     symptomRefinePerDay: 1,
