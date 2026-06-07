@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
 type Tab = '' | 'active' | 'canceled' | 'expired';
@@ -51,8 +51,10 @@ export default function SubscriptionsPage() {
     eventTotal: number;
     eventPages: number;
     eventStats: Record<string, number>;
+    failedBillings: any[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refundingId, setRefundingId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,28 @@ export default function SubscriptionsPage() {
   }, [subPage, payPage, eventPage, tab]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // 결제이력에서 직접 환불 — 기존 admin 환불 라우트 호출 (토스 취소 + plan free + 구독 만료 자동).
+  //   실제 카드 환불이 발생하므로 confirm 필수. status='done' 만 환불 가능.
+  const handleRefund = async (pay: { id: string; user_id: string; amount: number }) => {
+    if (!confirm(`${pay.amount?.toLocaleString()}원을 환불하시겠습니까?\n토스 결제 취소 + 무료 플랜 전환이 즉시 진행됩니다.`)) return;
+    setRefundingId(pay.id);
+    try {
+      const res = await authFetch(`/api/admin/users/${pay.user_id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: pay.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json.error || '환불에 실패했습니다.'); return; }
+      alert(json.message || '환불 완료');
+      await fetchData();
+    } catch {
+      alert('환불 처리 중 오류가 발생했습니다.');
+    } finally {
+      setRefundingId(null);
+    }
+  };
 
   const tabs: { value: Tab; label: string }[] = [
     { value: '', label: '전체' },
@@ -94,6 +118,47 @@ export default function SubscriptionsPage() {
           </button>
         ))}
       </div>
+
+      {/* 결제 실패 큐 — billing_failed_count >= 1 (자동 결제 실패/재시도) */}
+      {(data?.failedBillings?.length ?? 0) > 0 && (
+        <Card className="mb-6 border-red-200">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-red-500" />
+              결제 실패 큐 ({data?.failedBillings.length}건)
+            </CardTitle>
+            <p className="text-xs text-gray-400 mt-1">자동 결제가 실패한 구독. cron 이 재시도하며, 최종 실패 시 만료 처리됩니다.</p>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>이메일</TableHead>
+                  <TableHead>플랜</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="text-right">실패 횟수</TableHead>
+                  <TableHead>카드사</TableHead>
+                  <TableHead>다음 결제일</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(data?.failedBillings || []).map((f: any) => (
+                  <TableRow key={f.user_id}>
+                    <TableCell className="text-sm">{f.profiles?.email || '-'}</TableCell>
+                    <TableCell className="text-sm capitalize">{f.plan}</TableCell>
+                    <TableCell className="text-sm">{f.status}</TableCell>
+                    <TableCell className="text-sm text-right font-bold text-red-600">{f.billing_failed_count}</TableCell>
+                    <TableCell className="text-sm text-gray-500">{f.card_company || '-'}</TableCell>
+                    <TableCell className="text-sm text-gray-500">
+                      {f.next_billing_at ? new Date(f.next_billing_at).toLocaleDateString('ko-KR') : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Subscriptions */}
       <Card className="mb-6">
@@ -176,6 +241,7 @@ export default function SubscriptionsPage() {
                 <TableHead>금액</TableHead>
                 <TableHead>상태</TableHead>
                 <TableHead>결제일</TableHead>
+                <TableHead className="text-right">환불</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,6 +253,7 @@ export default function SubscriptionsPage() {
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                       pay.status === 'done' ? 'bg-green-100 text-green-700' :
                       pay.status === 'canceled' ? 'bg-red-100 text-red-700' :
+                      pay.status === 'refunded' ? 'bg-gray-200 text-gray-600' :
                       'bg-yellow-100 text-yellow-700'
                     }`}>
                       {pay.status}
@@ -195,11 +262,25 @@ export default function SubscriptionsPage() {
                   <TableCell className="text-sm text-gray-500">
                     {new Date(pay.created_at).toLocaleDateString('ko-KR')}
                   </TableCell>
+                  <TableCell className="text-right">
+                    {pay.status === 'done' ? (
+                      <button
+                        onClick={() => handleRefund(pay)}
+                        disabled={refundingId === pay.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-40"
+                      >
+                        {refundingId === pay.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                        환불
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-300">-</span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
               {(data?.payments || []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-gray-400 py-8">결제 이력이 없습니다.</TableCell>
+                  <TableCell colSpan={5} className="text-center text-gray-400 py-8">결제 이력이 없습니다.</TableCell>
                 </TableRow>
               )}
             </TableBody>

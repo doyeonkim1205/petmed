@@ -49,8 +49,16 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
     .range(eventOffset, eventOffset + limit - 1);
 
+  // 결제 실패 큐 — 자동 결제 실패 이력이 있는 구독 (billing_failed_count >= 1).
+  //   auto-billing cron 이 재시도하지만 운영자 가시성이 없어 별도 노출. 보통 소수라 비페이지네이션.
+  const { data: failedBillings } = await supabase
+    .from('subscriptions')
+    .select('user_id, plan, status, billing_type, billing_failed_count, next_billing_at, card_company')
+    .gte('billing_failed_count', 1)
+    .order('billing_failed_count', { ascending: false });
+
   // Attach profile info (FK points to auth.users, not profiles)
-  const allItems = [...(subscriptions || []), ...(payments || []), ...(events || [])];
+  const allItems = [...(subscriptions || []), ...(payments || []), ...(events || []), ...(failedBillings || [])];
   if (allItems.length > 0) {
     const userIds = [...new Set(allItems.map((item: any) => item.user_id))];
     const { data: profiles } = await supabase
@@ -86,6 +94,7 @@ export async function GET(request: Request) {
     eventPages: Math.ceil((eventCount || 0) / limit),
     eventPage,
     eventStats: eventTypeCounts,
+    failedBillings: failedBillings || [],
     // 하위호환: 기존 UI 가 page/totalPages 를 읽던 것 (구독 기준)
     page: subPage,
     totalPages: Math.ceil((count || 0) / limit),
