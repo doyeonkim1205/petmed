@@ -36,27 +36,36 @@ function eventTypeBadge(type: string): string {
 
 export default function SubscriptionsPage() {
   const [tab, setTab] = useState<Tab>('');
-  const [page, setPage] = useState(1);
+  // 세 테이블 독립 페이지네이션 — 구독/결제/이벤트 각자 페이지.
+  const [subPage, setSubPage] = useState(1);
+  const [payPage, setPayPage] = useState(1);
+  const [eventPage, setEventPage] = useState(1);
   const [data, setData] = useState<{
     subscriptions: any[];
     subscriptionTotal: number;
+    subscriptionPages: number;
     payments: any[];
     paymentTotal: number;
+    paymentPages: number;
     events: any[];
     eventTotal: number;
+    eventPages: number;
     eventStats: Record<string, number>;
-    totalPages: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page) });
+    const params = new URLSearchParams({
+      subPage: String(subPage),
+      payPage: String(payPage),
+      eventPage: String(eventPage),
+    });
     if (tab) params.set('status', tab);
     const res = await authFetch(`/api/admin/subscriptions?${params}`);
     setData(await res.json());
     setLoading(false);
-  }, [page, tab]);
+  }, [subPage, payPage, eventPage, tab]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -76,7 +85,7 @@ export default function SubscriptionsPage() {
         {tabs.map((t) => (
           <button
             key={t.value}
-            onClick={() => { setTab(t.value); setPage(1); }}
+            onClick={() => { setTab(t.value); setSubPage(1); }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === t.value ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
@@ -139,12 +148,12 @@ export default function SubscriptionsPage() {
               </Table>
 
               <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-gray-500">페이지 {page} / {data?.totalPages || 1}</span>
+                <span className="text-sm text-gray-500">페이지 {subPage} / {data?.subscriptionPages || 1}</span>
                 <div className="flex gap-2">
-                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="p-2 rounded border disabled:opacity-30">
+                  <button onClick={() => setSubPage((p) => Math.max(1, p - 1))} disabled={subPage <= 1} className="p-2 rounded border disabled:opacity-30">
                     <ChevronLeft size={16} />
                   </button>
-                  <button onClick={() => setPage((p) => Math.min(data?.totalPages || 1, p + 1))} disabled={page >= (data?.totalPages || 1)} className="p-2 rounded border disabled:opacity-30">
+                  <button onClick={() => setSubPage((p) => Math.min(data?.subscriptionPages || 1, p + 1))} disabled={subPage >= (data?.subscriptionPages || 1)} className="p-2 rounded border disabled:opacity-30">
                     <ChevronRight size={16} />
                   </button>
                 </div>
@@ -195,6 +204,18 @@ export default function SubscriptionsPage() {
               )}
             </TableBody>
           </Table>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-gray-500">페이지 {payPage} / {data?.paymentPages || 1}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPayPage((p) => Math.max(1, p - 1))} disabled={payPage <= 1} className="p-2 rounded border disabled:opacity-30">
+                <ChevronLeft size={16} />
+              </button>
+              <button onClick={() => setPayPage((p) => Math.min(data?.paymentPages || 1, p + 1))} disabled={payPage >= (data?.paymentPages || 1)} className="p-2 rounded border disabled:opacity-30">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -253,6 +274,18 @@ export default function SubscriptionsPage() {
               )}
             </TableBody>
           </Table>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-gray-500">페이지 {eventPage} / {data?.eventPages || 1}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setEventPage((p) => Math.max(1, p - 1))} disabled={eventPage <= 1} className="p-2 rounded border disabled:opacity-30">
+                <ChevronLeft size={16} />
+              </button>
+              <button onClick={() => setEventPage((p) => Math.min(data?.eventPages || 1, p + 1))} disabled={eventPage >= (data?.eventPages || 1)} className="p-2 rounded border disabled:opacity-30">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

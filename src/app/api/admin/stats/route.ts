@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 export async function GET(request: Request) {
   const { error } = await verifyAdmin(request);
@@ -11,7 +12,9 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const today = new Date().toISOString().split('T')[0];
+  // KST 자정 기준 "오늘" — Vercel(UTC)에서 new Date().toISOString() 의 날짜 부분을
+  //   쓰면 KST 0~9시 사이 어제로 어긋남. startOfDayKST 로 KST 자정 UTC 타임스탬프 사용.
+  const today = startOfDayKST().toISOString();
 
   const [
     { count: totalUsers },

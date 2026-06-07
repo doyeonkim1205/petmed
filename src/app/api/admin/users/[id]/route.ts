@@ -24,13 +24,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 });
   }
 
-  const [{ data: subscription }, { count: searchCount }, { data: payments }] = await Promise.all([
+  const [
+    { data: subscription },
+    { count: searchCount },
+    { data: payments },
+    { count: recordCount },
+    { count: petCount },
+    { count: savedAnalysesCount },
+  ] = await Promise.all([
     supabase.from('subscriptions').select('*').eq('user_id', id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', id),
     supabase.from('payment_history').select('id, amount, status, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(10),
+    supabase.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
+    supabase.from('pets').select('*', { count: 'exact', head: true }).eq('user_id', id),
+    supabase.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', id),
   ]);
 
-  return NextResponse.json({ profile, subscription, searchCount: searchCount || 0, payments: payments || [] });
+  return NextResponse.json({
+    profile,
+    subscription,
+    searchCount: searchCount || 0,
+    payments: payments || [],
+    recordCount: recordCount || 0,
+    petCount: petCount || 0,
+    savedAnalysesCount: savedAnalysesCount || 0,
+  });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -39,6 +39,9 @@ interface UserDetail {
   } | null;
   searchCount: number;
   payments: Payment[];
+  recordCount: number;
+  petCount: number;
+  savedAnalysesCount: number;
 }
 
 export default function UsersPage() {
@@ -276,8 +279,25 @@ export default function UsersPage() {
                 <p className="font-medium">{selectedUser.profile.nickname || '-'}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">총 검색 횟수</span>
-                <p className="font-medium">{selectedUser.searchCount}회</p>
+                <span className="text-sm text-gray-500">활동</span>
+                <div className="grid grid-cols-4 gap-2 mt-1">
+                  <div className="bg-gray-50 rounded-lg p-2 text-center">
+                    <p className="text-base font-bold">{selectedUser.searchCount}</p>
+                    <p className="text-[11px] text-gray-400">검색</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2 text-center">
+                    <p className="text-base font-bold">{selectedUser.recordCount}</p>
+                    <p className="text-[11px] text-gray-400">건강기록</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2 text-center">
+                    <p className="text-base font-bold">{selectedUser.petCount}</p>
+                    <p className="text-[11px] text-gray-400">반려동물</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2 text-center">
+                    <p className="text-base font-bold">{selectedUser.savedAnalysesCount}</p>
+                    <p className="text-[11px] text-gray-400">보관함</p>
+                  </div>
+                </div>
               </div>
               {selectedUser.subscription && (
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2">

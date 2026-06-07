@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
 import { getPlanConfig } from '@/lib/plans';
+import { startOfDayKST } from '@/lib/dailyBoundary';
 
 export async function GET(request: NextRequest) {
   const { error } = await verifyAdmin(request);
@@ -70,8 +71,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Get today's upload count from activity logs
-  const today = new Date().toISOString().split('T')[0];
+  // Get today's upload count from activity logs — KST 자정 기준
+  const today = startOfDayKST().toISOString();
   const { count: todayUploads } = await supabase
     .from('activity_logs')
     .select('*', { count: 'exact', head: true })
