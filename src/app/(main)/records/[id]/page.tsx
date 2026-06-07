@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, Image, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -349,16 +349,13 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             {record.record_files.map((file) => {
               const fileUrl = fileUrls[file.id] || '';
               const isImage = file.file_type?.startsWith('image/');
-              const FileIcon = isImage ? Image : FileText;
               const openPreview = () => setPreviewFile({ fileId: file.id, name: file.file_name, isImage: !!isImage });
-              return (
-                <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
-                  {isImage && (
-                    <button
-                      type="button"
-                      onClick={openPreview}
-                      className="w-full block cursor-pointer"
-                    >
+
+              // 이미지: 사진만 크게 + 좌하단 둥근 다운로드 버튼 (이름/용량/바 제거 — 사진이 곧 콘텐츠)
+              if (isImage) {
+                return (
+                  <div key={file.id} className="relative rounded-lg border border-gray-100 overflow-hidden">
+                    <button type="button" onClick={openPreview} className="w-full block cursor-pointer">
                       <SafeImage
                         src={fileUrl}
                         alt={file.file_name}
@@ -367,9 +364,23 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                         imgClassName="w-full h-48 object-cover"
                       />
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); triggerDownload(file.file_path, file.file_name); }}
+                      className="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+                      title="다운로드"
+                    >
+                      <Download size={16} />
+                    </button>
+                  </div>
+                );
+              }
+
+              // 비이미지(PDF 등): 미리보기 불가 → 이름 + 다운로드 행 유지
+              return (
+                <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
                   <div className="flex items-center gap-3 p-3 bg-gray-50">
-                    <FileIcon size={16} className={isImage ? 'text-green-500' : 'text-blue-500'} />
+                    <FileText size={16} className="text-blue-500" />
                     <button
                       type="button"
                       onClick={openPreview}
@@ -377,9 +388,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                     >
                       {file.file_name}
                     </button>
-                    <span className="text-xs text-gray-400 flex-shrink-0">
-                      {(file.file_size / 1024).toFixed(0)}KB
-                    </span>
                     <button
                       type="button"
                       onClick={() => triggerDownload(file.file_path, file.file_name)}
