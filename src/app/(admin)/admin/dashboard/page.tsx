@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, CreditCard, UserCheck, Database, AlertTriangle } from 'lucide-react';
+import { Users, Search, CreditCard, UserCheck, Database, AlertTriangle, Bookmark, Camera } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
 interface HeavyUser {
@@ -23,7 +23,13 @@ interface DashboardStats {
   todaySignups: number;
   planDistribution: { plan: string; count: number }[];
   heavyUsers: HeavyUser[];
-  usageSummary: { totalRecords: number; totalPets: number; totalSavedPapers: number };
+  usageSummary: {
+    totalRecords: number;
+    totalPets: number;
+    totalSavedPapers: number;
+    totalSavedAnalyses: number;
+    totalPhotoAnalyses: number;
+  };
 }
 
 export default function DashboardPage() {
@@ -105,12 +111,18 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Data Usage Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      {/* Data Usage Summary
+          - 총 저장논문 = saved_papers (개별 PubMed 논문, 보관함의 자식)
+          - 총 보관함   = saved_analyses (논문분석 + 사진분석 세션, 부모)
+          - 사진분석     = saved_analyses 중 kind='symptom_photo'
+          보관함/저장논문은 부모/자식이라 합산하지 않고 각각 표시. */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         {[
           { label: '총 건강기록', value: stats.usageSummary.totalRecords, icon: Database },
           { label: '총 반려동물', value: stats.usageSummary.totalPets, icon: Users },
           { label: '총 저장논문', value: stats.usageSummary.totalSavedPapers, icon: Search },
+          { label: '총 보관함', value: stats.usageSummary.totalSavedAnalyses, icon: Bookmark },
+          { label: '사진분석', value: stats.usageSummary.totalPhotoAnalyses, icon: Camera },
         ].map((item) => {
           const Icon = item.icon;
           return (

@@ -38,18 +38,8 @@ export async function GET(request: Request) {
   const totalRevenue = (revenue || []).reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
 
   // Heavy user monitoring: users with high record/pet/saved counts
-  const [
-    { data: recordCounts },
-    { data: petCounts },
-    { data: savedCounts },
-  ] = await Promise.all([
-    supabase.rpc('get_user_record_counts').then(r => r),
-    supabase.rpc('get_user_pet_counts').then(r => r),
-    supabase.rpc('get_user_saved_counts').then(r => r),
-  ]).catch(() => [{ data: null }, { data: null }, { data: null }]);
-
-  // Fallback: direct queries if RPCs don't exist
-  let heavyUsers: { email: string; nickname: string; plan: string; records: number; pets: number; savedPapers: number }[] = [];
+  // (이전의 get_user_*_counts RPC 호출은 결과를 쓰지 않는 dead code 라 제거 — 아래 직접 집계만 사용)
+  const heavyUsers: { email: string; nickname: string; plan: string; records: number; pets: number; savedPapers: number }[] = [];
 
   const profileMap = new Map<string, { email: string; nickname: string; plan: string }>();
   const { data: allProfiles } = await supabase.from('profiles').select('id, email, nickname, plan');
@@ -71,12 +61,21 @@ export async function GET(request: Request) {
     petMap.set(p.user_id, (petMap.get(p.user_id) || 0) + 1);
   }
 
-  // Count saved papers per user
+  // Count saved papers per user — 개별 PubMed 논문 (saved_analyses 의 자식 row)
   const { data: saved } = await supabase.from('saved_papers').select('user_id');
   const savedMap = new Map<string, number>();
   for (const s of saved || []) {
     savedMap.set(s.user_id, (savedMap.get(s.user_id) || 0) + 1);
   }
+
+  // 보관함 — saved_analyses (부모): 논문분석 + 사진분석 세션.
+  //   saved_papers 와 부모/자식 관계라 합산 금지. 별도 지표로 노출.
+  //   특히 사진분석(symptom_photo)은 saved_papers row 를 안 만들어 기존 통계에서 누락됐었음.
+  const { data: savedAnalyses } = await supabase.from('saved_analyses').select('kind');
+  const totalSavedAnalyses = savedAnalyses?.length || 0;
+  const totalPhotoAnalyses = (savedAnalyses || []).filter(
+    (a: { kind: string }) => a.kind === 'symptom_photo',
+  ).length;
 
   // Build heavy users list (anyone with records >= 50, pets >= 5, or savedPapers >= 30)
   const allUserIds = new Set([...recordMap.keys(), ...petMap.keys(), ...savedMap.keys()]);
@@ -112,6 +111,8 @@ export async function GET(request: Request) {
       totalRecords: records?.length || 0,
       totalPets: pets?.length || 0,
       totalSavedPapers: saved?.length || 0,
+      totalSavedAnalyses,
+      totalPhotoAnalyses,
     },
   });
 }
