@@ -435,7 +435,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         >
           <button
             type="button"
-            onClick={closePreview}
+            onClick={(e) => { e.stopPropagation(); closePreview(); }}
             className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white"
             aria-label="닫기"
           >
