@@ -10,7 +10,6 @@ import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { compressImage } from '@/lib/imageCompress';
 import { authFetch } from '@/lib/authFetch';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { saveThumbnail } from '@/lib/photoThumbnailStore';
 
 // excretion = 대소변·구토 (사용자 사용 빈도 ↑). '기타' 제거 + '분비물 단일 카테고리' 추가.
 type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'excretion';
@@ -68,7 +67,6 @@ interface PhotoCache {
   category?: Category;
   selectedPetId?: string | null;
   result?: AnalysisResult | null;
-  savedId?: string | null;
 }
 function loadCache(userId: string): PhotoCache | null {
   try {
@@ -98,9 +96,6 @@ export default function PhotoAnalysisPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   // 사진 업로드 input 2개로 분리 — 카메라/갤러리 액션 시트 대신 명시적 두 진입점.
@@ -130,7 +125,6 @@ export default function PhotoAnalysisPage() {
         if (cached.hint !== undefined) setHint(cached.hint);
         if (cached.category !== undefined) setCategory(cached.category);
         if (cached.result !== undefined) setResult(cached.result);
-        if (cached.savedId !== undefined) setSavedId(cached.savedId);
         // selectedPetId 는 펫 fetch 후 검증해서 적용
       }
       // 2) 서버 fetch
@@ -165,8 +159,8 @@ export default function PhotoAnalysisPage() {
   // state → sessionStorage 저장 (복원 끝난 후만).
   useEffect(() => {
     if (!user || !cacheRestoredRef.current) return;
-    saveCache(user.id, { imageDataUrl, hint, category, selectedPetId, result, savedId });
-  }, [user, imageDataUrl, hint, category, selectedPetId, result, savedId]);
+    saveCache(user.id, { imageDataUrl, hint, category, selectedPetId, result });
+  }, [user, imageDataUrl, hint, category, selectedPetId, result]);
 
   if (authLoading) return <LoadingScreen inMain />;
   if (!user) {
@@ -192,8 +186,6 @@ export default function PhotoAnalysisPage() {
     setAnalyzing(true);
     setServerError(null);
     setResult(null);
-    setSavedId(null);
-    setSaveError(null);
     try {
       const res = await authFetch('/api/symptom-analysis-image', {
         method: 'POST',
@@ -246,8 +238,6 @@ export default function PhotoAnalysisPage() {
     setHint('');
     setResult(null);
     setServerError(null);
-    setSavedId(null);
-    setSaveError(null);
     if (user) clearCache(user.id);
     cacheRestoredRef.current = true;
     // popstate 이벤트가 microtask 큐에 들어가 있을 수 있으므로 짧은 지연 후 lock 해제.
@@ -281,35 +271,6 @@ export default function PhotoAnalysisPage() {
     // handleReset 은 stable (state setter only) 이라 deps 에 안 넣어도 안전
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
-
-  const handleSave = async () => {
-    if (!result || !imageDataUrl || saving || savedId || !selectedPet) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const res = await authFetch('/api/saved-analyses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'symptom_photo',
-          query: hint.trim() || `[사진 분석: ${CATEGORIES.find(c => c.value === category)?.label || '기타'}]`,
-          petType: selectedPet.type,
-          analysis: result,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.id) {
-        setSaveError(data?.error || '저장에 실패했어요.');
-        return;
-      }
-      setSavedId(data.id);
-      saveThumbnail(data.id, imageDataUrl);
-    } catch {
-      setSaveError('네트워크 오류가 발생했어요.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // 입력 영역 노출 조건 — result 가 없을 때만 (옵션 B: 결과 전용 화면 전환)
   const showInputArea = !result;
@@ -575,10 +536,6 @@ export default function PhotoAnalysisPage() {
             result={result}
             imageDataUrl={imageDataUrl}
             onReset={handleReset}
-            onSave={handleSave}
-            saving={saving}
-            savedId={savedId}
-            saveError={saveError}
           />
         )}
       </main>
@@ -591,18 +548,10 @@ function ResultPanel({
   result,
   imageDataUrl,
   onReset,
-  onSave,
-  saving,
-  savedId,
-  saveError,
 }: {
   result: AnalysisResult;
   imageDataUrl: string | null;
   onReset: () => void;
-  onSave: () => void;
-  saving: boolean;
-  savedId: string | null;
-  saveError: string | null;
 }) {
   const [showPrivacyTooltip, setShowPrivacyTooltip] = useState(false);
   // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️), high=빨강(🚨).
@@ -641,7 +590,7 @@ function ResultPanel({
                 <Info size={14} />
                 {showPrivacyTooltip && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
-                    사진은 서버에 저장되지 않아요 분석 결과를 저장하면 <strong>이 기기 보관함</strong>에서만 사진이 보이고 다른 기기에선 보이지 않아요
+                    사진은 <strong>서버에 저장되지 않아요</strong> 분석 후 즉시 폐기됩니다
                   </div>
                 )}
               </button>
@@ -771,27 +720,6 @@ function ResultPanel({
           증상이 지속되거나 악화되면 반드시 동물병원에서 진료를 받아주세요
         </p>
       </div>
-
-      {/* 저장 + 다시 분석 */}
-      {result.is_valid_photo !== false && (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !!savedId}
-            className={`w-full py-2.5 rounded-full text-sm font-semibold ${
-              savedId
-                ? 'bg-emerald-50 text-emerald-700 cursor-default'
-                : 'bg-blue-600 text-white disabled:bg-gray-300'
-            }`}
-          >
-            {savedId ? '✓ 보관함에 저장됨' : saving ? '저장 중...' : '분석 결과 저장'}
-          </button>
-          {saveError && (
-            <p className="text-xs text-red-600 text-center">{saveError}</p>
-          )}
-        </div>
-      )}
 
       <button
         type="button"

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
-  const { data: analyses, error } = await supabaseAdmin
+  const { data: analysesRaw, error } = await supabaseAdmin
     .from('saved_analyses')
     .select('*')
     .eq('user_id', userId)
@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
     console.error('saved-analyses GET error:', error.message);
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
+
+  // 사진 분석 저장 기능 제거됨 — 보관함은 논문 분석(paper)만. 과거 symptom_photo row 가
+  //   남아있어도 제외 (JS 필터라 legacy null kind = 논문 은 그대로 유지).
+  const analyses = (analysesRaw || []).filter((a: any) => a.kind !== 'symptom_photo');
 
   // Fetch saved papers for each analysis
   if (analyses && analyses.length > 0) {
@@ -89,8 +93,11 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { query, petType, analysis, selectedPapers } = body;
-  const kind: 'paper' | 'symptom_photo' =
-    body.kind === 'symptom_photo' ? 'symptom_photo' : 'paper';
+  // 사진 분석 저장 기능 제거됨 — 보관함은 논문 분석만 저장 가능.
+  if (body.kind === 'symptom_photo') {
+    return NextResponse.json({ error: '사진 분석 저장은 더 이상 지원하지 않습니다.' }, { status: 400 });
+  }
+  const kind = 'paper' as const;
 
   // 분석 저장 cap 검사 — kind 별로 각 maxSavedAnalyses(500) 적용.
   // 일반 사용자 도달 거의 0, 매크로 스팸 방어용.
@@ -104,24 +111,19 @@ export async function POST(request: NextRequest) {
         .eq('user_id', userId)
         .eq('kind', kind);
       if ((count || 0) >= config.maxSavedAnalyses) {
-        const label = kind === 'symptom_photo' ? '사진 분석' : '논문 분석';
-        const unit = kind === 'symptom_photo' ? '개' : '편';
         return NextResponse.json(
-          { error: `${label} 저장 한도(${config.maxSavedAnalyses}${unit})에 도달했습니다.\n추가 용량이 필요하시면 문의해 주세요.`, limitReached: true },
+          { error: `논문 분석 저장 한도(${config.maxSavedAnalyses}편)에 도달했습니다.\n추가 용량이 필요하시면 문의해 주세요.`, limitReached: true },
           { status: 403 },
         );
       }
     }
   }
 
-  // 사진 분석 (kind='symptom_photo') 은 analysis 객체 전체를 그대로 저장.
-  // 논문 분석 (kind='paper') 은 precautions / ingredients 만 추려 저장.
-  const analysisPayload = kind === 'symptom_photo'
-    ? analysis ?? {}
-    : {
-        precautions: analysis?.precautions || [],
-        ingredients: analysis?.ingredients || [],
-      };
+  // 논문 분석 — precautions / ingredients 만 추려 저장.
+  const analysisPayload = {
+    precautions: analysis?.precautions || [],
+    ingredients: analysis?.ingredients || [],
+  };
 
   const { data, error } = await supabaseAdmin
     .from('saved_analyses')

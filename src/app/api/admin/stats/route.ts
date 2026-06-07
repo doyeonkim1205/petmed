@@ -71,13 +71,12 @@ export async function GET(request: Request) {
     savedMap.set(s.user_id, (savedMap.get(s.user_id) || 0) + 1);
   }
 
-  // 보관함 — saved_analyses (부모): 논문분석 + 사진분석 세션.
-  //   saved_papers 와 부모/자식 관계라 합산 금지. 별도 지표로 노출.
-  //   특히 사진분석(symptom_photo)은 saved_papers row 를 안 만들어 기존 통계에서 누락됐었음.
+  // 보관함 — saved_analyses (부모): 논문 분석 세션. saved_papers(자식) 와 부모/자식
+  //   관계라 합산 금지. 사진 분석 저장 기능 제거됨 → symptom_photo 는 제외(과거 잔존 row
+  //   대비, JS 필터라 legacy null kind = 논문 은 포함). 보관함 UI 와 동일 기준.
   const { data: savedAnalyses } = await supabase.from('saved_analyses').select('kind');
-  const totalSavedAnalyses = savedAnalyses?.length || 0;
-  const totalPhotoAnalyses = (savedAnalyses || []).filter(
-    (a: { kind: string }) => a.kind === 'symptom_photo',
+  const totalSavedAnalyses = (savedAnalyses || []).filter(
+    (a: { kind: string | null }) => a.kind !== 'symptom_photo',
   ).length;
 
   // Build heavy users list (anyone with records >= 50, pets >= 5, or savedPapers >= 30)
@@ -115,7 +114,6 @@ export async function GET(request: Request) {
       totalPets: pets?.length || 0,
       totalSavedPapers: saved?.length || 0,
       totalSavedAnalyses,
-      totalPhotoAnalyses,
     },
   });
 }

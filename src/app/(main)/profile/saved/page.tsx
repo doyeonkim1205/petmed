@@ -2,14 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangle, Pill, ChevronDown, ChevronUp, Camera } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangle, Pill, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SavedAnalysis } from '@/lib/supabase';
 import { getPubMedUrl } from '@/services/pubmed';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { deleteThumbnail } from '@/lib/photoThumbnailStore';
-
-type FilterKind = 'all' | 'paper' | 'symptom_photo';
 
 export default function SavedAnalysesPage() {
   const router = useRouter();
@@ -17,7 +14,6 @@ export default function SavedAnalysesPage() {
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterKind>('all');
   const [confirmTarget, setConfirmTarget] = useState<
     | { kind: 'analysis'; id: string }
     | { kind: 'paper'; paperId: string; analysisId: string }
@@ -51,7 +47,6 @@ export default function SavedAnalysesPage() {
       });
       if (res.ok) {
         setAnalyses(prev => prev.filter(a => a.id !== id));
-        deleteThumbnail(id); // IndexedDB 정리 (silent)
       }
     } catch {}
   };
@@ -89,16 +84,6 @@ export default function SavedAnalysesPage() {
     );
   }
 
-  const hasPaper = analyses.some(a => a.kind !== 'symptom_photo');
-  const hasPhoto = analyses.some(a => a.kind === 'symptom_photo');
-  const showFilter = hasPaper && hasPhoto;
-
-  const filtered = analyses.filter(a => {
-    if (filter === 'all') return true;
-    if (filter === 'symptom_photo') return a.kind === 'symptom_photo';
-    return a.kind !== 'symptom_photo'; // 'paper' (legacy null kind 도 포함)
-  });
-
   return (
     <div className="min-h-screen bg-white">
       <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
@@ -108,48 +93,16 @@ export default function SavedAnalysesPage() {
         <h1 className="text-sm font-semibold text-gray-700">내 보관함</h1>
       </header>
 
-      {showFilter && (
-        <div className="px-4 pt-3 flex gap-1.5">
-          {[
-            { key: 'all' as FilterKind, label: '전체' },
-            { key: 'paper' as FilterKind, label: '논문' },
-            { key: 'symptom_photo' as FilterKind, label: '사진' },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                filter === key ? 'bg-purple-600 text-white' : 'bg-gray-50 text-gray-500'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="p-4 space-y-3">
-        {filtered.length === 0 ? (
+        {analyses.length === 0 ? (
           <div className="text-center py-20">
             <FileText size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm text-gray-400">보관함이 비어있습니다.</p>
-            <p className="text-xs text-gray-300 mt-1">검색 결과에서 보관하기를 눌러보세요.</p>
+            <p className="text-xs text-gray-300 mt-1">논문 검색 결과에서 보관하기를 눌러보세요.</p>
           </div>
         ) : (
-          filtered.map((item) => {
+          analyses.map((item) => {
             const isExpanded = expandedId === item.id;
-            if (item.kind === 'symptom_photo') {
-              return (
-                <PhotoAnalysisCard
-                  key={item.id}
-                  item={item}
-                  isExpanded={isExpanded}
-                  onToggle={() => setExpandedId(isExpanded ? null : item.id)}
-                  onDelete={() => setConfirmTarget({ kind: 'analysis', id: item.id })}
-                  formatDate={formatDate}
-                />
-              );
-            }
             return (
               <PaperAnalysisCard
                 key={item.id}
@@ -179,94 +132,6 @@ export default function SavedAnalysesPage() {
         }}
         onCancel={() => setConfirmTarget(null)}
       />
-    </div>
-  );
-}
-
-/* ─── 사진 분석 카드 ────────────────────────────────────────────── */
-function PhotoAnalysisCard({
-  item, isExpanded, onToggle, onDelete, formatDate,
-}: {
-  item: SavedAnalysis;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onDelete: () => void;
-  formatDate: (d: string) => string;
-}) {
-  const analysis = item.analysis || {};
-  const diseases: any[] = Array.isArray(analysis.diseases) ? analysis.diseases : [];
-  const observations: string[] = Array.isArray(analysis.observations) ? analysis.observations : [];
-  const concern: 'low' | 'medium' | 'high' | undefined = analysis.concern_level;
-  const concernLabel = concern === 'high' ? '주의 필요' : concern === 'medium' ? '관찰 필요' : '경미';
-
-  return (
-    <div className="rounded-xl border border-gray-100 overflow-hidden">
-      <button onClick={onToggle} className="w-full p-3 text-left">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.query}</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                <Clock size={10} /> {formatDate(item.created_at)}
-              </span>
-              <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-500 rounded-full flex items-center gap-1">
-                <Camera size={10} /> 사진 분석
-              </span>
-              {concern && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                  concern === 'high' ? 'bg-red-50 text-red-600' :
-                  concern === 'medium' ? 'bg-amber-50 text-amber-600' :
-                  'bg-emerald-50 text-emerald-600'
-                }`}>
-                  {concernLabel}
-                </span>
-              )}
-              {diseases.length > 0 && (
-                <span className="text-[10px] text-gray-300">의심 {diseases.length}개</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1.5 text-gray-300 hover:text-red-400"
-            >
-              <Trash2 size={14} />
-            </button>
-            {isExpanded ? <ChevronUp size={14} className="text-gray-300" /> : <ChevronDown size={14} className="text-gray-300" />}
-          </div>
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div className="border-t border-gray-50 px-4 pb-4 space-y-3 pt-3">
-          {observations.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1">관찰된 내용</p>
-              <ul className="text-xs text-gray-600 space-y-0.5 list-disc pl-4">
-                {observations.map((o, i) => <li key={i}>{o}</li>)}
-              </ul>
-            </div>
-          )}
-          {diseases.map((d, i) => (
-            <div key={i} className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-sm font-semibold text-gray-800">{d.name_ko}</p>
-                {d.name_en && <span className="text-[10px] text-gray-400">{d.name_en}</span>}
-              </div>
-              {d.description && (
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">{d.description}</p>
-              )}
-              {d.action && (
-                <p className="text-xs bg-white text-purple-800 rounded p-1.5 mt-2">💡 {d.action}</p>
-              )}
-            </div>
-          ))}
-          {analysis.reassurance && diseases.length === 0 && (
-            <p className="text-xs text-gray-600 leading-relaxed">{analysis.reassurance}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
