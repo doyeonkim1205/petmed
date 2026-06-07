@@ -72,6 +72,20 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [id, user]);
 
+  // 미리보기 모달 — 열릴 때 history 항목을 쌓아, 시스템/브라우저 뒤로가기가
+  //   기록장 목록으로 나가버리지 않고 모달만 닫게 한다 (X 버튼과 동일 동작).
+  useEffect(() => {
+    if (!previewFile) return;
+    window.history.pushState({ recordPreview: true }, '');
+    const onPop = () => setPreviewFile(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [previewFile]);
+
+  // 모달 닫기 — history.back() 으로 위에서 쌓은 항목을 소비 → popstate 가 모달을 닫음.
+  //   (X / 배경 탭 / 뒤로가기 모두 동일 경로로 닫혀 history 가 꼬이지 않음)
+  const closePreview = () => window.history.back();
+
   const loadRecord = async () => {
     try {
       const data = await getRecord(id);
@@ -417,11 +431,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       {previewFile && (
         <div
           className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center"
-          onClick={() => setPreviewFile(null)}
+          onClick={closePreview}
         >
           <button
             type="button"
-            onClick={() => setPreviewFile(null)}
+            onClick={closePreview}
             className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white"
             aria-label="닫기"
           >
