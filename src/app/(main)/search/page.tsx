@@ -1422,7 +1422,7 @@ function SearchContent() {
                       )}
                       {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
                         <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          AI 논문 분석
+                          논문 기반 AI 요약
                         </span>
                       )}
                     </div>
@@ -1453,7 +1453,7 @@ function SearchContent() {
                       )}
                       {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
                         <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          AI 논문 분석
+                          논문 기반 AI 요약
                         </span>
                       )}
                     </div>

@@ -590,7 +590,7 @@ function ResultPanel({
                 <Info size={14} />
                 {showPrivacyTooltip && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
-                    사진은 <strong>서버에 저장되지 않아요</strong> 분석 후 즉시 폐기됩니다
+                    사진은 분석에만 쓰이고 <strong>서버에 저장되지 않아요</strong>
                   </div>
                 )}
               </button>
