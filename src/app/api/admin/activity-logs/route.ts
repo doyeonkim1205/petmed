@@ -48,13 +48,15 @@ export async function GET(request: Request) {
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
   if (action) query = query.eq('action', action);
   else if (category === 'deleted_user') {
-    // 탈퇴 유저 필터: profiles 에 없는 user_id 만
-    const { data: liveProfiles } = await supabase.from('profiles').select('id');
-    const liveIds = (liveProfiles ?? []).map((p) => p.id);
-    query = query.not('user_id', 'is', null);
-    if (liveIds.length > 0) {
-      query = query.not('user_id', 'in', `(${liveIds.join(',')})`);
+    // 탈퇴 유저 필터: profiles 에 없는 user_id 만.
+    //   기존엔 살아있는 profile id 전부를 IN 절 inline → 유저 수백+ 시 URL 길이 초과로 깨짐.
+    //   대신 "고아(탈퇴) user_id" 만 RPC 로 받아 in() — 탈퇴 유저는 소수라 항상 작은 목록.
+    const { data: orphans } = await supabase.rpc('get_orphan_activity_user_ids');
+    const orphanIds = (orphans ?? []).map((o: { user_id: string }) => o.user_id);
+    if (orphanIds.length === 0) {
+      return NextResponse.json({ logs: [], total: 0, page, totalPages: 0 });
     }
+    query = query.in('user_id', orphanIds);
   } else if (category) query = query.like('action', `${category}.%`);
 
   // cron 제외 플래그 — action / category 필터와 동시 사용 가능. cron 카테고리

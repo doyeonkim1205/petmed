@@ -13,10 +13,9 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  // Get all users with their file usage
-  const { data: files } = await supabase
-    .from('record_files')
-    .select('user_id, file_size, file_type, created_at');
+  // 사용자별 스토리지 집계 — record_files 전체를 앱으로 끌어오지 않고 DB 에서 집계
+  //   (파일 수만 단위 시 OOM 방지). RPC: get_storage_usage_by_user.
+  const { data: usage } = await supabase.rpc('get_storage_usage_by_user');
 
   const { data: profiles } = await supabase
     .from('profiles')
@@ -51,17 +50,19 @@ export async function GET(request: NextRequest) {
   let totalStorageBytes = 0;
   let totalFileCount = 0;
 
-  for (const f of files || []) {
-    const user = userMap.get(f.user_id);
+  // bigint 는 JSON 에서 문자열로 옴 → Number 변환.
+  for (const u of (usage as { user_id: string; file_count: number | string; total_bytes: number | string; last_upload: string | null }[] | null) || []) {
+    const fileCount = Number(u.file_count) || 0;
+    const totalBytes = Number(u.total_bytes) || 0;
+    const user = userMap.get(u.user_id);
     if (user) {
-      user.fileCount++;
-      user.totalBytes += f.file_size || 0;
-      if (!user.lastUpload || f.created_at > user.lastUpload) {
-        user.lastUpload = f.created_at;
-      }
+      user.fileCount = fileCount;
+      user.totalBytes = totalBytes;
+      user.lastUpload = u.last_upload;
     }
-    totalStorageBytes += f.file_size || 0;
-    totalFileCount++;
+    // 탈퇴 유저(profile 없음) 파일도 전체 합계엔 포함 (기존 동작 유지).
+    totalStorageBytes += totalBytes;
+    totalFileCount += fileCount;
   }
 
   // Calculate usage percent
