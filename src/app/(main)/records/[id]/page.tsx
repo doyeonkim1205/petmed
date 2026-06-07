@@ -380,7 +380,6 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               return (
                 <div key={file.id} className="rounded-lg border border-gray-100 overflow-hidden">
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-                    <FileText size={14} className="text-blue-500 flex-shrink-0" />
                     <button
                       type="button"
                       onClick={openPreview}
