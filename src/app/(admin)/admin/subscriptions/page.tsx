@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, Download } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { downloadCsv } from '@/lib/adminExport';
 
 type Tab = '' | 'active' | 'canceled' | 'expired';
 
@@ -231,7 +232,15 @@ export default function SubscriptionsPage() {
       {/* Payment History */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-sm text-gray-500">결제 이력 ({data?.paymentTotal || 0}건)</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm text-gray-500">결제 이력 ({data?.paymentTotal || 0}건)</CardTitle>
+            <button
+              onClick={() => downloadCsv('/api/admin/export?type=payments', 'payments.csv')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              <Download size={13} /> CSV
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>

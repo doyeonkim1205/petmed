@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { downloadCsv } from '@/lib/adminExport';
 import { TextField } from '@/components/TextField';
 
 type SearchType = 'all' | 'disease' | 'symptom' | 'symptom_photo';
@@ -99,7 +100,21 @@ export default function SearchLogsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">검색 로그</h1>
+      <div className="flex items-start justify-between mb-2">
+        <h1 className="text-2xl font-bold">검색 로그</h1>
+        <button
+          onClick={() => {
+            const p = new URLSearchParams({ type: 'search_logs', searchType: type });
+            if (from) p.set('from', from);
+            if (to) p.set('to', to);
+            if (userId) p.set('userId', userId);
+            downloadCsv(`/api/admin/export?${p}`, 'search_logs.csv');
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          <Download size={14} /> CSV
+        </button>
+      </div>
       <p className="text-sm text-gray-500 mb-6">
         질병 검색 (PubMed 논문) + 증상 분석 (AI) 통합 뷰
       </p>

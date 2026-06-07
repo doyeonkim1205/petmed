@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, Download } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { downloadCsv } from '@/lib/adminExport';
 import { TextField } from '@/components/TextField';
 
 interface User {
@@ -150,7 +151,20 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">사용자 관리</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">사용자 관리</h1>
+        <button
+          onClick={() => {
+            const p = new URLSearchParams({ type: 'users' });
+            if (search) p.set('search', search);
+            if (planFilter) p.set('plan', planFilter);
+            downloadCsv(`/api/admin/export?${p}`, 'users.csv');
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          <Download size={14} /> CSV
+        </button>
+      </div>
 
       <Card className="mb-6">
         <CardContent className="pt-6">
