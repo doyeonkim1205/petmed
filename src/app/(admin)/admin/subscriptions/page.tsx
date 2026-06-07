@@ -101,7 +101,7 @@ export default function SubscriptionsPage() {
           <CardTitle className="text-sm text-gray-500">구독 목록 ({data?.subscriptionTotal || 0}건)</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading && !data ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
             </div>
