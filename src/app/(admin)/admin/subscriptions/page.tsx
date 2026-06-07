@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, Download } from 'lucide-react';
+import { AlertTriangle, Loader2, Download } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 import { downloadCsv } from '@/lib/adminExport';
+import { Pagination } from '@/components/admin/Pagination';
 
 type Tab = '' | 'active' | 'canceled' | 'expired';
 
@@ -213,17 +214,7 @@ export default function SubscriptionsPage() {
                 </TableBody>
               </Table>
 
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-gray-500">페이지 {subPage} / {data?.subscriptionPages || 1}</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setSubPage((p) => Math.max(1, p - 1))} disabled={subPage <= 1} className="p-2 rounded border disabled:opacity-30">
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button onClick={() => setSubPage((p) => Math.min(data?.subscriptionPages || 1, p + 1))} disabled={subPage >= (data?.subscriptionPages || 1)} className="p-2 rounded border disabled:opacity-30">
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
+              <Pagination page={subPage} totalPages={data?.subscriptionPages || 1} onChange={setSubPage} />
             </>
           )}
         </CardContent>
@@ -295,17 +286,7 @@ export default function SubscriptionsPage() {
             </TableBody>
           </Table>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-gray-500">페이지 {payPage} / {data?.paymentPages || 1}</span>
-            <div className="flex gap-2">
-              <button onClick={() => setPayPage((p) => Math.max(1, p - 1))} disabled={payPage <= 1} className="p-2 rounded border disabled:opacity-30">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => setPayPage((p) => Math.min(data?.paymentPages || 1, p + 1))} disabled={payPage >= (data?.paymentPages || 1)} className="p-2 rounded border disabled:opacity-30">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination page={payPage} totalPages={data?.paymentPages || 1} onChange={setPayPage} />
         </CardContent>
       </Card>
 
@@ -365,17 +346,7 @@ export default function SubscriptionsPage() {
             </TableBody>
           </Table>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-gray-500">페이지 {eventPage} / {data?.eventPages || 1}</span>
-            <div className="flex gap-2">
-              <button onClick={() => setEventPage((p) => Math.max(1, p - 1))} disabled={eventPage <= 1} className="p-2 rounded border disabled:opacity-30">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => setEventPage((p) => Math.min(data?.eventPages || 1, p + 1))} disabled={eventPage >= (data?.eventPages || 1)} className="p-2 rounded border disabled:opacity-30">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination page={eventPage} totalPages={data?.eventPages || 1} onChange={setEventPage} />
         </CardContent>
       </Card>
     </div>

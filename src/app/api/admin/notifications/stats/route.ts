@@ -47,13 +47,13 @@ export async function GET(request: Request) {
     free: { total: freeProfiles.count || 0, subscribed: countSubsIn(freeUsers.data) },
   };
 
-  // 2) 최근 20건 발송 내역
+  // 2) 최근 발송 내역 (클라에서 5개씩 페이지네이션 — 최대 100건 보관)
   const { data: recent } = await supabaseAdmin
     .from('activity_logs')
     .select('id, created_at, details')
     .eq('action', 'admin.push_send')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(100);
 
   // 3) 진단 통계 — cron 24시간 / 제공자 분포 / 유령 후보
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

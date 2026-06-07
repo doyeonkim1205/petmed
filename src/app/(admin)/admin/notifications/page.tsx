@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TextField } from '@/components/TextField';
 import { Send, Users, Crown, UserCheck, History, AlertCircle, Activity, Smartphone } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { Pagination } from '@/components/admin/Pagination';
+
+const SENDS_PER_PAGE = 5;
 
 type TargetKey = 'all' | 'plus' | 'free';
 interface RecentSend {
@@ -37,6 +40,7 @@ export default function NotificationsPage() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
+  const [sendPage, setSendPage] = useState(1);
 
   const loadStats = useCallback(async () => {
     try {
@@ -184,7 +188,7 @@ export default function NotificationsPage() {
           )}
           {stats && stats.recentSends.length > 0 && (
             <div className="space-y-3">
-              {stats.recentSends.map((row) => {
+              {stats.recentSends.slice((sendPage - 1) * SENDS_PER_PAGE, sendPage * SENDS_PER_PAGE).map((row) => {
                 const d = row.details || {};
                 const zero = (d.sent ?? 0) === 0 && (d.failed ?? 0) === 0;
                 const targetLabel =
@@ -231,6 +235,13 @@ export default function NotificationsPage() {
                 );
               })}
             </div>
+          )}
+          {stats && stats.recentSends.length > SENDS_PER_PAGE && (
+            <Pagination
+              page={sendPage}
+              totalPages={Math.ceil(stats.recentSends.length / SENDS_PER_PAGE)}
+              onChange={setSendPage}
+            />
           )}
         </CardContent>
       </Card>

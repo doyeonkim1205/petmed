@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 import { downloadCsv } from '@/lib/adminExport';
+import { Pagination } from '@/components/admin/Pagination';
 import { TextField } from '@/components/TextField';
 
 type SearchType = 'all' | 'disease' | 'symptom' | 'symptom_photo';
@@ -250,17 +251,7 @@ export default function SearchLogsPage() {
                 </TableBody>
               </Table>
 
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-gray-500">페이지 {page} / {totalPages}</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="p-2 rounded border disabled:opacity-30">
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="p-2 rounded border disabled:opacity-30">
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
             </>
           )}
         </CardContent>
