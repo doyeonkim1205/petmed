@@ -929,10 +929,10 @@ function SearchContent() {
                 {/* 펫 컨텍스트 사용 시 배지 — 분석에 펫 의료 정보가 반영됐음을 명시.
                    유저가 "이 분석이 우리 펫에 맞춤화됐구나" 인지하도록 결과 카드 위에 배치. */}
                 {symptomResult.context_used && symptomResult.pet_name && (
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-                    <Sparkles size={14} className="text-blue-600 flex-shrink-0" />
-                    <p className="text-xs text-blue-700">
-                      <span className="font-semibold">{symptomResult.pet_name}</span>
+                  <div className="flex items-center gap-1.5 px-1">
+                    <Sparkles size={13} className="text-blue-500 flex-shrink-0" />
+                    <p className="text-xs text-gray-500">
+                      <span className="font-semibold text-gray-600">{symptomResult.pet_name}</span>
                       의 의료 정보를 반영한 분석이에요
                     </p>
                   </div>
