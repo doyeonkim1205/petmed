@@ -658,10 +658,9 @@ function ResultPanel({
         </div>
       )}
 
-      {/* 의심 진단 */}
+      {/* 의심 질병 배너 — 텍스트 증상 분석과 톤 통일 위해 헤더 라인 제거 */}
       {result.diseases && result.diseases.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-gray-500 px-1">의심 진단</h3>
           {result.diseases.map((d, i) => (
             <div key={i} className={`rounded-lg p-4 border ${
               d.severity === '긴급' ? 'bg-red-50 border-red-200' :

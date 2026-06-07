@@ -1301,9 +1301,6 @@ function SearchContent() {
                     {desc.when_to_visit}
                   </p>
                 )}
-                <span className="inline-block text-[10px] bg-blue-100 text-blue-500 px-2 py-0.5 rounded-full ml-6">
-                  AI 생성
-                </span>
               </div>
             )}
 
@@ -1424,8 +1421,8 @@ function SearchContent() {
                         </ul>
                       )}
                       {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
-                        <span className="inline-block text-xs bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          AI 논문 분석 기반
+                        <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
+                          AI 논문 분석
                         </span>
                       )}
                     </div>
@@ -1455,8 +1452,8 @@ function SearchContent() {
                         </div>
                       )}
                       {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
-                        <span className="inline-block text-xs bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          AI 논문 분석 기반
+                        <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
+                          AI 논문 분석
                         </span>
                       )}
                     </div>
