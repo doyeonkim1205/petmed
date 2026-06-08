@@ -213,9 +213,43 @@ textarea::placeholder {
 .pawdex-dp .rdp-day {
   width: auto;
 }
-/* react-day-picker 기본 month_caption 숨김 — 우리가 직접 헤더 그림 (7-col 그리드 정렬) */
-.pawdex-dp .rdp-month_caption {
+/* 연/월 드롭다운 caption (captionLayout="dropdown") — 연도 점프로 옛날 생일도 한 번에.
+   화살표 nav 는 숨기고 드롭다운만 사용 (좁은 폭에서 겹침 방지). */
+.pawdex-dp .rdp-nav {
   display: none;
+}
+.pawdex-dp .rdp-month_caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.pawdex-dp .rdp-dropdowns {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pawdex-dp .rdp-dropdown_root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.pawdex-dp .rdp-caption_label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;            /* gray-700 */
+  padding: 5px 10px;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 8px;
+  background: #fff;
+  white-space: nowrap;
+}
+/* 실제 select 는 caption_label 위에 투명하게 올라가 클릭/네이티브 목록 담당 (rdp 기본) */
+.pawdex-dp .rdp-dropdown {
+  cursor: pointer;
 }
 .pawdex-dp .rdp-weekday {
   font-size: 11px;

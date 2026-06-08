@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
-import { format, addMonths, subMonths } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -73,6 +72,13 @@ export function DatePicker({
   if (maxDate) disabled.push({ after: maxDate });
   if (minDate) disabled.push({ before: minDate });
 
+  // 연/월 드롭다운 범위 — 나이 많은 반려동물 생일도 연도 점프 한 번으로 선택.
+  //   start = min연도(있으면) / 없으면 올해-30, end = max연도(있으면) / 없으면 올해+5.
+  //   (생일=과거 / 다음 예약=미래 양쪽 모두 커버)
+  const nowYear = new Date().getFullYear();
+  const startMonth = new Date(minDate ? minDate.getFullYear() : nowYear - 30, 0, 1);
+  const endMonth = new Date(maxDate ? maxDate.getFullYear() : nowYear + 5, 11, 31);
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -96,35 +102,16 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 — grid-cols-7 w-full (day grid 와 동일 width).
-                  [일:←] [월~금: 년월 5칸 중앙] [토:→] */}
-            <div className="grid grid-cols-7 items-center mb-2 w-full">
-              <button
-                type="button"
-                onClick={() => setMonth(subMonths(month, 1))}
-                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
-                aria-label="이전 달"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <div className="col-span-5 text-center text-sm font-semibold text-gray-700">
-                {format(month, 'yyyy년 M월', { locale: ko })}
-              </div>
-              <button
-                type="button"
-                onClick={() => setMonth(addMonths(month, 1))}
-                className="w-8 h-8 mx-auto flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
-                aria-label="다음 달"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+            {/* 연/월 드롭다운 caption (captionLayout="dropdown") + 이전/다음 달 화살표.
+                  연도를 드롭다운에서 바로 골라 점프 → 나이 많은 반려동물 생일도 한 번에. */}
             <DayPicker
               mode="single"
+              captionLayout="dropdown"
+              startMonth={startMonth}
+              endMonth={endMonth}
               selected={selected}
               month={month}
               onMonthChange={setMonth}
-              hideNavigation
               onSelect={(d) => {
                 if (d) {
                   onChange(toYmd(d));
