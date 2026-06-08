@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker, type Matcher } from 'react-day-picker';
 import { ko } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'react-day-picker/style.css';
 
 interface DatePickerProps {
@@ -47,11 +47,16 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => parseYmd(value) || new Date());
+  // 'day' 일반 달력 / 'year' 연도 그리드 / 'month' 월 그리드 (네이티브 select 대신 커스텀 패널)
+  const [view, setView] = useState<'day' | 'year' | 'month'>('day');
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // 모달 열릴 때 현재 value 의 month 로 동기화.
+  // 모달 열릴 때 현재 value 의 month 로 동기화 + 항상 day 뷰로 시작.
   useEffect(() => {
-    if (open) setMonth(parseYmd(value) || new Date());
+    if (open) {
+      setMonth(parseYmd(value) || new Date());
+      setView('day');
+    }
   }, [open, value]);
 
   // 모달 열렸을 때 body 스크롤 lock
@@ -79,6 +84,10 @@ export function DatePicker({
   const startMonth = new Date(minDate ? minDate.getFullYear() : nowYear - 30, 0, 1);
   const endMonth = new Date(maxDate ? maxDate.getFullYear() : nowYear + 5, 11, 31);
 
+  // 연도 그리드 목록 — 최근 연도가 위로 (descending). 생일은 아래로 스크롤해 선택.
+  const years: number[] = [];
+  for (let y = endMonth.getFullYear(); y >= startMonth.getFullYear(); y--) years.push(y);
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -102,27 +111,88 @@ export function DatePicker({
             className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[320px] max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 연/월 드롭다운 caption (captionLayout="dropdown") + 이전/다음 달 화살표.
-                  연도를 드롭다운에서 바로 골라 점프 → 나이 많은 반려동물 생일도 한 번에. */}
-            <DayPicker
-              mode="single"
-              captionLayout="dropdown"
-              startMonth={startMonth}
-              endMonth={endMonth}
-              selected={selected}
-              month={month}
-              onMonthChange={setMonth}
-              onSelect={(d) => {
-                if (d) {
-                  onChange(toYmd(d));
-                  setOpen(false);
-                }
-              }}
-              locale={ko}
-              disabled={disabled.length > 0 ? disabled : undefined}
-              showOutsideDays
-              className="pawdex-dp"
-            />
+            {/* 커스텀 헤더 — [‹] [연도 칩][월 칩] [›].
+                  연/월 칩을 누르면 모달 안 그리드로 전환(네이티브 select 미사용 → OS 전체화면 목록 X). */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <button
+                type="button"
+                onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="이전 달"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setView(view === 'year' ? 'day' : 'year')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${view === 'year' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  {month.getFullYear()}년
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView(view === 'month' ? 'day' : 'month')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${view === 'month' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  {month.getMonth() + 1}월
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="다음 달"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            {view === 'year' ? (
+              <div className="grid grid-cols-4 gap-1.5 max-h-[244px] overflow-y-auto py-1">
+                {years.map((y) => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => { setMonth(new Date(y, month.getMonth(), 1)); setView('day'); }}
+                    className={`py-2.5 rounded-lg text-sm transition-colors ${y === month.getFullYear() ? 'bg-blue-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            ) : view === 'month' ? (
+              <div className="grid grid-cols-4 gap-1.5 py-1">
+                {Array.from({ length: 12 }, (_, i) => i).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setMonth(new Date(month.getFullYear(), m, 1)); setView('day'); }}
+                    className={`py-2.5 rounded-lg text-sm transition-colors ${m === month.getMonth() ? 'bg-blue-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+                  >
+                    {m + 1}월
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <DayPicker
+                mode="single"
+                selected={selected}
+                month={month}
+                onMonthChange={setMonth}
+                hideNavigation
+                onSelect={(d) => {
+                  if (d) {
+                    onChange(toYmd(d));
+                    setOpen(false);
+                  }
+                }}
+                locale={ko}
+                disabled={disabled.length > 0 ? disabled : undefined}
+                showOutsideDays
+                className="pawdex-dp"
+              />
+            )}
           </div>
         </div>
       )}
