@@ -238,10 +238,10 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: #374151;            /* gray-700 */
-  padding: 5px 10px;
+  padding: 4px 8px;
   border: 1px solid #e5e7eb; /* gray-200 */
   border-radius: 8px;
   background: #fff;
@@ -250,6 +250,7 @@ textarea::placeholder {
 /* 실제 select 는 caption_label 위에 투명하게 올라가 클릭/네이티브 목록 담당 (rdp 기본) */
 .pawdex-dp .rdp-dropdown {
   cursor: pointer;
+  font-size: 11px;
 }
 .pawdex-dp .rdp-weekday {
   font-size: 11px;
