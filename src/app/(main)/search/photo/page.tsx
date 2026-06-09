@@ -195,7 +195,8 @@ export default function PhotoAnalysisPage() {
           hint: hint.trim() || undefined,
           category,
           petType: selectedPet.type,
-          petId: selectedPet.id,
+          // 맞춤 분석은 Plus 전용 — 무료(체험)는 petId 미전송(종만 반영, 의료정보 X). 서버에도 동일 게이트.
+          ...(usage?.plan === 'plus' ? { petId: selectedPet.id } : {}),
         }),
       });
       const data = await res.json();

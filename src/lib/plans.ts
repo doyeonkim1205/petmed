@@ -19,6 +19,7 @@ export interface PlanConfig {
   maxDevices: number;
   maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
   maxSymptomLength: number; // 증상 입력 최대 글자 수
+  petContextAnalysis: boolean; // 펫 의료정보(나이·체중·품종·만성질환) 반영 맞춤 분석 — true=Plus 전용
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -41,6 +42,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxDevices: 1,
     maxStorageMB: 50,
     maxSymptomLength: 200,
+    petContextAnalysis: false, // 무료 = 종(강아지/고양이)만 반영한 일반 분석
   },
   plus: {
     name: 'Plus',
@@ -71,6 +73,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxDevices: 3,
     maxStorageMB: 1000,
     maxSymptomLength: 500,
+    petContextAnalysis: true, // Plus = 우리 아이 의료정보 반영 맞춤 분석
   },
 };
 

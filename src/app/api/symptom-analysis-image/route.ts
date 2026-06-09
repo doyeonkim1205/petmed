@@ -75,9 +75,10 @@ export async function POST(request: NextRequest) {
 
     // 2) 펫 컨텍스트 (텍스트 분석과 동일하게 user_id 검증 포함)
     const petContext = petId ? await fetchPetContext(supabaseAdmin, userId, petId) : null;
-    const petContextText = buildPetContextPrompt(petContext);
+    // 맞춤 분석은 Plus 전용 — plan 확정 후 무료(체험 포함)면 컨텍스트를 비운다(아래). species 는 유지.
+    let petContextText = buildPetContextPrompt(petContext);
     const effectivePetType = petContext?.pet.type ?? petType;
-    const effectivePetName = petContext?.pet.name;
+    let effectivePetName = petContext?.pet.name;
 
     // 3) 플랜 + 일일 한도
     const { data: profile } = await supabaseAdmin
@@ -87,6 +88,13 @@ export async function POST(request: NextRequest) {
       .single();
     const plan = getEffectivePlan(profile?.plan);
     const config = getPlanConfig(plan);
+
+    // ── 맞춤 분석 게이팅 (Plus 전용) ── 무료(체험 포함)는 펫 의료정보 미반영 일반 분석. species 유지.
+    const usePetContext = plan === 'plus';
+    if (!usePetContext) {
+      petContextText = '';
+      effectivePetName = undefined;
+    }
 
     // Free 유저는 평생 1회 체험, Plus 유저는 일일 한도 적용.
     if (plan === 'free') {

@@ -196,7 +196,8 @@ function SearchContent() {
   // 초기값 — 캐시에 petId 있으면 복원 (다른 탭 갔다 와도 선택 유지).
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(cachedSymptom?.petId ?? null);
-  const selectedPet = selectedPetId ? pets.find(p => p.id === selectedPetId) ?? null : null;
+  // 맞춤 분석(펫 정보 반영)은 Plus 전용 — 무료는 펫 선택을 '전체'처럼 취급(종 토글만).
+  const selectedPet = (isPaid && selectedPetId) ? pets.find(p => p.id === selectedPetId) ?? null : null;
   // 효과적 종 — 펫 선택 시 그 펫의 type, 미선택 시 토글 값.
   const effectivePetType: 'cat' | 'dog' = selectedPet?.type ?? petType;
 
@@ -457,7 +458,8 @@ function SearchContent() {
           // effectivePetType: 펫 선택 시 그 펫의 type, 미선택 시 토글 값.
           petType: effectivePetType,
           // petId 옵셔널 — 있으면 서버가 펫 의료 정보 fetch → 프롬프트에 주입.
-          ...(selectedPetId ? { petId: selectedPetId } : {}),
+          //   맞춤 분석은 Plus 전용 → 무료는 petId 미전송(종 토글만 반영). 서버에도 동일 게이트 있음(이중 안전).
+          ...(isPaid && selectedPetId ? { petId: selectedPetId } : {}),
           // 재분석 시 — 누적된 모든 이전 질문 전달 (여러 라운드 재분석에도
           // AI 가 같은 질문 반복하지 않게). 빈 배열이면 서버에서 처리 안 함.
           ...(isRefine && askedQuestions.length > 0 ? { previousQuestions: askedQuestions } : {}),
@@ -719,10 +721,10 @@ function SearchContent() {
           </div>
         </div>
 
-        {/* 펫 칩 줄 — 증상 분석 모드 + 등록 펫 있을 때만 노출.
+        {/* 펫 칩 줄 — 증상 분석 모드 + 등록 펫 있을 때만 노출. (맞춤 분석=Plus 전용이라 무료엔 숨김)
             "전체"(미선택) 일 땐 기존 강아지/고양이 토글로 fallback → 펫 미등록
             유저나 일반 질문하고 싶은 유저 UX 유지. */}
-        {searchMode === 'symptom' && pets.length > 0 && (
+        {searchMode === 'symptom' && isPaid && pets.length > 0 && (
           <div className="max-w-sm mx-auto mb-2 flex gap-1.5 overflow-x-auto px-1">
             <button
               type="button"
@@ -754,6 +756,19 @@ function SearchContent() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* 무료 — 맞춤 분석은 Plus 전용. 펫 칩 대신 업셀 한 줄 (종은 아래 토글로 선택). */}
+        {searchMode === 'symptom' && !isPaid && (
+          <div className="max-w-sm mx-auto mb-2 px-1">
+            <button
+              type="button"
+              onClick={() => router.push('/profile/subscription')}
+              className="w-full text-left text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed"
+            >
+              ✨ Plus로 업그레이드하면 우리 아이 정보(나이·체중·만성질환)를 반영한 <span className="font-semibold">맞춤 분석</span>을 받을 수 있어요
+            </button>
           </div>
         )}
 
