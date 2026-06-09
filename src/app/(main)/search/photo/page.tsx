@@ -312,7 +312,7 @@ export default function PhotoAnalysisPage() {
                     <Crown size={16} className="text-purple-500" />
                     <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
                   </div>
-                  <p className="text-xs text-gray-500 mb-3">더 많은 검색 · 푸시 알림 · 분석 보관 · 기록장 확장</p>
+                  <p className="text-xs text-gray-500 mb-3">우리 아이 맞춤 분석 · 매일 충분한 횟수 · 분석 보관 · 푸시 알림</p>
                   <button
                     type="button"
                     onClick={() => router.push('/profile/subscription')}
