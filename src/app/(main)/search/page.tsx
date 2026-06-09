@@ -759,19 +759,6 @@ function SearchContent() {
           </div>
         )}
 
-        {/* 무료 — 맞춤 분석은 Plus 전용. 펫 칩 대신 업셀 한 줄 (종은 아래 토글로 선택). */}
-        {searchMode === 'symptom' && !isPaid && (
-          <div className="max-w-sm mx-auto mb-2 px-1">
-            <button
-              type="button"
-              onClick={() => router.push('/profile/subscription')}
-              className="w-full text-left text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed"
-            >
-              ✨ Plus로 업그레이드하면 우리 아이 정보(나이·체중·만성질환)를 반영한 <span className="font-semibold">맞춤 분석</span>을 받을 수 있어요
-            </button>
-          </div>
-        )}
-
         <form onSubmit={handleSearch} className="max-w-sm mx-auto">
           <div className={`flex items-center rounded-full border shadow-sm hover:shadow-md transition-shadow px-1.5 py-1 ${
             searchMode === 'symptom' ? 'border-blue-300' : 'border-violet-200'
