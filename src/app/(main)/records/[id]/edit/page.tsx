@@ -1172,6 +1172,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             }}
             maxFiles={Math.max(maxNewFiles, 0)}
             placeholder={recordType === 'daily' ? '오늘 하루를 담은 사진 한 장을 올려보세요' : undefined}
+            atLimitUpsell={recordType === 'daily' ? 'none' : (isPaidUser ? 'plus' : 'free')}
           />
           <div ref={fileEndRef} />
         </div>
