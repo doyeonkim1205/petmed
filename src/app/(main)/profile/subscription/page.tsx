@@ -281,7 +281,7 @@ export default function SubscriptionPage() {
                 </span>
               </div>
               <p className="text-xs text-gray-500">
-                {isPaid ? '우리 아이 맞춤 AI 케어' : isTrialActive() ? '3주 무료 체험 기간 적용 중' : '기본 AI 케어 · 기록 무제한'}
+                {isPaid ? '맞춤 관리, 더 넉넉하게' : isTrialActive() ? '3주 무료 체험 기간 적용 중' : '무료로 건강기록 시작'}
               </p>
             </div>
             {hasSub && (
