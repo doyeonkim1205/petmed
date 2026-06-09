@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { startOfDayKST } from '@/lib/dailyBoundary';
+import { startOfWindowKST } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,26 +25,25 @@ export async function GET(request: NextRequest) {
 
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
-  const isApp = request.headers.get('x-platform') === 'app';
-  const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
+  // 논문 검색 한도 — plan 의 limitWindow(무료=월/Plus=일). 질병 검색(kind='disease')만 카운트.
+  const limit = config.searchPerDay;
 
-  // Count today's searches (KST 기준 자정부터 + 질병 검색만)
   const { count } = await supabaseAdmin
     .from('search_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('kind', 'disease')
-    .gte('created_at', startOfDayKST().toISOString());
+    .gte('created_at', startOfWindowKST(config.limitWindow).toISOString());
 
   const used = count || 0;
-  const unlimited = dailyLimit === 0;
+  const unlimited = limit === 0;
   return NextResponse.json({
     plan,
-    limit: dailyLimit,
+    limit,
     used,
-    remaining: unlimited ? 999 : Math.max(0, dailyLimit - used),
+    remaining: unlimited ? 999 : Math.max(0, limit - used),
     unlimited,
-    period: 'day',
+    period: config.limitWindow,
   });
 }
 
@@ -66,30 +65,30 @@ export async function POST(request: NextRequest) {
 
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
-  const isApp = request.headers.get('x-platform') === 'app';
-  const dailyLimit = (plan === 'free' && isApp) ? 5 : config.searchPerDay;
+  // 논문 검색 한도 — plan 의 limitWindow(무료=월/Plus=일).
+  const limit = config.searchPerDay;
+  const useMonthly = config.limitWindow === 'month';
 
-  // Count today's searches (KST 기준 자정부터 + 질병 검색만)
   const { count } = await supabaseAdmin
     .from('search_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('kind', 'disease')
-    .gte('created_at', startOfDayKST().toISOString());
+    .gte('created_at', startOfWindowKST(config.limitWindow).toISOString());
 
-  const unlimited = dailyLimit === 0;
+  const unlimited = limit === 0;
   const currentUsed = count || 0;
 
-  if (dailyLimit > 0 && currentUsed >= dailyLimit) {
-    // 메시지는 `\n` 기준으로 두 줄 구성.
-    // 첫 줄: 한도 안내, 둘째 줄: 리셋 시각.
-    // 클라이언트가 split 해서 첫 줄은 일반 폰트, 둘째 줄은 작게 렌더.
+  if (limit > 0 && currentUsed >= limit) {
+    // 메시지는 `\n` 기준으로 두 줄 구성. 첫 줄: 한도, 둘째 줄: 리셋 시각.
+    const period = useMonthly ? '이번 달' : '오늘';
+    const reset = useMonthly ? '다음 달 1일에 초기화됩니다.' : '밤 12시(자정)에 초기화됩니다.';
     return NextResponse.json({
       allowed: false,
-      reason: `오늘의 검색 횟수(${dailyLimit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
+      reason: `${period}의 검색 횟수(${limit}회)를 모두 사용했습니다.\n${reset}`,
       plan,
       used: currentUsed,
-      limit: dailyLimit,
+      limit,
       unlimited,
     });
   }
@@ -129,7 +128,7 @@ export async function POST(request: NextRequest) {
     allowed: true,
     plan,
     used: finalUsed,
-    limit: dailyLimit,
+    limit,
     unlimited,
   });
 }

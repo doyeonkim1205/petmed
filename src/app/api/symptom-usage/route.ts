@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { startOfDayKST } from '@/lib/dailyBoundary';
+import { startOfDayKST, startOfWindowKST } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
 
-  const startOfDay = startOfDayKST();
+  // 증상분석은 plan 창(무료=월), 재분석은 항상 일일.
+  const searchSince = startOfWindowKST(config.limitWindow);
+  const refineSince = startOfDayKST();
 
   const [searchCount, refineCount] = await Promise.all([
     supabaseAdmin
@@ -31,13 +33,13 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('kind', 'symptom')
-      .gte('created_at', startOfDay.toISOString()),
+      .gte('created_at', searchSince.toISOString()),
     supabaseAdmin
       .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('kind', 'symptom_refine')
-      .gte('created_at', startOfDay.toISOString()),
+      .gte('created_at', refineSince.toISOString()),
   ]);
 
   return NextResponse.json({

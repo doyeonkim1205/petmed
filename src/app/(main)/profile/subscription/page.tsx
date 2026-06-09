@@ -51,10 +51,11 @@ interface FeatureItem {
 
 const featureGroups: { title: string; features: FeatureItem[] }[] = [
   {
-    title: '일일 한도',
+    title: 'AI 케어',
     features: [
-      { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/일` },
-      { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/일` },
+      // 논문 검색·증상 분석: limitWindow 에 따라 단위 표기 (무료=회/월, Plus=회/일). 재분석은 항상 회/일.
+      { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/${PLANS[p].limitWindow === 'month' ? '월' : '일'}` },
+      { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/${PLANS[p].limitWindow === 'month' ? '월' : '일'}` },
       { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
       {
         label: '사진 분석',
