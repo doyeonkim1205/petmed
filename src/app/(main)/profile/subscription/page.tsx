@@ -90,7 +90,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
         label: '푸시 알림',
         sublabel: '(투약·예약·퇴원)',
         key: 'push',
-        format: (p) => p === 'free' ? '-' : '앱 전용 기능',
+        format: () => '✓',
         unavailable: (p) => p === 'free',
       },
     ],

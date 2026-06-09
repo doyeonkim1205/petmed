@@ -10,6 +10,11 @@ interface FileUploaderProps {
   placeholder?: string;
   // 첨부 저장 공간 — 부모가 /api/storage-usage 결과 전달. 없으면 표시 X.
   storageUsage?: { usedMB: number; limitMB: number } | null;
+  // 한도 도달 안내 종류:
+  //  'free'  무료 일반첨부 → Plus 업셀 + 저장용량 안내
+  //  'plus'  Plus 일반첨부 → 저장용량 안내만
+  //  'none'  일상 '한 컷' 등 플랜 무관 1장 디자인 → 추가 안내 없음 (기본)
+  atLimitUpsell?: 'free' | 'plus' | 'none';
 }
 
 function formatStorageMB(mb: number): string {
@@ -17,7 +22,7 @@ function formatStorageMB(mb: number): string {
   return `${Math.round(mb)}MB`;
 }
 
-export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '여기를 눌러 사진이나 파일을 올려주세요', storageUsage }: FileUploaderProps) {
+export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '여기를 눌러 사진이나 파일을 올려주세요', storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
   const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
@@ -105,9 +110,15 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
       )}
       {atLimit ? (
         // 한도 도달: 업로드 영역 대신 안내 문구만 (파일 리스트는 아래 유지)
-        <p className="text-xs text-gray-400 text-center py-2">
-          최대 {maxFiles}개 파일까지 첨부 가능합니다
-        </p>
+        <div className="text-center py-2">
+          <p className="text-xs text-gray-400">{maxFiles === 0 ? '첨부 한도에 도달했어요' : `최대 ${maxFiles}개 파일까지 첨부할 수 있어요`}</p>
+          {atLimitUpsell === 'free' && (
+            <p className="text-[11px] text-gray-400 mt-1">Plus는 최대 5개 파일과 약 20배 저장공간(1GB)을 지원해요</p>
+          )}
+          {atLimitUpsell !== 'none' && (
+            <p className="text-[10px] text-gray-300 mt-0.5">저장 용량은 마이페이지 &gt; 앱 설정에서 확인할 수 있어요</p>
+          )}
+        </div>
       ) : (
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
