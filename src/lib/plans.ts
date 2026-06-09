@@ -20,6 +20,9 @@ export interface PlanConfig {
   maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
   maxSymptomLength: number; // 증상 입력 최대 글자 수
   petContextAnalysis: boolean; // 펫 의료정보(나이·체중·품종·만성질환) 반영 맞춤 분석 — true=Plus 전용
+  // 논문검색·증상분석 한도 창. 'month'=월 단위(무료), 'day'=일 단위(Plus).
+  // ⚠️ 재분석(refine)·사진 분석은 이 창과 무관하게 각자 고정 — refine=일일, 사진=평생/일일.
+  limitWindow: 'day' | 'month';
 }
 
 export const PLANS: Record<PlanType, PlanConfig> = {
@@ -27,10 +30,11 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     name: 'Free',
     nameKo: '무료',
     price: 0,
-    maxRecords: 50,
-    searchPerDay: 2,
-    symptomSearchPerDay: 2,
-    symptomRefinePerDay: 1,
+    maxRecords: 0, // 무제한 — 기록은 retention(데이터 묶어두기)용, 수익화 레버 아님. 저장용량(maxStorageMB)으로 비용 방어.
+    // 아래 searchPerDay/symptomSearchPerDay 는 limitWindow='month' 라 "월 한도"로 해석됨.
+    searchPerDay: 10,        // 논문 검색 10회/월
+    symptomSearchPerDay: 10, // 증상 분석 10회/월
+    symptomRefinePerDay: 1,  // 재분석은 일일 1회 (limitWindow 무관, 항상 일일)
     photoAnalysisPerDay: 0,
     // Free 유저는 평생 1회 사진 분석 체험 가능 — 가치 검증 후 Plus 전환 유도.
     photoAnalysisLifetimeFree: 1,
@@ -43,6 +47,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxStorageMB: 50,
     maxSymptomLength: 200,
     petContextAnalysis: false, // 무료 = 종(강아지/고양이)만 반영한 일반 분석
+    limitWindow: 'month', // 무료 = 논문·증상 월 한도
   },
   plus: {
     name: 'Plus',
@@ -74,6 +79,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxStorageMB: 1000,
     maxSymptomLength: 500,
     petContextAnalysis: true, // Plus = 우리 아이 의료정보 반영 맞춤 분석
+    limitWindow: 'day', // Plus = 논문·증상 일일 한도
   },
 };
 

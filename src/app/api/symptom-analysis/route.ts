@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
-import { startOfDayKST } from '@/lib/dailyBoundary';
+import { startOfDayKST, startOfWindowKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
@@ -83,24 +83,27 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const startOfDay = startOfDayKST();
-
     // Rate limit check
+    // 증상분석은 plan 의 limitWindow(무료=월/Plus=일), 재분석은 항상 일일.
     const kind = isRefinement ? 'symptom_refine' : 'symptom';
-    const dailyLimit = isRefinement ? config.symptomRefinePerDay : config.symptomSearchPerDay;
+    const useMonthly = !isRefinement && config.limitWindow === 'month';
+    const since = isRefinement ? startOfDayKST() : startOfWindowKST(config.limitWindow);
+    const limit = isRefinement ? config.symptomRefinePerDay : config.symptomSearchPerDay;
 
     const { count } = await supabaseAdmin
       .from('search_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('kind', kind)
-      .gte('created_at', startOfDay.toISOString());
+      .gte('created_at', since.toISOString());
 
-    if ((count || 0) >= dailyLimit) {
+    if ((count || 0) >= limit) {
       const label = isRefinement ? '재분석' : '증상 분석';
+      const period = useMonthly ? '이번 달' : '오늘';
+      const reset = useMonthly ? '다음 달 1일에 초기화됩니다.' : '밤 12시(자정)에 초기화됩니다.';
       // `\n` 기준 두 줄 구성 — 클라이언트가 split 해서 둘째 줄은 작게 렌더.
       return NextResponse.json({
-        error: `오늘의 ${label} 횟수(${dailyLimit}회)를 모두 사용했습니다.\n밤 12시(자정)에 초기화됩니다.`,
+        error: `${period}의 ${label} 횟수(${limit}회)를 모두 사용했습니다.\n${reset}`,
         limitReached: true,
       }, { status: 429 });
     }
@@ -631,7 +634,7 @@ type 사용 가이드:
       usage: {
         kind,
         used: newUsed,
-        limit: dailyLimit,
+        limit,
       },
     };
 
