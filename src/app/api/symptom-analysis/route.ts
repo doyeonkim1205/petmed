@@ -51,11 +51,12 @@ export async function POST(request: NextRequest) {
     // 펫 컨텍스트 fetch — petId 옵셔널. 다른 유저 petId 면 silent fail (null 반환).
     // 보안: fetchPetContext 가 user_id 검증 포함.
     const petContext = petId ? await fetchPetContext(supabaseAdmin, userId, petId) : null;
-    const petContextText = buildPetContextPrompt(petContext);
-    // 펫 컨텍스트 사용 시 species 도 그 펫 기준으로 강제 동기화.
+    // 맞춤 분석(펫 의료정보 반영)은 Plus 전용 — plan 확정 후 무료면 컨텍스트를 비운다(아래).
+    let petContextText = buildPetContextPrompt(petContext);
+    // species(강아지/고양이)는 게이팅하지 않음 — 무료도 정확한 종별 분석을 받는다.
     // (클라이언트가 petType 따로 보내도 펫 정보가 우선)
     const effectivePetType = petContext?.pet.type ?? petType;
-    const effectivePetName = petContext?.pet.name;
+    let effectivePetName = petContext?.pet.name;
 
     // Get user plan
     const { data: profile } = await supabaseAdmin
@@ -65,6 +66,15 @@ export async function POST(request: NextRequest) {
       .single();
     const plan = getEffectivePlan(profile?.plan);
     const config = getPlanConfig(plan);
+
+    // ── 맞춤 분석 게이팅 (Plus 전용) ──
+    // 무료는 펫 의료정보(이름·나이·체중·품종·만성질환·기록)를 반영하지 않는 '일반 분석'.
+    // 종(effectivePetType)은 위에서 이미 확정 — 게이팅하지 않아 무료도 종별 정확도 유지.
+    const usePetContext = plan === 'plus';
+    if (!usePetContext) {
+      petContextText = '';
+      effectivePetName = undefined;
+    }
 
     // Plan-based character limit
     if (symptoms.length > config.maxSymptomLength) {
@@ -616,8 +626,8 @@ type 사용 가이드:
       ...(watchSigns.length > 0 && concernLevel !== 'high' ? { watch_signs: watchSigns } : {}),
       // 펫 컨텍스트 사용 여부 + 펫 이름 — UI 에 "✨ 살구의 정보 반영" 배지 표시용.
       // 미사용/펫 없음 케이스에선 false / undefined 로 배지 안 뜸.
-      context_used: petContext != null,
-      pet_name: petContext?.pet.name,
+      context_used: petContext != null && usePetContext,
+      pet_name: usePetContext ? petContext?.pet.name : undefined,
       usage: {
         kind,
         used: newUsed,

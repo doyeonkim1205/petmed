@@ -72,15 +72,16 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
       // 보관함 라인은 비교표에서 제거 — 사용자에게는 "무제한"으로 보이는데 내부 500 cap 이라
       // 도달 시 모순 메시지. Free vs Plus 차이는 분석 화면 저장 버튼 비활성으로 충분히 노출.
-      { label: '반려동물', key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? '무제한' : `${PLANS[p].maxPets}마리` },
-      { label: '첨부파일', key: 'attach', format: (p) => `기록당 ${PLANS[p].attachmentsPerRecord}개` },
-      // "저장 용량" 라인은 비교표에서 제거 — 사용자가 plan 결정에 큰 영향 X.
-      // 마이페이지 > 앱 설정의 "저장 공간" 섹션 + 첨부 시 안내로 충분히 노출.
+      // "반려동물(2 vs 10)"·"첨부파일(1 vs 5)" 라인은 제거 — 쩨쩨한 차별로 Plus 가치가 싸 보임.
+      //   한도는 plans.ts 에 유지하되 비교표에선 핵심 가치(맞춤 분석/무제한 기록/전체 통계)에 집중.
+      // "저장 용량" 라인도 제거 — 앱 설정의 "저장 공간" 섹션으로 충분히 노출.
     ],
   },
   {
     title: '기능',
     features: [
+      // 맞춤 분석 — Plus 핵심 차별점. 무료="일반"(종만), Plus="맞춤"(반려동물 정보 반영).
+      { label: '맞춤 분석', sublabel: '(반려동물 정보 반영)', key: 'petContext', format: (p) => PLANS[p].petContextAnalysis ? '맞춤' : '일반' },
       { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
       { label: '동시 접속', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
