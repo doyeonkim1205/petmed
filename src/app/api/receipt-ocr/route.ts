@@ -30,6 +30,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
+// Vision 호출이 길어질 수 있어 함수 제한시간 상향 (기본값 초과 시 타임아웃=실패 방어).
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAuth(request);
@@ -155,9 +158,9 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        // 영수증은 OCR 정확도가 핵심 (접힘·회전·할인컬럼·영문약품명) → mini 보다 정확한 gpt-4o.
-        // 스캔 빈도 낮음(Free 평생1·Plus 일10) 이라 비용 대비 정확도 우선.
-        model: 'gpt-4o',
+        // gpt-4o(full)는 Vision 이 느려 함수 타임아웃으로 실패 → 빠른 gpt-4o-mini 사용.
+        // note 제거 + 이름 그대로 강제 + temp 0 로 mini 의 약점(상상/표준화)을 프롬프트로 방어.
+        model: 'gpt-4o-mini',
         temperature: 0, // 같은 영수증 = 같은 결과 (일관성 최대화)
         max_tokens: 4000, // 긴 영수증(항목 多) JSON 잘림 방지
         response_format: { type: 'json_object' },
