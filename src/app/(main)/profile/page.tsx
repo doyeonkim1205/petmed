@@ -621,7 +621,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
         <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setIosInstallHintOpen(false)}>
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-bold text-gray-800 mb-2">알림을 받으려면 앱을 설치해야 해요</h3>
-            <p className="text-xs text-gray-500 leading-relaxed mb-5">
+            <p className="text-xs text-gray-500 leading-relaxed mb-5 break-keep break-words">
               iOS 에서는 홈 화면에 추가한 뒤에만 푸시 알림을 받을 수 있어요.
             </p>
             <div className="flex gap-2">
@@ -1387,8 +1387,8 @@ export default function ProfilePage() {
                 <Bell size={18} className="text-blue-500" />
                 <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
               </div>
-              <p className="text-sm text-gray-600 mb-1">{message}</p>
-              <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드려요.</p>
+              <p className="text-sm text-gray-600 mb-1 break-keep break-words">{message}</p>
+              <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드려요.</p>
               <div className="flex gap-2">
                 <button onClick={() => setShowAlarmUpgrade(false)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">

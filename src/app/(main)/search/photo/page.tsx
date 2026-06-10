@@ -305,8 +305,8 @@ export default function PhotoAnalysisPage() {
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Lock size={24} className="text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-600 font-medium">사진 분석 무료 체험을 모두 사용했어요.</p>
-                <p className="text-[11px] text-gray-400 mt-1">Plus로 업그레이드하면 계속 사용할 수 있어요.</p>
+                <p className="text-sm text-gray-600 font-medium break-keep break-words">사진 분석 무료 체험을 모두 사용했어요.</p>
+                <p className="text-[11px] text-gray-400 mt-1 break-keep break-words">Plus로 업그레이드하면 계속 사용할 수 있어요.</p>
                 <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                   <div className="flex items-center justify-center gap-1.5 mb-2">
                     <Crown size={16} className="text-purple-500" />
