@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, PawPrint } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, PawPrint, Receipt } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -10,6 +10,7 @@ import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ReceiptScanSheet } from '@/components/records/ReceiptScanSheet';
+import { ReceiptEditModal } from '@/components/records/ReceiptEditModal';
 import type { ReceiptItem } from '@/lib/receipt';
 import { supabase, Pet, HealthRecord, Medication, RecordFile, DailySubKind } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
@@ -426,7 +427,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const maxNewFiles = maxAttachments - existingFiles.length;
 
   // 영수증 스캔 결과 반영 — 멀티 영수증 누적(항목 append, 총액 합산). 첫 스캔만 빈 필드 채움.
-  const handleReceiptApply = (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[] }) => {
+  const handleReceiptApply = (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[]; receiptCount: number }) => {
     const isFirst = receiptItems.length === 0;
     if (r.hospitalName && (isFirst || !hospitalName.trim())) setHospitalName(r.hospitalName);
     if (r.date && isFirst) setVisitDate(r.date);
@@ -435,6 +436,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setReceiptItems((prev) => [...prev, ...r.items]);
     setIsDirty(true);
   };
+
+  // 간이 영수증 보기/편집 모달 (기존 항목 수정·삭제)
+  const [showReceiptEdit, setShowReceiptEdit] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -839,9 +843,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 onAttachImage={(file) => setNewFiles((prev) => [...prev, file])}
               />
               {receiptItems.length > 0 && (
-                <p className="text-[11px] text-gray-400 text-center break-keep break-words">
-                  항목 {receiptItems.length}개 반영
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptEdit(true)}
+                  className="w-full flex items-center justify-center gap-1 text-[11px] text-blue-600 py-1.5 break-keep break-words"
+                >
+                  <Receipt size={13} /> 영수증 내역 보기·편집 (항목 {receiptItems.length}개)
+                </button>
               )}
             </div>
 
@@ -1294,6 +1302,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         cancelLabel="새로 시작"
         onConfirm={applyDraft}
         onCancel={discardDraft}
+      />
+
+      {/* 간이 영수증 보기/편집 (기존 항목 수정·삭제) */}
+      <ReceiptEditModal
+        open={showReceiptEdit}
+        items={receiptItems}
+        onSave={(its) => { setReceiptItems(its); setIsDirty(true); }}
+        onClose={() => setShowReceiptEdit(false)}
       />
     </div>
   );

@@ -103,6 +103,7 @@ export default function RecordAddPage() {
   const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
   const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
+  const [receiptCount, setReceiptCount] = useState(0); // 스캔한 영수증 장수
   const [weight, setWeight] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
@@ -478,13 +479,14 @@ export default function RecordAddPage() {
 
   // 영수증 스캔 결과 반영 — 멀티 영수증은 누적(항목 append, 총액 합산).
   //   첫 스캔만 병원명·날짜·설명(요약) 채움(사용자 기존 입력 보호). 총액은 매 스캔 합산.
-  const handleReceiptApply = (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[] }) => {
+  const handleReceiptApply = (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[]; receiptCount: number }) => {
     const isFirst = receiptItems.length === 0;
     if (r.hospitalName && (isFirst || !hospitalName.trim())) setHospitalName(r.hospitalName);
     if (r.date && isFirst) setVisitDate(r.date);
     if (r.total != null) setCost(String((cost ? Number(cost) || 0 : 0) + r.total));
     if (r.summary && isFirst && !description.trim()) setDescription(r.summary);
     setReceiptItems((prev) => [...prev, ...r.items]);
+    setReceiptCount((c) => c + (r.receiptCount || 1));
     setIsDirty(true);
   };
 
@@ -933,7 +935,7 @@ export default function RecordAddPage() {
               />
               {receiptItems.length > 0 && (
                 <p className="text-[11px] text-gray-400 text-center break-keep break-words">
-                  항목 {receiptItems.length}개 반영
+                  영수증 {receiptCount || 1}장 반영
                 </p>
               )}
             </div>
