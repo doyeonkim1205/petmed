@@ -12,7 +12,7 @@ import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
-  CreditCard, MapPin, Building2, HardDrive,
+  CreditCard, MapPin, Building2, HardDrive, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
@@ -676,7 +676,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
         .then(({ data }) => setPets(sortPetsWithDefault(data || [], localStorage.getItem('defaultPetId'))));
-      // 저장 공간 사용량 fetch
+      // 저장 공간 사용량 fetch — 응답 전엔 storage=null (스피너), 실패해도 {0,0} 로 스피너 멈춤.
       (async () => {
         try {
           const { authFetch } = await import('@/lib/authFetch');
@@ -684,8 +684,12 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           if (res.ok) {
             const json = await res.json();
             setStorage({ usedMB: json.usedMB, limitMB: json.limitMB });
+          } else {
+            setStorage({ usedMB: 0, limitMB: 0 });
           }
-        } catch {}
+        } catch {
+          setStorage({ usedMB: 0, limitMB: 0 });
+        }
       })();
     }
   }, [open, userId]);
@@ -861,15 +865,20 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             </div>
           )}
 
-          {/* 6. 저장 공간 — 첨부 파일 사용량 */}
-          {storage && storage.limitMB > 0 && (() => {
-            const pct = Math.min(100, Math.round((storage.usedMB / storage.limitMB) * 100));
-            const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-blue-500';
-            const labelColor = pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-gray-500';
-            const formatMB = (mb: number) => mb >= 1000 ? `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)}GB` : `${Math.round(mb)}MB`;
-            return (
-              <div>
-                <SectionHeader icon={HardDrive} iconColor="text-gray-400" label="저장 공간" />
+          {/* 6. 저장 공간 — 첨부 파일 사용량. 제목은 즉시 + 데이터 로딩 중엔 스피너. */}
+          <div>
+            <SectionHeader icon={HardDrive} iconColor="text-gray-400" label="저장 공간" />
+            {storage === null ? (
+              // 로딩 중 — 그래프 자리에 작은 스피너
+              <div className="flex items-center justify-center py-2.5">
+                <Loader2 size={16} className="animate-spin text-gray-300" />
+              </div>
+            ) : storage.limitMB > 0 ? (() => {
+              const pct = Math.min(100, Math.round((storage.usedMB / storage.limitMB) * 100));
+              const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-blue-500';
+              const labelColor = pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-gray-500';
+              const formatMB = (mb: number) => mb >= 1000 ? `${(mb / 1000).toFixed(mb % 1000 === 0 ? 0 : 1)}GB` : `${Math.round(mb)}MB`;
+              return (
                 <div className="space-y-1.5">
                   <div className="flex items-baseline justify-between">
                     <span className={`text-xs ${labelColor}`}>첨부 파일</span>
@@ -883,9 +892,11 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                     <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })() : (
+              <p className="text-[11px] text-gray-400 text-center py-2">사용량을 불러오지 못했어요</p>
+            )}
+          </div>
 
           {/* 7. 앱 정보 */}
           <div>
