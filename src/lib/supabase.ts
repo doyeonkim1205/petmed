@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { ReceiptItem } from '@/lib/receipt';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -129,6 +130,7 @@ export interface HealthRecord {
   next_appointment_color?: string;
   symptom_time?: string;
   weight?: number;
+  receipt_items?: ReceiptItem[] | null;
   sub_entries?: DailySubEntry[] | null;
   created_at: string;
   updated_at: string;

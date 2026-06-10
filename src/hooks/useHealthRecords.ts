@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { supabase, HealthRecord, DailySubEntry } from '@/lib/supabase';
+import type { ReceiptItem } from '@/lib/receipt';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -97,6 +98,7 @@ export function useHealthRecords(petId?: string) {
     next_appointment_color?: string;
     symptom_time?: string;
     weight?: number;
+    receipt_items?: ReceiptItem[];
     sub_entries?: DailySubEntry[];
   }) => {
     if (!user) throw new Error('로그인이 필요합니다');

@@ -10,6 +10,8 @@ import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType, DailySubKind } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
+import { ReceiptScanSheet } from '@/components/records/ReceiptScanSheet';
+import type { ReceiptItem } from '@/lib/receipt';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
@@ -100,6 +102,7 @@ export default function RecordAddPage() {
   const [visitDate, setVisitDate] = useState(todayLocalISO());
   const [symptomTime, setSymptomTime] = useState('');
   const [cost, setCost] = useState('');
+  const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
   const [weight, setWeight] = useState('');
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
@@ -473,6 +476,18 @@ export default function RecordAddPage() {
     else router.back();
   };
 
+  // 영수증 스캔 결과 반영 — 멀티 영수증은 누적(항목 append, 총액 합산).
+  //   첫 스캔만 병원명·날짜·설명(요약) 채움(사용자 기존 입력 보호). 총액은 매 스캔 합산.
+  const handleReceiptApply = (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[] }) => {
+    const isFirst = receiptItems.length === 0;
+    if (r.hospitalName && (isFirst || !hospitalName.trim())) setHospitalName(r.hospitalName);
+    if (r.date && isFirst) setVisitDate(r.date);
+    if (r.total != null) setCost(String((cost ? Number(cost) || 0 : 0) + r.total));
+    if (r.summary && isFirst && !description.trim()) setDescription(r.summary);
+    setReceiptItems((prev) => [...prev, ...r.items]);
+    setIsDirty(true);
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user) { router.push('/login'); return; }
@@ -556,6 +571,7 @@ export default function RecordAddPage() {
           hospital_name: hospitalName.trim() || undefined,
           visit_date: visitDate,
           cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
+          receipt_items: receiptItems.length > 0 ? receiptItems : undefined,
           color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
           discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
           next_appointment_date: nextAppointmentDate || undefined,
@@ -782,6 +798,18 @@ export default function RecordAddPage() {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
               />
             </div>
+          </div>
+        )}
+
+        {/* 영수증 자동 입력 (진료/입퇴원만) */}
+        {(recordType === 'visit' || recordType === 'hospitalization') && (
+          <div className="space-y-1.5">
+            <ReceiptScanSheet hasExisting={receiptItems.length > 0} onApply={handleReceiptApply} />
+            {receiptItems.length > 0 && (
+              <p className="text-[11px] text-gray-400 text-center break-keep break-words">
+                영수증 {receiptItems.length}개 항목 인식됨 · 아래 내용을 확인·수정하세요
+              </p>
+            )}
           </div>
         )}
 
