@@ -1,8 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Receipt, X, Loader2, Crown, AlertCircle } from 'lucide-react';
+import { Receipt, X, Loader2, AlertCircle } from 'lucide-react';
 import { compressImage } from '@/lib/imageCompress';
 import { authFetch } from '@/lib/authFetch';
 import { ReceiptItemsEditor } from '@/components/records/ReceiptItemsEditor';
@@ -45,7 +44,6 @@ export function ReceiptScanSheet({
   attachMax: number;
   onAttachImage: (file: File) => void;
 }) {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -168,15 +166,6 @@ export function ReceiptScanSheet({
           <AlertCircle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="text-[11px] text-amber-700 break-keep break-words">
             {error.msg.split('\n').map((l, i) => <span key={i}>{i > 0 && <br />}{l}</span>)}
-            {error.upgrade && (
-              <button
-                type="button"
-                onClick={() => router.push('/profile/subscription')}
-                className="ml-1.5 inline-flex items-center gap-0.5 text-blue-600 font-semibold align-baseline"
-              >
-                <Crown size={11} /> Plus 업그레이드
-              </button>
-            )}
           </div>
         </div>
       )}
@@ -231,7 +220,7 @@ export function ReceiptScanSheet({
                 <input type="checkbox" checked={saveImage && attachFreeSlots > 0} disabled={attachFreeSlots === 0}
                   onChange={(e) => setSaveImage(e.target.checked)} className="w-4 h-4 accent-blue-600" />
                 <span className="text-[11px] text-gray-600 break-keep break-words">
-                  원본 영수증도 첨부 {attachFreeSlots === 0 ? '· 첨부가 가득 찼어요' : `(빈 첨부 ${attachFreeSlots}칸 · 영수증 ${imgDataUrls.length}장)`}
+                  원본 영수증도 첨부 {attachFreeSlots === 0 ? '· 첨부가 가득 찼어요' : `(첨부 ${attachUsed}/${attachMax})`}
                 </span>
               </label>
             ) : (

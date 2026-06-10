@@ -848,7 +848,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   onClick={() => setShowReceiptEdit(true)}
                   className="w-full flex items-center justify-center gap-1 text-[11px] text-blue-600 py-1.5 break-keep break-words"
                 >
-                  <Receipt size={13} /> 영수증 내역 보기·편집 (항목 {receiptItems.length}개)
+                  <Receipt size={13} /> 영수증 내역 보기·편집
                 </button>
               )}
             </div>
