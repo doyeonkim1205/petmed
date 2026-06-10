@@ -830,10 +830,17 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
             {/* 영수증 자동 입력 — 진료 정보 맨 위 (설명 위) */}
             <div className="space-y-1.5">
-              <ReceiptScanSheet hasExisting={receiptItems.length > 0} onApply={handleReceiptApply} />
+              <ReceiptScanSheet
+                hasExisting={receiptItems.length > 0}
+                onApply={handleReceiptApply}
+                isPaid={isPaidUser}
+                attachUsed={existingFiles.length + newFiles.length}
+                attachMax={maxAttachments}
+                onAttachImage={(file) => setNewFiles((prev) => [...prev, file])}
+              />
               {receiptItems.length > 0 && (
                 <p className="text-[11px] text-gray-400 text-center break-keep break-words">
-                  영수증 {receiptItems.length}개 항목 · 아래 내용을 확인·수정하세요
+                  영수증 {receiptItems.length}개 반영
                 </p>
               )}
             </div>

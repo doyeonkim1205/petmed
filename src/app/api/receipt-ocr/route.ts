@@ -14,7 +14,7 @@ import { checkRateLimit } from '@/lib/rateLimit';
  *  - 병원마다 양식이 달라 템플릿 파싱 불가 → Vision 으로 "의미 단위" 추출 + 클라 확인/수정 필수.
  *  - 총액은 최종 결제 "합계/총합계"(할인 반영 후). 청구금액(할인 전) 잡지 않도록 프롬프트로 강제.
  *  - 환각 방지: 보이는 것만. 총액만 있으면 items=[]. 영수증 아니면 is_receipt=false.
- *  - 안전: note 는 "무슨 검사·약인지" 설명까지만, 결과 해석·진단 금지.
+ *  - 항목은 이름(원문 그대로)·금액·카테고리만 추출 (해석/설명 X — 정확도·비용 우선).
  *
  * 이미지는 저장하지 않음 — 분석 후 폐기. 원본 보관은 클라이언트가 첨부로 선택.
  */
@@ -118,15 +118,14 @@ export async function POST(request: NextRequest) {
 - date: 발행일/진료일 (YYYY-MM-DD, 없으면 null)
 - total: 최종 결제 합계 금액 (숫자만). ★중요: "합계 / 총합계 / 총 결제금액"처럼 할인이 반영된 최종 금액을 사용. "청구금액"(할인 전)이 아니라 할인 후 합계를 잡을 것. 없으면 null
 - pet_name: 반려동물 이름 (없으면 null)
-- items: 진료/처치/검사/약 등 개별 항목 배열. 각 항목 { name, amount, category, note? }
+- items: 진료/처치/검사/약 등 개별 항목 배열. 각 항목 { name, amount, category }
    · name: 영수증에 인쇄된 글자 그대로 옮길 것. ★절대 다른 말로 바꾸거나 표준화하지 말 것
        (예: "진료비"를 "진찰료"로, "특수약물"을 다른 이름으로 바꾸기 금지). 영문 약품명/괄호도 그대로.
-       글자가 안 읽히면 추측해서 만들지 말고 읽히는 부분만
+       글자가 안 읽히면 추측해서 만들지 말고 읽히는 부분만. ★해석·설명을 덧붙이지 말 것 (이름은 원문 그대로만)
    · amount: 그 항목 금액 (숫자만). 금액이 안 보이면 0
    · category: 다음 중 하나
        consult(진찰/재진/처방료) / test(혈액·초음파·방사선·뇨·분변 등 검사) /
        med(주사·내복약·처방약) / treatment(처치·수술·마취·봉합·입원) / vaccine(종합백신·광견병·심장사상충 등 예방) / etc(그 외)
-   · note: 일반 보호자가 이해하기 어려운 검사/약만 "무슨 검사·약인지" 한 줄 쉬운 설명 (예: "esomeprazole → 위산 억제제"). 결과 해석·진단·정상/이상 판정은 절대 금지. 쉬운 항목은 생략
 - summary: 큰 카테고리만 묶은 한 줄 요약 (40자 이내). 예: "진찰 · 혈액/초음파 검사 · 입원 · 약 처방"
 - is_receipt: 동물병원 영수증/명세서가 맞으면 true, 아니면(다른 사진) false
 - confidence: 추출 확신도 "low" | "medium" | "high" (흐림/회전/일부 가림이면 low)
@@ -144,7 +143,7 @@ export async function POST(request: NextRequest) {
   "date": "YYYY-MM-DD|null",
   "total": 0,
   "pet_name": "string|null",
-  "items": [ { "name": "항목명", "amount": 0, "category": "test", "note": "선택" } ],
+  "items": [ { "name": "항목명", "amount": 0, "category": "test" } ],
   "summary": "string",
   "confidence": "low|medium|high"
 }`;
@@ -160,7 +159,7 @@ export async function POST(request: NextRequest) {
         // 스캔 빈도 낮음(Free 평생1·Plus 일10) 이라 비용 대비 정확도 우선.
         model: 'gpt-4o',
         temperature: 0, // 같은 영수증 = 같은 결과 (일관성 최대화)
-        max_tokens: 1800,
+        max_tokens: 4000, // 긴 영수증(항목 多) JSON 잘림 방지
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
@@ -219,7 +218,6 @@ export async function POST(request: NextRequest) {
           name,
           amount: toNumber(it?.amount),
           category: normCategory(it?.category),
-          ...(typeof it?.note === 'string' && it.note.trim() ? { note: it.note.trim().slice(0, 120) } : {}),
         };
       })
       .filter(Boolean)

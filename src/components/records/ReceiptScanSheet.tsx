@@ -13,6 +13,20 @@ import {
   type ReceiptOcrResult,
 } from '@/lib/receipt';
 
+/** dataURL(압축본) → File. 원본 영수증을 첨부로 저장할 때 사용. 실패 시 null. */
+function dataUrlToFile(dataUrl: string, name: string): File | null {
+  try {
+    const [head, body] = dataUrl.split(',');
+    const mime = head.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+    const bin = atob(body);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new File([arr], name, { type: mime });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 영수증 스캔 → 확인/수정 시트.
  * 버튼 클릭 → 이미지 선택 → /api/receipt-ocr → 모달에서 확인/수정 → onApply 로 부모에 전달.
@@ -21,9 +35,17 @@ import {
 export function ReceiptScanSheet({
   onApply,
   hasExisting,
+  isPaid,
+  attachUsed,
+  attachMax,
+  onAttachImage,
 }: {
   onApply: (r: { hospitalName: string; date: string | null; total: number | null; summary: string; items: ReceiptItem[] }) => void;
   hasExisting: boolean;
+  isPaid: boolean;
+  attachUsed: number;
+  attachMax: number;
+  onAttachImage: (file: File) => void;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +60,10 @@ export function ReceiptScanSheet({
   const [summary, setSummary] = useState('');
   const [items, setItems] = useState<ReceiptItem[]>([]);
   const [confidence, setConfidence] = useState<'low' | 'medium' | 'high'>('medium');
+  const [imgDataUrl, setImgDataUrl] = useState('');   // 원본 첨부용 (압축본)
+  const [saveImage, setSaveImage] = useState(false);  // 원본 영수증 첨부 여부 (Plus)
+
+  const attachFull = attachUsed >= attachMax;
 
   const pick = () => { setError(null); inputRef.current?.click(); };
 
@@ -70,6 +96,8 @@ export function ReceiptScanSheet({
       setSummary(r.summary || '');
       setItems(r.items || []);
       setConfidence(r.confidence || 'medium');
+      setImgDataUrl(dataUrl);
+      setSaveImage(false);
       setOpen(true);
     } catch {
       setError({ msg: '이미지를 처리하지 못했어요. 다시 시도해 주세요.' });
@@ -88,6 +116,11 @@ export function ReceiptScanSheet({
         .map((it) => ({ ...it, name: it.name.trim(), amount: Math.max(0, Math.round(it.amount || 0)) }))
         .filter((it) => it.name),
     });
+    // 원본 영수증 첨부 (Plus + 체크 + 빈 첨부칸 있을 때)
+    if (saveImage && isPaid && !attachFull && imgDataUrl) {
+      const f = dataUrlToFile(imgDataUrl, `receipt-${Date.now()}.jpg`);
+      if (f) onAttachImage(f);
+    }
     setOpen(false);
   };
 
@@ -190,6 +223,26 @@ export function ReceiptScanSheet({
                 )}
               </div>
             </div>
+
+            {/* 원본 영수증 첨부 옵션 — Plus 만 노출, 첨부 1칸 사용 */}
+            {isPaid ? (
+              <label className={`flex items-center gap-2 px-4 py-2.5 border-t border-gray-100 ${attachFull ? 'opacity-50' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  checked={saveImage && !attachFull}
+                  disabled={attachFull}
+                  onChange={(e) => setSaveImage(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <span className="text-[11px] text-gray-600 break-keep break-words">
+                  원본 영수증도 첨부 {attachFull ? '· 첨부가 가득 찼어요' : `(첨부 ${attachUsed}/${attachMax})`}
+                </span>
+              </label>
+            ) : (
+              <p className="px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400 break-keep break-words">
+                원본 영수증 저장은 Plus 전용이에요
+              </p>
+            )}
 
             <div className="flex gap-2 px-4 py-3 border-t border-gray-100">
               <button type="button" onClick={() => setOpen(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500">취소</button>
