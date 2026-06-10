@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, ChevronDown } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -147,6 +147,7 @@ export default function StatsPage() {
   const maxMonths = planConfig.costStatsMonths;
 
   const [tab, setTab] = useState<StatsTab>('cost');
+  const [showBreakdown, setShowBreakdown] = useState(false); // 항목별 지출 펼침 (기본 접힘)
   // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 URL 접근이 빌드 시점 서버 값으로
   // 굳어 클라이언트 쿼리를 못 읽음 → 마운트 후 useEffect 로 ?tab=weight 직통 처리.
   useEffect(() => {
@@ -476,11 +477,19 @@ export default function StatsPage() {
                   </div>
                 </div>
 
-                {/* 항목별 지출 비중 — 영수증(receipt_items) 데이터가 있을 때만 */}
+                {/* 항목별 지출 비중 — 영수증(receipt_items) 데이터가 있을 때만, 버튼으로 펼침 */}
                 {categoryBreakdown.hasCategorized && categoryBreakdown.total > 0 && (
-                  <div className="rounded-xl border border-gray-100 p-4">
-                    <h2 className="text-xs font-bold text-gray-500 mb-2.5">항목별 지출</h2>
-                    <div className="space-y-2">
+                  <div className="rounded-xl border border-gray-100 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setShowBreakdown((v) => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3"
+                    >
+                      <span className="text-xs font-bold text-gray-500">항목별 지출</span>
+                      <ChevronDown size={15} className={`text-gray-400 transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showBreakdown && (
+                    <div className="px-4 pb-4 space-y-2">
                       {categoryBreakdown.rows.map((row) => {
                         const pct = Math.round((row.amount / categoryBreakdown.total) * 100);
                         const label = row.key === 'unknown' ? '미분류' : RECEIPT_CATEGORY_LABEL[row.key as ReceiptCategory];
@@ -498,6 +507,7 @@ export default function StatsPage() {
                         );
                       })}
                     </div>
+                    )}
                   </div>
                 )}
 

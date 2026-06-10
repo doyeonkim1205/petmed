@@ -719,18 +719,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {/* 영수증 자동 입력 (진료/입퇴원만) */}
-        {(recordType === 'visit' || recordType === 'hospitalization') && (
-          <div className="space-y-1.5">
-            <ReceiptScanSheet hasExisting={receiptItems.length > 0} onApply={handleReceiptApply} />
-            {receiptItems.length > 0 && (
-              <p className="text-[11px] text-gray-400 text-center break-keep break-words">
-                영수증 {receiptItems.length}개 항목 · 아래 내용을 확인·수정하세요
-              </p>
-            )}
-          </div>
-        )}
-
         {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
@@ -838,6 +826,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Stethoscope size={16} className="text-gray-400" />
               <h3 className="text-sm font-semibold text-gray-800">진료 정보</h3>
+            </div>
+
+            {/* 영수증 자동 입력 — 진료 정보 맨 위 (설명 위) */}
+            <div className="space-y-1.5">
+              <ReceiptScanSheet hasExisting={receiptItems.length > 0} onApply={handleReceiptApply} />
+              {receiptItems.length > 0 && (
+                <p className="text-[11px] text-gray-400 text-center break-keep break-words">
+                  영수증 {receiptItems.length}개 항목 · 아래 내용을 확인·수정하세요
+                </p>
+              )}
             </div>
 
             {/* Description (진료/입퇴원 → 진료정보에) */}

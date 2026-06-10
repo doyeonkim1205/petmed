@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       if ((count || 0) >= config.receiptOcrLifetimeFree) {
         return NextResponse.json(
           {
-            error: '무료 체험(1회)을 모두 사용했어요 Plus로 업그레이드하면 영수증을 계속 자동 입력할 수 있어요',
+            error: '영수증 자동 입력 무료 체험을 모두 사용했어요.\nPlus로 업그레이드하면 계속 사용할 수 있어요',
             limitReached: true,
             upgradeRequired: true,
           },
@@ -119,7 +119,9 @@ export async function POST(request: NextRequest) {
 - total: 최종 결제 합계 금액 (숫자만). ★중요: "합계 / 총합계 / 총 결제금액"처럼 할인이 반영된 최종 금액을 사용. "청구금액"(할인 전)이 아니라 할인 후 합계를 잡을 것. 없으면 null
 - pet_name: 반려동물 이름 (없으면 null)
 - items: 진료/처치/검사/약 등 개별 항목 배열. 각 항목 { name, amount, category, note? }
-   · name: 영수증에 적힌 항목명 그대로 (영문 약품명도 그대로)
+   · name: 영수증에 인쇄된 글자 그대로 옮길 것. ★절대 다른 말로 바꾸거나 표준화하지 말 것
+       (예: "진료비"를 "진찰료"로, "특수약물"을 다른 이름으로 바꾸기 금지). 영문 약품명/괄호도 그대로.
+       글자가 안 읽히면 추측해서 만들지 말고 읽히는 부분만
    · amount: 그 항목 금액 (숫자만). 금액이 안 보이면 0
    · category: 다음 중 하나
        consult(진찰/재진/처방료) / test(혈액·초음파·방사선·뇨·분변 등 검사) /
@@ -154,8 +156,10 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.1, // 영수증 추출은 결정론적일수록 좋음 (창의성 불필요)
+        // 영수증은 OCR 정확도가 핵심 (접힘·회전·할인컬럼·영문약품명) → mini 보다 정확한 gpt-4o.
+        // 스캔 빈도 낮음(Free 평생1·Plus 일10) 이라 비용 대비 정확도 우선.
+        model: 'gpt-4o',
+        temperature: 0, // 같은 영수증 = 같은 결과 (일관성 최대화)
         max_tokens: 1800,
         response_format: { type: 'json_object' },
         messages: [
