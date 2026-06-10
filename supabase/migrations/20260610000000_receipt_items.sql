@@ -14,3 +14,9 @@ alter table public.health_records
 
 comment on column public.health_records.receipt_items is
   '영수증 OCR 추출 항목 배열 [{name, amount, category, note?}] · 총액만이면 [] · 멀티영수증 병합 저장';
+
+-- search_logs.kind 에 'receipt_ocr' 추가 (영수증 OCR 사용량 카운트용).
+-- 기존 CHECK 가 disease/symptom/symptom_refine/symptom_photo 만 허용 → receipt_ocr 추가.
+alter table public.search_logs drop constraint if exists search_logs_kind_check;
+alter table public.search_logs add constraint search_logs_kind_check
+  check (kind = any (array['disease', 'symptom', 'symptom_refine', 'symptom_photo', 'receipt_ocr']));
