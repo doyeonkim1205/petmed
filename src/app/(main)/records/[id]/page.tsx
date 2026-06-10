@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X, Receipt } from 'lucide-react';
+import { RECEIPT_CATEGORIES, RECEIPT_CATEGORY_LABEL, RECEIPT_CATEGORY_COLOR } from '@/lib/receipt';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -85,6 +86,17 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   // 모달 닫기 — history.back() 으로 위에서 쌓은 항목을 소비 → popstate 가 모달을 닫음.
   //   (X / 배경 탭 / 뒤로가기 모두 동일 경로로 닫혀 history 가 꼬이지 않음)
   const closePreview = () => window.history.back();
+
+  // 간이 영수증 모달 — 사진 미리보기와 동일한 history 패턴 (뒤로가기로 목록 이탈 방지).
+  const [showReceipt, setShowReceipt] = useState(false);
+  useEffect(() => {
+    if (!showReceipt) return;
+    window.history.pushState({ receiptModal: true }, '');
+    const onPop = () => setShowReceipt(false);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [showReceipt]);
+  const closeReceipt = () => window.history.back();
 
   const loadRecord = async () => {
     try {
@@ -270,6 +282,18 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">비용</span>
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
+            </div>
+          )}
+          {Array.isArray(record.receipt_items) && record.receipt_items.length > 0 && (
+            <div className="flex items-center justify-between py-2 border-t border-gray-50">
+              <span className="text-sm text-gray-500">영수증 내역</span>
+              <button
+                type="button"
+                onClick={() => setShowReceipt(true)}
+                className="text-sm font-medium text-blue-600 flex items-center gap-1"
+              >
+                <Receipt size={14} /> {record.receipt_items.length}개 항목 보기
+              </button>
             </div>
           )}
           {record.discharge_date && (
@@ -479,6 +503,67 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-xs text-gray-400 mt-1">미리보기는 지원하지 않습니다</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 간이 영수증 모달 — 카테고리별 묶음 + 총액 */}
+      {showReceipt && Array.isArray(record.receipt_items) && record.receipt_items.length > 0 && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/40 flex items-end sm:items-center justify-center"
+          onClick={closeReceipt}
+        >
+          <div
+            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <Receipt size={16} className="text-blue-500" /> 영수증 내역
+              </h3>
+              <button type="button" onClick={closeReceipt} className="p-1 text-gray-400"><X size={18} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+              {/* 병원 · 날짜 */}
+              {(record.hospital_name || record.visit_date) && (
+                <p className="text-[11px] text-gray-400 break-keep break-words">
+                  {record.hospital_name}{record.hospital_name && record.visit_date ? ' · ' : ''}{record.visit_date ? formatDate(record.visit_date) : ''}
+                </p>
+              )}
+
+              {/* 카테고리별 묶음 */}
+              {RECEIPT_CATEGORIES.map((cat) => {
+                const group = record.receipt_items!.filter((it) => it.category === cat);
+                if (group.length === 0) return null;
+                return (
+                  <div key={cat}>
+                    <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${RECEIPT_CATEGORY_COLOR[cat]}`}>
+                      {RECEIPT_CATEGORY_LABEL[cat]}
+                    </span>
+                    <div className="mt-1.5 space-y-1">
+                      {group.map((it, i) => (
+                        <div key={i} className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs text-gray-700 break-keep break-words">{it.name}</p>
+                            {it.note && <p className="text-[10px] text-gray-400 break-keep break-words">{it.note}</p>}
+                          </div>
+                          <span className="text-xs text-gray-500 flex-shrink-0">{formatCost(it.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 총액 */}
+            {record.cost != null && record.cost > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <span className="text-sm font-medium text-gray-700">총액</span>
+                <span className="text-sm font-bold text-blue-600">{formatCost(record.cost)}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
