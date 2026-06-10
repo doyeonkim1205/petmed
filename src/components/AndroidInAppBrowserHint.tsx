@@ -155,8 +155,8 @@ export function AndroidInAppBrowserHint() {
               <Smartphone size={18} className="text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900">PawDex를 앱처럼 사용해 보세요</p>
-              <p className="text-[11px] text-gray-500">Chrome으로 열면 설치와 알림 기능을 사용할 수 있어요</p>
+              <p className="text-xs font-semibold text-gray-900 break-keep break-words">PawDex를 앱처럼 사용해 보세요</p>
+              <p className="text-[11px] text-gray-500 break-keep break-words">Chrome으로 열면 설치와 알림 기능을 사용할 수 있어요</p>
             </div>
             <button
               onClick={handleOpenChrome}

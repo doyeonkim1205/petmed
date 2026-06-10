@@ -693,7 +693,7 @@ export default function RecordAddPage() {
 
       <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
         )}
 
         {/* Record Type Selection */}
@@ -1235,12 +1235,12 @@ export default function RecordAddPage() {
               <Bell size={18} className="text-blue-500" />
               <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
             </div>
-            <p className="text-sm text-gray-600 mb-1">
+            <p className="text-sm text-gray-600 mb-1 break-keep break-words">
               {!isPWA
                 ? '앱을 설치하고 유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'
                 : '유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'}
             </p>
-            <p className="text-xs text-gray-400 mb-4">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}

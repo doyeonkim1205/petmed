@@ -110,7 +110,7 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
       )}
       {atLimit ? (
         // 한도 도달: 업로드 영역 대신 안내 문구만 (파일 리스트는 아래 유지)
-        <div className="text-center py-2">
+        <div className="text-center py-2 break-keep break-words">
           <p className="text-xs text-gray-400">{maxFiles === 0 ? '첨부 한도에 도달했어요' : `최대 ${maxFiles}개 파일까지 첨부할 수 있어요`}</p>
           {atLimitUpsell === 'free' && (
             <p className="text-[11px] text-gray-400 mt-1">Plus는 최대 5개 파일과 약 20배 저장공간(1GB)을 지원해요</p>
