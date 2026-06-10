@@ -9,6 +9,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
+import { RECEIPT_CATEGORY_LABEL, RECEIPT_CATEGORY_BAR, type ReceiptCategory } from '@/lib/receipt';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 type StatsTab = 'cost' | 'weight';
@@ -224,6 +225,26 @@ export default function StatsPage() {
     }
     for (const group of map.values()) group.records.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
+  }, [filteredRecords]);
+
+  // 항목별 지출 비중 — receipt_items 카테고리 합산. 항목 없는 금액(총액-항목합, 영수증 없는 기록)은 '미분류'.
+  //   미분류 포함이라 합이 총 의료비와 일치 → % 가 의미를 가짐.
+  const categoryBreakdown = useMemo(() => {
+    const sums: Record<string, number> = { consult: 0, test: 0, med: 0, treatment: 0, vaccine: 0, etc: 0, unknown: 0 };
+    for (const r of filteredRecords) {
+      const items = Array.isArray(r.receipt_items) ? r.receipt_items : [];
+      let itemsTotal = 0;
+      for (const it of items) {
+        sums[it.category] = (sums[it.category] || 0) + (it.amount || 0);
+        itemsTotal += it.amount || 0;
+      }
+      sums.unknown += Math.max(0, (r.cost! || 0) - itemsTotal);
+    }
+    const order = ['consult', 'test', 'med', 'treatment', 'vaccine', 'etc', 'unknown'] as const;
+    const rows = order.map((k) => ({ key: k, amount: sums[k] })).filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
+    const total = rows.reduce((s, row) => s + row.amount, 0);
+    const hasCategorized = rows.some((row) => row.key !== 'unknown');
+    return { rows, total, hasCategorized };
   }, [filteredRecords]);
 
   // ─── Weight data ──────────────────────
@@ -454,6 +475,31 @@ export default function StatsPage() {
                     <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
                   </div>
                 </div>
+
+                {/* 항목별 지출 비중 — 영수증(receipt_items) 데이터가 있을 때만 */}
+                {categoryBreakdown.hasCategorized && categoryBreakdown.total > 0 && (
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <h2 className="text-xs font-bold text-gray-500 mb-2.5">항목별 지출</h2>
+                    <div className="space-y-2">
+                      {categoryBreakdown.rows.map((row) => {
+                        const pct = Math.round((row.amount / categoryBreakdown.total) * 100);
+                        const label = row.key === 'unknown' ? '미분류' : RECEIPT_CATEGORY_LABEL[row.key as ReceiptCategory];
+                        const bar = row.key === 'unknown' ? 'bg-gray-300' : RECEIPT_CATEGORY_BAR[row.key as ReceiptCategory];
+                        return (
+                          <div key={row.key}>
+                            <div className="flex items-center justify-between text-[11px] mb-0.5">
+                              <span className="text-gray-600">{label}</span>
+                              <span className="text-gray-400">{formatCost(row.amount)} · {pct}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {monthlyGroups.length > 0 ? (
                   <div className="space-y-4">

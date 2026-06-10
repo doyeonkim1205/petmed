@@ -30,6 +30,16 @@ export const RECEIPT_CATEGORY_COLOR: Record<ReceiptCategory, string> = {
   etc: 'bg-gray-100 text-gray-500',
 };
 
+/** 카테고리 막대 색상 (통계 비중 그래프) */
+export const RECEIPT_CATEGORY_BAR: Record<ReceiptCategory, string> = {
+  consult: 'bg-blue-400',
+  test: 'bg-violet-400',
+  med: 'bg-emerald-400',
+  treatment: 'bg-amber-400',
+  vaccine: 'bg-rose-400',
+  etc: 'bg-gray-400',
+};
+
 /** /api/receipt-ocr 응답 */
 export interface ReceiptOcrResult {
   is_receipt: boolean;
