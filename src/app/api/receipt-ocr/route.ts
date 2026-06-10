@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       if ((count || 0) >= config.receiptOcrLifetimeFree) {
         return NextResponse.json(
           {
-            error: '영수증 자동 입력 무료 체험을 모두 사용했어요.\nPlus로 업그레이드하면 계속 사용할 수 있어요',
+            error: '영수증 자동 입력 무료 체험을 모두 사용했어요',
             limitReached: true,
             upgradeRequired: true,
           },
@@ -158,9 +158,9 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        // gpt-4o(full)는 Vision 이 느려 함수 타임아웃으로 실패 → 빠른 gpt-4o-mini 사용.
-        // note 제거 + 이름 그대로 강제 + temp 0 로 mini 의 약점(상상/표준화)을 프롬프트로 방어.
-        model: 'gpt-4o-mini',
+        // 영수증 OCR 정확도(금액·항목 식별)는 gpt-4o 가 mini 보다 확실히 좋음.
+        // gpt-4o 는 느리지만 maxDuration=60 으로 타임아웃(실패) 방어 → 느리되 안 죽음.
+        model: 'gpt-4o',
         temperature: 0, // 같은 영수증 = 같은 결과 (일관성 최대화)
         max_tokens: 4000, // 긴 영수증(항목 多) JSON 잘림 방지
         response_format: { type: 'json_object' },

@@ -933,7 +933,7 @@ export default function RecordAddPage() {
               />
               {receiptItems.length > 0 && (
                 <p className="text-[11px] text-gray-400 text-center break-keep break-words">
-                  영수증 {receiptItems.length}개 반영
+                  항목 {receiptItems.length}개 반영
                 </p>
               )}
             </div>
