@@ -452,7 +452,7 @@ export default function StatsPage() {
             ) : needPetSelect ? (
               <div className="text-center py-16">
                 <Scale size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">반려동물을 선택해주세요.</p>
+                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
               </div>
             ) : (
               <>
@@ -599,9 +599,11 @@ export default function StatsPage() {
         {METRIC_TABS.includes(tab as MetricType) && enabledTabs.includes(tab as MetricTabId) && user && (() => {
           const selPet = selectedPetId ? pets.find((p) => p.id === selectedPetId) : (pets.length === 1 ? pets[0] : null);
           if (!selPet) {
+            const Icon = tab === 'water' ? Droplet : tab === 'food' ? Utensils : Syringe;
             return (
-              <div className="rounded-xl border border-gray-100 py-10 text-center text-sm text-gray-400 break-keep break-words">
-                반려동물을 선택해주세요
+              <div className="text-center py-16">
+                <Icon size={40} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
               </div>
             );
           }
