@@ -200,7 +200,7 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
+      <div className="max-w-sm mx-auto px-4 pt-1 pb-4 space-y-5">
         {(!petsLoaded || loading) ? (
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
         ) : (
