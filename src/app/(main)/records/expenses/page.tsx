@@ -10,6 +10,7 @@ import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { OnboardHint } from '@/components/ui/OnboardHint';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -192,6 +193,9 @@ export default function ExpensesPage() {
       )}
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
+        <OnboardHint storageKey="hint_expense_record" pointer="none"
+          text="기록장(진료·입퇴원)에 적은 진료비·입원비도 자동으로 여기에 모여요." />
+
         {(!petsLoaded || loading) ? (
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
         ) : (

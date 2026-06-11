@@ -13,6 +13,7 @@ import { supabase, Pet, WeightLog } from '@/lib/supabase';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { OnboardHint } from '@/components/ui/OnboardHint';
 
 type StatsTab = 'weight' | 'water' | 'food' | 'fluid';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
@@ -409,6 +410,9 @@ export default function StatsPage() {
       </div>
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
+        <OnboardHint storageKey="hint_stats_filter" pointer="right"
+          text="⚙ 버튼으로 보고 싶은 지표(체중·음수량·식사·수액)를 고를 수 있어요." />
+
         {/* Period selector (chips) */}
         <div className="flex gap-1.5 overflow-x-auto">
           {periodOptions.map((p) => (
@@ -485,6 +489,9 @@ export default function StatsPage() {
                     <p className="text-sm text-gray-400">아직 체중 기록이 없어요</p>
                   </div>
                 )}
+
+                <OnboardHint storageKey="hint_stats_weight_record" pointer="none"
+                  text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
 
                 {/* Chart */}
                 {chartData.length >= 2 && (
