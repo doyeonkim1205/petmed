@@ -19,7 +19,7 @@ type Daily = { date: string; value: number };
 // ─── 일별 막대 차트 + 적정범위 밴드 ──────────────────────
 function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low: number; high: number } | null; color: string }) {
   if (data.length === 0) return null;
-  const W = 320, H = 168, PX = 36, PY = 14, PB = 20;
+  const W = 320, H = 168, PX = 42, PY = 14, PB = 20;
   const chartW = W - PX * 2;
   const chartH = H - PY - PB;
   const maxV = Math.max(...data.map((d) => d.value), target?.high || 0) * 1.12 || 1;
@@ -37,7 +37,7 @@ function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low:
         return (
           <g key={r}>
             <line x1={PX} y1={y} x2={W - PX} y2={y} stroke="#f3f4f6" strokeWidth="1" />
-            <text x={PX - 4} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(r * maxV)}</text>
+            <text x={PX - 11} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(r * maxV)}</text>
           </g>
         );
       })}
@@ -218,7 +218,7 @@ export function MetricTracker({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {/* 요약 카드 */}
       <div className="rounded-xl border border-gray-100 p-4 flex items-center justify-between">
         <div>

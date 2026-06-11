@@ -90,7 +90,7 @@ function sampleForChart(data: { date: string; weight: number }[], period: Period
 // ─── Weight Chart (SVG line chart) ──────────────────────
 function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
   if (data.length < 2) return null;
-  const W = 320, H = 160, PX = 32, PY = 20;
+  const W = 320, H = 160, PX = 40, PY = 20;
   const weights = data.map(d => d.weight);
   const minW = Math.min(...weights);
   const maxW = Math.max(...weights);
@@ -119,7 +119,7 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
         return (
           <g key={r}>
             <line x1={PX} y1={y} x2={W - PX} y2={y} stroke="#f3f4f6" strokeWidth="1" />
-            <text x={PX - 4} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val}</text>
+            <text x={PX - 11} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val}</text>
           </g>
         );
       })}
@@ -174,7 +174,8 @@ export default function StatsPage() {
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
 
-  const defaultPeriod = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
+  // 건강 지표·체중은 일별 추적이라 기본은 '1개월(일별)' — 월별 버킷('6.1.' 라벨) 혼동 방지.
+  const defaultPeriod: Period = 'month';
   const [period, setPeriod] = useState<Period>(defaultPeriod);
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -238,7 +239,7 @@ export default function StatsPage() {
     const items: { date: string; weight: number; source: 'log' | 'record'; id: string; createdAt: string; petName?: string; recordType?: string }[] = [];
 
     for (const log of weightLogs) {
-      const d = new Date(log.measured_at);
+      const d = new Date(String(log.measured_at).split('T')[0] + 'T00:00:00'); // 로컬 자정 (UTC 파싱 함정 회피)
       if (d >= startDate && d <= endDate) {
         items.push({
           date: String(log.measured_at).split('T')[0],
@@ -254,7 +255,7 @@ export default function StatsPage() {
     for (const r of records) {
       if (r.weight && r.weight > 0) {
         if (!selectedPetId || r.pet_id === selectedPetId) {
-          const d = new Date(r.visit_date);
+          const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00'); // 로컬 자정
           if (d >= startDate && d <= endDate) {
             items.push({
               date: r.visit_date.split('T')[0],
