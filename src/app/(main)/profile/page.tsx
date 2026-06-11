@@ -12,10 +12,9 @@ import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
-  CreditCard, MapPin, Building2, HardDrive, Loader2, Activity,
+  CreditCard, MapPin, Building2, HardDrive, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { getEnabledStatsTabs, setEnabledStatsTabs, ALL_METRIC_TABS, STATS_TAB_LABELS, type MetricTabId } from '@/lib/statsTabPrefs';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -654,7 +653,6 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
-  const [statTabs, setStatTabs] = useState<MetricTabId[]>(ALL_METRIC_TABS);
   const [language, setLanguage] = useState('ko');
   const [autoLogin, setAutoLogin] = useState(true);
   const [highContrast, setHighContrast] = useState(true);
@@ -671,7 +669,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(localStorage.getItem('highContrast') !== 'false');
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
-      setStatTabs(getEnabledStatsTabs());
       // Fetch pets for default pet selector
       supabase
         .from('pets')
@@ -739,14 +736,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     } else {
       localStorage.removeItem('defaultPetId');
     }
-  };
-
-  const toggleStatTab = (id: MetricTabId) => {
-    setStatTabs((prev) => {
-      const next = prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id];
-      setEnabledStatsTabs(next);
-      return next;
-    });
   };
 
   const fontSizes = [
@@ -846,28 +835,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* 건강 통계 표시 지표 토글 */}
-          <div>
-            <SectionHeader icon={Activity} iconColor="text-gray-400" label="건강 통계 표시 지표" />
-            <div className="grid grid-cols-4 gap-2">
-              {ALL_METRIC_TABS.map((id) => {
-                const on = statTabs.includes(id);
-                return (
-                  <button
-                    key={id}
-                    onClick={() => toggleStatTab(id)}
-                    className={`h-9 rounded-full border text-xs font-medium transition-colors ${
-                      on ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                    }`}
-                  >
-                    {STATS_TAB_LABELS[id]}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-gray-400 mt-2 break-keep break-words">건강 통계에서 보고 싶은 지표만 켜두세요 (수액은 기본 꺼짐)</p>
           </div>
 
           {/* 5. 언어 (현재 숨김 — 한국에서만 서비스) */}

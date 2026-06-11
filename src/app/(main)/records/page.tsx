@@ -340,22 +340,16 @@ export default function RecordsPage() {
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                     <Activity size={15} className="text-blue-600" />
                   </div>
-                  <div className="text-left min-w-0">
-                    <p className="text-sm font-bold text-gray-800">건강 통계</p>
-                    <p className="text-[11px] text-blue-400 truncate">체중·음수·식사</p>
-                  </div>
+                  <p className="text-sm font-bold text-gray-800">건강 통계</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/expenses')}
-                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-100"
+                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-200"
                 >
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Wallet size={15} className="text-amber-600" />
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Wallet size={15} className="text-gray-500" />
                   </div>
-                  <div className="text-left min-w-0">
-                    <p className="text-sm font-bold text-gray-800">의료비</p>
-                    <p className="text-[11px] text-amber-500 truncate">지출 내역</p>
-                  </div>
+                  <p className="text-sm font-bold text-gray-700">의료비</p>
                 </button>
               </div>
               {filteredRecords.map((record) => (
