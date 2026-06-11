@@ -335,10 +335,10 @@ export default function RecordsPage() {
               <div className="flex gap-2 mb-1">
                 <button
                   onClick={() => router.push('/records/stats')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100"
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200"
                 >
-                  <Activity size={14} className="text-blue-600 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-800">건강 통계</p>
+                  <Activity size={14} className="text-blue-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">건강 통계</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/expenses')}

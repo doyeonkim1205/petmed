@@ -179,19 +179,19 @@ export default function ExpensesPage() {
         <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        {/* Pet filter */}
-        {pets.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto">
-            <button onClick={() => setSelectedPetId(undefined)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
-            {pets.map((pet) => (
-              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{pet.name}</button>
-            ))}
-          </div>
-        )}
+      {/* Pet filter — 상단 밴드 (기록장과 통일) */}
+      {pets.length > 1 && (
+        <div className={`flex gap-2 overflow-x-auto px-4 py-3 ${pets.length <= 4 ? 'justify-center' : ''}`}>
+          <button onClick={() => setSelectedPetId(undefined)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
+          {pets.map((pet) => (
+            <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{pet.name}</button>
+          ))}
+        </div>
+      )}
 
+      <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
         {/* Period selector */}
         <div className="flex gap-1.5 overflow-x-auto">
           {periodOptions.map((opt) => (
@@ -235,31 +235,31 @@ export default function ExpensesPage() {
 
             {/* 의료비 직접 추가 */}
             {showAddInput ? (
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-3">
                 {!resolvedPetId ? (
                   <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
                 ) : null}
                 <input type="text" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50} autoComplete="off"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                 <div className="flex gap-2">
                   <input type="text" inputMode="numeric" placeholder="금액(원)" value={newAmount}
                     onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="off"
-                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                   <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setShowAddInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
                   <button onClick={handleAddExpense} disabled={!newAmount || !resolvedPetId || saving}
-                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
+                    className="flex-1 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-40">
                     {saving ? '저장 중...' : '저장'}
                   </button>
                 </div>
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors">
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-700 text-sm font-medium hover:bg-emerald-50 transition-colors">
                 <Plus size={16} /> 의료비 추가
               </button>
             )}
@@ -281,9 +281,8 @@ export default function ExpensesPage() {
                               <span className="text-xs text-gray-400 flex-shrink-0">{dateLabel}</span>
                               {!selectedPetId && it.petName && <span className="text-[11px] text-gray-400 flex-shrink-0">{it.petName}</span>}
                               {it.source === 'record' && it.hospital && <span className="text-[11px] text-gray-400 truncate">{it.hospital}</span>}
-                              {it.source === 'direct' && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded flex-shrink-0">직접 입력</span>}
                             </div>
-                            <p className="text-sm text-gray-800 truncate mt-0.5">{it.title}</p>
+                            <p className={`text-sm truncate mt-0.5 ${it.source === 'direct' ? 'text-gray-500' : 'text-gray-800'}`}>{it.title}</p>
                           </>
                         );
                         if (it.source === 'record') {
