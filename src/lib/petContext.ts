@@ -28,6 +28,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Pet } from './supabase';
+import { waterTargetRange } from './healthMetrics';
 
 export interface PetRecentRecord {
   visit_date: string;
@@ -37,9 +38,18 @@ export interface PetRecentRecord {
   description?: string;
 }
 
+/** 음수/식사 요약 — 충분+최근(14일 내 ≥3일, 마지막 ≤7일) 조건 통과한 것만. */
+export interface IntakeSummary {
+  daysLogged: number;  // 최근 14일 중 기록한 날 수
+  avg: number;         // 기록한 날 기준 평균 (반올림)
+  lastDate: string;    // 마지막 기록일 YYYY-MM-DD
+}
+
 export interface PetContext {
   pet: Pet;
   recentRecords: PetRecentRecord[];
+  /** 음수/식사 — 조건 통과한 지표만 채워짐 (수액 제외). 미충족이면 undefined. */
+  intake?: { water?: IntakeSummary; food?: IntakeSummary };
 }
 
 /** 생년월일 → "12살" 자연어 변환. NULL/잘못된 형식이면 빈 문자열. */
@@ -104,7 +114,40 @@ export async function fetchPetContext(
       : {}),
   }));
 
-  return { pet, recentRecords };
+  // 3. 최근 14일 음수·식사 (수액 제외). 충분+최근일 때만 채움.
+  //    - 14일 내 ≥3일 기록 + 마지막 기록 ≤7일 이내 → 포함, 아니면 생략.
+  //    - 평균은 "기록한 날 기준"(빈 날 0으로 안 셈). 한국 DST 없음.
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const since14 = new Date(today); since14.setDate(since14.getDate() - 13); // 오늘 포함 14일
+  const sevenAgo = new Date(today); sevenAgo.setDate(sevenAgo.getDate() - 7);
+
+  const { data: metricRows } = await supabaseAdmin
+    .from('health_metrics')
+    .select('metric_type, value, measured_at')
+    .eq('user_id', userId)
+    .eq('pet_id', petId)
+    .in('metric_type', ['water', 'food'])
+    .gte('measured_at', ymd(since14));
+
+  const intake: { water?: IntakeSummary; food?: IntakeSummary } = {};
+  for (const mt of ['water', 'food'] as const) {
+    const dayMap = new Map<string, number>();
+    for (const r of metricRows || []) {
+      if (r.metric_type !== mt) continue;
+      const key = String(r.measured_at).split('T')[0];
+      dayMap.set(key, (dayMap.get(key) || 0) + Number(r.value));
+    }
+    if (dayMap.size < 3) continue; // 14일 내 3일 미만 → 제외
+    const dates = [...dayMap.keys()].sort();
+    const lastDate = dates[dates.length - 1];
+    if (new Date(`${lastDate}T00:00:00`) < sevenAgo) continue; // 마지막 기록 7일 초과 → 제외
+    const vals = [...dayMap.values()];
+    const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
+    intake[mt] = { daysLogged: dayMap.size, avg, lastDate };
+  }
+
+  return { pet, recentRecords, ...(intake.water || intake.food ? { intake } : {}) };
 }
 
 /**
@@ -152,6 +195,30 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
       lines.push(`- ${r.visit_date}: ${r.title}${body}`);
     }
   }
+
+  // 최근 음수·식사 — fetch 에서 조건(14일 내 ≥3일, 마지막 ≤7일) 통과한 것만 채워짐.
+  if (ctx.intake && (ctx.intake.water || ctx.intake.food)) {
+    lines.push('');
+    lines.push('[최근 음수·식사 참고 기록]');
+    if (ctx.intake.water) {
+      const w = ctx.intake.water;
+      let line = `- 음수: 최근 14일 중 ${w.daysLogged}일 기록, 기록한 날 기준 평균 ${w.avg}ml/일`;
+      if (pet.weight != null && pet.weight > 0) {
+        const r = waterTargetRange(pet.type, pet.weight);
+        if (r) line += `, 체중 기준 참고 범위 약 ${r.low}~${r.high}ml/일`;
+      }
+      line += `, 마지막 기록일 ${w.lastDate}`;
+      lines.push(line);
+    }
+    if (ctx.intake.food) {
+      const f = ctx.intake.food;
+      lines.push(`- 식사: 최근 14일 중 ${f.daysLogged}일 기록, 기록한 날 기준 평균 ${f.avg}g/일, 마지막 기록일 ${f.lastDate}`);
+    }
+  }
+
+  // 공통 지침 — 미제공 항목을 증상으로 추정하지 않도록.
+  lines.push('');
+  lines.push('※ 제공되지 않은 기록은 입력되지 않았거나 충분하지 않은 정보일 수 있으므로, 제공되지 않은 항목을 증상으로 추정하지 마세요.');
 
   return lines.join('\n');
 }
