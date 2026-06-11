@@ -87,6 +87,7 @@ export function MetricTracker({
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loggedWeight, setLoggedWeight] = useState<number | null>(null);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -102,7 +103,16 @@ export function MetricTracker({
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const target = useMemo(() => metricTargetRange(metricType, pet.type, pet.weight || 0), [metricType, pet.type, pet.weight]);
+  // 적정량 기준 체중 — 최신 체중 기록(weight_logs) 우선, 없으면 펫 프로필 체중.
+  //   체중을 '체중 기록'으로만 입력하고 프로필(pets.weight)엔 없을 때도 적정량이 뜨도록.
+  useEffect(() => {
+    supabase.from('weight_logs').select('weight').eq('pet_id', pet.id)
+      .order('measured_at', { ascending: false }).order('created_at', { ascending: false }).limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLoggedWeight(data ? Number((data as { weight: number }).weight) : null));
+  }, [pet.id]);
+  const effWeight = loggedWeight ?? (pet.weight || 0);
+  const target = useMemo(() => metricTargetRange(metricType, pet.type, effWeight), [metricType, pet.type, effWeight]);
 
   const todayStr = todayLocalISO();
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -216,7 +226,7 @@ export function MetricTracker({
       </div>
 
       {/* 그래프 */}
-      {daily.length >= 1 ? (
+      {dayTotals.size > 0 ? (
         <div className="rounded-xl border border-gray-100 p-4">
           <h2 className="text-sm font-bold text-gray-700 mb-2">{meta.label} 추세</h2>
           <MetricBarChart data={daily} target={target} color={meta.color} />
