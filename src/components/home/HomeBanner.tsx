@@ -62,23 +62,27 @@ export function HomeBanner() {
       <button
         type="button"
         onClick={() => router.push(banner.href)}
-        className={`relative w-full text-left rounded-2xl overflow-hidden h-44 bg-gradient-to-br ${banner.gradient} px-5 pt-5 pb-10 flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
+        className={`relative w-full text-left rounded-2xl overflow-hidden h-40 bg-gradient-to-br ${banner.gradient} px-5 py-5 flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
       >
-        <p className="text-xs opacity-90 mb-2">{banner.badge}</p>
-        <p className="text-xl font-bold leading-snug whitespace-pre-line">
+        {/* 장식 — 은은한 반투명 원 (깊이감) */}
+        <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
+        <span className="pointer-events-none absolute -right-12 bottom-0 w-28 h-28 rounded-full bg-white/10" />
+
+        <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{banner.badge}</span>
+        <p className="relative text-[19px] font-bold leading-snug whitespace-pre-line">
           {banner.title}
         </p>
-        <p className="text-sm font-medium opacity-95 mt-1.5">{banner.subtitle}</p>
+        <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{banner.subtitle}</p>
 
-        {/* 점 인디케이터 — 하단 중앙. 탭 시 해당 배너로 (이벤트 버블링 차단) */}
-        <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 flex gap-1.5">
+        {/* 인디케이터 — 하단 좌측, 활성 칩은 길게 (현대적) */}
+        <div className="absolute bottom-4 left-5 flex gap-1.5">
           {BANNERS.map((b, i) => (
             <span
               key={b.id}
               role="button"
               tabIndex={-1}
               onClick={(e) => { e.stopPropagation(); setIdx(i); }}
-              className={`w-2 h-2 rounded-full transition-colors ${i === idx ? 'bg-white' : 'bg-white/40'}`}
+              className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-white' : 'w-1.5 bg-white/40'}`}
             />
           ))}
         </div>

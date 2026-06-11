@@ -11,36 +11,38 @@ import { HealthBriefing } from '@/components/home/HealthBriefing';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
-type MenuItem = { icon: LucideIcon; label: string; color: string; href: string };
+type MenuItem = { icon: LucideIcon; label: string; color: string; bg: string; href: string };
 
-// 투명 칩(배경 없이 아이콘만) + 아이콘 의미에 맞춘 색.
-//   AI 케어 = 파랑 계열로 통일(브랜드): 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=남색.
-//   건강 기록 = 그린·민트 계열로 통일(편안한 일상 데이터): 기록장=딥그린 / 캘린더=소프트그린 / 체중=에메랄드 / 의료비=딥틸(#00687a).
+// 소프트 칩 — 아이콘을 같은 색 계열 옅은 배경 칩에 담음.
+//   AI 케어 = 파랑 계열: 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=남색.
+//   건강 기록 = 그린·민트 계열: 기록장=딥그린 / 캘린더=소프트그린 / 건강통계=에메랄드 / 의료비=딥틸.
 const AI_CARE: MenuItem[] = [
-  { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', href: '/search?mode=symptom' },
-  { icon: Camera, label: '사진 분석', color: 'text-sky-500', href: '/search/photo' },
-  { icon: FileSearch, label: '논문 검색', color: 'text-indigo-600', href: '/search?mode=disease' },
-  { icon: Bookmark, label: '보관함', color: 'text-blue-800', href: '/profile/saved' },
+  { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', bg: 'bg-blue-50', href: '/search?mode=symptom' },
+  { icon: Camera, label: '사진 분석', color: 'text-sky-500', bg: 'bg-sky-50', href: '/search/photo' },
+  { icon: FileSearch, label: '논문 검색', color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/search?mode=disease' },
+  { icon: Bookmark, label: '보관함', color: 'text-blue-800', bg: 'bg-blue-50', href: '/profile/saved' },
 ];
 
 const HEALTH: MenuItem[] = [
-  { icon: ClipboardList, label: '기록장', color: 'text-green-700', href: '/records' },
-  { icon: Calendar, label: '캘린더', color: 'text-green-500', href: '/records?tab=calendar' },
-  { icon: Activity, label: '건강 통계', color: 'text-emerald-500', href: '/records/stats' },
-  { icon: Wallet, label: '의료비', color: 'text-[#00687a]', href: '/records/expenses' },
+  { icon: ClipboardList, label: '기록장', color: 'text-green-700', bg: 'bg-green-50', href: '/records' },
+  { icon: Calendar, label: '캘린더', color: 'text-green-500', bg: 'bg-green-50', href: '/records?tab=calendar' },
+  { icon: Activity, label: '건강 통계', color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/records/stats' },
+  { icon: Wallet, label: '의료비', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
   return (
     <div className="grid grid-cols-4 gap-2">
-      {items.map(({ icon: Icon, label, color, href }) => (
+      {items.map(({ icon: Icon, label, color, bg, href }) => (
         <Link
           key={label}
           href={href}
-          className="py-2 flex flex-col items-center gap-2 rounded-xl active:scale-[0.95] transition-transform"
+          className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
         >
-          <Icon size={26} className={color} />
-          <span className="text-[11px] font-bold text-gray-800 text-center leading-tight px-0.5">{label}</span>
+          <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bg}`}>
+            <Icon size={23} className={color} />
+          </span>
+          <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{label}</span>
         </Link>
       ))}
     </div>
