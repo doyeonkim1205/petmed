@@ -179,19 +179,19 @@ export default function ExpensesPage() {
         <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        {/* Pet filter */}
-        {pets.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto">
-            <button onClick={() => setSelectedPetId(undefined)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
-            {pets.map((pet) => (
-              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{pet.name}</button>
-            ))}
-          </div>
-        )}
+      {/* Pet filter — 제목 아래 밴드 (건강 통계와 동일) */}
+      {pets.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2">
+          <button onClick={() => setSelectedPetId(undefined)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
+          {pets.map((pet) => (
+            <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{pet.name}</button>
+          ))}
+        </div>
+      )}
 
+      <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
         {/* Period selector */}
         <div className="flex gap-1.5 overflow-x-auto">
           {periodOptions.map((opt) => (
