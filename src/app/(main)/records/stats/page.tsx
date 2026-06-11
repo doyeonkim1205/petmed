@@ -202,11 +202,10 @@ export default function StatsPage() {
           const defaultId = readDefaultPetId();
           const sorted = sortPetsWithDefault(data, defaultId);
           setPets(sorted);
-          // 1마리면 그것 / 여러 마리면 defaultPet / 셋 다 아니면 미선택(전체)
-          if (sorted.length === 1) {
-            setSelectedPetId(sorted[0].id);
-          } else if (defaultId && sorted.some(p => p.id === defaultId)) {
-            setSelectedPetId(defaultId);
+          // 건강 통계는 '전체'가 없어 항상 한 마리 선택 — 기본 펫 우선, 없으면 첫 펫.
+          if (sorted.length >= 1) {
+            const def = defaultId && sorted.some(p => p.id === defaultId) ? defaultId : sorted[0].id;
+            setSelectedPetId(def);
           }
         }
         // 펫 로딩 + selectedPetId 결정 완료 표시 — 이 전엔 통계 스켈레톤 유지(빈 값 깜빡임 방지)
