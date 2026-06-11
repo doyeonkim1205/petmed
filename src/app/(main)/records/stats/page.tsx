@@ -90,7 +90,7 @@ function sampleForChart(data: { date: string; weight: number }[], period: Period
 // ─── Weight Chart (SVG line chart) ──────────────────────
 function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
   if (data.length < 2) return null;
-  const W = 320, H = 160, PX = 32, PY = 20;
+  const W = 320, H = 160, PX = 40, PY = 20;
   const weights = data.map(d => d.weight);
   const minW = Math.min(...weights);
   const maxW = Math.max(...weights);
@@ -119,7 +119,7 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
         return (
           <g key={r}>
             <line x1={PX} y1={y} x2={W - PX} y2={y} stroke="#f3f4f6" strokeWidth="1" />
-            <text x={PX - 4} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val}</text>
+            <text x={PX - 11} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val}</text>
           </g>
         );
       })}
