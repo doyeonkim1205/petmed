@@ -457,35 +457,33 @@ export default function StatsPage() {
             ) : (
               <>
                 {/* Current weight summary */}
-                <div className="rounded-xl bg-blue-50 p-4 flex items-center justify-between">
-                  {latestWeight ? (
-                    <>
-                      <div>
-                        <p className="text-[11px] text-blue-400 font-medium">
-                          {pets.find(p => p.id === selectedPetId)?.name || '현재'} 체중
-                        </p>
-                        <p className="text-xl font-bold text-gray-800">{latestWeight.weight}kg</p>
-                      </div>
-                      {weightDiff !== null && weightDiff !== 0 ? (
-                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          weightDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                        }`}>
-                          {weightDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                          {weightDiff > 0 ? '+' : ''}{weightDiff}kg
-                        </div>
-                      ) : weightDiff === 0 ? (
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                          <Minus size={12} /> 변화없음
-                        </div>
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="w-full text-center py-2">
-                      <Scale size={28} className="mx-auto text-blue-300 mb-1" />
-                      <p className="text-sm text-gray-400">체중 기록이 없습니다.</p>
+                {latestWeight ? (
+                  <div className="rounded-xl bg-blue-50 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] text-blue-400 font-medium">
+                        {pets.find(p => p.id === selectedPetId)?.name || '현재'} 체중
+                      </p>
+                      <p className="text-xl font-bold text-gray-800">{latestWeight.weight}kg</p>
                     </div>
-                  )}
-                </div>
+                    {weightDiff !== null && weightDiff !== 0 ? (
+                      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        weightDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                      }`}>
+                        {weightDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                        {weightDiff > 0 ? '+' : ''}{weightDiff}kg
+                      </div>
+                    ) : weightDiff === 0 ? (
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                        <Minus size={12} /> 변화없음
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-gray-100 py-8 text-center">
+                    <Scale size={32} className="mx-auto text-gray-300 mb-1.5" />
+                    <p className="text-sm text-gray-400">아직 체중 기록이 없어요</p>
+                  </div>
+                )}
 
                 {/* Chart */}
                 {chartData.length >= 2 && (

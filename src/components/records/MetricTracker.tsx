@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Droplet, Utensils, Syringe } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
@@ -80,6 +80,7 @@ export function MetricTracker({
   endDate: Date;
 }) {
   const meta = METRIC_META[metricType];
+  const MetricIcon = metricType === 'water' ? Droplet : metricType === 'food' ? Utensils : Syringe;
   const [logs, setLogs] = useState<HealthMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
@@ -190,6 +191,7 @@ export function MetricTracker({
         </div>
       ) : (
         <div className="rounded-xl border border-gray-100 py-8 text-center">
+          <MetricIcon size={32} className="mx-auto text-gray-300 mb-1.5" />
           <p className="text-sm text-gray-400 break-keep break-words">아직 {meta.label} 기록이 없어요</p>
         </div>
       )}
