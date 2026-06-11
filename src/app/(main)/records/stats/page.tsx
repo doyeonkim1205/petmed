@@ -382,16 +382,6 @@ export default function StatsPage() {
             </div>
           </>
         )}
-        {pets.length > 1 && (
-          <div className={`flex gap-2 overflow-x-auto px-4 py-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
-            {pets.map((pet) => (
-              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                {pet.name}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="flex max-w-sm mx-auto">
           {([
             { id: 'weight', label: '체중', Icon: Scale },
@@ -408,6 +398,18 @@ export default function StatsPage() {
       </div>
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
+        {/* Pet filter */}
+        {pets.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto">
+            {pets.map((pet) => (
+              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                {pet.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Period selector (chips) */}
         <div className="flex gap-1.5 overflow-x-auto">
           {periodOptions.map((p) => (
