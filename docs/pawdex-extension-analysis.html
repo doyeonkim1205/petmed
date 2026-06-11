@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PawDex 확장 분석 리포트</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #647086;
+      --line: #dbe2ec;
+      --soft: #f6f8fb;
+      --blue: #2368d9;
+      --green: #187a5b;
+      --orange: #b85d12;
+      --red: #bc2f39;
+      --violet: #6654c7;
+      --teal: #087b8f;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      color: var(--ink);
+      background: #eef2f7;
+      line-height: 1.58;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #17365f 0%, #0f766e 100%);
+      color: white;
+      padding: 34px;
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(23, 32, 51, .16);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      opacity: .85;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 10px;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.14;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 820px;
+      margin-bottom: 0;
+      color: rgba(255,255,255,.88);
+      font-size: 17px;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 26px;
+    }
+
+    .nav a {
+      color: #1b365f;
+      background: var(--white);
+      border: 1px solid var(--line);
+      text-decoration: none;
+      padding: 9px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    section {
+      margin-top: 22px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: 0 10px 28px rgba(23, 32, 51, .06);
+    }
+
+    h2 {
+      margin-bottom: 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      grid-column: span 4;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 144px;
+    }
+
+    .card.wide { grid-column: span 6; }
+    .card.full { grid-column: 1 / -1; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      background: #e8eef9;
+      color: var(--blue);
+    }
+
+    .tag.green { background: #e7f4ef; color: var(--green); }
+    .tag.orange { background: #fff0df; color: var(--orange); }
+    .tag.red { background: #fdebed; color: var(--red); }
+    .tag.violet { background: #efedff; color: var(--violet); }
+    .tag.teal { background: #e4f5f7; color: var(--teal); }
+
+    ul, ol { margin: 8px 0 0 20px; padding: 0; }
+    li { margin: 5px 0; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 760px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f2f5f9;
+      color: #29344a;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      background: #fbfcfe;
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 112px;
+    }
+
+    .step::after {
+      content: "→";
+      position: absolute;
+      right: -13px;
+      top: 42%;
+      color: #8792a6;
+      font-weight: 900;
+    }
+
+    .step:last-child::after { content: ""; }
+
+    .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .note {
+      border-left: 4px solid var(--blue);
+      background: #f3f7ff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      color: #253653;
+      margin: 16px 0 0;
+    }
+
+    .risk { border-left-color: var(--red); background: #fff5f6; }
+    .ok { border-left-color: var(--green); background: #effaf5; }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 750;
+      color: #34415a;
+    }
+
+    .priority {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 0;
+    }
+
+    .priority:last-child { border-bottom: 0; padding-bottom: 0; }
+    .badge {
+      height: fit-content;
+      text-align: center;
+      border-radius: 999px;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 900;
+      background: #eef3fb;
+      color: #234064;
+    }
+
+    .small { color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 900px) {
+      .card, .card.wide { grid-column: 1 / -1; }
+      .flow { grid-template-columns: 1fr; }
+      .step::after { content: "↓"; right: 50%; top: auto; bottom: -18px; }
+      .step:last-child::after { content: ""; }
+      section, .hero { padding: 22px; border-radius: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">PawDex 제품/확장 분석</p>
+      <h1>보호자 건강기록 앱에서 병원 연계 플랫폼으로 확장하기</h1>
+      <p>
+        현재 앱은 보호자가 반려동물의 증상, 진료, 입퇴원, 일상, 복약, 비용, 파일을 관리하는 개인 건강기록 중심입니다.
+        다음 단계는 병원과 보호자 사이의 데이터 공유, 예약, 응급 콜, 검사결과 전달, 수의사용 업무 도구를 붙여
+        “보호자 앱 + 병원용 웹/프로그램 + 커머스” 구조로 키우는 것이 가장 자연스럽습니다.
+      </p>
+    </header>
+
+    <nav class="nav">
+      <a href="#current">현재 앱 분석</a>
+      <a href="#roles">권한 분리</a>
+      <a href="#hospital">병원 연계</a>
+      <a href="#doctor-tool">의사용 창고</a>
+      <a href="#commerce">커머스</a>
+      <a href="#data">데이터 설계</a>
+      <a href="#roadmap">우선순위</a>
+    </nav>
+
+    <section id="current">
+      <h2>1. 현재 앱 분석</h2>
+      <p class="lead">
+        코드 기준으로 확인한 현재 제품은 Next.js 16, Supabase, Toss Payments, OpenAI, PubMed, Kakao Map, Web Push, PWA 구조입니다.
+        단순 기록장이 아니라 이미 구독/결제, 관리자, AI 분석, 알림, 파일 업로드까지 갖춘 모바일 웹앱에 가깝습니다.
+      </p>
+
+      <div class="grid">
+        <article class="card">
+          <span class="tag">보호자 기록</span>
+          <h3>건강기록이 핵심 자산</h3>
+          <ul>
+            <li>증상, 진료, 입퇴원, 일상 기록</li>
+            <li>반려동물별 기록 필터와 캘린더</li>
+            <li>진료비/체중 통계</li>
+            <li>첨부파일, 약, 복약 체크</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag green">AI 케어</span>
+          <h3>검색/분석 기능</h3>
+          <ul>
+            <li>증상 분석</li>
+            <li>사진 분석</li>
+            <li>논문 검색 및 분석</li>
+            <li>분석 결과 저장</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag orange">결제</span>
+          <h3>구독 기반 과금</h3>
+          <ul>
+            <li>Toss Payments 연동</li>
+            <li>자동결제 빌링키 흐름 구현</li>
+            <li>결제 이력, 환불, 구독 취소 API</li>
+            <li>단건 결제는 심사/준비 단계로 보임</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag violet">관리자</span>
+          <h3>운영 도구</h3>
+          <ul>
+            <li>관리자 대시보드</li>
+            <li>사용자/구독/활동 로그</li>
+            <li>저장소 사용량</li>
+            <li>알림 통계, 검색 로그</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag teal">병원 탐색</span>
+          <h3>오프라인 연결의 시작점</h3>
+          <ul>
+            <li>Kakao Map 기반 병원 찾기</li>
+            <li>최근 병원명 저장</li>
+            <li>기록 입력 시 병원명 연결 가능</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag red">현재 빈칸</span>
+          <h3>확장 전 필요한 영역</h3>
+          <ul>
+            <li>병원/의사 계정과 권한</li>
+            <li>보호자-병원 데이터 공유 동의</li>
+            <li>예약, 검사결과, 진단서 워크플로우</li>
+            <li>상품 판매자/구매자 페이지</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="note ok">
+        <strong>결론:</strong> 지금 앱은 보호자 쪽 기록 데이터가 이미 잘 쌓이는 구조입니다.
+        병원 연계는 새 앱을 따로 만드는 것보다, 현재 기록 데이터를 중심으로 “누가 어떤 범위까지 볼 수 있는가”를 추가하는 방식이 효율적입니다.
+      </div>
+    </section>
+
+    <section id="roles">
+      <h2>2. 보호자와 의사는 이렇게 나누는 것이 좋음</h2>
+      <p class="lead">
+        한 화면 안에서 보호자/의사 기능을 섞으면 개인정보, 진료 책임, 병원 운영 흐름이 꼬입니다.
+        계정 타입과 화면 진입점을 분리하고, 공유는 보호자의 명시 동의로만 열어야 합니다.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>역할</th>
+              <th>주요 목적</th>
+              <th>볼 수 있는 데이터</th>
+              <th>할 수 있는 일</th>
+              <th>추천 화면</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>보호자</strong></td>
+              <td>우리 아이 기록, 병원 공유, 예약, 구매</td>
+              <td>본인 반려동물 전체 기록, 병원이 보낸 검사결과/진단서/처방 안내</td>
+              <td>기록 작성, 병원 선택, 공유 승인/철회, 예약, 응급 콜, 상품 구매</td>
+              <td>기존 모바일 앱/PWA</td>
+            </tr>
+            <tr>
+              <td><strong>수의사</strong></td>
+              <td>진료 전후 정보 확인, 검사결과 전달, 예약/응급 대응</td>
+              <td>보호자가 공유한 반려동물 기록, 병원에서 생성한 문서</td>
+              <td>환자 타임라인 확인, 문서 업로드, 코멘트, 예약 상태 변경, 담당 수의사 지정</td>
+              <td>병원용 웹 대시보드</td>
+            </tr>
+            <tr>
+              <td><strong>병원 관리자</strong></td>
+              <td>병원 운영, 직원/상품/예약 관리</td>
+              <td>병원 소속 수의사, 예약, 병원 문서, 고객 요청</td>
+              <td>의사 계정 초대, 근무시간/예약 슬롯 설정, 병원 상품/공지 관리</td>
+              <td>병원 관리자 웹</td>
+            </tr>
+            <tr>
+              <td><strong>판매자</strong></td>
+              <td>상품 등록과 주문 처리</td>
+              <td>본인 상품, 주문/배송 정보</td>
+              <td>상품 등록, 상세 페이지 작성, 재고/가격/배송 관리</td>
+              <td>판매자 센터 웹</td>
+            </tr>
+            <tr>
+              <td><strong>PawDex 운영자</strong></td>
+              <td>전체 운영과 정산/CS</td>
+              <td>전체 통계, 신고, 결제, 병원/판매자 승인 상태</td>
+              <td>승인, 정산, 환불, 제재, 공지, 데이터 모니터링</td>
+              <td>기존 관리자 확장</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note risk">
+        <strong>주의점:</strong> 의사가 보호자 기록을 기본으로 전부 보는 구조는 피해야 합니다.
+        “보호자가 병원에 공유 요청 또는 병원이 초대 링크 발급 → 보호자가 동의 → 기간/범위 제한” 구조가 안전합니다.
+      </div>
+    </section>
+
+    <section id="hospital">
+      <h2>3. 병원 연계 시스템 구조</h2>
+      <p class="lead">
+        처음부터 병원 EMR 전체를 대체하려고 하면 범위가 너무 커집니다.
+        1차 목표는 병원과 보호자 사이에서 가장 자주 오가는 문서, 예약, 응급 요청, 기록 공유를 처리하는 것입니다.
+      </p>
+
+      <div class="flow">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>보호자 병원 선택</h3>
+          <p class="small">기존 병원 찾기/최근 병원 기능을 확장해 공식 병원 프로필을 연결합니다.</p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>공유 동의</h3>
+          <p class="small">반려동물, 기록 유형, 기간, 첨부파일 공개 여부를 보호자가 선택합니다.</p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>의사 확인</h3>
+          <p class="small">담당 수의사는 공유된 타임라인, 증상, 복약, 과거 진료비/검사 파일을 봅니다.</p>
+        </div>
+        <div class="step">
+          <span class="num">4</span>
+          <h3>진료 후 전달</h3>
+          <p class="small">진단서, 검사결과지, 처방/주의사항, 다음 예약을 병원에서 보호자 앱으로 보냅니다.</p>
+        </div>
+        <div class="step">
+          <span class="num">5</span>
+          <h3>보호자 기록화</h3>
+          <p class="small">받은 문서는 해당 반려동물의 진료 기록에 자동으로 묶입니다.</p>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:16px">
+        <article class="card wide">
+          <span class="tag green">MVP 추천</span>
+          <h3>먼저 만들 기능</h3>
+          <ul>
+            <li>병원 계정/수의사 계정 생성</li>
+            <li>보호자 기록 공유 링크 또는 QR 초대</li>
+            <li>병원 문서 업로드 후 보호자 앱 전송</li>
+            <li>담당 수의사 선택 예약</li>
+            <li>예약 확정/변경/취소 알림</li>
+          </ul>
+        </article>
+        <article class="card wide">
+          <span class="tag orange">2단계</span>
+          <h3>나중에 붙이면 좋은 기능</h3>
+          <ul>
+            <li>응급 콜 접수 및 병원 응답 가능 상태 표시</li>
+            <li>진료 전 문진표 자동 생성</li>
+            <li>병원별 사후관리 메시지 템플릿</li>
+            <li>검사결과 OCR/요약</li>
+            <li>진료 후 필요한 사료/약/용품 추천 구매 연결</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="doctor-tool">
+      <h2>4. “의사의 전용 창고”는 별도 제품처럼 설계</h2>
+      <p class="lead">
+        수의사들이 쓰는 웹 도구가 적다면, 단순 파일함이 아니라 “진료 중 바로 열 수 있는 환자 자료실 + 병원 문서 발송함”으로 만드는 것이 좋습니다.
+      </p>
+
+      <div class="grid">
+        <article class="card">
+          <span class="tag">환자 타임라인</span>
+          <h3>진료 전 빠른 파악</h3>
+          <ul>
+            <li>증상 발생일, 내원일, 입퇴원일</li>
+            <li>복약 이력과 알림 체크 상태</li>
+            <li>체중 변화, 진료비, 첨부 파일</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag teal">문서 보관함</span>
+          <h3>검사결과/진단서 전송</h3>
+          <ul>
+            <li>PDF, 이미지, 검사 데이터 업로드</li>
+            <li>보호자 앱으로 전송</li>
+            <li>문서 열람 여부 확인</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag violet">템플릿</span>
+          <h3>반복 업무 줄이기</h3>
+          <ul>
+            <li>수술 후 주의사항</li>
+            <li>예방접종 안내</li>
+            <li>재검 안내</li>
+            <li>복약 설명 템플릿</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag green">예약 보드</span>
+          <h3>담당 수의사 기준 관리</h3>
+          <ul>
+            <li>의사별 진료 가능 시간</li>
+            <li>예약 요청/확정/변경</li>
+            <li>응급 요청과 일반 예약 분리</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag orange">프로그램 설치형</span>
+          <h3>병원 PC용 선택지</h3>
+          <ul>
+            <li>웹을 먼저 만들고 필요 시 Electron/Tauri로 패키징</li>
+            <li>스캐너/로컬 파일 드래그 업로드가 중요할 때 유리</li>
+            <li>초기에는 설치형보다 웹 대시보드가 빠름</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="tag red">중요</span>
+          <h3>EMR 대체는 후순위</h3>
+          <ul>
+            <li>차트 전체 작성, 보험/청구, 재고/처방전까지 가면 범위가 커짐</li>
+            <li>초기에는 “보호자 공유/문서 발송/예약”에 집중</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="commerce">
+      <h2>5. 상품 판매 구조</h2>
+      <p class="lead">
+        로얄캐닌 총판 연결은 강한 진입 포인트입니다. 다만 병원 연계와 커머스를 섞을 때는 “진료 데이터 기반 추천”과 “일반 쇼핑”의 경계를 명확히 해야 신뢰가 유지됩니다.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>영역</th>
+              <th>필요 기능</th>
+              <th>기존 코드와 연결</th>
+              <th>우선순위</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>판매자 센터</strong></td>
+              <td>상품 등록, 이미지, 가격, 재고, 옵션, 배송정책, 상세 페이지 작성</td>
+              <td>관리자 구조를 확장하거나 별도 /seller 라우트 생성</td>
+              <td>높음</td>
+            </tr>
+            <tr>
+              <td><strong>구매자 쇼핑</strong></td>
+              <td>상품 목록, 상세, 장바구니, 바로구매, 주문내역</td>
+              <td>기존 Toss 결제 API를 단건 결제 승인 후 연결</td>
+              <td>높음</td>
+            </tr>
+            <tr>
+              <td><strong>정기배송</strong></td>
+              <td>사료 주기별 자동결제, 배송일 변경, 일시중지</td>
+              <td>이미 빌링키 흐름이 있어 확장 가능</td>
+              <td>높음</td>
+            </tr>
+            <tr>
+              <td><strong>병원 추천 상품</strong></td>
+              <td>담당 수의사가 특정 상품/식이 관리 안내를 보호자에게 공유</td>
+              <td>병원 문서/메시지 기능과 연결</td>
+              <td>중간</td>
+            </tr>
+            <tr>
+              <td><strong>정산</strong></td>
+              <td>판매자별 매출, 수수료, 환불, 배송비, 정산 상태</td>
+              <td>운영자 관리자에 정산 메뉴 추가</td>
+              <td>중간</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <strong>추천 판매 흐름:</strong> 처음에는 로얄캐닌 사료 중심으로 상품 수를 제한하고,
+        “반려동물 프로필 → 나이/체중/질환 태그 → 추천 사료 → 정기배송” 흐름을 만들면 기존 기록 앱과 연결성이 높습니다.
+      </div>
+    </section>
+
+    <section id="data">
+      <h2>6. 추가 데이터 설계 초안</h2>
+      <p class="lead">
+        현재 Supabase에는 profiles, pets, health_records, medications, record_files, subscriptions, payment_history 등이 있습니다.
+        여기에 병원/의사/공유/예약/문서/커머스 테이블을 추가하는 방향이 자연스럽습니다.
+      </p>
+
+      <div class="grid">
+        <article class="card wide">
+          <span class="tag teal">병원 연계</span>
+          <h3>추가 테이블 후보</h3>
+          <ul>
+            <li>hospitals: 병원 프로필, 주소, 연락처, 진료시간</li>
+            <li>hospital_members: 병원 소속 의사/직원/관리자 권한</li>
+            <li>veterinarians: 수의사 프로필, 전문 분야, 예약 가능 여부</li>
+            <li>care_shares: 보호자-병원 기록 공유 동의와 만료일</li>
+            <li>appointments: 예약 요청/확정/취소/담당 수의사</li>
+            <li>emergency_calls: 응급 요청, 상태, 응답자, 콜백 기록</li>
+            <li>medical_documents: 진단서/검사결과/주의사항 문서</li>
+          </ul>
+        </article>
+
+        <article class="card wide">
+          <span class="tag orange">커머스</span>
+          <h3>추가 테이블 후보</h3>
+          <ul>
+            <li>sellers: 판매자/총판 정보</li>
+            <li>products: 상품, 브랜드, 카테고리, 노출 상태</li>
+            <li>product_variants: 옵션, 가격, 재고, SKU</li>
+            <li>carts: 장바구니</li>
+            <li>orders: 주문, 결제, 배송, 환불 상태</li>
+            <li>order_items: 주문 상품 단위</li>
+            <li>recurring_deliveries: 정기배송 주기와 다음 결제일</li>
+            <li>seller_settlements: 판매자 정산</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="note risk">
+        <strong>개인정보/의료 리스크:</strong> 병원 연계부터는 민감정보 처리에 가까워집니다.
+        공유 범위, 동의 이력, 열람 로그, 철회 기능, 파일 접근 권한, 관리자 접근 로그를 반드시 남겨야 합니다.
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <h2>7. 추천 우선순위</h2>
+      <p class="lead">
+        지금 상태에서 가장 좋은 순서는 “기록 데이터의 병원 공유 → 병원 문서 발송 → 예약 → 커머스”입니다.
+        커머스를 먼저 크게 만들면 기존 앱의 핵심 가치와 분리될 수 있습니다.
+      </p>
+
+      <div class="priority">
+        <div class="badge">1순위</div>
+        <div>
+          <h3>병원/의사 계정과 보호자 공유 동의</h3>
+          <p class="small">병원 연계의 기초입니다. 이게 있어야 검사결과 공유, 예약, 응급 콜이 모두 안전하게 붙습니다.</p>
+        </div>
+      </div>
+
+      <div class="priority">
+        <div class="badge">2순위</div>
+        <div>
+          <h3>의사용 웹 대시보드 MVP</h3>
+          <p class="small">환자 검색, 공유된 기록 보기, 문서 업로드/전송, 예약 확인만 먼저 만듭니다. 설치형 프로그램은 웹이 검증된 뒤 패키징합니다.</p>
+        </div>
+      </div>
+
+      <div class="priority">
+        <div class="badge">3순위</div>
+        <div>
+          <h3>보호자 앱의 병원 탭 추가</h3>
+          <p class="small">담당 병원, 담당 수의사, 예약, 받은 문서, 공유 상태, 응급 콜을 한 화면에서 관리하게 합니다.</p>
+        </div>
+      </div>
+
+      <div class="priority">
+        <div class="badge">4순위</div>
+        <div>
+          <h3>로얄캐닌 중심 구매/정기배송</h3>
+          <p class="small">상품 수를 제한하고 결제/배송/주문내역을 안정화합니다. Toss 단건 결제 심사 완료 후 바로구매를 붙입니다.</p>
+        </div>
+      </div>
+
+      <div class="priority">
+        <div class="badge">5순위</div>
+        <div>
+          <h3>응급 콜과 병원 운영 자동화</h3>
+          <p class="small">병원 응답 가능 시간, 응급 요청 분류, 전화/채팅/알림 연동은 운영 부담이 커서 병원 MVP 이후가 좋습니다.</p>
+        </div>
+      </div>
+
+      <div class="pill-row">
+        <span class="pill">보호자 앱: 기록 + 공유 + 예약 + 구매</span>
+        <span class="pill">병원 웹: 환자 타임라인 + 문서 발송 + 예약 관리</span>
+        <span class="pill">운영자: 병원/판매자 승인 + 결제/정산 + 로그</span>
+        <span class="pill">판매자: 상품/재고/주문 관리</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PawDex 통합 전략 + 단가·물류 체크리스트</title>
+  <style>
+    :root {
+      --ink: #172033; --muted: #647086; --line: #dbe2ec; --soft: #f6f8fb;
+      --blue: #2368d9; --green: #187a5b; --orange: #b85d12; --red: #bc2f39;
+      --violet: #6654c7; --teal: #087b8f; --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif; color: var(--ink); background: #eef2f7; line-height: 1.58; }
+    .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    .hero { background: linear-gradient(135deg, #17365f 0%, #0f766e 100%); color: white; padding: 34px; border-radius: 18px; box-shadow: 0 20px 50px rgba(23,32,51,.16); }
+    .eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; opacity: .85; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 10px; font-size: clamp(28px, 4.6vw, 44px); line-height: 1.15; }
+    .hero p { max-width: 860px; margin-bottom: 0; color: rgba(255,255,255,.9); font-size: 17px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 26px; }
+    .nav a { color: #1b365f; background: var(--white); border: 1px solid var(--line); text-decoration: none; padding: 9px 12px; border-radius: 999px; font-size: 13px; font-weight: 750; }
+    section { margin-top: 22px; background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 26px; box-shadow: 0 10px 28px rgba(23,32,51,.06); }
+    h2 { margin-bottom: 16px; font-size: 24px; line-height: 1.25; }
+    h3 { margin-bottom: 8px; font-size: 16px; }
+    .lead { color: var(--muted); font-size: 15px; margin-bottom: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .card { grid-column: span 4; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 16px; min-height: 140px; }
+    .card.wide { grid-column: span 6; }
+    .card.full { grid-column: 1 / -1; }
+    .tag { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 800; margin-bottom: 10px; background: #e8eef9; color: var(--blue); }
+    .tag.green { background: #e7f4ef; color: var(--green); }
+    .tag.orange { background: #fff0df; color: var(--orange); }
+    .tag.red { background: #fdebed; color: var(--red); }
+    .tag.violet { background: #efedff; color: var(--violet); }
+    .tag.teal { background: #e4f5f7; color: var(--teal); }
+    ul, ol { margin: 8px 0 0 20px; padding: 0; }
+    li { margin: 5px 0; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 14px; text-align: left; vertical-align: top; }
+    th { background: #f2f5f9; color: #29344a; font-size: 13px; white-space: nowrap; }
+    tr:last-child td { border-bottom: 0; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .step { position: relative; border: 1px solid var(--line); background: #fbfcfe; border-radius: 12px; padding: 14px; min-height: 118px; }
+    .step::after { content: "→"; position: absolute; right: -13px; top: 42%; color: #8792a6; font-weight: 900; }
+    .step:last-child::after { content: ""; }
+    .num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: white; font-size: 12px; font-weight: 900; margin-bottom: 8px; }
+    .note { border-left: 4px solid var(--blue); background: #f3f7ff; padding: 14px 16px; border-radius: 10px; color: #253653; margin: 16px 0 0; }
+    .risk { border-left-color: var(--red); background: #fff5f6; }
+    .ok { border-left-color: var(--green); background: #effaf5; }
+    .checklist { list-style: none; margin: 8px 0 0; padding: 0; }
+    .checklist li { margin: 7px 0; padding-left: 26px; position: relative; }
+    .checklist li::before { content: "☐"; position: absolute; left: 0; color: var(--blue); font-weight: 900; }
+    .priority { display: grid; grid-template-columns: 92px 1fr; gap: 12px; border-bottom: 1px solid var(--line); padding: 14px 0; }
+    .priority:last-child { border-bottom: 0; padding-bottom: 0; }
+    .badge { height: fit-content; text-align: center; border-radius: 999px; padding: 6px 8px; font-size: 12px; font-weight: 900; background: #eef3fb; color: #234064; }
+    .badge.now { background: #e7f4ef; color: var(--green); }
+    .small { color: var(--muted); font-size: 13px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pill { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 750; color: #34415a; }
+    a { color: var(--blue); }
+    @media (max-width: 900px) {
+      .card, .card.wide { grid-column: 1 / -1; }
+      .flow { grid-template-columns: 1fr; }
+      .step::after { content: "↓"; right: 50%; top: auto; bottom: -18px; }
+      .step:last-child::after { content: ""; }
+      section, .hero { padding: 22px; border-radius: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">PawDex 통합 전략 v1 · 병원 + 사료 커머스 결합</p>
+      <h1>우리 아이 기록을 보고 골라주는 사료 — 정기배송으로 편하게, 건강 신뢰로 묶다</h1>
+      <p>
+        메인 매출은 로얄캐닌 사료(추천 → 구매 → 정기배송). 병원 연계·문서 보관은 추천의 신뢰와 기록 이동성을 높이는 보조 인프라.
+        핵심 무기는 "가격"이 아니라 <strong>기록 기반 추천 + 정기배송 편의 + 건강 데이터 락인</strong>. 쇼루밍(추천만 받고 타사 구매)을 정기배송과 데이터로 방어한다.
+      </p>
+    </header>
+
+    <nav class="nav">
+      <a href="#position">포지셔닝</a>
+      <a href="#loop">가치 루프</a>
+      <a href="#lockin">쇼루밍 방어</a>
+      <a href="#hospital">병원(보조)</a>
+      <a href="#unit">단가 체크리스트</a>
+      <a href="#logi">물류 체크리스트</a>
+      <a href="#legal">법·규제</a>
+      <a href="#roadmap">로드맵</a>
+      <a href="#kpi">핵심질문·KPI</a>
+    </nav>
+
+    <section id="position">
+      <h2>1. 포지셔닝 — "최저가" 버린다</h2>
+      <p class="lead">쿠팡·펫프렌즈 상대로 가격은 못 이긴다. 가격을 앞세우면 마진만 깎이고 지는 싸움. 차별화는 끝까지 "추천·편의·신뢰".</p>
+      <div class="grid">
+        <article class="card">
+          <span class="tag green">한 줄 메시지</span>
+          <h3>이렇게 말한다</h3>
+          <p class="small">"우리 아이 기록을 보고 맞는 사료를 골라주고, 떨어질 때쯤 알아서 보내주는 — 건강을 아는 사료 정기배송."</p>
+        </article>
+        <article class="card">
+          <span class="tag red">이렇게 말하지 않는다</span>
+          <ul>
+            <li>"최저가" / "가장 싸게"</li>
+            <li>"AI가 진단·처방"</li>
+            <li>"이 사료가 치료"</li>
+          </ul>
+        </article>
+        <article class="card">
+          <span class="tag">정체성 유지</span>
+          <h3>헬스 신뢰가 자산</h3>
+          <p class="small">사료몰로 무게중심이 옮겨가도 "건강 기록 신뢰"가 추천의 근거. 광고처럼 보이면 추천이 죽는다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="loop">
+      <h2>2. 가치 루프 (해자의 본질)</h2>
+      <p class="lead">단품 기능 나열이 아니라, 데이터가 돌면서 갈수록 강해지는 루프가 PawDex만의 무기.</p>
+      <div class="flow">
+        <div class="step"><span class="num">1</span><h3>기록</h3><p class="small">증상·진료·체중·복약·검사결과 + 프로필(종/나이/중성화/알러지)</p></div>
+        <div class="step"><span class="num">2</span><h3>추천</h3><p class="small">기록 기반 사료 후보(일반/기능/처방 분리) + 근거 + 급여·소진일 계산</p></div>
+        <div class="step"><span class="num">3</span><h3>구매·정기배송</h3><p class="small">첫 구매(쿠폰 넛지) → 소진일 맞춘 자동배송 전환</p></div>
+        <div class="step"><span class="num">4</span><h3>피드백</h3><p class="small">기호성·변상태·체중·알러지 반응 기록</p></div>
+        <div class="step"><span class="num">5</span><h3>개선·결합</h3><p class="small">다음 추천 정밀화 + 병원문서/응급카드/Plus 결합</p></div>
+      </div>
+      <div class="note ok"><strong>핵심:</strong> 4·5번(피드백·데이터)이 쌓일수록 쿠팡이 못 따라하는 "우리 아이를 아는" 상태가 됨 = 진짜 락인.</div>
+    </section>
+
+    <section id="lockin">
+      <h2>3. 쇼루밍 방어 — "추천만 받고 타사 구매" 막기</h2>
+      <p class="lead">같은 로얄캐닌(커머디티)이라 추천만으론 약하다. 쿠폰만으론 못 이긴다(마진 싸움 패배). 락인은 강도 순으로 설계.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>락인 수단</th><th>강도</th><th>역할</th><th>주의</th></tr></thead>
+          <tbody>
+            <tr><td><strong>쿠폰/할인</strong></td><td>약</td><td>첫 구매·첫 정기배송 <strong>전환 넛지(1회성)</strong></td><td>상시 할인 X — 마진만 깎임, 따라하기 쉬움</td></tr>
+            <tr><td><strong>적립금</strong></td><td>중</td><td>앱 전용·Plus 전환 가능 적립 → 재방문 유도</td><td>현금 환급 X (앱 안에서만)</td></tr>
+            <tr><td><strong>정기배송(autoship)</strong></td><td>강</td><td>소진일 자동관리 → <strong>비교를 멈추게 함</strong> (Chewy 해자)</td><td>품절·가격변경 사전알림 필수</td></tr>
+            <tr><td><strong>데이터 루프 + 건강결합</strong></td><td>최강</td><td>피드백→추천개선, "정기배송=Plus 무료" 결합</td><td>장기·복리 효과 (당장은 약함)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>퍼널:</strong> 추천(신뢰) → 첫구매(쿠폰 넛지) → <strong>정기배송 전환(락인)</strong> → 피드백(이탈방지) → 건강결합. 쿠폰은 "습관을 시작시키는 1회용 점화", 유지는 편의·데이터로.</div>
+      <div class="note ok"><strong>가격은 "최저가" 말고 "합리적 + 알아서 챙겨줌".</strong> 정기배송 할인으로 "쿠팡과 비슷하거나 약간 저렴 + 자동" 포지션이면 충분.</div>
+    </section>
+
+    <section id="hospital">
+      <h2>4. 병원 연계 — 메인 아님, "신뢰·이동성" 보조 인프라</h2>
+      <p class="lead">병원 EMR 대체 X. 보호자-병원 사이 문서·예약·기록이동만. 비용 적고 가치 큰 것부터.</p>
+      <div class="grid">
+        <article class="card wide">
+          <span class="tag teal">계약 병원 (쓰기 권한)</span>
+          <ul>
+            <li>병원 웹툴: 보호자 연결(QR) → 검사결과·진단서 전송</li>
+            <li>담당 수의사 예약 슬롯</li>
+            <li>동의된 기록 열람</li>
+          </ul>
+        </article>
+        <article class="card wide">
+          <span class="tag orange">비계약 병원 (보호자 주도 읽기) ★싸고 강함</span>
+          <ul>
+            <li>24h 임시 링크 / QR / PDF 내보내기</li>
+            <li>응급 패키지(최근기록+약+알러지+검사결과)</li>
+            <li>열람 로그 + 즉시 철회</li>
+          </ul>
+        </article>
+      </div>
+      <div class="note"><strong>우선순위 조정:</strong> 계약병원 웹툴(B2B 영업·교육 부담 큼)보다 <strong>비계약 내보내기(영업 0, 클라이언트만)</strong>를 먼저. 병원 없어도 앱 쓸 이유 = 리텐션.</div>
+    </section>
+
+    <section id="unit">
+      <h2>5. 💰 단가(Unit Economics) 체크리스트 — 빌드 전 필수</h2>
+      <p class="lead">사료 커머스는 앱 기능이 아니라 유통·마진 사업. 아래가 안 풀리면 만들어도 적자.</p>
+      <div class="grid">
+        <article class="card wide">
+          <span class="tag">건당 손익 (봉지 1개 기준)</span>
+          <ul class="checklist">
+            <li>총판 공급가(원가) — 제품/용량별</li>
+            <li>판매가 — 쿠팡 대비 ±몇 %로 둘지</li>
+            <li>= 매출총이익 = 판매가 − 공급가</li>
+            <li>− 결제수수료 (Toss 약 2~3%)</li>
+            <li>− 배송비 (누가 부담? 고객/우리/무료기준)</li>
+            <li>− 포장·운영·CS 분담</li>
+            <li>− 쿠폰/적립 비용</li>
+            <li><strong>= 건당 실마진 (양수인가?)</strong></li>
+          </ul>
+        </article>
+        <article class="card wide">
+          <span class="tag green">사업 단위</span>
+          <ul class="checklist">
+            <li>월 손익분기 주문 수</li>
+            <li>정기배송 할인율 → 마진 영향 시뮬</li>
+            <li>CAC(고객획득비, 광고/쿠폰 포함)</li>
+            <li>LTV = 정기배송 유지 개월 × 건당 마진</li>
+            <li>LTV &gt; CAC 배수 (목표 3배+)</li>
+            <li>정기배송 전환율 / 이탈율(churn) 가정</li>
+            <li>객단가 + 재구매 주기</li>
+          </ul>
+        </article>
+      </div>
+      <div class="note risk"><strong>경고:</strong> 단일 브랜드(로얄캐닌)만 팔면 "맞춤 추천"이 "어떤 로얄캐닌?"이 됨 = 로얄캐닌 자사 도구와 차별 약함 + "팔 것만 추천" 신뢰 문제. <strong>멀티 브랜드 확보 여부를 마진과 함께 결정.</strong></div>
+    </section>
+
+    <section id="logi">
+      <h2>6. 🚚 물류·운영 체크리스트</h2>
+      <div class="grid">
+        <article class="card wide">
+          <span class="tag orange">풀필먼트</span>
+          <ul class="checklist">
+            <li>주체: 총판 드롭십 / 직재고 / 3PL 중 무엇</li>
+            <li>재고·품절 동기화 (총판 재고 API 있나?)</li>
+            <li>배송 리드타임 / 택배사 / 송장 흐름</li>
+            <li>정기배송 출고 스케줄 자동화</li>
+            <li>가격·품절 변경 시 고객 사전알림</li>
+          </ul>
+        </article>
+        <article class="card wide">
+          <span class="tag violet">운영·CS·정산</span>
+          <ul class="checklist">
+            <li>반품/교환/환불 흐름 + 비용 부담 주체</li>
+            <li>CS 채널·응대 (배송·변심·파손)</li>
+            <li>정산: 총판↔PawDex↔(판매자) 주기·수수료</li>
+            <li>주문 상태 추적 (결제/출고/배송/완료)</li>
+            <li>운영 인력 — 누가 이 운영을 감당?</li>
+          </ul>
+        </article>
+      </div>
+      <div class="note"><strong>가장 쉬운 시작:</strong> 총판 <strong>드롭십(우리가 재고 0)</strong> + 정기배송부터. 재고·창고·3PL은 검증 후.</div>
+    </section>
+
+    <section id="legal">
+      <h2>7. ⚖️ 법·규제 체크리스트</h2>
+      <ul class="checklist">
+        <li>통신판매업 신고</li>
+        <li>전자상거래법: 사업자정보·청약철회·교환반품 고지 의무</li>
+        <li>사료관리법: 사료 표시사항 (수입/제조사 등)</li>
+        <li>결제: Toss 단건결제 심사 완료 (현재 진행 중) — 일반구매 전제 / 정기배송은 빌링으로 선행 가능</li>
+        <li>마켓플레이스화 시: 통신판매중개 + 에스크로/정산</li>
+        <li>병원 연계: 수의사법(원격진료 X, 진단/처방은 수의사) + 개인정보보호법(민감정보 동의·암호화·열람로그·철회)</li>
+        <li>AI 추천: 치료·진단 단정 금지, "수의사 상담 권장" 표기</li>
+      </ul>
+    </section>
+
+    <section id="roadmap">
+      <h2>8. 통합 로드맵 (지금 되는 것부터)</h2>
+      <p class="lead">단건결제 심사에 막히지 않게, 지금 되는 정기배송(빌링)과 영업 0짜리 내보내기를 앞으로.</p>
+      <div class="priority"><div class="badge">0순위</div><div><h3>단가·물류·총판 조건 확정</h3><p class="small">위 체크리스트로 "건당 남는가"부터. 여기서 사업 성립 여부 결정. 코드보다 먼저.</p></div></div>
+      <div class="priority"><div class="badge">1순위</div><div><h3>로얄캐닌 카탈로그 + 상품/상세</h3><p class="small">상품·옵션·가격·재고·생애주기/질환 태그. 총판 1곳 전용 판매자 관리부터 작게.</p></div></div>
+      <div class="priority"><div class="badge now">2순위 · 지금 됨</div><div><h3>정기배송(빌링) + 소진일 계산</h3><p class="small">이미 있는 Toss 빌링 확장. 단건 승인 없이 매출 검증 가능. 쇼루밍 방어 핵심.</p></div></div>
+      <div class="priority"><div class="badge">3순위</div><div><h3>AI 사료 추천 엔진</h3><p class="small">프로필·기록·AI 분석 → 카탈로그 태그 매칭. 추천은 카탈로그 안에서만. 근거+상담표시.</p></div></div>
+      <div class="priority"><div class="badge">4순위</div><div><h3>일반구매(단건) + 장바구니</h3><p class="small">Toss 단건 승인 후 바로구매·주문내역. 추천 영역과 일반 쇼핑 분리.</p></div></div>
+      <div class="priority"><div class="badge now">5순위 · 영업 0</div><div><h3>병원 내보내기/응급 공유 카드</h3><p class="small">24h 링크·QR·PDF. 계약 병원 없어도 가치 + 리텐션. 클라이언트 중심이라 가벼움.</p></div></div>
+      <div class="priority"><div class="badge">6순위</div><div><h3>병원찾기 하단 액션 패널 + 제휴 배지</h3><p class="small">지도 2/3 + 예약/전화/길찾기/기록공유/문서함. 제휴 병원 기능형 홍보.</p></div></div>
+      <div class="priority"><div class="badge">7순위</div><div><h3>A 병원 1곳 문서전송 MVP → 예약/응급콜</h3><p class="small">계약병원 깊은 연동은 1곳 검증 후. 운영 부담 커서 가장 뒤.</p></div></div>
+      <div class="pill-row">
+        <span class="pill">메인: 기록 기반 추천 + 정기배송</span>
+        <span class="pill">락인: autoship + 데이터 + 건강결합</span>
+        <span class="pill">리텐션: 응급 내보내기(영업0)</span>
+        <span class="pill">확장: 계약병원 문서·예약</span>
+      </div>
+    </section>
+
+    <section id="kpi">
+      <h2>9. 성패를 가를 핵심 질문 + KPI</h2>
+      <div class="grid">
+        <article class="card wide">
+          <span class="tag red">먼저 답해야 할 질문</span>
+          <ol>
+            <li>풀필먼트 주체 + <strong>건당 실마진</strong>은?</li>
+            <li>단일 브랜드로 "추천 신뢰" 서나? (멀티 필요?)</li>
+            <li>구매자 = 기존 헬스 유저 전환 vs 신규 고객?</li>
+            <li>헬스 정체성 흔들림 없이 사료몰 결합 가능?</li>
+          </ol>
+        </article>
+        <article class="card wide">
+          <span class="tag green">추적할 KPI</span>
+          <ul>
+            <li>추천 → 첫구매 전환율</li>
+            <li>첫구매 → <strong>정기배송 전환율</strong> (가장 중요)</li>
+            <li>정기배송 유지(churn) / LTV</li>
+            <li>재구매 주기·객단가</li>
+            <li>응급 내보내기/문서함 사용률(리텐션 지표)</li>
+          </ul>
+        </article>
+      </div>
+      <div class="note ok"><strong>결론:</strong> 사료 방향은 매출이 더 빠르지만 <strong>사업 난이도(유통·마진·운영)는 더 높다.</strong> 0순위(단가·물류) 검증 후, "지금 되는 정기배송 + 영업0 내보내기"로 가볍게 시작 → 데이터·매출 보고 병원·일반구매 확장.</div>
+    </section>
+  </main>
+</body>
+</html>

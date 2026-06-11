@@ -27,7 +27,7 @@ const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', href: '/records' },
   { icon: Calendar, label: '캘린더', color: 'text-green-500', href: '/records?tab=calendar' },
   { icon: Scale, label: '체중 관리', color: 'text-emerald-500', href: '/records/stats?tab=weight' },
-  { icon: Wallet, label: '의료비', color: 'text-[#00687a]', href: '/records/stats?tab=cost' },
+  { icon: Wallet, label: '의료비', color: 'text-[#00687a]', href: '/records/expenses' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {

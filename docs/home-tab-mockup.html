@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>홈 탭 강조 비교</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #eef2f7; line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    color: #172033;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .sub { color: #647086; font-size: 14px; margin: 0 0 24px; }
+  .row { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+  .col { width: 300px; }
+  .label { text-align: center; font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+  .desc { text-align: center; color: #647086; font-size: 12px; margin: 0 0 12px; min-height: 32px; }
+
+  /* phone frame */
+  .phone {
+    background: #fff; border: 1px solid #dbe2ec; border-radius: 26px;
+    overflow: hidden; box-shadow: 0 14px 36px rgba(23,32,51,.12);
+  }
+  .screen { height: 300px; background: #f6f8fb; padding: 18px 16px; position: relative; }
+  .screen .scr-h { font-size: 15px; font-weight: 800; color: #29344a; margin-bottom: 14px; }
+  .ph { background: #fff; border: 1px solid #e8edf4; border-radius: 12px; height: 56px; margin-bottom: 10px; }
+  .ph.tall { height: 92px; }
+
+  /* nav */
+  .nav {
+    display: flex; align-items: center; justify-content: space-around;
+    background: #fff; border-top: 1px solid #eef1f5;
+    padding: 8px 6px; box-shadow: 0 -2px 10px rgba(0,0,0,.05);
+    position: relative;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .tab .t { font-size: 10px; font-weight: 600; color: #6b7280; }
+  /* sibling colors (inactive light tint) */
+  .c-search { background: #dbeafe; color: #2563eb; }
+  .c-rec    { background: #d1fae5; color: #059669; }
+  .c-map    { background: #ffe4e6; color: #e11d48; }
+  .c-my     { background: #fef3c7; color: #d97706; }
+  .c-home-soft { background: #ccfbf1; color: #0d9488; } /* 강조없음: 형제와 동일 톤 */
+
+  svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* 약한 강조: 채운 색 (형제는 옅은 톤) — 같은 크기/위치 */
+  .home-weak .ic { background: #0d9488; color: #fff; }
+  .home-weak .t { color: #0d9488; font-weight: 800; }
+
+  /* 강한 강조: 떠오른 큰 원 (FAB) */
+  .home-strong .ic {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #0d9488; color: #fff; margin-top: -26px;
+    box-shadow: 0 8px 18px rgba(13,148,136,.45); border: 4px solid #fff;
+  }
+  .home-strong svg { width: 24px; height: 24px; }
+  .home-strong .t { color: #0d9488; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>하단 탭 — 홈 강조 3가지 비교</h1>
+  <p class="sub">검색 · 건강기록장 · <b>홈</b> · 병원찾기 · 마이페이지 (홈 가운데). 아래에서 강조 정도를 비교하세요.</p>
+
+  <div class="row">
+    <!-- 강조 없음 -->
+    <div class="col">
+      <div class="label">① 강조 없음</div>
+      <p class="desc">홈이 다른 탭과 완전히 동일.<br>가장 차분하지만 덜 눈에 띔.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="scr-h">건강 기록장</div>
+          <div class="ph tall"></div><div class="ph"></div><div class="ph"></div>
+        </div>
+        <nav class="nav">
+          <div class="tab"><div class="ic c-search"><svg><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><span class="t">검색</span></div>
+          <div class="tab"><div class="ic c-rec"><svg><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/></svg></div><span class="t">기록장</span></div>
+          <div class="tab"><div class="ic c-home-soft"><svg><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="t">홈</span></div>
+          <div class="tab"><div class="ic c-map"><svg><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><span class="t">병원찾기</span></div>
+          <div class="tab"><div class="ic c-my"><svg><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="t">마이</span></div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 약한 강조 -->
+    <div class="col">
+      <div class="label">② 약한 강조 (추천)</div>
+      <p class="desc">홈만 채운 색(형제는 옅은 톤).<br>크기·위치 그대로 — 자연스럽게 눈에 띔.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="scr-h">건강 기록장</div>
+          <div class="ph tall"></div><div class="ph"></div><div class="ph"></div>
+        </div>
+        <nav class="nav">
+          <div class="tab"><div class="ic c-search"><svg><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><span class="t">검색</span></div>
+          <div class="tab"><div class="ic c-rec"><svg><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/></svg></div><span class="t">기록장</span></div>
+          <div class="tab home-weak"><div class="ic"><svg><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="t">홈</span></div>
+          <div class="tab"><div class="ic c-map"><svg><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><span class="t">병원찾기</span></div>
+          <div class="tab"><div class="ic c-my"><svg><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="t">마이</span></div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 강한 강조 -->
+    <div class="col">
+      <div class="label">③ 강한 강조</div>
+      <p class="desc">홈이 큰 원으로 떠오름(FAB).<br>가장 눈에 띄지만 다소 무거움.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="scr-h">건강 기록장</div>
+          <div class="ph tall"></div><div class="ph"></div><div class="ph"></div>
+        </div>
+        <nav class="nav">
+          <div class="tab"><div class="ic c-search"><svg><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><span class="t">검색</span></div>
+          <div class="tab"><div class="ic c-rec"><svg><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/></svg></div><span class="t">기록장</span></div>
+          <div class="tab home-strong"><div class="ic"><svg><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="t">홈</span></div>
+          <div class="tab"><div class="ic c-map"><svg><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><span class="t">병원찾기</span></div>
+          <div class="tab"><div class="ic c-my"><svg><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="t">마이</span></div>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <p class="sub" style="text-align:center; margin-top:28px">
+    ※ 홈 색은 PawDex 브랜드 톤(틸)로 예시. 원하면 다른 색으로 바꿀 수 있어요.
+  </p>
+</div>
+</body>
+</html>

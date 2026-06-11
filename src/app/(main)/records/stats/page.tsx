@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import type { MetricType } from '@/lib/healthMetrics';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { supabase, Pet, HealthRecord, WeightLog } from '@/lib/supabase';
+import { supabase, Pet, WeightLog } from '@/lib/supabase';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 
-type StatsTab = 'cost' | 'weight' | 'water' | 'food' | 'fluid';
+type StatsTab = 'weight' | 'water' | 'food' | 'fluid';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -47,13 +47,6 @@ function getEndDate(period: Period, customEnd?: string): Date {
   return new Date();
 }
 
-function formatCost(cost: number): string {
-  return new Intl.NumberFormat('ko-KR').format(cost) + '원';
-}
-
-function formatMonthLabel(year: number, month: number): string {
-  return `${year}년 ${month + 1}월`;
-}
 
 // Sample data for chart: 1month=all, 3month=7day interval, year+=monthly
 function sampleForChart(data: { date: string; weight: number }[], period: Period): { date: string; weight: number }[] {
@@ -148,12 +141,13 @@ export default function StatsPage() {
   const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
   const maxMonths = planConfig.costStatsMonths;
 
-  const [tab, setTab] = useState<StatsTab>('cost');
+  const [tab, setTab] = useState<StatsTab>('weight');
   // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 URL 접근이 빌드 시점 서버 값으로
   // 굳어 클라이언트 쿼리를 못 읽음 → 마운트 후 useEffect 로 ?tab=weight 직통 처리.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
-    if (t && ['weight', 'water', 'food', 'fluid', 'cost'].includes(t)) setTab(t as StatsTab);
+    if (t === 'cost') { router.replace('/records/expenses'); return; }
+    if (t && ['weight', 'water', 'food', 'fluid'].includes(t)) setTab(t as StatsTab);
   }, []);
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
@@ -196,38 +190,10 @@ export default function StatsPage() {
       });
   }, [user]);
 
-  const { records, loading } = useHealthRecords(selectedPetId);
+  const { records } = useHealthRecords(selectedPetId);
   const startDate = getStartDate(period, customStart);
   const endDate = getEndDate(period, customEnd);
 
-  // ─── Cost data ──────────────────────
-  const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      if (!r.cost || r.cost <= 0) return false;
-      const d = new Date(r.visit_date);
-      return d >= startDate && d <= endDate;
-    });
-  }, [records, startDate, endDate]);
-
-  const stats = useMemo(() => {
-    let total = 0;
-    for (const r of filteredRecords) total += r.cost!;
-    return { total, count: filteredRecords.length };
-  }, [filteredRecords]);
-
-  const monthlyGroups = useMemo(() => {
-    const map = new Map<string, { label: string; total: number; records: HealthRecord[] }>();
-    for (const r of filteredRecords) {
-      const d = new Date(r.visit_date);
-      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, records: [] });
-      const group = map.get(key)!;
-      group.total += r.cost!;
-      group.records.push(r);
-    }
-    for (const group of map.values()) group.records.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
-  }, [filteredRecords]);
 
   // ─── Weight data ──────────────────────
   const fetchWeightLogs = useCallback(async () => {
@@ -390,7 +356,6 @@ export default function StatsPage() {
         </header>
         <div className="flex max-w-sm mx-auto">
           {([
-            { id: 'cost', label: '의료비', Icon: Wallet },
             { id: 'weight', label: '체중', Icon: Scale },
             { id: 'water', label: '음수', Icon: Droplet },
             { id: 'food', label: '식사', Icon: Utensils },
@@ -408,12 +373,6 @@ export default function StatsPage() {
         {/* Pet filter */}
         {pets.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto">
-            {tab === 'cost' && (
-              <button onClick={() => setSelectedPetId(undefined)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                전체
-              </button>
-            )}
             {pets.map((pet) => (
               <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
@@ -440,66 +399,6 @@ export default function StatsPage() {
             </div>
             <p className="text-[11px] text-gray-400 mt-1">시작/종료 날짜를 자유롭게 선택하세요</p>
           </div>
-        )}
-
-        {/* ═══ COST TAB ═══ */}
-        {tab === 'cost' && (
-          <>
-            {(!petsLoaded || loading) ? (
-              <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-blue-50 rounded-xl p-3 text-center">
-                    <Wallet size={18} className="mx-auto text-blue-500 mb-1" />
-                    <p className="text-[10px] text-blue-400 font-medium">총 의료비</p>
-                    <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.total > 0 ? formatCost(stats.total) : '-'}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                    <Stethoscope size={18} className="mx-auto text-emerald-500 mb-1" />
-                    <p className="text-[10px] text-emerald-400 font-medium">지출 건수</p>
-                    <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
-                  </div>
-                </div>
-
-                {monthlyGroups.length > 0 ? (
-                  <div className="space-y-4">
-                    {monthlyGroups.map((group) => (
-                      <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
-                          <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
-                          <span className="text-sm font-bold text-blue-600">{formatCost(group.total)}</span>
-                        </div>
-                        <div className="divide-y divide-gray-50">
-                          {group.records.map((record) => (
-                            <button key={record.id} onClick={() => router.push(`/records/${record.id}`)}
-                              className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-400 flex-shrink-0">
-                                    {new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                                  </span>
-                                  {!selectedPetId && record.pets && <span className="text-[11px] text-gray-400 flex-shrink-0">{record.pets.name}</span>}
-                                  {record.hospital_name && <span className="text-[11px] text-gray-400 truncate">{record.hospital_name}</span>}
-                                </div>
-                                <p className="text-sm text-gray-800 truncate mt-0.5">{record.title}</p>
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(record.cost!)}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-                    <p className="text-gray-400 text-sm">해당 기간에 비용 기록이 없습니다.</p>
-                  </div>
-                )}
-              </>
-            )}
-          </>
         )}
 
         {/* ═══ WEIGHT TAB ═══ */}

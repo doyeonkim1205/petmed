@@ -209,6 +209,7 @@ export function MetricTracker({
             <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
               inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
           </div>
+          <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
             <button onClick={() => setShowInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
             <button onClick={handleAdd} disabled={!newValue || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>

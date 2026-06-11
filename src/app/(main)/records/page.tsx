@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, ChevronRight, Trash2, CheckSquare, X } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -332,21 +332,32 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              <button
-                onClick={() => router.push('/records/stats')}
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100 mb-1"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Wallet size={16} className="text-blue-600" />
+              <div className="flex gap-2 mb-1">
+                <button
+                  onClick={() => router.push('/records/stats')}
+                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 border border-blue-100"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <Activity size={15} className="text-blue-600" />
                   </div>
-                  <div className="text-left">
+                  <div className="text-left min-w-0">
                     <p className="text-sm font-bold text-gray-800">건강 통계</p>
-                    <p className="text-xs text-blue-400">의료비 · 체중 관리</p>
+                    <p className="text-[11px] text-blue-400 truncate">체중·음수·식사</p>
                   </div>
-                </div>
-                <ChevronRight size={14} className="text-blue-400" />
-              </button>
+                </button>
+                <button
+                  onClick={() => router.push('/records/expenses')}
+                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-100"
+                >
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Wallet size={15} className="text-amber-600" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-sm font-bold text-gray-800">의료비</p>
+                    <p className="text-[11px] text-amber-500 truncate">지출 내역</p>
+                  </div>
+                </button>
+              </div>
               {filteredRecords.map((record) => (
                 <RecordCard
                   key={record.id}
