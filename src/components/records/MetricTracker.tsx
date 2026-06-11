@@ -218,7 +218,7 @@ export function MetricTracker({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {/* 요약 카드 */}
       <div className="rounded-xl border border-gray-100 p-4 flex items-center justify-between">
         <div>
