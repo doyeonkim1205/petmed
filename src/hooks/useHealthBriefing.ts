@@ -69,7 +69,7 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
       .limit(MAX_PETS),
     supabase
       .from('health_records')
-      .select('pet_id, visit_date, weight')
+      .select('pet_id, visit_date, weight, created_at')
       .eq('user_id', userId),
     supabase
       .from('health_records')
@@ -79,7 +79,7 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
       .not('next_appointment_date', 'is', null),
     supabase
       .from('weight_logs')
-      .select('pet_id, weight, measured_at')
+      .select('pet_id, weight, measured_at, created_at')
       .eq('user_id', userId),
   ]);
 
@@ -105,26 +105,29 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
   }
 
   // 펫별 weight_logs 최신 — measured_at desc 기준. 동률이면 그 중 한 값 (정렬 없이도 OK).
-  const latestWeightLogByPet = new Map<string, { weight: number; measuredAt: string }>();
+  const latestWeightLogByPet = new Map<string, { weight: number; measuredAt: string; createdAt: string }>();
   for (const w of weightLogs) {
     const weight = (w as { weight?: number | null }).weight;
     if (weight === null || weight === undefined) continue;
     const cur = latestWeightLogByPet.get(w.pet_id);
     const measuredAt = (w.measured_at as string).split('T')[0];
-    if (!cur || measuredAt > cur.measuredAt) {
-      latestWeightLogByPet.set(w.pet_id, { weight: Number(weight), measuredAt });
+    const createdAt = (w as { created_at?: string }).created_at || '';
+    // 같은 날짜면 created_at(마지막 입력) 우선 — stats 의 '최신 체중'과 일치.
+    if (!cur || measuredAt > cur.measuredAt || (measuredAt === cur.measuredAt && createdAt > cur.createdAt)) {
+      latestWeightLogByPet.set(w.pet_id, { weight: Number(weight), measuredAt, createdAt });
     }
   }
 
   // 펫별 records.weight 최신 — visit_date desc 기준. weight 가 null 인 행은 skip.
-  const latestRecordWeightByPet = new Map<string, { weight: number; visitDate: string }>();
+  const latestRecordWeightByPet = new Map<string, { weight: number; visitDate: string; createdAt: string }>();
   for (const r of records) {
     const weight = (r as { weight?: number | null }).weight;
     if (weight === null || weight === undefined) continue;
     const cur = latestRecordWeightByPet.get(r.pet_id);
     const visitDate = (r.visit_date as string).split('T')[0];
-    if (!cur || visitDate > cur.visitDate) {
-      latestRecordWeightByPet.set(r.pet_id, { weight: Number(weight), visitDate });
+    const createdAt = (r as { created_at?: string }).created_at || '';
+    if (!cur || visitDate > cur.visitDate || (visitDate === cur.visitDate && createdAt > cur.createdAt)) {
+      latestRecordWeightByPet.set(r.pet_id, { weight: Number(weight), visitDate, createdAt });
     }
   }
 
