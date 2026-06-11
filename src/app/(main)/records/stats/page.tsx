@@ -366,9 +366,9 @@ export default function StatsPage() {
         </header>
 
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
-        <div className="absolute right-2 top-[50px] z-20 w-52">
+        <div className="absolute right-2 top-[50px] z-20 w-64">
           <OnboardHint storageKey="hint_stats_filter" pointer="right"
-            text="여기서 보고 싶은 지표(체중·음수량·식사·수액)를 고를 수 있어요." />
+            text={"여기서 보고 싶은 지표\n(체중 음수량 식사 수액)를 고를 수가 있어요."} />
         </div>
 
         {/* 표시 지표 설정 팝오버 */}
