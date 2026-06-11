@@ -1,16 +1,31 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, Lock } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, Lock, Plus } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { supabase, Pet, HealthRecord } from '@/lib/supabase';
+import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
+import { todayLocalISO } from '@/lib/date';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
+
+type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string };
+
+// 기록 cost + 직접 입력 지출을 한 형태로 병합한 항목.
+type Item = {
+  key: string;
+  source: 'record' | 'direct';
+  id: string;
+  date: string;       // YYYY-MM-DD
+  amount: number;
+  title: string;
+  hospital?: string;
+  petName?: string;
+};
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
   { id: 'month', label: '1개월', months: 1 },
@@ -57,6 +72,15 @@ export default function ExpensesPage() {
   const [petsLoaded, setPetsLoaded] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
 
+  // 직접 입력 의료비
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [showAddInput, setShowAddInput] = useState(false);
+  const [newReason, setNewReason] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const [newDate, setNewDate] = useState(todayLocalISO());
+  const [saving, setSaving] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+
   const periodOptions = allPeriodOptions.filter((p) => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter((p) => p.months > maxMonths);
 
@@ -74,35 +98,77 @@ export default function ExpensesPage() {
     });
   }, [user]);
 
+  const fetchExpenses = useCallback(async () => {
+    if (!user) return;
+    let q = supabase.from('expenses').select('*').eq('user_id', user.id).eq('category', 'medical');
+    if (selectedPetId) q = q.eq('pet_id', selectedPetId);
+    const { data } = await q;
+    setExpenses((data as Expense[]) || []);
+  }, [user, selectedPetId]);
+
+  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+
   const { records, loading } = useHealthRecords(selectedPetId);
   const startDate = getStartDate(period, customStart);
   const endDate = getEndDate(period, customEnd);
 
-  const filteredRecords = useMemo(() => records.filter((r) => {
-    if (!r.cost || r.cost <= 0) return false;
-    const d = new Date(r.visit_date);
-    return d >= startDate && d <= endDate;
-  }), [records, startDate, endDate]);
+  // 기록 cost + 직접 입력 병합 (기간 필터)
+  const items = useMemo<Item[]>(() => {
+    const out: Item[] = [];
+    for (const r of records) {
+      if (!r.cost || r.cost <= 0) continue;
+      const d = new Date(r.visit_date);
+      if (d < startDate || d > endDate) continue;
+      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], amount: r.cost, title: r.title, hospital: r.hospital_name, petName: r.pets?.name });
+    }
+    for (const e of expenses) {
+      const d = new Date(e.spent_at);
+      if (d < startDate || d > endDate) continue;
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || '의료비', petName: pets.find((p) => p.id === e.pet_id)?.name });
+    }
+    return out;
+  }, [records, expenses, startDate, endDate, pets]);
 
   const stats = useMemo(() => {
     let total = 0;
-    for (const r of filteredRecords) total += r.cost!;
-    return { total, count: filteredRecords.length };
-  }, [filteredRecords]);
+    for (const it of items) total += it.amount;
+    return { total, count: items.length };
+  }, [items]);
 
   const monthlyGroups = useMemo(() => {
-    const map = new Map<string, { label: string; total: number; records: HealthRecord[] }>();
-    for (const r of filteredRecords) {
-      const d = new Date(r.visit_date);
+    const map = new Map<string, { label: string; total: number; items: Item[] }>();
+    for (const it of items) {
+      const d = new Date(it.date);
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, records: [] });
+      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, items: [] });
       const g = map.get(key)!;
-      g.total += r.cost!;
-      g.records.push(r);
+      g.total += it.amount;
+      g.items.push(it);
     }
-    for (const g of map.values()) g.records.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
+    for (const g of map.values()) g.items.sort((a, b) => b.date.localeCompare(a.date));
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
-  }, [filteredRecords]);
+  }, [items]);
+
+  // 추가 시 대상 펫 — 선택된 펫 or 1마리면 그 펫. 다마리 미선택이면 null(선택 요구).
+  const resolvedPetId = selectedPetId || (pets.length === 1 ? pets[0].id : null);
+
+  const handleAddExpense = async () => {
+    if (!user || !resolvedPetId || !newAmount) return;
+    const amount = Math.min(Math.max(0, Math.round(Number(newAmount) || 0)), 100000000);
+    if (!amount) return;
+    const today = todayLocalISO();
+    const date = newDate > today ? today : newDate;
+    setSaving(true);
+    await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: 'medical', reason: newReason.trim() || '의료비', amount, spent_at: date });
+    setNewReason(''); setNewAmount(''); setShowAddInput(false); setSaving(false);
+    fetchExpenses();
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    await supabase.from('expenses').delete().eq('id', id);
+    setSelectedExpenseId(null);
+    fetchExpenses();
+  };
 
   return (
     <div className="bg-white min-h-full pb-20">
@@ -167,6 +233,37 @@ export default function ExpensesPage() {
               </div>
             </div>
 
+            {/* 의료비 직접 추가 */}
+            {showAddInput ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                {!resolvedPetId ? (
+                  <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
+                ) : null}
+                <input type="text" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
+                  onChange={(e) => setNewReason(e.target.value)} maxLength={50} autoComplete="off"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                <div className="flex gap-2">
+                  <input type="text" inputMode="numeric" placeholder="금액(원)" value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="off"
+                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                  <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
+                    inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowAddInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+                  <button onClick={handleAddExpense} disabled={!newAmount || !resolvedPetId || saving}
+                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddInput(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors">
+                <Plus size={16} /> 의료비 추가
+              </button>
+            )}
+
             {monthlyGroups.length > 0 ? (
               <div className="space-y-4">
                 {monthlyGroups.map((group) => (
@@ -176,20 +273,43 @@ export default function ExpensesPage() {
                       <span className="text-sm font-bold text-blue-600">{formatCost(group.total)}</span>
                     </div>
                     <div className="divide-y divide-gray-50">
-                      {group.records.map((record) => (
-                        <button key={record.id} onClick={() => router.push(`/records/${record.id}`)}
-                          className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
-                          <div className="min-w-0 flex-1">
+                      {group.items.map((it) => {
+                        const dateLabel = new Date(it.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                        const head = (
+                          <>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400 flex-shrink-0">{new Date(record.visit_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
-                              {!selectedPetId && record.pets && <span className="text-[11px] text-gray-400 flex-shrink-0">{record.pets.name}</span>}
-                              {record.hospital_name && <span className="text-[11px] text-gray-400 truncate">{record.hospital_name}</span>}
+                              <span className="text-xs text-gray-400 flex-shrink-0">{dateLabel}</span>
+                              {!selectedPetId && it.petName && <span className="text-[11px] text-gray-400 flex-shrink-0">{it.petName}</span>}
+                              {it.source === 'record' && it.hospital && <span className="text-[11px] text-gray-400 truncate">{it.hospital}</span>}
+                              {it.source === 'direct' && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded flex-shrink-0">직접 입력</span>}
                             </div>
-                            <p className="text-sm text-gray-800 truncate mt-0.5">{record.title}</p>
+                            <p className="text-sm text-gray-800 truncate mt-0.5">{it.title}</p>
+                          </>
+                        );
+                        if (it.source === 'record') {
+                          return (
+                            <button key={it.key} onClick={() => router.push(`/records/${it.id}`)}
+                              className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
+                              <div className="min-w-0 flex-1">{head}</div>
+                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(it.amount)}</span>
+                            </button>
+                          );
+                        }
+                        const sel = selectedExpenseId === it.id;
+                        return (
+                          <div key={it.key} onClick={() => setSelectedExpenseId(sel ? null : it.id)}
+                            className={`w-full flex items-center justify-between py-3 px-4 transition-colors text-left ${sel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
+                            <div className="min-w-0 flex-1">{head}</div>
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                              <span className="text-sm font-semibold text-gray-700">{formatCost(it.amount)}</span>
+                              {sel && (
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteExpense(it.id); }}
+                                  className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">삭제</button>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(record.cost!)}</span>
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -197,7 +317,7 @@ export default function ExpensesPage() {
             ) : (
               <div className="text-center py-16">
                 <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">해당 기간에 비용 기록이 없습니다.</p>
+                <p className="text-gray-400 text-sm">해당 기간에 의료비 기록이 없습니다.</p>
               </div>
             )}
           </>
