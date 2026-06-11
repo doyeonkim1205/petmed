@@ -103,13 +103,20 @@ export function MetricTracker({
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  // 적정량 기준 체중 — 최신 체중 기록(weight_logs) 우선, 없으면 펫 프로필 체중.
-  //   체중을 '체중 기록'으로만 입력하고 프로필(pets.weight)엔 없을 때도 적정량이 뜨도록.
+  // 적정량 기준 체중 — weight_logs(체중 기록 탭) + health_records(기록장 체중) 중 가장 최근 값,
+  //   둘 다 없으면 펫 프로필(pets.weight). 어디에 입력해도 적정량이 뜨도록.
   useEffect(() => {
-    supabase.from('weight_logs').select('weight').eq('pet_id', pet.id)
-      .order('measured_at', { ascending: false }).order('created_at', { ascending: false }).limit(1)
-      .maybeSingle()
-      .then(({ data }) => setLoggedWeight(data ? Number((data as { weight: number }).weight) : null));
+    (async () => {
+      const [wl, rec] = await Promise.all([
+        supabase.from('weight_logs').select('weight, measured_at').eq('pet_id', pet.id).gt('weight', 0).order('measured_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('health_records').select('weight, visit_date').eq('pet_id', pet.id).gt('weight', 0).order('visit_date', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      const cands: { w: number; d: string }[] = [];
+      if (wl.data) cands.push({ w: Number((wl.data as { weight: number }).weight), d: String((wl.data as { measured_at: string }).measured_at).split('T')[0] });
+      if (rec.data) cands.push({ w: Number((rec.data as { weight: number }).weight), d: String((rec.data as { visit_date: string }).visit_date).split('T')[0] });
+      cands.sort((a, b) => b.d.localeCompare(a.d));
+      setLoggedWeight(cands.length ? cands[0].w : null);
+    })();
   }, [pet.id]);
   const effWeight = loggedWeight ?? (pet.weight || 0);
   const target = useMemo(() => metricTargetRange(metricType, pet.type, effWeight), [metricType, pet.type, effWeight]);
@@ -130,7 +137,11 @@ export function MetricTracker({
 
   // 차트용 — 달력 연속(빈 날도 칸 유지). 1개월=일별 / 3개월=주평균 / 그 외=월평균. (한국=DST 없음 → 86400000ms=1일 안전)
   const daily = useMemo<Daily[]>(() => {
+    if (dayTotals.size === 0) return [];
     const start = new Date(startDate); start.setHours(0, 0, 0, 0);
+    // 데이터 있는 첫 날부터 시작 — 그 이전 빈 구간(기간 시작~첫 기록)은 안 그림.
+    const firstLogged = new Date(`${[...dayTotals.keys()].sort()[0]}T00:00:00`);
+    if (firstLogged > start) start.setTime(firstLogged.getTime());
     const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
     const end = (endDate < todayD ? new Date(endDate) : todayD); end.setHours(0, 0, 0, 0);
     if (end < start) return [];
