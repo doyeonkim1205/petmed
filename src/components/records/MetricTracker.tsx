@@ -134,7 +134,8 @@ export function MetricTracker({
   const todayPct = target && todayTotal > 0 ? Math.round((todayTotal / ((target.low + target.high) / 2)) * 100) : null;
 
   const handleAdd = async () => {
-    const v = Math.round(Math.min(Math.max(0, Number(newValue) || 0), 100000));
+    // 최대 5자리 + 소수점 2자리 (예: 99999.99)
+    const v = Math.round(Math.min(Math.max(0, Number(newValue) || 0), 99999.99) * 100) / 100;
     if (!v) return;
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
@@ -199,10 +200,14 @@ export function MetricTracker({
           <div className="flex gap-2">
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder={meta.placeholder}
               value={newValue}
-              onChange={(e) => setNewValue(e.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(e) => {
+                const v = e.target.value;
+                // 정수 최대 5자리 + 소수점 둘째자리까지
+                if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
+              }}
               autoComplete="off"
               className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white"
             />
