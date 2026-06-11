@@ -104,33 +104,71 @@ export function MetricTracker({
 
   const target = useMemo(() => metricTargetRange(metricType, pet.type, pet.weight || 0), [metricType, pet.type, pet.weight]);
 
-  // 기간 필터 + 날짜별 합산 → 기간에 따라 평균 버킷팅
-  const daily = useMemo<Daily[]>(() => {
+  const todayStr = todayLocalISO();
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  // 기간 내 날짜별 합산 (입력 있는 날만)
+  const dayTotals = useMemo(() => {
     const map = new Map<string, number>();
     for (const log of logs) {
-      const d = String(log.measured_at).split('T')[0];
-      const dt = new Date(d);
-      if (dt >= startDate && dt <= endDate) map.set(d, (map.get(d) || 0) + Number(log.value));
+      const key = String(log.measured_at).split('T')[0];
+      const dt = new Date(`${key}T00:00:00`);
+      if (dt >= startDate && dt <= endDate) map.set(key, (map.get(key) || 0) + Number(log.value));
     }
-    let arr = [...map.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date));
-    // 장기간: 주/월 평균 (일별 막대 과다 방지)
-    if (arr.length > 31 && period !== 'month') {
-      const buckets = new Map<string, { sum: number; n: number; date: string }>();
-      for (const d of arr) {
-        const key = period === '3month' ? String(Math.floor(new Date(d.date).getTime() / (7 * 86400000))) : d.date.substring(0, 7);
-        const b = buckets.get(key) || { sum: 0, n: 0, date: d.date };
-        b.sum += d.value; b.n += 1; b.date = d.date;
-        buckets.set(key, b);
-      }
-      arr = [...buckets.values()].map((b) => ({ date: b.date, value: Math.round(b.sum / b.n) }));
-    }
-    return arr;
-  }, [logs, startDate, endDate, period]);
+    return map;
+  }, [logs, startDate, endDate]);
 
-  // 오늘 총량 + 기간 일평균
-  const todayStr = todayLocalISO();
+  // 차트용 — 달력 연속(빈 날도 칸 유지). 1개월=일별 / 3개월=주평균 / 그 외=월평균. (한국=DST 없음 → 86400000ms=1일 안전)
+  const daily = useMemo<Daily[]>(() => {
+    const start = new Date(startDate); start.setHours(0, 0, 0, 0);
+    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+    const end = (endDate < todayD ? new Date(endDate) : todayD); end.setHours(0, 0, 0, 0);
+    if (end < start) return [];
+    const spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    const gran: 'day' | 'week' | 'month' =
+      period === 'month' ? 'day'
+        : period === '3month' ? 'week'
+          : period === 'custom' ? (spanDays <= 45 ? 'day' : spanDays <= 180 ? 'week' : 'month')
+            : 'month';
+    const out: Daily[] = [];
+    if (gran === 'day') {
+      for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
+        const key = ymd(new Date(t));
+        out.push({ date: key, value: Math.round(dayTotals.get(key) || 0) });
+      }
+    } else if (gran === 'week') {
+      const ws = new Date(start); ws.setDate(ws.getDate() - ws.getDay()); // 그 주 일요일
+      for (let t = ws.getTime(); t <= end.getTime(); t += 7 * 86400000) {
+        let sum = 0, cnt = 0;
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(t + i * 86400000);
+          if (d < start || d > end) continue;
+          const v = dayTotals.get(ymd(d));
+          if (v != null) { sum += v; cnt += 1; }
+        }
+        out.push({ date: ymd(new Date(t)), value: cnt ? Math.round(sum / cnt) : 0 });
+      }
+    } else {
+      let my = start.getFullYear(), mm = start.getMonth();
+      while (my < end.getFullYear() || (my === end.getFullYear() && mm <= end.getMonth())) {
+        let sum = 0, cnt = 0;
+        for (const [key, v] of dayTotals) {
+          const d = new Date(`${key}T00:00:00`);
+          if (d.getFullYear() === my && d.getMonth() === mm) { sum += v; cnt += 1; }
+        }
+        out.push({ date: `${my}-${String(mm + 1).padStart(2, '0')}-01`, value: cnt ? Math.round(sum / cnt) : 0 });
+        mm += 1; if (mm > 11) { mm = 0; my += 1; }
+      }
+    }
+    return out;
+  }, [dayTotals, startDate, endDate, period]);
+
+  // 오늘 총량 + 기간 일평균(입력한 날 기준 — 빈 날 제외)
   const todayTotal = useMemo(() => logs.filter((l) => String(l.measured_at).split('T')[0] === todayStr).reduce((s, l) => s + Number(l.value), 0), [logs, todayStr]);
-  const avg = daily.length > 0 ? Math.round(daily.reduce((s, d) => s + d.value, 0) / daily.length) : 0;
+  const avg = useMemo(() => {
+    const vals = [...dayTotals.values()];
+    return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
+  }, [dayTotals]);
   const todayPct = target && todayTotal > 0 ? Math.round((todayTotal / ((target.low + target.high) / 2)) * 100) : null;
 
   const handleAdd = async () => {
