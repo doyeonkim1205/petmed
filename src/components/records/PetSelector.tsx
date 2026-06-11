@@ -51,8 +51,9 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
     fetchPets();
   }, [userId]);
 
-  // Don't render until loaded; if loaded and no pets, hide
-  if (!loaded || pets.length === 0) return null;
+  // 로딩 전엔 숨김. 0~1마리면 필터가 의미 없어 숨김 (건강통계·의료비와 동일).
+  // pets 는 내부에서 로드해 onPetsLoaded 로 개수는 보고하므로 부모 카운트엔 영향 없음.
+  if (!loaded || pets.length <= 1) return null;
 
   // 펫 ≤ 4마리: 가운데 정렬 (미관). 5마리+ : 왼쪽 정렬 (justify-center 면 양쪽 잘림).
   const alignClass = pets.length <= 4 ? 'justify-center' : '';
