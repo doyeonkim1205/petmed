@@ -46,9 +46,8 @@ for (let h = 0; h < 24; h++) {
 }
 
 // 일상 세부 종류 — add 페이지와 동일한 정의. 호환 위해 동일 순서 유지.
+// 식사·수분은 건강 통계로 일원화 — 폼 선택지 제외(타입·표시 라벨엔 유지, 기존 기록 호환).
 const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'meal',      label: '식사', icon: Utensils       },
-  { id: 'hydration', label: '수분', icon: Droplet        },
   { id: 'walk',      label: '산책', icon: Footprints     },
   { id: 'poop',      label: '배변', icon: CircleDot      },
   { id: 'mood',      label: '기분', icon: Smile          },
@@ -662,9 +661,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              세부 종류 <span className="text-gray-400 font-normal text-xs">(여러 개 선택 가능)</span>
+              세부 종류 <span className="text-gray-400 font-normal text-xs">(선택)</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
                 const selected = selectedSubKinds.includes(sk.id);
