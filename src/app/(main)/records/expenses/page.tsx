@@ -10,6 +10,7 @@ import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { OnboardHint } from '@/components/ui/OnboardHint';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -171,13 +172,19 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="bg-white min-h-full pb-20">
+    <div className="relative bg-white min-h-full pb-20">
       <header className="relative flex items-center justify-center px-4 h-[60px] bg-white sticky top-0 z-10">
         <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
       </header>
+
+      {/* 안내 말풍선 — '의료비' 제목 바로 아래 오버레이 (자리 안 마련, 겹침 허용) */}
+      <div className="absolute left-1/2 top-[54px] z-20 w-[88%] max-w-xs -translate-x-1/2">
+        <OnboardHint storageKey="hint_expense_record" pointer="center"
+          text="기록장(진료·입퇴원)에 적은 진료비·입원비도 자동으로 여기에 모여요." />
+      </div>
 
       {/* Pet filter — 제목 아래 밴드 (건강 통계와 동일) */}
       {pets.length > 1 && (
