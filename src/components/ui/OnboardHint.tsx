@@ -5,18 +5,10 @@ import { X } from 'lucide-react';
 
 /**
  * 첫 방문 안내 말풍선 — X(닫기) 누르면 localStorage 에 기록해 다시 안 뜸.
+ * 사진 분석 툴팁과 동일한 다크(gray-900) 스타일.
  *   storageKey: 안내별 고유 키 (예: 'hint_stats_filter')
- *   pointer: 위쪽 삼각형 위치 (가리킬 대상 방향). 'none' 이면 삼각형 없음.
  */
-export function OnboardHint({
-  storageKey,
-  text,
-  pointer = 'left',
-}: {
-  storageKey: string;
-  text: string;
-  pointer?: 'left' | 'right' | 'none';
-}) {
+export function OnboardHint({ storageKey, text }: { storageKey: string; text: string }) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -33,16 +25,11 @@ export function OnboardHint({
   };
 
   return (
-    <div className="relative">
-      {pointer !== 'none' && (
-        <span className={`absolute -top-1 ${pointer === 'right' ? 'right-5' : 'left-5'} w-2.5 h-2.5 rotate-45 bg-indigo-600`} />
-      )}
-      <div className="relative flex items-start gap-2 bg-indigo-600 text-white rounded-xl px-3 py-2.5 shadow-md">
-        <p className="flex-1 text-[12px] leading-snug break-keep break-words">{text}</p>
-        <button onClick={dismiss} aria-label="닫기" className="flex-shrink-0 -mr-0.5 -mt-0.5 p-0.5 text-white/80 hover:text-white active:scale-90 transition">
-          <X size={14} />
-        </button>
-      </div>
+    <div className="flex items-start gap-2 bg-gray-900 text-white text-[11px] leading-relaxed rounded-md py-2 pl-2.5 pr-2 shadow-lg">
+      <p className="flex-1 break-keep break-words">{text}</p>
+      <button onClick={dismiss} aria-label="닫기" className="flex-shrink-0 text-white/60 hover:text-white active:scale-90 transition">
+        <X size={13} />
+      </button>
     </div>
   );
 }

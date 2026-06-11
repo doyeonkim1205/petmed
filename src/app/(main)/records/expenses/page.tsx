@@ -193,7 +193,7 @@ export default function ExpensesPage() {
       )}
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        <OnboardHint storageKey="hint_expense_record" pointer="none"
+        <OnboardHint storageKey="hint_expense_record"
           text="기록장(진료·입퇴원)에 적은 진료비·입원비도 자동으로 여기에 모여요." />
 
         {(!petsLoaded || loading) ? (
