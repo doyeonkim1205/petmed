@@ -117,12 +117,12 @@ export default function ExpensesPage() {
     const out: Item[] = [];
     for (const r of records) {
       if (!r.cost || r.cost <= 0) continue;
-      const d = new Date(r.visit_date);
+      const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00'); // 로컬 자정 (UTC 파싱 함정 회피)
       if (d < startDate || d > endDate) continue;
       out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], amount: r.cost, title: r.title, hospital: r.hospital_name, petName: r.pets?.name });
     }
     for (const e of expenses) {
-      const d = new Date(e.spent_at);
+      const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00'); // 로컬 자정
       if (d < startDate || d > endDate) continue;
       out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || '의료비', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
@@ -138,7 +138,7 @@ export default function ExpensesPage() {
   const monthlyGroups = useMemo(() => {
     const map = new Map<string, { label: string; total: number; items: Item[] }>();
     for (const it of items) {
-      const d = new Date(it.date);
+      const d = new Date(it.date + 'T00:00:00');
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
       if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, items: [] });
       const g = map.get(key)!;

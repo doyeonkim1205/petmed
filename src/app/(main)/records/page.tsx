@@ -319,19 +319,9 @@ export default function RecordsPage() {
                 다시 시도
               </button>
             </div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-20">
-              <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 text-sm">아직 기록이 없습니다.</p>
-              <p className="text-gray-300 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
-            </div>
-          ) : filteredRecords.length === 0 ? (
-            <div className="text-center py-20">
-              <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 text-sm">해당 유형의 기록이 없습니다.</p>
-            </div>
           ) : (
             <>
+              {/* 건강 통계·의료비 — 기록 없어도 항상 노출 (기능 발견성) */}
               <div className="flex gap-2 mb-1">
                 <button
                   onClick={() => router.push('/records/stats')}
@@ -348,17 +338,30 @@ export default function RecordsPage() {
                   <p className="text-[13px] font-bold text-gray-700">의료비</p>
                 </button>
               </div>
-              {filteredRecords.map((record) => (
-                <RecordCard
-                  key={record.id}
-                  record={record}
-                  onClick={() => router.push(`/records/${record.id}`)}
-                  selectMode={selectMode}
-                  selected={selectedIds.has(record.id)}
-                  onSelect={toggleSelect}
-                  onLongPress={handleLongPress}
-                />
-              ))}
+              {records.length === 0 ? (
+                <div className="text-center py-16">
+                  <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-gray-400 text-sm">아직 기록이 없습니다.</p>
+                  <p className="text-gray-300 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
+                </div>
+              ) : filteredRecords.length === 0 ? (
+                <div className="text-center py-16">
+                  <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-gray-400 text-sm">해당 유형의 기록이 없습니다.</p>
+                </div>
+              ) : (
+                filteredRecords.map((record) => (
+                  <RecordCard
+                    key={record.id}
+                    record={record}
+                    onClick={() => router.push(`/records/${record.id}`)}
+                    selectMode={selectMode}
+                    selected={selectedIds.has(record.id)}
+                    onSelect={toggleSelect}
+                    onLongPress={handleLongPress}
+                  />
+                ))
+              )}
             </>
           )}
         </div>
