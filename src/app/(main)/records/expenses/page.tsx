@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope } from 'lucide-react';
-import { PeriodDropdown } from '@/components/records/PeriodDropdown';
+import { ArrowLeft, Wallet, Stethoscope, Lock } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -107,14 +106,12 @@ export default function ExpensesPage() {
 
   return (
     <div className="bg-white min-h-full pb-20">
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100">
-        <header className="relative flex items-center justify-center px-4 h-[60px] max-w-sm mx-auto">
-          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
-        </header>
-      </div>
+      <header className="relative flex items-center justify-center px-4 h-[60px] bg-white sticky top-0 z-10">
+        <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
+      </header>
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
         {/* Pet filter */}
@@ -130,13 +127,18 @@ export default function ExpensesPage() {
         )}
 
         {/* Period selector */}
-        <PeriodDropdown
-          value={period}
-          options={periodOptions}
-          lockedOptions={lockedOptions}
-          onChange={(id) => setPeriod(id as Period)}
-          onLocked={() => router.push('/profile/subscription')}
-        />
+        <div className="flex gap-1.5 overflow-x-auto">
+          {periodOptions.map((opt) => (
+            <button key={opt.id} onClick={() => setPeriod(opt.id)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
+          ))}
+          {lockedOptions.map((opt) => (
+            <button key={opt.id} onClick={() => router.push('/profile/subscription')}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
+              <Lock size={11} />{opt.label}
+            </button>
+          ))}
+        </div>
 
         {period === 'custom' && (
           <div className="flex gap-2 items-center">

@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
-import { PeriodDropdown } from '@/components/records/PeriodDropdown';
 import type { MetricType } from '@/lib/healthMetrics';
 import { getEnabledStatsTabs, setEnabledStatsTabs, ALL_METRIC_TABS, STATS_TAB_LABELS, type MetricTabId } from '@/lib/statsTabPrefs';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -351,13 +350,13 @@ export default function StatsPage() {
     <div className="bg-white min-h-full pb-20">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white relative">
-        <header className="relative flex items-center justify-center px-4 h-[60px] max-w-sm mx-auto">
+        <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-sm font-semibold text-gray-700">건강 통계</h1>
           <button onClick={() => setShowTabSettings((v) => !v)} className="absolute right-2 p-2 text-gray-400" aria-label="표시 지표 설정">
-            <SlidersHorizontal size={18} />
+            <SlidersHorizontal size={16} />
           </button>
         </header>
 
@@ -365,15 +364,15 @@ export default function StatsPage() {
         {showTabSettings && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowTabSettings(false)} />
-            <div className="absolute right-3 top-[54px] z-40 w-44 bg-white border border-gray-200 rounded-xl shadow-lg p-2">
-              <p className="text-[11px] text-gray-400 px-2 pt-1 pb-1.5 break-keep break-words">표시할 지표</p>
+            <div className="absolute right-3 top-[52px] z-40 w-28 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
+              <p className="text-[10px] text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
               {ALL_METRIC_TABS.map((id) => {
                 const on = enabledTabs.includes(id);
                 return (
                   <button key={id} onClick={() => toggleStatTab(id)}
-                    className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 text-sm">
+                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-gray-50 text-xs">
                     <span className={on ? 'text-gray-800 font-medium' : 'text-gray-400'}>{STATS_TAB_LABELS[id]}</span>
-                    {on && <Check size={15} className="text-blue-600" />}
+                    {on && <Check size={13} className="text-blue-600" />}
                   </button>
                 );
               })}
@@ -408,14 +407,19 @@ export default function StatsPage() {
           </div>
         )}
 
-        {/* Period selector (shared) */}
-        <PeriodDropdown
-          value={period}
-          options={periodOptions}
-          lockedOptions={lockedOptions}
-          onChange={(id) => setPeriod(id as Period)}
-          onLocked={() => router.push('/profile/subscription')}
-        />
+        {/* Period selector (chips) */}
+        <div className="flex gap-1.5 overflow-x-auto">
+          {periodOptions.map((p) => (
+            <button key={p.id} onClick={() => setPeriod(p.id)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{p.label}</button>
+          ))}
+          {lockedOptions.map((p) => (
+            <button key={p.id} onClick={() => router.push('/profile/subscription')}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
+              <Lock size={11} />{p.label}
+            </button>
+          ))}
+        </div>
 
         {period === 'custom' && (
           <div>
