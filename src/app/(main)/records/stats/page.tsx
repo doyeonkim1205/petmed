@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowLeft, Wallet, Stethoscope, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe } from 'lucide-react';
+import { MetricTracker } from '@/components/records/MetricTracker';
+import type { MetricType } from '@/lib/healthMetrics';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -11,7 +13,8 @@ import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 
-type StatsTab = 'cost' | 'weight';
+type StatsTab = 'cost' | 'weight' | 'water' | 'food' | 'fluid';
+const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
@@ -150,7 +153,7 @@ export default function StatsPage() {
   // 굳어 클라이언트 쿼리를 못 읽음 → 마운트 후 useEffect 로 ?tab=weight 직통 처리.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
-    if (t === 'weight') setTab('weight');
+    if (t && ['weight', 'water', 'food', 'fluid', 'cost'].includes(t)) setTab(t as StatsTab);
   }, []);
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
@@ -386,14 +389,18 @@ export default function StatsPage() {
           <h1 className="text-sm font-semibold text-gray-700">건강 통계</h1>
         </header>
         <div className="flex max-w-sm mx-auto">
-          <button onClick={() => setTab('cost')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === 'cost' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
-            <Wallet size={14} />의료비
-          </button>
-          <button onClick={() => setTab('weight')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === 'weight' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
-            <Scale size={14} />체중
-          </button>
+          {([
+            { id: 'cost', label: '의료비', Icon: Wallet },
+            { id: 'weight', label: '체중', Icon: Scale },
+            { id: 'water', label: '음수', Icon: Droplet },
+            { id: 'food', label: '식사', Icon: Utensils },
+            { id: 'fluid', label: '수액', Icon: Syringe },
+          ] as const).map(({ id, label, Icon }) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+              <Icon size={13} />{label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -645,6 +652,28 @@ export default function StatsPage() {
             )}
           </>
         )}
+
+        {/* ═══ METRIC TABS (음수/식사/수액) ═══ */}
+        {METRIC_TABS.includes(tab as MetricType) && user && (() => {
+          const selPet = selectedPetId ? pets.find((p) => p.id === selectedPetId) : (pets.length === 1 ? pets[0] : null);
+          if (!selPet) {
+            return (
+              <div className="rounded-xl border border-gray-100 py-10 text-center text-sm text-gray-400 break-keep break-words">
+                반려동물을 선택해주세요
+              </div>
+            );
+          }
+          return (
+            <MetricTracker
+              userId={user.id}
+              pet={selPet}
+              metricType={tab as MetricType}
+              period={period}
+              startDate={startDate}
+              endDate={endDate}
+            />
+          );
+        })()}
       </div>
     </div>
   );
