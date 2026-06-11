@@ -48,12 +48,11 @@ function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low:
           <line x1={PX} y1={yOf(target.low)} x2={W - PX} y2={yOf(target.low)} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.55" />
         </>
       )}
-      {/* 막대 (적정범위 벗어나면 경고색) */}
+      {/* 막대 — 지표 색 (적정범위는 띠로만 표시) */}
       {data.map((d, i) => {
         const cx = PX + slot * i + slot / 2;
         const y = yOf(d.value);
-        const out = target && (d.value < target.low || d.value > target.high);
-        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={out ? '#f59e0b' : color} />;
+        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={color} />;
       })}
       {labelIdx.map((idx) => (
         <text key={idx} x={PX + slot * idx + slot / 2} y={H - 5} textAnchor="middle" fontSize="9" fill="#9ca3af">
@@ -170,7 +169,7 @@ export function MetricTracker({
         </div>
         <div className="text-right">
           {todayPct !== null && (
-            <span className={`text-xs font-bold px-2 py-1 rounded-full ${todayPct < 80 ? 'bg-amber-100 text-amber-600' : todayPct > 120 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+            <span className={`text-xs font-bold px-2 py-1 rounded-full ${todayPct < 80 || todayPct > 120 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
               권장 대비 {todayPct}%
             </span>
           )}
@@ -185,7 +184,7 @@ export function MetricTracker({
           <MetricBarChart data={daily} target={target} color={meta.color} />
           {target && (
             <p className="text-[10px] text-gray-400 text-center mt-2 break-keep break-words">
-              연한 띠 = 적정 범위({target.low}~{target.high}{meta.unit}) · 벗어난 날은 주황 막대 · 참고용이며 개체차가 있어요
+              연한 띠 = 적정 범위({target.low}~{target.high}{meta.unit}) · 참고용이며 개체차가 있어요
             </p>
           )}
         </div>

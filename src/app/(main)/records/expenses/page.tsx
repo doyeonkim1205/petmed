@@ -234,31 +234,31 @@ export default function ExpensesPage() {
 
             {/* 의료비 직접 추가 */}
             {showAddInput ? (
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
                 {!resolvedPetId ? (
                   <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
                 ) : null}
                 <input type="text" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50} autoComplete="off"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                 <div className="flex gap-2">
                   <input type="text" inputMode="numeric" placeholder="금액(원)" value={newAmount}
                     onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="off"
-                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                   <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setShowAddInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
                   <button onClick={handleAddExpense} disabled={!newAmount || !resolvedPetId || saving}
-                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
+                    className="flex-1 py-2.5 bg-gray-700 text-white rounded-lg text-sm font-medium disabled:opacity-40">
                     {saving ? '저장 중...' : '저장'}
                   </button>
                 </div>
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors">
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors">
                 <Plus size={16} /> 의료비 추가
               </button>
             )}
