@@ -240,7 +240,7 @@ export function MetricTracker({
       {/* 그래프 */}
       {dayTotals.size > 0 ? (
         <div className="rounded-xl border border-gray-100 p-4">
-          <h2 className="text-sm font-bold text-gray-700 mb-2">{meta.label} 추세</h2>
+          <h2 className="text-sm font-bold text-gray-700 mb-2">{meta.label} 변화</h2>
           <MetricBarChart data={daily} target={target} color={meta.color} />
           {target && (
             <p className="text-[10px] text-gray-400 text-center mt-2 break-keep break-words">
