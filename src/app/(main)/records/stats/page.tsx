@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, Filter, Check } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import type { MetricType } from '@/lib/healthMetrics';
 import { getEnabledStatsTabs, setEnabledStatsTabs, ALL_METRIC_TABS, STATS_TAB_LABELS, type MetricTabId } from '@/lib/statsTabPrefs';
@@ -361,13 +361,13 @@ export default function StatsPage() {
           </button>
           <h1 className="text-sm font-semibold text-gray-700">건강 통계</h1>
           <button onClick={() => setShowTabSettings((v) => !v)} className="absolute right-2 p-2 text-gray-400" aria-label="표시 지표 설정">
-            <Filter size={16} />
+            <SlidersHorizontal size={16} />
           </button>
         </header>
 
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
         <div className="absolute right-2 top-[50px] z-20 w-52">
-          <OnboardHint storageKey="hint_stats_filter"
+          <OnboardHint storageKey="hint_stats_filter" pointer="right"
             text="여기서 보고 싶은 지표(체중·음수량·식사·수액)를 고를 수 있어요." />
         </div>
 
@@ -493,7 +493,7 @@ export default function StatsPage() {
                   </div>
                 )}
 
-                <OnboardHint storageKey="hint_stats_weight_record"
+                <OnboardHint storageKey="hint_stats_weight_record" pointer="left"
                   text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
 
                 {/* Chart */}
