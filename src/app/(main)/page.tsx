@@ -51,8 +51,8 @@ function MenuGrid({ items }: { items: MenuItem[] }) {
 
 function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-[15px] font-extrabold text-gray-800 mb-2.5">
-      <Icon size={16} className="text-gray-700" /> {title}
+    <p className="flex items-center gap-1.5 text-[13px] font-bold text-gray-800 mb-2.5">
+      <Icon size={14} className="text-gray-700" /> {title}
     </p>
   );
 }
