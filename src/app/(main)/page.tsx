@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {
   MessageCircle, Camera, FileSearch, Bookmark,
-  ClipboardList, Calendar, Scale, Wallet,
+  ClipboardList, Calendar, Activity, Wallet,
   Stethoscope, LucideIcon,
 } from 'lucide-react';
 import { HomeBanner } from '@/components/home/HomeBanner';
@@ -26,7 +26,7 @@ const AI_CARE: MenuItem[] = [
 const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', href: '/records' },
   { icon: Calendar, label: '캘린더', color: 'text-green-500', href: '/records?tab=calendar' },
-  { icon: Scale, label: '체중 관리', color: 'text-emerald-500', href: '/records/stats?tab=weight' },
+  { icon: Activity, label: '건강 통계', color: 'text-emerald-500', href: '/records/stats' },
   { icon: Wallet, label: '의료비', color: 'text-[#00687a]', href: '/records/expenses' },
 ];
 
