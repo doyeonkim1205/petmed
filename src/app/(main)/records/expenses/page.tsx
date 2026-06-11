@@ -181,7 +181,7 @@ export default function ExpensesPage() {
 
       {/* Pet filter — 제목 아래 밴드 (건강 통계와 동일) */}
       {pets.length > 1 && (
-        <div className="flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2">
+        <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
           <button onClick={() => setSelectedPetId(undefined)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
           {pets.map((pet) => (
@@ -192,30 +192,6 @@ export default function ExpensesPage() {
       )}
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        {/* Period selector */}
-        <div className="flex gap-1.5 overflow-x-auto">
-          {periodOptions.map((opt) => (
-            <button key={opt.id} onClick={() => setPeriod(opt.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
-          ))}
-          {lockedOptions.map((opt) => (
-            <button key={opt.id} onClick={() => router.push('/profile/subscription')}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-              <Lock size={11} />{opt.label}
-            </button>
-          ))}
-        </div>
-
-        {period === 'custom' && (
-          <div className="flex gap-2 items-center">
-            <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
-              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-            <span className="text-gray-400 text-sm">~</span>
-            <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
-              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-          </div>
-        )}
-
         {(!petsLoaded || loading) ? (
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
         ) : (
@@ -232,6 +208,29 @@ export default function ExpensesPage() {
                 <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
               </div>
             </div>
+
+            {/* Period selector — 요약 아래 */}
+            <div className="flex gap-1.5 overflow-x-auto">
+              {periodOptions.map((opt) => (
+                <button key={opt.id} onClick={() => setPeriod(opt.id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
+              ))}
+              {lockedOptions.map((opt) => (
+                <button key={opt.id} onClick={() => router.push('/profile/subscription')}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
+                  <Lock size={11} />{opt.label}
+                </button>
+              ))}
+            </div>
+            {period === 'custom' && (
+              <div className="flex gap-2 items-center">
+                <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                <span className="text-gray-400 text-sm">~</span>
+                <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+              </div>
+            )}
 
             {/* 의료비 직접 추가 */}
             {showAddInput ? (

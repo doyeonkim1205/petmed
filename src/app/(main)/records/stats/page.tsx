@@ -383,7 +383,7 @@ export default function StatsPage() {
           </>
         )}
         {pets.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2">
+          <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
             {pets.map((pet) => (
               <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
