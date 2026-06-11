@@ -45,11 +45,18 @@ export interface IntakeSummary {
   lastDate: string;    // 마지막 기록일 YYYY-MM-DD
 }
 
+/** 수액(수분 보충) 요약 — 14일 내 기록 있으면 채움. 자발적 음수 평균엔 미포함. */
+export interface FluidSummary {
+  count: number;    // 14일 내 수액 기록 횟수
+  total?: number;   // 총량(ml) — 값이 명확할 때만
+  lastDate: string;
+}
+
 export interface PetContext {
   pet: Pet;
   recentRecords: PetRecentRecord[];
-  /** 음수/식사 — 조건 통과한 지표만 채워짐 (수액 제외). 미충족이면 undefined. */
-  intake?: { water?: IntakeSummary; food?: IntakeSummary };
+  /** 자발적 음수/식사 + 수액(수분 보충, 별도). 조건 통과한 것만 채워짐. */
+  intake?: { water?: IntakeSummary; food?: IntakeSummary; fluid?: FluidSummary };
 }
 
 /** 생년월일 → "12살" 자연어 변환. NULL/잘못된 형식이면 빈 문자열. */
@@ -127,10 +134,11 @@ export async function fetchPetContext(
     .select('metric_type, value, measured_at')
     .eq('user_id', userId)
     .eq('pet_id', petId)
-    .in('metric_type', ['water', 'food'])
+    .in('metric_type', ['water', 'food', 'fluid'])
     .gte('measured_at', ymd(since14));
 
-  const intake: { water?: IntakeSummary; food?: IntakeSummary } = {};
+  const intake: { water?: IntakeSummary; food?: IntakeSummary; fluid?: FluidSummary } = {};
+  // 자발적 음수/식사 — 14일 내 ≥3일 + 마지막 ≤7일, 기록한 날 기준 평균.
   for (const mt of ['water', 'food'] as const) {
     const dayMap = new Map<string, number>();
     for (const r of metricRows || []) {
@@ -138,16 +146,23 @@ export async function fetchPetContext(
       const key = String(r.measured_at).split('T')[0];
       dayMap.set(key, (dayMap.get(key) || 0) + Number(r.value));
     }
-    if (dayMap.size < 3) continue; // 14일 내 3일 미만 → 제외
+    if (dayMap.size < 3) continue;
     const dates = [...dayMap.keys()].sort();
     const lastDate = dates[dates.length - 1];
-    if (new Date(`${lastDate}T00:00:00`) < sevenAgo) continue; // 마지막 기록 7일 초과 → 제외
+    if (new Date(`${lastDate}T00:00:00`) < sevenAgo) continue;
     const vals = [...dayMap.values()];
     const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
     intake[mt] = { daysLogged: dayMap.size, avg, lastDate };
   }
+  // 수액 — 별도(음수 평균 미포함). 14일 내 1건 이상이면 횟수·총량·마지막일.
+  const fluidRows = (metricRows || []).filter((r) => r.metric_type === 'fluid');
+  if (fluidRows.length > 0) {
+    const fdates = fluidRows.map((r) => String(r.measured_at).split('T')[0]).sort();
+    const total = fluidRows.reduce((s, r) => s + (Number(r.value) || 0), 0);
+    intake.fluid = { count: fluidRows.length, lastDate: fdates[fdates.length - 1], ...(total > 0 ? { total: Math.round(total) } : {}) };
+  }
 
-  return { pet, recentRecords, ...(intake.water || intake.food ? { intake } : {}) };
+  return { pet, recentRecords, ...(intake.water || intake.food || intake.fluid ? { intake } : {}) };
 }
 
 /**
@@ -196,12 +211,13 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
     }
   }
 
-  // 최근 음수·식사 — fetch 에서 조건(14일 내 ≥3일, 마지막 ≤7일) 통과한 것만 채워짐.
-  if (ctx.intake && (ctx.intake.water || ctx.intake.food)) {
+  // 최근 음수·식사·수분 보충 — fetch 에서 조건 통과한 것만 채워짐. 수액은 음수 평균과 분리.
+  const intake = ctx.intake;
+  if (intake && (intake.water || intake.food || intake.fluid)) {
     lines.push('');
-    lines.push('[최근 음수·식사 참고 기록]');
-    if (ctx.intake.water) {
-      const w = ctx.intake.water;
+    lines.push(intake.fluid ? '[최근 음수·식사·수분 보충 참고 기록]' : '[최근 음수·식사 참고 기록]');
+    if (intake.water) {
+      const w = intake.water;
       let line = `- 음수: 최근 14일 중 ${w.daysLogged}일 기록, 기록한 날 기준 평균 ${w.avg}ml/일`;
       if (pet.weight != null && pet.weight > 0) {
         const r = waterTargetRange(pet.type, pet.weight);
@@ -210,9 +226,19 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
       line += `, 마지막 기록일 ${w.lastDate}`;
       lines.push(line);
     }
-    if (ctx.intake.food) {
-      const f = ctx.intake.food;
+    if (intake.fluid) {
+      const fl = intake.fluid;
+      let line = `- 수액: 최근 14일 중 ${fl.count}회 기록`;
+      if (fl.total != null) line += `, 총 ${fl.total}ml`;
+      line += `, 마지막 기록일 ${fl.lastDate}`;
+      lines.push(line);
+    }
+    if (intake.food) {
+      const f = intake.food;
       lines.push(`- 식사: 최근 14일 중 ${f.daysLogged}일 기록, 기록한 날 기준 평균 ${f.avg}g/일, 마지막 기록일 ${f.lastDate}`);
+    }
+    if (intake.fluid) {
+      lines.push('- 주의: 수액은 수분 보충으로 참고하되, 자발적 음수량 평균에는 포함하지 않습니다.');
     }
   }
 
