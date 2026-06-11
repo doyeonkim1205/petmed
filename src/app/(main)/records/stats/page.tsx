@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import type { MetricType } from '@/lib/healthMetrics';
+import { getEnabledStatsTabs, type MetricTabId } from '@/lib/statsTabPrefs';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -142,12 +143,20 @@ export default function StatsPage() {
   const maxMonths = planConfig.costStatsMonths;
 
   const [tab, setTab] = useState<StatsTab>('weight');
+  // 앱 설정의 "표시 지표" 토글 — 켜진 탭만 노출. 마운트 후 localStorage 에서 읽음.
+  const [enabledTabs, setEnabledTabs] = useState<MetricTabId[]>(['weight', 'water', 'food', 'fluid']);
   // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 URL 접근이 빌드 시점 서버 값으로
   // 굳어 클라이언트 쿼리를 못 읽음 → 마운트 후 useEffect 로 ?tab=weight 직통 처리.
   useEffect(() => {
+    const enabled = getEnabledStatsTabs();
+    setEnabledTabs(enabled);
     const t = new URLSearchParams(window.location.search).get('tab');
     if (t === 'cost') { router.replace('/records/expenses'); return; }
-    if (t && ['weight', 'water', 'food', 'fluid'].includes(t)) setTab(t as StatsTab);
+    if (t && (['weight', 'water', 'food', 'fluid'] as string[]).includes(t)) {
+      setTab(t as StatsTab);
+    } else if (enabled.length > 0) {
+      setTab(enabled[0]); // 첫 켜진 지표로 시작
+    }
   }, []);
   const periodOptions = allPeriodOptions.filter(p => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter(p => p.months > maxMonths);
@@ -360,7 +369,7 @@ export default function StatsPage() {
             { id: 'water', label: '음수', Icon: Droplet },
             { id: 'food', label: '식사', Icon: Utensils },
             { id: 'fluid', label: '수액', Icon: Syringe },
-          ] as const).map(({ id, label, Icon }) => (
+          ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
               <Icon size={13} />{label}
@@ -401,8 +410,14 @@ export default function StatsPage() {
           </div>
         )}
 
+        {enabledTabs.length === 0 && (
+          <div className="rounded-xl border border-gray-100 py-10 text-center text-sm text-gray-400 break-keep break-words">
+            표시할 지표가 없어요. 마이페이지 &gt; 앱 설정에서 켜주세요.
+          </div>
+        )}
+
         {/* ═══ WEIGHT TAB ═══ */}
-        {tab === 'weight' && (
+        {tab === 'weight' && enabledTabs.includes('weight') && (
           <>
             {(!petsLoaded || weightLoading) ? (
               <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
@@ -553,7 +568,7 @@ export default function StatsPage() {
         )}
 
         {/* ═══ METRIC TABS (음수/식사/수액) ═══ */}
-        {METRIC_TABS.includes(tab as MetricType) && user && (() => {
+        {METRIC_TABS.includes(tab as MetricType) && enabledTabs.includes(tab as MetricTabId) && user && (() => {
           const selPet = selectedPetId ? pets.find((p) => p.id === selectedPetId) : (pets.length === 1 ? pets[0] : null);
           if (!selPet) {
             return (
