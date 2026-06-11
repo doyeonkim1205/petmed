@@ -335,21 +335,17 @@ export default function RecordsPage() {
               <div className="flex gap-2 mb-1">
                 <button
                   onClick={() => router.push('/records/stats')}
-                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 border border-blue-100"
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100"
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Activity size={15} className="text-blue-600" />
-                  </div>
-                  <p className="text-sm font-bold text-gray-800">건강 통계</p>
+                  <Activity size={14} className="text-blue-600 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-800">건강 통계</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/expenses')}
-                  className="flex-1 min-w-0 flex items-center gap-2.5 p-3 rounded-xl bg-white border border-gray-200"
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Wallet size={15} className="text-gray-500" />
-                  </div>
-                  <p className="text-sm font-bold text-gray-700">의료비</p>
+                  <Wallet size={14} className="text-gray-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">의료비</p>
                 </button>
               </div>
               {filteredRecords.map((record) => (
