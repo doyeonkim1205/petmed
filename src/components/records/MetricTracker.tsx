@@ -138,12 +138,13 @@ export function MetricTracker({
   // 차트용 — 달력 연속(빈 날도 칸 유지). 1개월=일별 / 3개월=주평균 / 그 외=월평균. (한국=DST 없음 → 86400000ms=1일 안전)
   const daily = useMemo<Daily[]>(() => {
     if (dayTotals.size === 0) return [];
+    // 데이터 있는 첫 날 ~ 마지막 날까지만 그림 (앞뒤 빈 구간/날짜 라벨이 남지 않게).
+    const keys = [...dayTotals.keys()].sort();
+    const firstLogged = new Date(`${keys[0]}T00:00:00`);
+    const lastLogged = new Date(`${keys[keys.length - 1]}T00:00:00`);
     const start = new Date(startDate); start.setHours(0, 0, 0, 0);
-    // 데이터 있는 첫 날부터 시작 — 그 이전 빈 구간(기간 시작~첫 기록)은 안 그림.
-    const firstLogged = new Date(`${[...dayTotals.keys()].sort()[0]}T00:00:00`);
     if (firstLogged > start) start.setTime(firstLogged.getTime());
-    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
-    const end = (endDate < todayD ? new Date(endDate) : todayD); end.setHours(0, 0, 0, 0);
+    const end = lastLogged;
     if (end < start) return [];
     const spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
     const gran: 'day' | 'week' | 'month' =
