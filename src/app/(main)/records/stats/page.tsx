@@ -493,7 +493,7 @@ export default function StatsPage() {
                   </div>
                 )}
 
-                <OnboardHint storageKey="hint_stats_weight_record" pointer="left"
+                <OnboardHint storageKey="hint_stats_weight_record" pointer="center"
                   text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
 
                 {/* Chart */}
