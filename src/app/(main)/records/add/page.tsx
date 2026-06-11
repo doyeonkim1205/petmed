@@ -30,11 +30,9 @@ const recordTypes = [
 ];
 
 // 일상 세부 종류 — 라벨/아이콘.
-// 새 sub_kind 추가 시 supabase.ts 의 DailySubKind 와 함께 확장.
-// 수분은 식사 옆 배치 (의학적 연결, 매일 함께 체크하는 흐름).
+// 식사·수분(meal/hydration)은 건강 통계(수치 추적)로 일원화해 폼 선택지에서 제외.
+//   타입(DailySubKind)·표시 라벨맵엔 유지해 기존 기록 호환.
 const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'meal',      label: '식사', icon: Utensils       },
-  { id: 'hydration', label: '수분', icon: Droplet        },
   { id: 'walk',      label: '산책', icon: Footprints     },
   { id: 'poop',      label: '배변', icon: CircleDot      },
   { id: 'mood',      label: '기분', icon: Smile          },
@@ -744,9 +742,9 @@ export default function RecordAddPage() {
         {recordType === 'daily' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              세부 종류 <span className="text-gray-400 font-normal text-xs">(여러 개 선택 가능)</span>
+              세부 종류 <span className="text-gray-400 font-normal text-xs">(선택)</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {dailySubKinds.map((sk) => {
                 const Icon = sk.icon;
                 const selected = selectedSubKinds.includes(sk.id);
