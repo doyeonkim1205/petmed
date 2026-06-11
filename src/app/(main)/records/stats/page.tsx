@@ -149,7 +149,10 @@ export default function StatsPage() {
 
   const toggleStatTab = (id: MetricTabId) => {
     setEnabledTabs((prev) => {
-      const next = prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id];
+      const removing = prev.includes(id);
+      // 최소 1개는 항상 켜져 있어야 함 — 마지막 1개는 해제 불가.
+      if (removing && prev.length === 1) return prev;
+      const next = removing ? prev.filter((t) => t !== id) : [...prev, id];
       setEnabledStatsTabs(next);
       if (next.length > 0 && !next.includes(tab as MetricTabId)) setTab(next[0]);
       return next;
