@@ -39,12 +39,12 @@ export function OnboardHint({
     : 'left-4';
 
   return (
-    <div className="relative flex items-start gap-2 rounded-xl bg-blue-50 px-3 py-2 text-[11px] font-medium text-gray-800 shadow-[0_3px_14px_rgba(37,99,235,0.20)]">
+    <div className="relative flex items-start gap-2 rounded-xl bg-blue-500 px-3 py-2 text-[11px] font-medium text-white shadow-[0_3px_14px_rgba(37,99,235,0.35)]">
       {pointer !== 'none' && (
-        <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-blue-50`} />
+        <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-blue-500`} />
       )}
-      <p className="flex-1 leading-snug break-keep break-words">{text}</p>
-      <button onClick={dismiss} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-gray-400 transition hover:text-gray-600 active:scale-90">
+      <p className="flex-1 leading-snug break-keep break-words whitespace-pre-line">{text}</p>
+      <button onClick={dismiss} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-white/70 transition hover:text-white active:scale-90">
         <X size={13} />
       </button>
     </div>
