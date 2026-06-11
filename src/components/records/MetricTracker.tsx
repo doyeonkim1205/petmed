@@ -135,54 +135,40 @@ export function MetricTracker({
     return map;
   }, [logs, startDate, endDate]);
 
-  // 차트용 — 달력 연속(빈 날도 칸 유지). 1개월=일별 / 3개월=주평균 / 그 외=월평균. (한국=DST 없음 → 86400000ms=1일 안전)
+  // 차트용 — 기록한 날(버킷)만 표시(불연속). 안 적은 날짜는 안 띄움 + 삭제하면 바·날짜 같이 사라짐.
+  //   1개월=일별 / 3개월=주평균 / 그 외=월평균. (한국=DST 없음 → 86400000ms=1일 안전)
   const daily = useMemo<Daily[]>(() => {
     if (dayTotals.size === 0) return [];
-    // 데이터 있는 첫 날 ~ 마지막 날까지만 그림 (앞뒤 빈 구간/날짜 라벨이 남지 않게).
-    const keys = [...dayTotals.keys()].sort();
-    const firstLogged = new Date(`${keys[0]}T00:00:00`);
-    const lastLogged = new Date(`${keys[keys.length - 1]}T00:00:00`);
     const start = new Date(startDate); start.setHours(0, 0, 0, 0);
-    if (firstLogged > start) start.setTime(firstLogged.getTime());
-    const end = lastLogged;
-    if (end < start) return [];
+    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+    const end = (endDate < todayD ? new Date(endDate) : todayD); end.setHours(0, 0, 0, 0);
     const spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
     const gran: 'day' | 'week' | 'month' =
       period === 'month' ? 'day'
         : period === '3month' ? 'week'
           : period === 'custom' ? (spanDays <= 45 ? 'day' : spanDays <= 180 ? 'week' : 'month')
             : 'month';
-    const out: Daily[] = [];
+    // 기록한 날만, 날짜순.
+    const entries = [...dayTotals.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     if (gran === 'day') {
-      for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
-        const key = ymd(new Date(t));
-        out.push({ date: key, value: Math.round(dayTotals.get(key) || 0) });
-      }
-    } else if (gran === 'week') {
-      const ws = new Date(start); ws.setDate(ws.getDate() - ws.getDay()); // 그 주 일요일
-      for (let t = ws.getTime(); t <= end.getTime(); t += 7 * 86400000) {
-        let sum = 0, cnt = 0;
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(t + i * 86400000);
-          if (d < start || d > end) continue;
-          const v = dayTotals.get(ymd(d));
-          if (v != null) { sum += v; cnt += 1; }
-        }
-        out.push({ date: ymd(new Date(t)), value: cnt ? Math.round(sum / cnt) : 0 });
-      }
-    } else {
-      let my = start.getFullYear(), mm = start.getMonth();
-      while (my < end.getFullYear() || (my === end.getFullYear() && mm <= end.getMonth())) {
-        let sum = 0, cnt = 0;
-        for (const [key, v] of dayTotals) {
-          const d = new Date(`${key}T00:00:00`);
-          if (d.getFullYear() === my && d.getMonth() === mm) { sum += v; cnt += 1; }
-        }
-        out.push({ date: `${my}-${String(mm + 1).padStart(2, '0')}-01`, value: cnt ? Math.round(sum / cnt) : 0 });
-        mm += 1; if (mm > 11) { mm = 0; my += 1; }
-      }
+      return entries.map(([date, value]) => ({ date, value: Math.round(value) }));
     }
-    return out;
+    // 주/월: 데이터 있는 버킷만 평균 (entries 가 정렬돼 있어 Map 삽입순=정렬순).
+    const buckets = new Map<string, { sum: number; n: number; date: string }>();
+    for (const [date, value] of entries) {
+      const d = new Date(`${date}T00:00:00`);
+      let key: string;
+      if (gran === 'week') {
+        const ws = new Date(d); ws.setDate(ws.getDate() - ws.getDay());
+        key = ymd(ws);
+      } else {
+        key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+      }
+      const b = buckets.get(key);
+      if (b) { b.sum += value; b.n += 1; }
+      else buckets.set(key, { sum: value, n: 1, date });
+    }
+    return [...buckets.values()].map((b) => ({ date: b.date, value: Math.round(b.sum / b.n) }));
   }, [dayTotals, startDate, endDate, period]);
 
   // 오늘 총량 + 기간 일평균(입력한 날 기준 — 빈 날 제외)
