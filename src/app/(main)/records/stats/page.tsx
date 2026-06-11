@@ -396,7 +396,7 @@ export default function StatsPage() {
         <div className="flex max-w-sm mx-auto">
           {([
             { id: 'weight', label: '체중', Icon: Scale },
-            { id: 'water', label: '음수', Icon: Droplet },
+            { id: 'water', label: '음수량', Icon: Droplet },
             { id: 'food', label: '식사', Icon: Utensils },
             { id: 'fluid', label: '수액', Icon: Syringe },
           ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (

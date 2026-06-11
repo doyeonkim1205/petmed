@@ -9,7 +9,7 @@ const DEFAULT: MetricTabId[] = ['weight', 'water', 'food'];
 
 export const STATS_TAB_LABELS: Record<MetricTabId, string> = {
   weight: '체중',
-  water: '음수',
+  water: '음수량',
   food: '식사',
   fluid: '수액',
 };
