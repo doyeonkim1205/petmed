@@ -84,7 +84,7 @@ export function HomeMedicationWidget() {
     return cc < dc;
   });
   const summary = allDone
-    ? '오늘 복약을 모두 챙겼어요'
+    ? '오늘 약을 모두 챙겼어요'
     : remaining.length <= 1
       ? `${remaining[0]?.name ?? ''} 남았어요`
       : `${remaining[0].name} 외 ${remaining.length - 1}개 남았어요`;
@@ -97,7 +97,7 @@ export function HomeMedicationWidget() {
           <Pill size={18} className="text-rose-500" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-gray-900">오늘의 복약</p>
+          <p className="text-[13px] font-bold text-gray-900">오늘의 약</p>
           <p className="text-[11px] text-gray-400 truncate">{summary}</p>
         </div>
         <span className={`text-[11px] font-bold px-2 py-1 rounded-full flex-none ${allDone ? 'text-green-600 bg-green-50' : 'text-rose-500 bg-rose-50'}`}>

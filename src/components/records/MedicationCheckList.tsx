@@ -103,7 +103,7 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
             {(() => {
               const d = new Date();
               const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              return today === localToday ? '오늘의 투약' : `${parseInt(today.split('-')[1])}/${parseInt(today.split('-')[2])} 투약`;
+              return today === localToday ? '오늘의 약' : `${parseInt(today.split('-')[1])}/${parseInt(today.split('-')[2])} 약`;
             })()}
           </h4>
         </div>
