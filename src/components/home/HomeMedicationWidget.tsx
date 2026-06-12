@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { Pill, ChevronDown, Check } from 'lucide-react';
+import { Pill, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
 
@@ -34,6 +35,7 @@ export function HomeMedicationWidget() {
   const [checks, setChecks] = useState<MedicationCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
   const { getTodayMedications, getChecksForDate, toggleCheck } = useMedications();
 
   const today = localTodayISO();
@@ -91,14 +93,14 @@ export function HomeMedicationWidget() {
     <div className="bg-white rounded-2xl border border-gray-100">
       {/* 접힌 상태 (V5) — 한 줄 요약 */}
       <button onClick={() => setExpanded((v) => !v)} className="w-full flex items-center gap-3 p-3 text-left">
-        <span className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-none">
-          <Pill size={18} className="text-blue-600" />
+        <span className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center flex-none">
+          <Pill size={18} className="text-rose-500" />
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-bold text-gray-900">오늘의 복약</p>
           <p className="text-[11px] text-gray-400 truncate">{summary}</p>
         </div>
-        <span className={`text-[11px] font-bold px-2 py-1 rounded-full flex-none ${allDone ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'}`}>
+        <span className={`text-[11px] font-bold px-2 py-1 rounded-full flex-none ${allDone ? 'text-green-600 bg-green-50' : 'text-rose-500 bg-rose-50'}`}>
           {checkedCount}/{totalDoses}
         </span>
         <ChevronDown size={16} className={`text-gray-400 flex-none transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -108,7 +110,7 @@ export function HomeMedicationWidget() {
       {expanded && (
         <div className="px-3 pb-3">
           <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-2.5">
-            <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-rose-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
           <div className="space-y-1.5">
             {meds.map((med) => {
@@ -142,6 +144,12 @@ export function HomeMedicationWidget() {
               });
             })}
           </div>
+          <button
+            onClick={() => router.push('/records/meds')}
+            className="mt-2 w-full flex items-center justify-center gap-0.5 py-2 text-[12px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
+          >
+            복약 관리 <ChevronRight size={13} />
+          </button>
         </div>
       )}
     </div>
