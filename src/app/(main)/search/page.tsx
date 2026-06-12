@@ -1274,7 +1274,7 @@ function SearchContent() {
               </div>
             )}
             <div className="mt-10 text-center text-gray-300">
-              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다' : '질병명이나 키워드로 관련 논문을 찾아보세요'}</p>
+              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다' : '질병이나 키워드로 관련 논문을 찾아보세요'}</p>
               <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다'}</p>
             </div>
           </div>
