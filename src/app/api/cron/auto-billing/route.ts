@@ -6,6 +6,7 @@ import { chargeBilling, classifyBillingError, type TossBillingError } from '@/li
 import { getProductById } from '@/lib/products';
 import { decrypt } from '@/lib/encryption';
 import { logActivityServer } from '@/lib/activityLogServer';
+import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -180,6 +181,9 @@ export async function GET(request: NextRequest) {
           .from('profiles')
           .update({ plan: 'free' })
           .eq('id', sub.user_id);
+
+        // 무료 전환 → 약 알림·푸시 OFF 정리
+        await disableAlarmsOnDowngrade(supabaseAdmin, sub.user_id);
 
         const { logActivity } = await import('@/lib/activityLog');
         logActivity(sub.user_id, 'subscription.expired', {

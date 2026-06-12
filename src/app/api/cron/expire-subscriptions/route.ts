@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { logActivityServer } from '@/lib/activityLogServer';
+import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +47,9 @@ export async function GET(request: NextRequest) {
       .from('profiles')
       .update({ plan: 'free' })
       .in('id', userIds);
+
+    // 무료 전환 → 약 알림·푸시 OFF 정리 (UI 정직성)
+    await disableAlarmsOnDowngrade(supabaseAdmin, userIds);
 
     // Log activity and subscription events for each user
     const { logActivity } = await import('@/lib/activityLog');

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { cancelPaymentAutoKey } from '@/lib/toss';
+import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -122,6 +123,9 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .update({ plan: 'free' })
       .eq('id', userId);
+
+    // 무료 전환 → 약 알림·푸시 OFF 정리
+    await disableAlarmsOnDowngrade(supabaseAdmin, userId);
 
     // 8. Log activity
     const { logActivity } = await import('@/lib/activityLog');

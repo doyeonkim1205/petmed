@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
 import { cancelPaymentAutoKey } from '@/lib/toss';
+import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +46,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       status: 'expired', updated_at: new Date().toISOString(),
     }).eq('user_id', userId).in('status', ['active', 'canceled']);
     await supabaseAdmin.from('profiles').update({ plan: 'free' }).eq('id', userId);
+    await disableAlarmsOnDowngrade(supabaseAdmin, userId);
 
     return NextResponse.json({
       success: true,
