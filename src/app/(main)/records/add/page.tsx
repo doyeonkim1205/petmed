@@ -487,11 +487,9 @@ export default function RecordAddPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
-    // 일상: 세부 종류 1개 이상 + 모든 entry 의 메모 필수 (빈값 저장 차단).
+    // 일상: 세부 종류는 선택 사항, 메모만 필수 (빈값 저장 차단).
     if (recordType === 'daily') {
-      if (selectedSubKinds.length === 0) {
-        showError('세부 종류를 1개 이상 선택해주세요.'); return;
-      }
+      // 세부 종류는 선택 사항 (필수 아님). 메모만 있으면 저장 가능.
       if (!description.trim()) {
         showError('메모를 입력해주세요.'); return;
       }
