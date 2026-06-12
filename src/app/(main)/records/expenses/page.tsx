@@ -255,16 +255,17 @@ export default function ExpensesPage() {
                   <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
                 ) : null}
                 <input type="text" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
-                  onChange={(e) => setNewReason(e.target.value)} maxLength={50} autoComplete="off"
+                  onChange={(e) => setNewReason(e.target.value)} maxLength={50}
+                  autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-memo-reason"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                 <div className="flex gap-2">
                   <input type="text"
                     inputMode={isTouch ? 'none' : 'numeric'}
-                    placeholder="금액(원)" value={newAmount}
-                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="금액(원)" value={newAmount ? Number(newAmount).toLocaleString() : ''}
+                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 9))}
                     readOnly={isTouch}
                     onClick={() => { if (isTouch) setShowAmountPad(true); }}
-                    autoComplete="off"
+                    autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-amount-value"
                     className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white ${isTouch ? 'cursor-pointer' : ''}`} />
                   <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
@@ -282,6 +283,7 @@ export default function ExpensesPage() {
                     onChange={setNewAmount}
                     decimal={false}
                     maxIntDigits={9}
+                    thousands
                     label="금액"
                     suffix="원"
                     onClose={() => setShowAmountPad(false)}

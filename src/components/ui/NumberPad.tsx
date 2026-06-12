@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Delete } from 'lucide-react';
 
 interface NumberPadProps {
@@ -11,6 +12,8 @@ interface NumberPadProps {
   maxIntDigits?: number;
   /** 소수부 최대 자릿수 (기본 1) */
   maxDecimals?: number;
+  /** 디스플레이에 천단위 콤마 표시 (금액용, decimal=false 와 함께) */
+  thousands?: boolean;
   /** 헤더 라벨 (예: "체중") */
   label?: string;
   /** 값 뒤 단위 (예: "kg") */
@@ -31,10 +34,18 @@ export function NumberPad({
   decimal = true,
   maxIntDigits = 5,
   maxDecimals = 1,
+  thousands = false,
   label,
   suffix,
   onClose,
 }: NumberPadProps) {
+  // 패드가 떠 있는 동안 배경 스크롤 잠금 (배경이 움직이지 않게)
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const press = (key: string) => {
     if (key === 'back') {
       onChange(value.slice(0, -1));
@@ -62,7 +73,9 @@ export function NumberPad({
         {/* 디스플레이 — 중앙 큰 값 (iOS 풍) */}
         <div className="text-center pt-1 pb-3">
           {label && <span className="block text-[11px] font-semibold text-gray-400 mb-1">{label}</span>}
-          <span className="text-3xl font-extrabold tracking-tight text-gray-900">{value || 0}</span>
+          <span className="text-3xl font-extrabold tracking-tight text-gray-900">
+            {value === '' ? '0' : thousands ? Number(value).toLocaleString() : value}
+          </span>
           {suffix && <span className="text-base font-semibold text-gray-400 ml-1">{suffix}</span>}
         </div>
 
