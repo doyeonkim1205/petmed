@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMedications } from '@/hooks/useMedications';
@@ -218,9 +218,9 @@ export default function MedsPage() {
   };
 
   const saveMed = async () => {
-    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요.'); return; }
-    if (!form.name.trim()) { setFormError('약 이름을 입력해주세요.'); return; }
-    if (form.end_date && form.end_date < form.start_date) { setFormError('종료일이 시작일보다 빠를 수 없어요.'); return; }
+    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요'); return; }
+    if (!form.name.trim()) { setFormError('약 이름을 입력해주세요'); return; }
+    if (form.end_date && form.end_date < form.start_date) { setFormError('종료일이 시작일보다 빠를 수 없어요'); return; }
     setFormError(null);
     setSaving(true);
     try {
@@ -259,7 +259,7 @@ export default function MedsPage() {
       await load();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'medications', action: form.id ? 'edit' : 'add' }, extra: { userId: user?.id } });
-      setFormError('저장 중 오류가 발생했어요. 다시 시도해주세요.');
+      setFormError('저장 중 오류가 발생했어요! 다시 시도해주세요');
     } finally {
       setSaving(false);
     }
@@ -361,7 +361,7 @@ export default function MedsPage() {
         {noPets ? (
           <div className="text-center py-16">
             <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요.</p>
+            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
           </div>
         ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
@@ -370,13 +370,13 @@ export default function MedsPage() {
         ) : (
           <>
             <p className="text-xs text-gray-400 leading-snug">
-              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요. 복용 체크는 캘린더에서 할 수 있어요.
+              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요! 복용 체크는 홈·캘린더에서 할 수 있어요
             </p>
 
             {meds.length === 0 ? (
               <div className="text-center py-12">
                 <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">등록된 약·영양제가 없어요.</p>
+                <p className="text-gray-400 text-sm">등록된 약·영양제가 없어요</p>
                 <p className="text-gray-300 text-xs mt-1">+ 버튼으로 추가해보세요</p>
               </div>
             ) : (
@@ -550,7 +550,7 @@ export default function MedsPage() {
       <ConfirmModal
         open={showPushPrompt}
         title="투약 알림을 받을까요?"
-        message="설정한 시간에 투약 알림을 보내드려요. 알림을 허용하면 바로 적용됩니다."
+        message="설정한 시간에 투약 알림을 보내드려요! 알림을 허용하면 바로 적용돼요"
         confirmLabel="받을게요"
         cancelLabel="나중에"
         onConfirm={handlePushAllow}
@@ -567,10 +567,10 @@ export default function MedsPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
               {!isPWA
-                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'
-                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'}
+                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'
+                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요.</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}
@@ -594,34 +594,49 @@ export default function MedsPage() {
         const linked = !!actionTarget.record_id;
         const ended = !!actionTarget.end_date && actionTarget.end_date < todayLocalISO();
         return (
-          <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4" onClick={() => setActionTarget(null)}>
-            <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-sm font-bold text-gray-800 mb-1">
-                {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
-              </h3>
-              <p className="text-xs text-gray-400 mb-4 break-keep break-words">
+          <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={() => setActionTarget(null)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5 relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setActionTarget(null)}
+                className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
+                aria-label="닫기"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle size={16} className="text-red-500" />
+                </div>
+                <p className="text-sm font-bold text-gray-800">
+                  {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-500 leading-relaxed mb-4 break-keep break-words">
                 {linked
-                  ? '이 약은 진료 기록에도 등록돼 있어요. 완전 삭제하면 진료 기록에서도 사라져요.'
-                  : '삭제하면 복용 기록·알림도 함께 사라져요.'}
+                  ? '이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요'
+                  : '삭제하면 복용 기록·알림도 함께 사라져요'}
               </p>
+
               <div className="flex flex-col gap-2">
                 {linked && !ended && (
                   <button
                     onClick={endMed}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    className="w-full py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                   >
-                    오늘까지 복용 종료 <span className="text-blue-200 text-xs">(기록 보존)</span>
+                    오늘까지 복용 종료 <span className="text-blue-200">(기록 보존)</span>
                   </button>
                 )}
                 <button
                   onClick={deleteMed}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  className="w-full py-2.5 rounded-full text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
                 >
                   {linked ? '완전 삭제' : '삭제'}
                 </button>
                 <button
                   onClick={() => setActionTarget(null)}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                  className="w-full py-2.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
