@@ -254,10 +254,11 @@ export default function ExpensesPage() {
                 {!resolvedPetId ? (
                   <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
                 ) : null}
-                <input type="text" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
+                <input type="search" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50}
                   autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-memo-reason"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
+                  enterKeyHint="done"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white appearance-none [&::-webkit-search-cancel-button]:hidden" />
                 <div className="flex gap-2">
                   <input type="text"
                     inputMode={isTouch ? 'none' : 'numeric'}
