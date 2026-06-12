@@ -543,16 +543,37 @@ export default function MedsPage() {
         onCancel={() => setShowPushPrompt(false)}
       />
 
-      {/* Plus 전용 안내 */}
-      <ConfirmModal
-        open={showAlarmUpgrade}
-        title="투약 알림은 Plus 전용이에요"
-        message="앱(홈 화면에 추가)에서 Plus 플랜으로 투약 알림을 받을 수 있어요."
-        confirmLabel="플랜 보기"
-        cancelLabel="닫기"
-        onConfirm={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
-        onCancel={() => setShowAlarmUpgrade(false)}
-      />
+      {/* 알림 기능 업그레이드 안내 — 기록장(진료/입퇴원 추가)과 동일한 문구·디자인 */}
+      {showAlarmUpgrade && (
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell size={18} className="text-blue-500" />
+              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-1 break-keep break-words">
+              {!isPWA
+                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'
+                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'}
+            </p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAlarmUpgrade(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                요금제 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 삭제 확인 */}
       <ConfirmModal

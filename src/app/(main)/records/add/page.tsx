@@ -1237,10 +1237,10 @@ export default function RecordAddPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
               {!isPWA
-                ? '앱을 설치하고 유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'
-                : '유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'}
+                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'
+                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}
