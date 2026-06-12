@@ -218,9 +218,9 @@ export default function MedsPage() {
   };
 
   const saveMed = async () => {
-    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요.'); return; }
-    if (!form.name.trim()) { setFormError('약 이름을 입력해주세요.'); return; }
-    if (form.end_date && form.end_date < form.start_date) { setFormError('종료일이 시작일보다 빠를 수 없어요.'); return; }
+    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요'); return; }
+    if (!form.name.trim()) { setFormError('약 이름을 입력해주세요'); return; }
+    if (form.end_date && form.end_date < form.start_date) { setFormError('종료일이 시작일보다 빠를 수 없어요'); return; }
     setFormError(null);
     setSaving(true);
     try {
@@ -259,7 +259,7 @@ export default function MedsPage() {
       await load();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'medications', action: form.id ? 'edit' : 'add' }, extra: { userId: user?.id } });
-      setFormError('저장 중 오류가 발생했어요. 다시 시도해주세요.');
+      setFormError('저장 중 오류가 발생했어요! 다시 시도해주세요');
     } finally {
       setSaving(false);
     }
@@ -361,7 +361,7 @@ export default function MedsPage() {
         {noPets ? (
           <div className="text-center py-16">
             <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요.</p>
+            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
           </div>
         ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
@@ -370,13 +370,13 @@ export default function MedsPage() {
         ) : (
           <>
             <p className="text-xs text-gray-400 leading-snug">
-              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요. 복용 체크는 캘린더에서 할 수 있어요.
+              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요! 복용 체크는 홈·캘린더에서 할 수 있어요
             </p>
 
             {meds.length === 0 ? (
               <div className="text-center py-12">
                 <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">등록된 약·영양제가 없어요.</p>
+                <p className="text-gray-400 text-sm">등록된 약·영양제가 없어요</p>
                 <p className="text-gray-300 text-xs mt-1">+ 버튼으로 추가해보세요</p>
               </div>
             ) : (
@@ -550,7 +550,7 @@ export default function MedsPage() {
       <ConfirmModal
         open={showPushPrompt}
         title="투약 알림을 받을까요?"
-        message="설정한 시간에 투약 알림을 보내드려요. 알림을 허용하면 바로 적용됩니다."
+        message="설정한 시간에 투약 알림을 보내드려요! 알림을 허용하면 바로 적용돼요"
         confirmLabel="받을게요"
         cancelLabel="나중에"
         onConfirm={handlePushAllow}
@@ -567,10 +567,10 @@ export default function MedsPage() {
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
               {!isPWA
-                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'
-                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.'}
+                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'
+                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요.</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}
@@ -601,8 +601,8 @@ export default function MedsPage() {
               </h3>
               <p className="text-xs text-gray-400 mb-4 break-keep break-words">
                 {linked
-                  ? '이 약은 진료 기록에도 등록돼 있어요. 완전 삭제하면 진료 기록에서도 사라져요.'
-                  : '삭제하면 복용 기록·알림도 함께 사라져요.'}
+                  ? '이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요'
+                  : '삭제하면 복용 기록·알림도 함께 사라져요'}
               </p>
               <div className="flex flex-col gap-2">
                 {linked && !ended && (
