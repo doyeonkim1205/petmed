@@ -14,14 +14,14 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   title: "PawDex - 반려동물 건강기록",
-  description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
+  description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 분석부터 기록·통계·알림·병원까지 한 곳에서!",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
     title: "PawDex - 반려동물 건강기록",
-    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 분석부터 기록·통계·알림·병원까지 한 곳에서!",
     url: "https://pawdex.store",
     siteName: "PawDex",
     locale: "ko_KR",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "PawDex - 반려동물 건강기록",
-    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 분석부터 기록·통계·알림·병원까지 한 곳에서!",
     images: ["/icons/og-image-v3.png"],
   },
   robots: {

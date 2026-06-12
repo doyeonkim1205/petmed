@@ -2,7 +2,7 @@
   "id": "/",
   "name": "PawDex - 반려동물 건강기록",
   "short_name": "PawDex",
-  "description": "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
+  "description": "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 분석부터 기록·통계·알림·병원까지 한 곳에서!",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
