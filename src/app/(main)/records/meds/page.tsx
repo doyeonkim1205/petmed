@@ -6,9 +6,9 @@ import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X } from 'lucide
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMedications } from '@/hooks/useMedications';
-import { Medication, MedicationKind } from '@/lib/supabase';
+import { supabase, Pet, Medication, MedicationKind } from '@/lib/supabase';
 import { getEffectivePlan } from '@/lib/plans';
-import { PetSelector } from '@/components/records/PetSelector';
+import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { TimePicker } from '@/components/TimePicker';
@@ -76,13 +76,9 @@ export default function MedsPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const { getMedicationsByPet, addMedication, updateMedication, deleteMedication } = useMedications();
 
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId') || null;
-    }
-    return null;
-  });
-  const [petCount, setPetCount] = useState<number | null>(null);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [petsLoaded, setPetsLoaded] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
   const [meds, setMeds] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,6 +105,24 @@ export default function MedsPage() {
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission);
   }, []);
 
+  // 펫 로딩 + 기본 펫 자동 선택 (건강 통계와 동일 패턴 — '전체' 없이 항상 한 마리 선택)
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('pets').select('*').eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data) {
+          const defaultId = readDefaultPetId();
+          const sorted = sortPetsWithDefault(data, defaultId);
+          setPets(sorted);
+          if (sorted.length >= 1) {
+            const def = defaultId && sorted.some((p) => p.id === defaultId) ? defaultId : sorted[0].id;
+            setSelectedPetId(def);
+          }
+        }
+        setPetsLoaded(true);
+      });
+  }, [user]);
+
   const load = useCallback(async () => {
     if (!selectedPetId) { setMeds([]); setLoading(false); return; }
     setLoading(true);
@@ -121,12 +135,6 @@ export default function MedsPage() {
   }, [selectedPetId, getMedicationsByPet]);
 
   useEffect(() => { load(); }, [load]);
-
-  const handlePetSelect = (petId: string | null) => {
-    setSelectedPetId(petId);
-    if (petId) localStorage.setItem('lastSelectedPetId', petId);
-    else localStorage.removeItem('lastSelectedPetId');
-  };
 
   // 복용중 / 종료 분류
   const today = todayLocalISO();
@@ -311,31 +319,37 @@ export default function MedsPage() {
   }
   if (!user) return null;
 
+  const noPets = petsLoaded && pets.length === 0;
+
   return (
     <div className="bg-white min-h-full pb-24 relative">
-      {/* 헤더 */}
-      <div className="sticky top-0 z-30 bg-white">
-        <div className="flex items-center gap-2 px-4 h-12 max-w-sm mx-auto">
-          <button onClick={() => router.back()} className="p-1 -ml-1 text-gray-500 hover:text-gray-800" aria-label="뒤로">
-            <ArrowLeft size={20} />
+      {/* 헤더 — 건강 통계와 동일: 중앙 정렬 타이틀 + 좌측 뒤로가기 + 펫 칩 */}
+      <div className="sticky top-0 z-30 bg-white relative">
+        <header className="relative flex items-center justify-center px-4 h-[60px]">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-base font-bold text-gray-900">복약 관리</h1>
-        </div>
-        <PetSelector selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
+          <h1 className="text-sm font-semibold text-gray-700">복약 관리</h1>
+        </header>
+        {pets.length > 1 && (
+          <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
+            {pets.map((pet) => (
+              <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                {pet.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-sm mx-auto px-4 pt-2 pb-4 space-y-5">
-        {petCount === 0 ? (
+        {noPets ? (
           <div className="text-center py-16">
             <Pill size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요.</p>
           </div>
-        ) : !selectedPetId ? (
-          <div className="text-center py-16">
-            <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">반려동물을 선택해주세요.</p>
-          </div>
-        ) : loading ? (
+        ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
             {[1, 2].map((i) => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
           </div>
@@ -372,7 +386,7 @@ export default function MedsPage() {
       </div>
 
       {/* 추가 버튼 */}
-      {petCount !== 0 && selectedPetId && !editorOpen && (
+      {!noPets && selectedPetId && !editorOpen && (
         <button
           onClick={openAdd}
           className="fixed bottom-20 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"

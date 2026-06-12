@@ -220,12 +220,13 @@ export async function GET(request: NextRequest) {
   let totalSent = 0;
   let totalFailed = 0;
 
-  // 1. Medication alarms — pet_id 까지 JOIN.
-  // medications.record_id → health_records.pet_id (NOT NULL FK).
-  // !inner 로 INNER JOIN — health_record 없는 medication 은 제외 (있을 수 없는 케이스지만 안전).
+  // 1. Medication alarms — pet_id 직접 사용.
+  // 복약 재구조화 후 medications.pet_id 가 곧바로 채워짐(진료기록 딸린 약은 백필,
+  // 펫 단위 독립 약은 등록 시 직접). 과거엔 health_records!inner(pet_id) 로 조인했으나
+  // 그러면 record_id NULL 인 독립 약(영양제 등)이 INNER JOIN 에서 빠져 알림이 누락됨.
   const { data: medications } = await supabaseAdmin
     .from('medications')
-    .select('user_id, name, alarm_times, start_date, end_date, health_records!inner(pet_id)')
+    .select('user_id, name, alarm_times, start_date, end_date, pet_id')
     .eq('alarm_enabled', true)
     .lte('start_date', todayKST)
     .or(`end_date.gte.${todayKST},end_date.is.null`);
@@ -244,11 +245,8 @@ export async function GET(request: NextRequest) {
     });
     if (!hasMatch) continue;
 
-    // health_records 는 INNER JOIN 결과 — 단일 객체로 옴 (record_id 가 단일 FK라).
-    // Supabase 타입 시스템 한계로 array 인 척 올 수 있어 양쪽 케이스 처리.
-    const hr = (med as unknown as { health_records: { pet_id: string } | { pet_id: string }[] })
-      .health_records;
-    const petId = Array.isArray(hr) ? hr[0]?.pet_id : hr?.pet_id;
+    // pet_id 직접 사용 (독립 약 포함). 백필 누락 등으로 비어 있으면 안전하게 스킵.
+    const petId = (med as unknown as { pet_id: string | null }).pet_id;
     if (!petId) continue;
 
     let petsMap = medByUserPet.get(med.user_id);
