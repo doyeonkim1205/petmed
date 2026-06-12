@@ -22,7 +22,18 @@ function isDevLoginEnv(): boolean {
   // ENABLE_PAYMENT_REVIEW 와 같이 켜고, 심사 통과 후 둘 다 끔.
   if (process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true') return true;
   const host = window.location.hostname;
-  return host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1';
+  if (host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1') return true;
+  // prod(pawdex.store): 토스 심사용으로 "웹 브라우저"에선 노출, "설치한 앱(TWA/PWA standalone)"
+  // 에선 숨김 → 실사용자(앱)에겐 안 보이고 심사관(웹)에겐 보임.
+  if (host === 'pawdex.store') {
+    const installedApp =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true ||
+      (typeof document !== 'undefined' && document.referrer.startsWith('android-app://'));
+    return !installedApp;
+  }
+  return false;
 }
 
 export default function LoginPage() {
