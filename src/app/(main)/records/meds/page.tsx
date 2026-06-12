@@ -370,7 +370,7 @@ export default function MedsPage() {
         ) : (
           <>
             <p className="text-xs text-gray-400 leading-snug">
-              진료·입퇴원 기록에 적은 약도 자동으로 여기에 모여요. 복용 체크는 캘린더에서 할 수 있어요.
+              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요. 복용 체크는 캘린더에서 할 수 있어요.
             </p>
 
             {meds.length === 0 ? (
