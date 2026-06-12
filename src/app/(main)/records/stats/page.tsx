@@ -375,7 +375,7 @@ export default function StatsPage() {
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowTabSettings(false)} />
             <div className="absolute right-3 top-[52px] z-40 w-28 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
-              <p className="text-[10px] text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
+              <p className="text-xs text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
               {ALL_METRIC_TABS.map((id) => {
                 const on = enabledTabs.includes(id);
                 return (
@@ -407,7 +407,7 @@ export default function StatsPage() {
             { id: 'fluid', label: '수액', Icon: Syringe },
           ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
               <Icon size={13} />{label}
             </button>
           ))}
