@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { cancelPaymentAutoKey } from '@/lib/toss';
+import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
     if (refundedAmount !== null) {
       updateData.status = 'expired';
       await supabaseAdmin.from('profiles').update({ plan: 'free' }).eq('id', userId);
+      await disableAlarmsOnDowngrade(supabaseAdmin, userId);
     }
 
     await supabaseAdmin

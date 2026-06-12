@@ -87,7 +87,7 @@ export default function MedsPage() {
   const [form, setForm] = useState<MedForm>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [actionTarget, setActionTarget] = useState<Medication | null>(null);
 
   // 알림 관련
   const [isPWA, setIsPWA] = useState(false);
@@ -265,15 +265,29 @@ export default function MedsPage() {
     }
   };
 
-  const confirmDelete = async () => {
-    const id = deleteTarget;
-    setDeleteTarget(null);
-    if (!id) return;
+  // 완전 삭제 — 약 행 제거. 진료 기록에 딸린 약이면 기록에서도 사라짐.
+  const deleteMed = async () => {
+    const t = actionTarget;
+    setActionTarget(null);
+    if (!t) return;
     try {
-      await deleteMedication(id);
+      await deleteMedication(t.id);
       await load();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'medications', action: 'delete' }, extra: { userId: user?.id } });
+    }
+  };
+
+  // 복용 종료 — 삭제 대신 end_date 를 오늘로. 진료 기록 보존 + "종료" 섹션으로 내려감.
+  const endMed = async () => {
+    const t = actionTarget;
+    setActionTarget(null);
+    if (!t) return;
+    try {
+      await updateMedication(t.id, { end_date: todayLocalISO() });
+      await load();
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'medications', action: 'end' }, extra: { userId: user?.id } });
     }
   };
 
@@ -299,7 +313,7 @@ export default function MedsPage() {
           </p>
         </div>
         <span
-          onClick={(e) => { e.stopPropagation(); setDeleteTarget(m.id); }}
+          onClick={(e) => { e.stopPropagation(); setActionTarget(m); }}
           className="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 transition-colors"
           aria-label="삭제"
         >
@@ -575,17 +589,47 @@ export default function MedsPage() {
         </div>
       )}
 
-      {/* 삭제 확인 */}
-      <ConfirmModal
-        open={!!deleteTarget}
-        title="이 약을 삭제할까요?"
-        message="삭제하면 복용 기록·알림도 함께 사라져요."
-        confirmLabel="삭제"
-        cancelLabel="취소"
-        variant="danger"
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      {/* 종료/삭제 — 진료 기록에 딸린 약은 '복용 종료'(보존) 우선, 독립 약은 바로 삭제 */}
+      {actionTarget && (() => {
+        const linked = !!actionTarget.record_id;
+        const ended = !!actionTarget.end_date && actionTarget.end_date < todayLocalISO();
+        return (
+          <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4" onClick={() => setActionTarget(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-sm font-bold text-gray-800 mb-1">
+                {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
+              </h3>
+              <p className="text-xs text-gray-400 mb-4 break-keep break-words">
+                {linked
+                  ? '이 약은 진료 기록에도 등록돼 있어요. 완전 삭제하면 진료 기록에서도 사라져요.'
+                  : '삭제하면 복용 기록·알림도 함께 사라져요.'}
+              </p>
+              <div className="flex flex-col gap-2">
+                {linked && !ended && (
+                  <button
+                    onClick={endMed}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    오늘까지 복용 종료 <span className="text-blue-200 text-xs">(기록 보존)</span>
+                  </button>
+                )}
+                <button
+                  onClick={deleteMed}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  {linked ? '완전 삭제' : '삭제'}
+                </button>
+                <button
+                  onClick={() => setActionTarget(null)}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
