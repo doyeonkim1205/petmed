@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMedications } from '@/hooks/useMedications';
@@ -594,34 +594,49 @@ export default function MedsPage() {
         const linked = !!actionTarget.record_id;
         const ended = !!actionTarget.end_date && actionTarget.end_date < todayLocalISO();
         return (
-          <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4" onClick={() => setActionTarget(null)}>
-            <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-sm font-bold text-gray-800 mb-1">
-                {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
-              </h3>
-              <p className="text-xs text-gray-400 mb-4 break-keep break-words">
+          <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={() => setActionTarget(null)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5 relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setActionTarget(null)}
+                className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
+                aria-label="닫기"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle size={16} className="text-red-500" />
+                </div>
+                <p className="text-sm font-bold text-gray-800">
+                  {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-500 leading-relaxed mb-4 break-keep break-words">
                 {linked
                   ? '이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요'
                   : '삭제하면 복용 기록·알림도 함께 사라져요'}
               </p>
+
               <div className="flex flex-col gap-2">
                 {linked && !ended && (
                   <button
                     onClick={endMed}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    className="w-full py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                   >
-                    오늘까지 복용 종료 <span className="text-blue-200 text-xs">(기록 보존)</span>
+                    오늘까지 복용 종료 <span className="text-blue-200">(기록 보존)</span>
                   </button>
                 )}
                 <button
                   onClick={deleteMed}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  className="w-full py-2.5 rounded-full text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
                 >
                   {linked ? '완전 삭제' : '삭제'}
                 </button>
                 <button
                   onClick={() => setActionTarget(null)}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                  className="w-full py-2.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
