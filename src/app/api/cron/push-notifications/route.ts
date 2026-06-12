@@ -23,7 +23,7 @@
  *
  * 통합 정책 (펫 단위):
  *   - 같은 (user_id, pet_id, currentTime) 조합 = 1알림.
- *   - 투약: 펫별 약 이름 합쳐서 "💊 8시 [펫이름] 약: A, B 시간이에요"
+ *   - 투약: 펫 단위 1알림. title "💊 [펫] 약 먹을 시간이에요" / body "A, B · 오후 12시 30분"
  *   - 예약·퇴원 (07:00): 펫별 events 합쳐서 통합 메시지
  *     · 같은 record 의 예약+퇴원 → "X 예약·퇴원이 있어요"
  *     · 다중 mix → "예약 1건, 퇴원 1건"
@@ -55,10 +55,8 @@ const PUSH_CONCURRENCY = 10;
 // 알림 메시지 글자수 제한 (한글 기준).
 // title: 20자 이하 (이모지 포함) → 잠금화면 안 잘림
 // body : 45자 이하 → 한 줄 내
-// 펫 이름 일반 12자, 투약 title 만 8자 (시간 표기가 길어서 공간 절약).
-// record title 25자 ellipsis 처리.
+// 펫 이름 12자. record title 25자 ellipsis 처리.
 const PET_NAME_MAX = 12;
-const PET_NAME_TITLE_MED_MAX = 8; // 투약 title 전용 — "💊 오후 12시 30분 [petName] 약" 글자 압박
 const RECORD_TITLE_MAX = 25;
 
 /** 길이 초과 시 ellipsis. 빈 값은 fallback 으로 대체. */
@@ -397,23 +395,26 @@ export async function GET(request: NextRequest) {
     if (!paidSet.has(userId)) continue;
     for (const [petId, drugs] of petsMap) {
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_TITLE_MED_MAX, '반려동물');
+      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
 
-      let body: string;
+      // 제목에 행동("먹을 시간이에요")을 올리고, 시각은 본문으로 내림.
+      //   title : "💊 살구 약 먹을 시간이에요"  body : "타이레놀 · 오후 12시 30분"
+      // 시각이 제목에서 빠져 펫 이름 여유(12자)가 생기고 잠금화면이 깔끔해짐.
+      let drugText: string;
       if (drugs.length === 1) {
-        body = `${truncate(drugs[0], 20, '약')} 먹을 시간이에요`;
+        drugText = truncate(drugs[0], 30, '약');
       } else if (drugs.length === 2) {
-        body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 먹을 시간이에요`;
+        drugText = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')}`;
       } else {
         // 3개+: 첫 약 노출 + 나머지 갯수
-        body = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개 먹을 시간이에요`;
+        drugText = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개`;
       }
 
       tasks.push({
         userId,
         notification: {
-          title: `💊 ${timeLabel} ${petName}의 약`,
-          body,
+          title: `💊 ${petName} 약 먹을 시간이에요`,
+          body: `${drugText} · ${timeLabel}`,
           url: '/records',
           category: 'medication',
           tag: `med-${userId}-${petId}-${currentTime}`,
