@@ -13,33 +13,33 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "PawDex - 쉬운 반려동물 건강기록장",
-  description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
+  title: "PawDex - 반려동물 건강기록",
+  description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
   manifest: "/manifest.json",
   icons: {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
-    title: "PawDex - 쉬운 반려동물 건강기록장",
-    description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
+    title: "PawDex - 반려동물 건강기록",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
     url: "https://pawdex.store",
     siteName: "PawDex",
     locale: "ko_KR",
     type: "website",
     images: [
       {
-        url: "/icons/og-image-v2.png",
-        width: 1200,
-        height: 630,
-        alt: "PawDex - 반려동물 건강을 더 쉽게",
+        url: "/icons/og-image-v3.png",
+        width: 1024,
+        height: 500,
+        alt: "PawDex - 우리 아이 건강 기록을 한눈에",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PawDex - 쉬운 반려동물 건강기록장",
-    description: "초보 보호자도 쉽게 시작하는 반려동물 건강 기록. AI 분석부터 진료, 일상, 체중, 의료비 관리를 한 곳에서.",
-    images: ["/icons/og-image-v2.png"],
+    title: "PawDex - 반려동물 건강기록",
+    description: "초보 보호자도 쉽게 시작하는 반려동물 건강기록. AI 증상 분석부터 기록·통계·알림·병원까지 한 곳에서!",
+    images: ["/icons/og-image-v3.png"],
   },
   robots: {
     index: true,
