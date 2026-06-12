@@ -146,9 +146,14 @@ export interface WeightLog {
   created_at: string;
 }
 
+// 복약 종류: 처방약 / 영양제 / 기타
+export type MedicationKind = 'prescription' | 'supplement' | 'other';
+
 export interface Medication {
   id: string;
-  record_id: string;
+  record_id?: string | null;   // 진료/입퇴원 기록에 딸린 약이면 연결, 펫 단위 독립 약이면 null
+  pet_id?: string | null;      // 펫 직접 연결 (재구조화 후 기본)
+  kind?: MedicationKind;       // 처방약(기본) / 영양제 / 기타
   user_id: string;
   name: string;
   dosage?: string;

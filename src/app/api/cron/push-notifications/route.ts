@@ -23,7 +23,7 @@
  *
  * 통합 정책 (펫 단위):
  *   - 같은 (user_id, pet_id, currentTime) 조합 = 1알림.
- *   - 투약: 펫별 약 이름 합쳐서 "💊 8시 [펫이름] 약: A, B 시간이에요"
+ *   - 투약: 펫 단위 1알림. title "💊 [펫] 약 먹을 시간이에요" / body "A, B · 오후 12시 30분"
  *   - 예약·퇴원 (07:00): 펫별 events 합쳐서 통합 메시지
  *     · 같은 record 의 예약+퇴원 → "X 예약·퇴원이 있어요"
  *     · 다중 mix → "예약 1건, 퇴원 1건"
@@ -55,10 +55,8 @@ const PUSH_CONCURRENCY = 10;
 // 알림 메시지 글자수 제한 (한글 기준).
 // title: 20자 이하 (이모지 포함) → 잠금화면 안 잘림
 // body : 45자 이하 → 한 줄 내
-// 펫 이름 일반 12자, 투약 title 만 8자 (시간 표기가 길어서 공간 절약).
-// record title 25자 ellipsis 처리.
+// 펫 이름 12자. record title 25자 ellipsis 처리.
 const PET_NAME_MAX = 12;
-const PET_NAME_TITLE_MED_MAX = 8; // 투약 title 전용 — "💊 오후 12시 30분 [petName] 약" 글자 압박
 const RECORD_TITLE_MAX = 25;
 
 /** 길이 초과 시 ellipsis. 빈 값은 fallback 으로 대체. */
@@ -220,12 +218,13 @@ export async function GET(request: NextRequest) {
   let totalSent = 0;
   let totalFailed = 0;
 
-  // 1. Medication alarms — pet_id 까지 JOIN.
-  // medications.record_id → health_records.pet_id (NOT NULL FK).
-  // !inner 로 INNER JOIN — health_record 없는 medication 은 제외 (있을 수 없는 케이스지만 안전).
+  // 1. Medication alarms — pet_id 직접 사용.
+  // 복약 재구조화 후 medications.pet_id 가 곧바로 채워짐(진료기록 딸린 약은 백필,
+  // 펫 단위 독립 약은 등록 시 직접). 과거엔 health_records!inner(pet_id) 로 조인했으나
+  // 그러면 record_id NULL 인 독립 약(영양제 등)이 INNER JOIN 에서 빠져 알림이 누락됨.
   const { data: medications } = await supabaseAdmin
     .from('medications')
-    .select('user_id, name, alarm_times, start_date, end_date, health_records!inner(pet_id)')
+    .select('user_id, name, alarm_times, start_date, end_date, pet_id')
     .eq('alarm_enabled', true)
     .lte('start_date', todayKST)
     .or(`end_date.gte.${todayKST},end_date.is.null`);
@@ -244,11 +243,8 @@ export async function GET(request: NextRequest) {
     });
     if (!hasMatch) continue;
 
-    // health_records 는 INNER JOIN 결과 — 단일 객체로 옴 (record_id 가 단일 FK라).
-    // Supabase 타입 시스템 한계로 array 인 척 올 수 있어 양쪽 케이스 처리.
-    const hr = (med as unknown as { health_records: { pet_id: string } | { pet_id: string }[] })
-      .health_records;
-    const petId = Array.isArray(hr) ? hr[0]?.pet_id : hr?.pet_id;
+    // pet_id 직접 사용 (독립 약 포함). 백필 누락 등으로 비어 있으면 안전하게 스킵.
+    const petId = (med as unknown as { pet_id: string | null }).pet_id;
     if (!petId) continue;
 
     let petsMap = medByUserPet.get(med.user_id);
@@ -399,23 +395,26 @@ export async function GET(request: NextRequest) {
     if (!paidSet.has(userId)) continue;
     for (const [petId, drugs] of petsMap) {
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_TITLE_MED_MAX, '반려동물');
+      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
 
-      let body: string;
+      // 제목에 행동("먹을 시간이에요")을 올리고, 시각은 본문으로 내림.
+      //   title : "💊 살구 약 먹을 시간이에요"  body : "타이레놀 · 오후 12시 30분"
+      // 시각이 제목에서 빠져 펫 이름 여유(12자)가 생기고 잠금화면이 깔끔해짐.
+      let drugText: string;
       if (drugs.length === 1) {
-        body = `${truncate(drugs[0], 20, '약')} 먹을 시간이에요`;
+        drugText = truncate(drugs[0], 30, '약');
       } else if (drugs.length === 2) {
-        body = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')} 먹을 시간이에요`;
+        drugText = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')}`;
       } else {
         // 3개+: 첫 약 노출 + 나머지 갯수
-        body = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개 먹을 시간이에요`;
+        drugText = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개`;
       }
 
       tasks.push({
         userId,
         notification: {
-          title: `💊 ${timeLabel} ${petName}의 약`,
-          body,
+          title: `💊 ${petName} 약 먹을 시간이에요`,
+          body: `${drugText} · ${timeLabel}`,
           url: '/records',
           category: 'medication',
           tag: `med-${userId}-${petId}-${currentTime}`,

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { HomeBanner } from '@/components/home/HomeBanner';
 import { HealthBriefing } from '@/components/home/HealthBriefing';
+import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
@@ -69,6 +70,11 @@ export default function HomePage() {
       {/* 건강 브리핑 — 펫별 메트릭 + 동적 강조 */}
       <div className="px-4 pt-3">
         <HealthBriefing />
+      </div>
+
+      {/* 오늘의 복약 — 복용 중인 약이 있을 때만 카드로 노출 (없으면 자동 숨김) */}
+      <div className="px-4 pt-3 empty:hidden">
+        <MedicationCheckList card />
       </div>
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 */}

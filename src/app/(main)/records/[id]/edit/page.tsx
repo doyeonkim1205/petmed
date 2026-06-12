@@ -549,6 +549,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         if (med.isNew && med.name.trim()) {
           await addMedication({
             record_id: id,
+            pet_id: petId,
+            kind: 'prescription',
             name: med.name.trim(),
             dosage: med.dosage.trim() || undefined,
             start_date: med.start_date,
