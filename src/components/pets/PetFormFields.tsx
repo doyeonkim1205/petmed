@@ -1,8 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Dog, Cat } from 'lucide-react';
 import { TextField } from '@/components/TextField';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { NumberPad } from '@/components/ui/NumberPad';
 import type { PetFormState } from '@/lib/petForm';
 
 /**
@@ -23,6 +25,13 @@ export function PetFormFields({
   setForm: React.Dispatch<React.SetStateAction<PetFormState>>;
   showHint?: boolean;
 }) {
+  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (다른 체중 입력칸과 통일)
+  const [isTouch, setIsTouch] = useState(false);
+  const [showWeightPad, setShowWeightPad] = useState(false);
+  useEffect(() => {
+    setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+  }, []);
+
   return (
     <div className="space-y-3">
       {/* AI 증상 분석에 펫 컨텍스트가 자동 주입돼 정확도가 좌우됨 →
@@ -142,7 +151,7 @@ export function PetFormFields({
         <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
         <div className="relative">
           <TextField
-            inputMode="decimal"
+            inputMode={isTouch ? 'none' : 'decimal'}
             placeholder="예: 4.2"
             value={form.weight}
             onChange={e => {
@@ -151,13 +160,27 @@ export function PetFormFields({
                 setForm(f => ({ ...f, weight: v }));
               }
             }}
+            readOnly={isTouch}
+            onClick={() => { if (isTouch) setShowWeightPad(true); }}
             maxLength={6}
-            className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className={`w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm ${isTouch ? 'cursor-pointer' : ''}`}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
             kg
           </span>
         </div>
+        {showWeightPad && (
+          <NumberPad
+            value={form.weight}
+            onChange={(v) => setForm(f => ({ ...f, weight: v }))}
+            decimal
+            maxIntDigits={3}
+            maxDecimals={2}
+            label="체중"
+            suffix="kg"
+            onClose={() => setShowWeightPad(false)}
+          />
+        )}
       </div>
 
       {/* 만성질환 — 쉼표 구분 자유 입력 (100자 한도) */}

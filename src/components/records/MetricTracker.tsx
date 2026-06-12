@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Droplet, Utensils, Syringe } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { NumberPad } from '@/components/ui/NumberPad';
 import { todayLocalISO } from '@/lib/date';
 import {
   METRIC_META,
@@ -88,6 +89,13 @@ export function MetricTracker({
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loggedWeight, setLoggedWeight] = useState<number | null>(null);
+  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (크롬 autofill 칩 차단)
+  const [isTouch, setIsTouch] = useState(false);
+  const [showPad, setShowPad] = useState(false);
+
+  useEffect(() => {
+    setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+  }, []);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -247,7 +255,7 @@ export function MetricTracker({
           <div className="flex gap-2">
             <input
               type="text"
-              inputMode="decimal"
+              inputMode={isTouch ? 'none' : 'decimal'}
               placeholder={meta.placeholder}
               value={newValue}
               onChange={(e) => {
@@ -255,12 +263,26 @@ export function MetricTracker({
                 // 정수 최대 5자리 + 소수점 둘째자리까지
                 if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
               }}
+              readOnly={isTouch}
+              onClick={() => { if (isTouch) setShowPad(true); }}
               autoComplete="off"
-              className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white"
+              className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
             />
             <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
               inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
           </div>
+          {showPad && (
+            <NumberPad
+              value={newValue}
+              onChange={setNewValue}
+              decimal
+              maxIntDigits={5}
+              maxDecimals={2}
+              label={meta.label}
+              suffix={meta.unit}
+              onClose={() => setShowPad(false)}
+            />
+          )}
           <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
             <button onClick={() => setShowInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>

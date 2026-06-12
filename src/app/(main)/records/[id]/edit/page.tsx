@@ -19,6 +19,7 @@ import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { NumberPad } from '@/components/ui/NumberPad';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { Loader2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -119,6 +120,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   // Chrome autofill 차단 readonly trick — focus 전 readOnly 라 Chrome 휴리스틱이 input 분류 안 함.
   const [costFocused, setCostFocused] = useState(false);
   const [weightFocused, setWeightFocused] = useState(false);
+  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (크롬 autofill 칩 차단)
+  const [isTouch, setIsTouch] = useState(false);
+  const [showWeightPad, setShowWeightPad] = useState(false);
+  const [showCostPad, setShowCostPad] = useState(false);
+  useEffect(() => {
+    setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+  }, []);
 
 
   const isPaidUser = getEffectivePlan(profile?.plan) === 'plus';
@@ -730,11 +738,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             </label>
             <input
               type="text"
-              inputMode="decimal"
+              inputMode={isTouch ? 'none' : 'decimal'}
               placeholder="예: 3.5"
               autoComplete="off"
               maxLength={6}
               name="pet-weight-kg"
+              readOnly={isTouch}
+              onClick={() => { if (isTouch) setShowWeightPad(true); }}
               value={weight}
               onChange={(e) => {
                 const v = e.target.value;
@@ -835,14 +845,15 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               </label>
               <input
                 type="text"
-                inputMode="decimal"
+                inputMode={isTouch ? 'none' : 'decimal'}
                 placeholder="예: 3.5"
                 value={weight}
                 onChange={(e) => {
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
-                readOnly={!weightFocused}
+                readOnly={isTouch ? true : !weightFocused}
+                onClick={() => { if (isTouch) setShowWeightPad(true); }}
                 onFocus={() => setWeightFocused(true)}
                 onBlur={() => setWeightFocused(false)}
                 autoComplete="one-time-code"
@@ -915,11 +926,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               </label>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode={isTouch ? 'none' : 'numeric'}
                 pattern="[0-9]*"
-                value={cost}
-                onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, ''))}
-                readOnly={!costFocused}
+                value={cost ? Number(cost).toLocaleString() : ''}
+                onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                readOnly={isTouch ? true : !costFocused}
+                onClick={() => { if (isTouch) setShowCostPad(true); }}
                 onFocus={() => setCostFocused(true)}
                 onBlur={() => setCostFocused(false)}
                 autoComplete="one-time-code"
@@ -1182,6 +1194,32 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             form 의 가동 영역을 명시적으로 확보. pb 클래스 대비 더 명확. */}
         <div className="h-[180px]" aria-hidden="true" />
       </form>
+
+      {/* 숫자 패드 (모바일) — 체중 / 비용 */}
+      {showWeightPad && (
+        <NumberPad
+          value={weight}
+          onChange={setWeight}
+          decimal
+          maxIntDigits={3}
+          maxDecimals={2}
+          label="체중"
+          suffix="kg"
+          onClose={() => setShowWeightPad(false)}
+        />
+      )}
+      {showCostPad && (
+        <NumberPad
+          value={cost}
+          onChange={setCost}
+          decimal={false}
+          maxIntDigits={8}
+          thousands
+          label="비용"
+          suffix="원"
+          onClose={() => setShowCostPad(false)}
+        />
+      )}
 
       {/* Bottom Save Button */}
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-10 keyboard-hide-on-open">
