@@ -11,6 +11,7 @@ import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { OnboardHint } from '@/components/ui/OnboardHint';
+import { NumberPad } from '@/components/ui/NumberPad';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -81,6 +82,12 @@ export default function ExpensesPage() {
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (크롬 autofill 칩 차단)
+  const [isTouch, setIsTouch] = useState(false);
+  const [showAmountPad, setShowAmountPad] = useState(false);
+  useEffect(() => {
+    setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+  }, []);
 
   const periodOptions = allPeriodOptions.filter((p) => p.months <= maxMonths);
   const lockedOptions = allPeriodOptions.filter((p) => p.months > maxMonths);
@@ -251,9 +258,14 @@ export default function ExpensesPage() {
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50} autoComplete="off"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                 <div className="flex gap-2">
-                  <input type="text" inputMode="numeric" placeholder="금액(원)" value={newAmount}
-                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="off"
-                    className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
+                  <input type="text"
+                    inputMode={isTouch ? 'none' : 'numeric'}
+                    placeholder="금액(원)" value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                    readOnly={isTouch}
+                    onClick={() => { if (isTouch) setShowAmountPad(true); }}
+                    autoComplete="off"
+                    className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gray-400 bg-white ${isTouch ? 'cursor-pointer' : ''}`} />
                   <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                 </div>
@@ -264,6 +276,17 @@ export default function ExpensesPage() {
                     {saving ? '저장 중...' : '저장'}
                   </button>
                 </div>
+                {showAmountPad && (
+                  <NumberPad
+                    value={newAmount}
+                    onChange={setNewAmount}
+                    decimal={false}
+                    maxIntDigits={9}
+                    label="금액"
+                    suffix="원"
+                    onClose={() => setShowAmountPad(false)}
+                  />
+                )}
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}

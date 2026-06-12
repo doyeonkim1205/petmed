@@ -56,26 +56,18 @@ export function NumberPad({
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/30" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-gray-50 rounded-t-2xl p-3 pb-5 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]"
+        className="w-full max-w-sm bg-white rounded-t-2xl p-4 pb-5 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-1 pb-2.5">
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            {label && <span className="text-xs font-medium text-gray-400 flex-shrink-0">{label}</span>}
-            <span className="text-lg font-bold text-gray-900 truncate">
-              {value || 0}
-              {suffix && <span className="text-sm font-medium text-gray-400 ml-0.5">{suffix}</span>}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm font-bold text-blue-600 px-3 py-1 active:scale-95 flex-shrink-0"
-          >
-            완료
-          </button>
+        {/* 디스플레이 — 중앙 큰 값 (iOS 풍) */}
+        <div className="text-center pt-1 pb-3">
+          {label && <span className="block text-[11px] font-semibold text-gray-400 mb-1">{label}</span>}
+          <span className="text-3xl font-extrabold tracking-tight text-gray-900">{value || 0}</span>
+          {suffix && <span className="text-base font-semibold text-gray-400 ml-1">{suffix}</span>}
         </div>
-        <div className="grid grid-cols-3 gap-2">
+
+        {/* 키패드 — 테두리 없는 플랫 키 */}
+        <div className="grid grid-cols-3 gap-2.5">
           {keys.map((k, i) =>
             k === 'blank' ? (
               <div key={i} />
@@ -84,13 +76,22 @@ export function NumberPad({
                 key={i}
                 type="button"
                 onClick={() => press(k)}
-                className="h-12 rounded-xl bg-white border border-gray-200 text-lg font-semibold text-gray-800 active:bg-gray-100 transition-colors flex items-center justify-center"
+                className="h-[52px] rounded-2xl bg-gray-100 text-xl font-medium text-gray-900 active:bg-gray-200 transition-colors flex items-center justify-center"
               >
                 {k === 'back' ? <Delete size={20} className="text-gray-500" /> : k}
               </button>
             ),
           )}
         </div>
+
+        {/* 하단 확인 버튼 */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 w-full h-12 rounded-xl bg-blue-600 text-white text-sm font-bold active:bg-blue-700 transition-colors"
+        >
+          확인
+        </button>
       </div>
     </div>
   );
