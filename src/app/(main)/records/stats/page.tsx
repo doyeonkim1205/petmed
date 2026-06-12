@@ -14,6 +14,7 @@ import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { OnboardHint } from '@/components/ui/OnboardHint';
+import { NumberPad } from '@/components/ui/NumberPad';
 
 type StatsTab = 'weight' | 'water' | 'food' | 'fluid';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
@@ -193,6 +194,9 @@ export default function StatsPage() {
   // Chrome autofill 차단 readonly trick.
   const [newWeightFocused, setNewWeightFocused] = useState(false);
   const [weightSaving, setWeightSaving] = useState(false);
+  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 사용 (크롬 autofill 칩 차단)
+  const [isTouch, setIsTouch] = useState(false);
+  const [showWeightPad, setShowWeightPad] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -212,6 +216,11 @@ export default function StatsPage() {
         setPetsLoaded(true);
       });
   }, [user]);
+
+  // 터치(모바일) 기기 감지 — 숫자 패드 사용 여부 결정
+  useEffect(() => {
+    setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+  }, []);
 
   const { records } = useHealthRecords(selectedPetId);
   const startDate = getStartDate(period, customStart);
@@ -517,21 +526,23 @@ export default function StatsPage() {
                 {showWeightInput ? (
                   <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                     <div className="flex gap-2">
-                      <input type="text" inputMode="decimal"
+                      <input type="text"
+                        inputMode={isTouch ? 'none' : 'decimal'}
                         placeholder="체중 (kg)" value={newWeight}
                         onChange={(e) => {
                           const v = e.target.value;
                           if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
                         }}
-                        readOnly={!newWeightFocused}
+                        readOnly={isTouch ? true : !newWeightFocused}
                         onFocus={() => setNewWeightFocused(true)}
                         onBlur={() => setNewWeightFocused(false)}
+                        onClick={() => { if (isTouch) setShowWeightPad(true); }}
                         autoComplete="one-time-code"
                         data-form-type="other"
                         data-1p-ignore="true"
                         data-lpignore="true"
                         name="weight-log-value"
-                        className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+                        className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white ${isTouch ? 'cursor-pointer' : ''}`} />
                       <DatePicker value={newWeightDate} onChange={setNewWeightDate}
                         max={todayLocalISO()}
                         className="flex-1 min-w-0"
@@ -545,6 +556,18 @@ export default function StatsPage() {
                         {weightSaving ? '저장 중...' : '저장'}
                       </button>
                     </div>
+                    {showWeightPad && (
+                      <NumberPad
+                        value={newWeight}
+                        onChange={setNewWeight}
+                        decimal
+                        maxIntDigits={3}
+                        maxDecimals={2}
+                        label="체중"
+                        suffix="kg"
+                        onClose={() => setShowWeightPad(false)}
+                      />
+                    )}
                   </div>
                 ) : (
                   <button onClick={() => {
