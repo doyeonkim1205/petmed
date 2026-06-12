@@ -10,7 +10,9 @@ export function useMedications() {
   const { user } = useAuth();
 
   const addMedication = async (medication: {
-    record_id: string;
+    record_id?: string | null;       // 진료/입퇴원에 딸린 약이면 연결, 펫 단위 독립 약이면 생략
+    pet_id?: string | null;          // 펫 직접 연결 (재구조화 후 기본)
+    kind?: 'prescription' | 'supplement' | 'other';
     name: string;
     dosage?: string;
     start_date: string;
@@ -39,6 +41,7 @@ export function useMedications() {
     end_date?: string | null;
     frequency?: string;
     color?: string;
+    kind?: 'prescription' | 'supplement' | 'other';
     alarm_enabled?: boolean;
     alarm_times?: string[];
   }) => {
@@ -75,11 +78,13 @@ export function useMedications() {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       })();
 
+      // 펫 단위 직접 연결(pet_id) 기준. 진료기록에 딸린 약도 pet_id 가 채워져 있음(마이그레이션 백필).
+      // 펫 단위 독립 약(record_id NULL)도 함께 잡히도록 left join.
       const query = supabase
         .from('medications')
         .select(`
           *,
-          health_records!inner (pet_id, pets:pet_id (id, name, type))
+          pets:pet_id (id, name, type)
         `)
         .eq('user_id', user.id)
         .lte('start_date', targetDate);
@@ -99,7 +104,7 @@ export function useMedications() {
           defaultEnd.setDate(defaultEnd.getDate() + 90);
           endOk = targetDate <= defaultEnd.toISOString().split('T')[0];
         }
-        const petOk = !petId || med.health_records?.pet_id === petId;
+        const petOk = !petId || med.pet_id === petId;
         return endOk && petOk;
       });
 
@@ -178,6 +183,24 @@ export function useMedications() {
     return data || [];
   };
 
+  // 복약 관리 페이지용: 펫의 모든 약(복용중·종료 포함) 최신순.
+  const getMedicationsByPet = useCallback(async (petId: string) => {
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('medications')
+      .select('*')
+      .eq('pet_id', petId)
+      .eq('user_id', user.id)
+      .order('start_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching pet medications:', error);
+      return [];
+    }
+    return data || [];
+  }, [user]);
+
   return {
     loading,
     addMedication,
@@ -187,5 +210,6 @@ export function useMedications() {
     getChecksForDate,
     toggleCheck,
     getMedicationsByRecordId,
+    getMedicationsByPet,
   };
 }

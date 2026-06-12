@@ -9,6 +9,7 @@ import { MedicationCheck } from '@/lib/supabase';
 interface MedicationCheckListProps {
   petId?: string;
   date?: string;
+  card?: boolean;   // 홈에서 흰 카드로 감싸 노출 (복약 있을 때만 — 빈 경우 null 반환이라 카드도 안 뜸)
 }
 
 function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }): string[] {
@@ -25,7 +26,7 @@ function parseDoseCount(frequency: string): number {
   return 1;
 }
 
-export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
+export function MedicationCheckList({ petId, date, card }: MedicationCheckListProps) {
   const [medications, setMedications] = useState<any[]>([]);
   const [checks, setChecks] = useState<MedicationCheck[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,9 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
   };
 
   if (loading) {
+    // 카드 변형(홈)에선 로딩 중 빈 골격을 띄우지 않음 — 복약 없는 대다수에게
+    // 빈 카드가 깜빡이는 것 방지. 약이 확정되면 그때 카드가 나타남.
+    if (card) return null;
     return (
       <div className="px-4 py-3">
         <div className="h-6 bg-gray-100 rounded animate-pulse" />
@@ -91,7 +95,7 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
   const checkedCount = checks.filter((c) => c.checked).length;
 
   return (
-    <div className="px-4 py-3">
+    <div className={card ? 'bg-white rounded-2xl border border-gray-100 px-4 py-3' : 'px-4 py-3'}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Pill size={18} className="text-blue-600" />
@@ -112,7 +116,7 @@ export function MedicationCheckList({ petId, date }: MedicationCheckListProps) {
         {medications.map((med) => {
           const doseCount = parseDoseCount(med.frequency);
           const labels = getDoseLabels(med);
-          const petName = med.health_records?.pets?.name;
+          const petName = med.pets?.name;
 
           return (
             <div key={med.id} className="space-y-1.5">

@@ -591,6 +591,8 @@ export default function RecordAddPage() {
         try {
           await addMedication({
             record_id: record.id,
+            pet_id: petId,
+            kind: 'prescription',
             name: med.name.trim(),
             dosage: med.dosage.trim() || undefined,
             start_date: med.start_date,
