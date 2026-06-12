@@ -407,7 +407,7 @@ export default function StatsPage() {
             { id: 'fluid', label: '수액', Icon: Syringe },
           ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
               <Icon size={13} />{label}
             </button>
           ))}
