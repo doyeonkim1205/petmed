@@ -436,9 +436,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (recordType === 'daily') {
-      if (selectedSubKinds.length === 0) {
-        showError('세부 종류를 1개 이상 선택해주세요.'); return;
-      }
+      // 세부 종류는 선택 사항 (필수 아님). 메모만 있으면 저장 가능.
       if (!description.trim()) {
         showError('메모를 입력해주세요.'); return;
       }
