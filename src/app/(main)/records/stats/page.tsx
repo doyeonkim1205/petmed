@@ -375,7 +375,7 @@ export default function StatsPage() {
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowTabSettings(false)} />
             <div className="absolute right-3 top-[52px] z-40 w-28 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
-              <p className="text-[10px] text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
+              <p className="text-xs text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
               {ALL_METRIC_TABS.map((id) => {
                 const on = enabledTabs.includes(id);
                 return (
