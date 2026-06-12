@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Delete } from 'lucide-react';
+import { Delete, X } from 'lucide-react';
 
 interface NumberPadProps {
   value: string;
@@ -67,9 +67,19 @@ export function NumberPad({
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/30" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-white rounded-t-2xl p-4 pb-5 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]"
+        className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-5 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* 닫기 X (우상단) */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+          className="absolute top-2.5 right-2.5 p-1 text-gray-300 hover:text-gray-500 active:scale-90 transition"
+        >
+          <X size={18} />
+        </button>
+
         {/* 디스플레이 — 중앙 큰 값 (iOS 풍) */}
         <div className="text-center pt-1 pb-3">
           {label && <span className="block text-[11px] font-semibold text-gray-400 mb-1">{label}</span>}
