@@ -398,9 +398,9 @@ export default function MedsPage() {
 
       {/* 편집기 (바텀시트) */}
       {editorOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={closeEditor}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeEditor}>
           <div
-            className="w-full max-w-sm bg-white rounded-t-2xl max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
