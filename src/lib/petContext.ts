@@ -27,8 +27,9 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Pet } from './supabase';
+import type { Pet, ExcretionKind } from './supabase';
 import { waterTargetRange } from './healthMetrics';
+import { conditionMeta } from './excretion';
 
 export interface PetRecentRecord {
   visit_date: string;
@@ -52,11 +53,20 @@ export interface FluidSummary {
   lastDate: string;
 }
 
+/** 대소변 요약 — 최근 14일. 소화기·비뇨기 증상 분석에 핵심 신호. */
+export interface ExcretionKindSummary {
+  total: number;                              // 14일 총 횟수
+  abnormal: { label: string; n: number }[];   // 정상 외 상태별 횟수
+  lastDate: string;
+}
+
 export interface PetContext {
   pet: Pet;
   recentRecords: PetRecentRecord[];
   /** 자발적 음수/식사 + 수액(수분 보충, 별도). 조건 통과한 것만 채워짐. */
   intake?: { water?: IntakeSummary; food?: IntakeSummary; fluid?: FluidSummary };
+  /** 최근 14일 대소변(대변/소변) 요약. 기록 있을 때만. */
+  excretion?: { poop?: ExcretionKindSummary; pee?: ExcretionKindSummary };
 }
 
 /** 생년월일 → "12살" 자연어 변환. NULL/잘못된 형식이면 빈 문자열. */
@@ -162,7 +172,33 @@ export async function fetchPetContext(
     intake.fluid = { count: fluidRows.length, lastDate: fdates[fdates.length - 1], ...(total > 0 ? { total: Math.round(total) } : {}) };
   }
 
-  return { pet, recentRecords, ...(intake.water || intake.food || intake.fluid ? { intake } : {}) };
+  // 4. 최근 14일 대소변 — 횟수 + 이상 상태별 집계 (소화기·비뇨기 신호).
+  const { data: excRows } = await supabaseAdmin
+    .from('excretion_logs')
+    .select('kind, condition, measured_at')
+    .eq('user_id', userId)
+    .eq('pet_id', petId)
+    .gte('measured_at', ymd(since14));
+
+  const excretion: { poop?: ExcretionKindSummary; pee?: ExcretionKindSummary } = {};
+  for (const k of ['poop', 'pee'] as const) {
+    const rows = (excRows || []).filter((r) => r.kind === k);
+    if (rows.length === 0) continue;
+    const abnMap = new Map<string, number>();
+    for (const r of rows) {
+      if (r.condition !== 'normal') abnMap.set(r.condition, (abnMap.get(r.condition) || 0) + 1);
+    }
+    const abnormal = [...abnMap.entries()].map(([c, n]) => ({ label: conditionMeta(k as ExcretionKind, c).label, n }));
+    const dates = rows.map((r) => String(r.measured_at).split('T')[0]).sort();
+    excretion[k] = { total: rows.length, abnormal, lastDate: dates[dates.length - 1] };
+  }
+
+  return {
+    pet,
+    recentRecords,
+    ...(intake.water || intake.food || intake.fluid ? { intake } : {}),
+    ...(excretion.poop || excretion.pee ? { excretion } : {}),
+  };
 }
 
 /**
@@ -239,6 +275,21 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
     }
     if (intake.fluid) {
       lines.push('- 주의: 수액은 수분 보충으로 참고하되, 자발적 음수량 평균에는 포함하지 않습니다.');
+    }
+  }
+
+  // 최근 14일 대소변 — 소화기·비뇨기 신호. 이상 상태(설사·혈변·혈뇨 등) 위주로 간결히.
+  const exc = ctx.excretion;
+  if (exc && (exc.poop || exc.pee)) {
+    lines.push('');
+    lines.push('[최근 14일 대소변 참고 기록]');
+    if (exc.poop) {
+      const a = exc.poop.abnormal.length ? ` (${exc.poop.abnormal.map((x) => `${x.label} ${x.n}회`).join(' · ')})` : ' (모두 정상)';
+      lines.push(`- 대변: 14일간 ${exc.poop.total}회${a}, 마지막 ${exc.poop.lastDate}`);
+    }
+    if (exc.pee) {
+      const a = exc.pee.abnormal.length ? ` (${exc.pee.abnormal.map((x) => `${x.label} ${x.n}회`).join(' · ')})` : ' (모두 정상)';
+      lines.push(`- 소변: 14일간 ${exc.pee.total}회${a}, 마지막 ${exc.pee.lastDate}`);
     }
   }
 
