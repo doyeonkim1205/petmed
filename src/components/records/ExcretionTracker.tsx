@@ -246,23 +246,28 @@ export function ExcretionTracker({
                 return (
                   <div key={log.id} onClick={() => setSelectedId(isSel ? null : log.id)}
                     className={`flex items-center justify-between py-2.5 px-2 border-b border-gray-50 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-gray-400 flex-shrink-0">
-                        {dt.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} {dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                      </span>
-                      <span className="inline-flex items-center gap-1 flex-shrink-0">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cm.color }} />
-                        <span className="text-sm font-semibold text-gray-700">{cm.label}</span>
-                      </span>
-                      {(am || cl) && (
-                        <span className="text-[11px] text-gray-400 truncate">
-                          {am ? `· ${am}` : ''}{cl ? ` · ${cl.label}` : ''}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                          {dt.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} {dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
+                        <span className="inline-flex items-center gap-1 flex-shrink-0">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cm.color }} />
+                          <span className="text-sm font-semibold text-gray-700">{cm.label}</span>
+                        </span>
+                        {(am || cl) && (
+                          <span className="text-[11px] text-gray-400 truncate">
+                            {am ? `· ${am}` : ''}{cl ? ` · ${cl.label}` : ''}
+                          </span>
+                        )}
+                      </div>
+                      {log.memo && (
+                        <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>
                       )}
                     </div>
                     {isSel && (
                       <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                        className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0">삭제</button>
+                        className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
                     )}
                   </div>
                 );
