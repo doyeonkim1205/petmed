@@ -13,7 +13,7 @@ export type TLKind =
 export const TL_LABEL: Record<TLKind, string> = {
   hospitalization: '입퇴원', symptom: '증상', visit: '진료', daily: '일상',
   preventive: '예방', med: '약', poop: '대변', pee: '소변',
-  food: '식사', water: '음수', fluid: '수액', weight: '체중', cost: '의료비',
+  food: '식사', water: '음수', fluid: '수액', weight: '체중', cost: '지출',
 };
 
 // 접힘 상태에서 '제목'으로 보여줄 중요 이벤트 + 우선순위(작을수록 먼저)

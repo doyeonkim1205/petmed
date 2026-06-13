@@ -335,7 +335,7 @@ export default function RecordsPage() {
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
                 >
                   <Wallet size={14} className="text-gray-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">의료비</p>
+                  <p className="text-[13px] font-bold text-gray-700">지출</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/preventive')}

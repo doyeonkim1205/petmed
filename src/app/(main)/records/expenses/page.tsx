@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, Stethoscope, Lock, Plus } from 'lucide-react';
+import {
+  ArrowLeft, Wallet, Lock, Plus, ChevronDown, ChevronUp, X,
+  Stethoscope, Package, Cookie, ShieldCheck, Gamepad2, Scissors, Tag,
+  type LucideIcon,
+} from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -17,7 +21,7 @@ type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string };
 
-// 기록 cost + 직접 입력 지출을 한 형태로 병합한 항목.
+// 기록 cost + 직접 입력 지출을 한 형태로 병합한 항목. (category 포함 — 기록 비용은 medical)
 type Item = {
   key: string;
   source: 'record' | 'direct';
@@ -25,9 +29,22 @@ type Item = {
   date: string;       // YYYY-MM-DD
   amount: number;
   title: string;
+  category: string;
   hospital?: string;
   petName?: string;
 };
+
+// 지출 카테고리 — expenses.category 와 동일 키. 기존 데이터('medical')는 '병원·의료'로 자동 매핑.
+const EXP_CATEGORIES: { id: string; label: string; Icon: LucideIcon; color: string }[] = [
+  { id: 'medical', label: '병원·의료', Icon: Stethoscope, color: '#3b82f6' },
+  { id: 'food', label: '사료', Icon: Package, color: '#22c55e' },
+  { id: 'snack', label: '간식', Icon: Cookie, color: '#f59e0b' },
+  { id: 'insurance', label: '펫보험', Icon: ShieldCheck, color: '#14b8a6' },
+  { id: 'supplies', label: '용품·장난감', Icon: Gamepad2, color: '#a855f7' },
+  { id: 'grooming', label: '미용', Icon: Scissors, color: '#ec4899' },
+  { id: 'other', label: '기타', Icon: Tag, color: '#94a3b8' },
+];
+const catMeta = (id: string) => EXP_CATEGORIES.find((c) => c.id === id) || EXP_CATEGORIES[EXP_CATEGORIES.length - 1];
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
   { id: 'month', label: '1개월', months: 1 },
@@ -57,8 +74,43 @@ function formatCost(cost: number): string {
   return new Intl.NumberFormat('ko-KR').format(cost) + '원';
 }
 
+// 도넛 중앙용 압축 표기 (예: 194000 → "19.4만")
+function compactWon(n: number): string {
+  if (n >= 10000) {
+    const man = n / 10000;
+    return `${Number.isInteger(man) ? man : man.toFixed(1)}만`;
+  }
+  return n.toLocaleString();
+}
+
 function formatMonthLabel(year: number, month: number): string {
   return `${year}년 ${month + 1}월`;
+}
+
+// ─── 도넛 차트 ──────────────────────
+function Donut({ segments, centerLabel, centerValue }: {
+  segments: { value: number; color: string }[];
+  centerLabel: string;
+  centerValue: string;
+}) {
+  const C = 2 * Math.PI * 50;
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  let acc = 0;
+  return (
+    <svg width="148" height="148" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="none" stroke="#f1f3f6" strokeWidth="15" />
+      <g transform="rotate(-90 60 60)" fill="none" strokeWidth="15">
+        {total > 0 && segments.filter((s) => s.value > 0).map((s, i) => {
+          const len = (s.value / total) * C;
+          const off = -acc;
+          acc += len;
+          return <circle key={i} cx="60" cy="60" r="50" stroke={s.color} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={off} strokeLinecap="butt" />;
+        })}
+      </g>
+      <text x="60" y="55" textAnchor="middle" fontSize="9" fill="#9ca3af">{centerLabel}</text>
+      <text x="60" y="71" textAnchor="middle" fontSize="15" fontWeight="800" fill="#1f2937">{centerValue}</text>
+    </svg>
+  );
 }
 
 export default function ExpensesPage() {
@@ -74,15 +126,19 @@ export default function ExpensesPage() {
   const [petsLoaded, setPetsLoaded] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
 
-  // 직접 입력 의료비
+  // 카테고리 필터(범례 탭) + 범례 펼침
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  // 직접 입력 지출
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showAddInput, setShowAddInput] = useState(false);
+  const [newCategory, setNewCategory] = useState('medical');
   const [newReason, setNewReason] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-  // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (크롬 autofill 칩 차단)
   const [isTouch, setIsTouch] = useState(false);
   const [showAmountPad, setShowAmountPad] = useState(false);
   useEffect(() => {
@@ -106,9 +162,10 @@ export default function ExpensesPage() {
     });
   }, [user]);
 
+  // 모든 카테고리의 직접 입력 지출 fetch (이전엔 medical 만)
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
-    let q = supabase.from('expenses').select('*').eq('user_id', user.id).eq('category', 'medical');
+    let q = supabase.from('expenses').select('*').eq('user_id', user.id);
     if (selectedPetId) q = q.eq('pet_id', selectedPetId);
     const { data } = await q;
     setExpenses((data as Expense[]) || []);
@@ -120,32 +177,47 @@ export default function ExpensesPage() {
   const startDate = getStartDate(period, customStart);
   const endDate = getEndDate(period, customEnd);
 
-  // 기록 cost + 직접 입력 병합 (기간 필터)
+  // 기록 cost(=병원·의료) + 직접 입력 병합 (기간 필터)
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     for (const r of records) {
       if (!r.cost || r.cost <= 0) continue;
-      const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00'); // 로컬 자정 (UTC 파싱 함정 회피)
+      const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], amount: r.cost, title: r.title, hospital: r.hospital_name, petName: r.pets?.name });
+      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], amount: r.cost, title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
     }
     for (const e of expenses) {
-      const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00'); // 로컬 자정
+      const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || '의료비', petName: pets.find((p) => p.id === e.pet_id)?.name });
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || catMeta(e.category).label, category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
     return out;
   }, [records, expenses, startDate, endDate, pets]);
 
-  const stats = useMemo(() => {
-    let total = 0;
-    for (const it of items) total += it.amount;
-    return { total, count: items.length };
+  // 카테고리별 합계 (전체 — 도넛/범례용)
+  const categoryTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const it of items) map.set(it.category, (map.get(it.category) || 0) + it.amount);
+    return map;
   }, [items]);
+
+  const grandTotal = useMemo(() => items.reduce((s, it) => s + it.amount, 0), [items]);
+
+  // 도넛 세그먼트 (카테고리 순서)
+  const segments = useMemo(() => EXP_CATEGORIES.map((c) => ({ value: categoryTotals.get(c.id) || 0, color: c.color })), [categoryTotals]);
+
+  // 범례 (값 있는 카테고리만, 큰 순)
+  const legendRows = useMemo(() => EXP_CATEGORIES
+    .map((c) => ({ ...c, value: categoryTotals.get(c.id) || 0 }))
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value), [categoryTotals]);
+
+  // 필터 적용 항목 → 월별 그룹
+  const filteredItems = useMemo(() => selectedCategory ? items.filter((it) => it.category === selectedCategory) : items, [items, selectedCategory]);
 
   const monthlyGroups = useMemo(() => {
     const map = new Map<string, { label: string; total: number; items: Item[] }>();
-    for (const it of items) {
+    for (const it of filteredItems) {
       const d = new Date(it.date + 'T00:00:00');
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
       if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, items: [] });
@@ -155,9 +227,8 @@ export default function ExpensesPage() {
     }
     for (const g of map.values()) g.items.sort((a, b) => b.date.localeCompare(a.date));
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
-  }, [items]);
+  }, [filteredItems]);
 
-  // 추가 시 대상 펫 — 선택된 펫 or 1마리면 그 펫. 다마리 미선택이면 null(선택 요구).
   const resolvedPetId = selectedPetId || (pets.length === 1 ? pets[0].id : null);
 
   const handleAddExpense = async () => {
@@ -167,7 +238,7 @@ export default function ExpensesPage() {
     const today = todayLocalISO();
     const date = newDate > today ? today : newDate;
     setSaving(true);
-    await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: 'medical', reason: newReason.trim() || '의료비', amount, spent_at: date });
+    await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date });
     setNewReason(''); setNewAmount(''); setShowAddInput(false); setSaving(false);
     fetchExpenses();
   };
@@ -185,17 +256,15 @@ export default function ExpensesPage() {
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">의료비</h1>
+          <h1 className="text-sm font-semibold text-gray-700">지출</h1>
         </header>
-
-        {/* 안내 말풍선 — '의료비' 제목 아래 오버레이 (기존 콘텐츠 위에 가리고 뜸) */}
         <div className="absolute left-1/2 top-[50px] z-20 w-64 max-w-[88%] -translate-x-1/2">
           <OnboardHint storageKey="hint_expense_record" pointer="center"
-            text={"기록장(진료·입퇴원)에 적은 진료비·입원비도\n자동으로 여기에 모여요."} />
+            text={"기록장(진료·입원)에 적은 비용은\n'병원·의료'로 자동 합산돼요."} />
         </div>
       </div>
 
-      {/* Pet filter — 제목 아래 밴드 (건강 통계와 동일) */}
+      {/* Pet filter */}
       {pets.length > 1 && (
         <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
           <button onClick={() => setSelectedPetId(undefined)}
@@ -207,25 +276,12 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      <div className="max-w-sm mx-auto px-4 pt-1 pb-4 space-y-5">
+      <div className="max-w-sm mx-auto px-4 pt-1 pb-4 space-y-4">
         {(!petsLoaded || loading) ? (
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-blue-50 rounded-xl p-3 text-center">
-                <Wallet size={18} className="mx-auto text-blue-500 mb-1" />
-                <p className="text-[10px] text-blue-400 font-medium">총 의료비</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.total > 0 ? formatCost(stats.total) : '-'}</p>
-              </div>
-              <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                <Stethoscope size={18} className="mx-auto text-emerald-500 mb-1" />
-                <p className="text-[10px] text-emerald-400 font-medium">지출 건수</p>
-                <p className="text-sm font-bold text-gray-800 mt-0.5">{stats.count > 0 ? `${stats.count}건` : '-'}</p>
-              </div>
-            </div>
-
-            {/* Period selector — 요약 아래 */}
+            {/* Period selector */}
             <div className="flex gap-1.5 overflow-x-auto">
               {periodOptions.map((opt) => (
                 <button key={opt.id} onClick={() => setPeriod(opt.id)}
@@ -248,13 +304,72 @@ export default function ExpensesPage() {
               </div>
             )}
 
-            {/* 의료비 직접 추가 */}
+            {/* 도넛 + 접이식 범례 */}
+            {grandTotal > 0 ? (
+              <div className="rounded-xl border border-gray-100 p-4 flex flex-col items-center">
+                <Donut segments={segments} centerLabel="총 지출" centerValue={compactWon(grandTotal)} />
+                <button onClick={() => setLegendOpen((v) => !v)}
+                  className="mt-3 w-full flex items-center justify-center gap-1 py-2 rounded-xl border border-gray-100 bg-gray-50/60 text-xs font-bold text-gray-500">
+                  카테고리별 {legendOpen ? '접기' : '보기'} {legendOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {legendOpen && (
+                  <div className="w-full mt-2 space-y-0.5">
+                    {legendRows.map((c) => {
+                      const sel = selectedCategory === c.id;
+                      const pct = grandTotal > 0 ? Math.round((c.value / grandTotal) * 100) : 0;
+                      return (
+                        <button key={c.id} onClick={() => setSelectedCategory(sel ? null : c.id)}
+                          className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${sel ? 'bg-blue-50' : 'active:bg-gray-50'}`}>
+                          <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
+                          <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{c.label}</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatCost(c.value)}</span>
+                          <span className="text-[10px] text-gray-400 w-8 text-right">{pct}%</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-100 py-10 text-center">
+                <Wallet size={36} className="mx-auto mb-2 text-gray-200" />
+                <p className="text-gray-400 text-sm">해당 기간에 지출 기록이 없어요</p>
+              </div>
+            )}
+
+            {/* 필터 표시 */}
+            {selectedCategory && (
+              <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+                <span className="text-xs font-medium text-blue-600">{catMeta(selectedCategory).label}만 보는 중</span>
+                <button onClick={() => setSelectedCategory(null)} className="text-xs text-blue-500 inline-flex items-center gap-0.5">
+                  <X size={12} /> 전체
+                </button>
+              </div>
+            )}
+
+            {/* 지출 직접 추가 */}
             {showAddInput ? (
               <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
                 {!resolvedPetId ? (
                   <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
                 ) : null}
-                <input type="search" placeholder="지출 사유 (예: 수액 구매, 약 처방)" value={newReason}
+                {/* 카테고리 선택 */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">카테고리</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EXP_CATEGORIES.map((c) => {
+                      const Icon = c.Icon;
+                      const on = newCategory === c.id;
+                      return (
+                        <button key={c.id} type="button" onClick={() => setNewCategory(c.id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${on ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-500'}`}>
+                          <Icon size={12} />{c.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <input type="search" placeholder="사유 (예: 로얄캐닌 2kg, 건강검진)" value={newReason}
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50}
                   autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-memo-reason"
                   enterKeyHint="done"
@@ -279,26 +394,17 @@ export default function ExpensesPage() {
                   </button>
                 </div>
                 {showAmountPad && (
-                  <NumberPad
-                    value={newAmount}
-                    onChange={setNewAmount}
-                    decimal={false}
-                    maxIntDigits={9}
-                    thousands
-                    label="금액"
-                    suffix="원"
-                    onClose={() => setShowAmountPad(false)}
-                  />
+                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={false} maxIntDigits={9} thousands label="금액" suffix="원" onClose={() => setShowAmountPad(false)} />
                 )}
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
                 className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors">
-                <Plus size={16} /> 의료비 추가
+                <Plus size={16} /> 지출 추가
               </button>
             )}
 
-            {monthlyGroups.length > 0 ? (
+            {monthlyGroups.length > 0 && (
               <div className="space-y-4">
                 {monthlyGroups.map((group) => (
                   <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
@@ -309,10 +415,15 @@ export default function ExpensesPage() {
                     <div className="divide-y divide-gray-50">
                       {group.items.map((it) => {
                         const dateLabel = new Date(it.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                        const cm = catMeta(it.category);
+                        const CatIcon = cm.Icon;
                         const head = (
                           <>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400 flex-shrink-0">{dateLabel}</span>
+                              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 flex-shrink-0">
+                                <CatIcon size={10} />{cm.label}
+                              </span>
                               {!selectedPetId && it.petName && <span className="text-[11px] text-gray-400 flex-shrink-0">{it.petName}</span>}
                               {it.source === 'record' && it.hospital && <span className="text-[11px] text-gray-400 truncate">{it.hospital}</span>}
                             </div>
@@ -346,11 +457,6 @@ export default function ExpensesPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">해당 기간에 의료비 기록이 없습니다.</p>
               </div>
             )}
           </>
