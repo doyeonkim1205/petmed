@@ -144,6 +144,8 @@ export function MetricTracker({
     );
     setServing(s);
     setServingEditing(false);
+    setDirectMode(false); // 정량 설정 직후엔 % 입력을 기본으로
+    setNewPct(null);
   };
 
   const fetchLogs = useCallback(async () => {
