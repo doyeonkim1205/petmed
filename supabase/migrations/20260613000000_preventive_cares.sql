@@ -12,7 +12,8 @@
 create table if not exists public.preventive_cares (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null,
-  pet_id uuid not null,
+  -- pets FK 필수 — 없으면 PostgREST 임베드(pets:pet_id) 가 실패해 홈 위젯이 빈 배열을 받음.
+  pet_id uuid not null references public.pets(id) on delete cascade,
   category text not null default 'other',
   name text not null default '',
   last_done_date date not null default current_date,

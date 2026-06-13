@@ -44,6 +44,18 @@ export function HomePreventiveWidget() {
 
   useEffect(() => { load(); }, [load]);
 
+  // 홈이 다시 보일 때(다른 탭에서 예방 추가 후 복귀 등) 재조회 — Next.js 라우터 캐시로
+  // 위젯이 재마운트되지 않아 추가한 항목이 안 보이던 문제 방지.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', load);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', load);
+    };
+  }, [load]);
+
   if (loading) return null;
   if (cares.length === 0) return null;
 

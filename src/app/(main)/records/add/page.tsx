@@ -713,11 +713,11 @@ export default function RecordAddPage() {
                   key={type.id}
                   type="button"
                   onClick={() => handleTypeChange(type.id)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 transition-all text-sm font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon size={20} />
+                  <Icon size={18} />
                   {type.label}
                 </button>
               );
