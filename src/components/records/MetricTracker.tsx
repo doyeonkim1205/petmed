@@ -245,8 +245,9 @@ export function MetricTracker({
   }, [dayTotals]);
   const todayPct = target && todayTotal > 0 ? Math.round((todayTotal / ((target.low + target.high) / 2)) * 100) : null;
 
-  // 오늘 "정량 대비 평균 %" (식사·수액 + 정량 설정 시). input_pct 우선, 없으면 value/정량스냅샷.
-  const todayAvgPct = useMemo(() => {
+  // 오늘 "정량 대비 %" (식사·수액 + 정량 설정 시). 끼니별 % 의 평균 + 기록 건수.
+  // input_pct 우선, 없으면 value/정량스냅샷으로 환산.
+  const todayPctInfo = useMemo<{ avg: number; n: number } | null>(() => {
     if (!supportsServing || serving == null) return null;
     const todays = logs.filter((l) => localDateKey(String(l.measured_at)) === todayStr);
     const pcts = todays.map((l) => {
@@ -255,7 +256,7 @@ export function MetricTracker({
       return base ? Math.round((Number(l.value) / base) * 100) : null;
     }).filter((x): x is number => x != null);
     if (pcts.length === 0) return null;
-    return Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+    return { avg: Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length), n: pcts.length };
   }, [logs, todayStr, serving, supportsServing]);
 
   // % 모드 = 정량 설정됨 + 직접입력 아님 (식사·수액)
@@ -339,14 +340,16 @@ export function MetricTracker({
         </div>
 
         {/* 오늘 정량 대비 가로 게이지 (정량 설정된 식사·수액) */}
-        {todayAvgPct != null && (
+        {todayPctInfo != null && (
           <div className="mt-3 pt-3 border-t border-gray-50">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] text-gray-500">오늘 정량 대비</span>
-              <span className="text-xs font-bold" style={{ color: meta.color }}>평균 {todayAvgPct}%</span>
+              <span className="text-[11px] text-gray-500">
+                오늘 정량 대비{todayPctInfo.n > 1 ? ` · ${todayPctInfo.n}회 평균` : ''}
+              </span>
+              <span className="text-xs font-bold" style={{ color: meta.color }}>{todayPctInfo.avg}%</span>
             </div>
             <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(todayAvgPct, 100)}%`, background: meta.color }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(todayPctInfo.avg, 100)}%`, background: meta.color }} />
             </div>
           </div>
         )}
