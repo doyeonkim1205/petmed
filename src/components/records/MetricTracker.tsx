@@ -321,23 +321,35 @@ export function MetricTracker({
   return (
     <div className="space-y-5">
       {/* 요약 카드 */}
-      <div className="rounded-xl border border-gray-100 p-4 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] text-gray-400">오늘 {meta.label}</p>
-          <p className="text-lg font-bold text-gray-800">{todayTotal > 0 ? `${todayTotal}${meta.unit}` : '-'}</p>
-          {todayAvgPct != null && (
-            <p className="text-[11px] font-bold text-blue-600 mt-0.5">정량 대비 평균 {todayAvgPct}%</p>
-          )}
-          <p className="text-[11px] text-gray-400 mt-0.5 break-keep break-words">{metricTargetHint(metricType, target)}</p>
+      <div className="rounded-xl border border-gray-100 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-gray-400">오늘 {meta.label}</p>
+            <p className="text-lg font-bold text-gray-800">{todayTotal > 0 ? `${todayTotal}${meta.unit}` : '-'}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5 break-keep break-words">{metricTargetHint(metricType, target)}</p>
+          </div>
+          <div className="text-right">
+            {todayPct !== null && (
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${todayPct < 80 || todayPct > 120 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                권장 대비 {todayPct}%
+              </span>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1">기간 일평균 {avg > 0 ? `${avg}${meta.unit}` : '-'}</p>
+          </div>
         </div>
-        <div className="text-right">
-          {todayPct !== null && (
-            <span className={`text-xs font-bold px-2 py-1 rounded-full ${todayPct < 80 || todayPct > 120 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-              권장 대비 {todayPct}%
-            </span>
-          )}
-          <p className="text-[11px] text-gray-400 mt-1">기간 일평균 {avg > 0 ? `${avg}${meta.unit}` : '-'}</p>
-        </div>
+
+        {/* 오늘 정량 대비 가로 게이지 (정량 설정된 식사·수액) */}
+        {todayAvgPct != null && (
+          <div className="mt-3 pt-3 border-t border-gray-50">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-gray-500">오늘 정량 대비</span>
+              <span className="text-xs font-bold" style={{ color: meta.color }}>평균 {todayAvgPct}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(todayAvgPct, 100)}%`, background: meta.color }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 그래프 */}
