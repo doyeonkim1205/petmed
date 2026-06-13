@@ -961,7 +961,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                         onClick={() => updateMedFrequency(i, opt.value)}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           med.frequency === opt.value
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-blue-50 text-blue-600 border border-blue-200'
                             : 'bg-white border border-gray-200 text-gray-500'
                         }`}
                       >
