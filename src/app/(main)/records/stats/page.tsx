@@ -379,6 +379,7 @@ export default function StatsPage() {
   const [selectedWeightId, setSelectedWeightId] = useState<string | null>(null);
 
   const needPetSelect = tab === 'weight' && !selectedPetId && pets.length > 1;
+  const noPets = petsLoaded && pets.length === 0;
 
   // ─── Period selector (shared between tabs) ──────────────────────
   return (
@@ -511,10 +512,10 @@ export default function StatsPage() {
           <>
             {(!petsLoaded || weightLoading) ? (
               <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
-            ) : needPetSelect ? (
+            ) : (noPets || needPetSelect) ? (
               <div className="text-center py-16">
                 <Scale size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
+                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
               </div>
             ) : (
               <>
@@ -686,7 +687,7 @@ export default function StatsPage() {
             return (
               <div className="text-center py-16">
                 <Icon size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
+                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
               </div>
             );
           }
@@ -709,7 +710,7 @@ export default function StatsPage() {
             return (
               <div className="text-center py-16">
                 <CircleDot size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
+                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
               </div>
             );
           }

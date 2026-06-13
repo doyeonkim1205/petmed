@@ -244,6 +244,11 @@ export default function ExpensesPage() {
       <div className="max-w-sm mx-auto px-4 pt-1 pb-4 space-y-4">
         {(!petsLoaded || loading) ? (
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
+        ) : pets.length === 0 ? (
+          <div className="text-center py-16">
+            <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
+            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
+          </div>
         ) : (
           <>
             {/* 총액 + 누적 막대 + 접이식 범례 */}
