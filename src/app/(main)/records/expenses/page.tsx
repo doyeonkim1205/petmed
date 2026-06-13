@@ -36,13 +36,13 @@ type Item = {
 
 // 지출 카테고리 — expenses.category 와 동일 키. 기존 데이터('medical')는 '병원·의료'로 자동 매핑.
 const EXP_CATEGORIES: { id: string; label: string; Icon: LucideIcon; color: string }[] = [
-  { id: 'medical', label: '병원·의료', Icon: Stethoscope, color: '#3b82f6' },
-  { id: 'food', label: '사료', Icon: Package, color: '#22c55e' },
-  { id: 'snack', label: '간식', Icon: Cookie, color: '#f59e0b' },
-  { id: 'insurance', label: '펫보험', Icon: ShieldCheck, color: '#14b8a6' },
-  { id: 'supplies', label: '용품·장난감', Icon: Gamepad2, color: '#a855f7' },
-  { id: 'grooming', label: '미용', Icon: Scissors, color: '#ec4899' },
-  { id: 'other', label: '기타', Icon: Tag, color: '#94a3b8' },
+  { id: 'medical', label: '병원·의료', Icon: Stethoscope, color: '#2563eb' },
+  { id: 'food', label: '사료', Icon: Package, color: '#16a34a' },
+  { id: 'snack', label: '간식', Icon: Cookie, color: '#f97316' },
+  { id: 'insurance', label: '펫보험', Icon: ShieldCheck, color: '#0d9488' },
+  { id: 'supplies', label: '용품·장난감', Icon: Gamepad2, color: '#9333ea' },
+  { id: 'grooming', label: '미용', Icon: Scissors, color: '#db2777' },
+  { id: 'other', label: '기타', Icon: Tag, color: '#64748b' },
 ];
 const catMeta = (id: string) => EXP_CATEGORIES.find((c) => c.id === id) || EXP_CATEGORIES[EXP_CATEGORIES.length - 1];
 
