@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { supabase, type Pet, type ExcretionKind, type ExcretionLog } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
-import { todayLocalISO } from '@/lib/date';
+import { todayLocalISO, localDateKey } from '@/lib/date';
 import {
   conditionsFor, conditionMeta, amountLabel, colorMeta,
   AMOUNTS, POOP_COLORS, isAbnormalCondition,
@@ -27,7 +27,7 @@ function nowHHMM(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-const dateKey = (iso: string) => iso.split('T')[0];
+const dateKey = (iso: string) => localDateKey(iso);
 
 export function ExcretionTracker({
   userId, pet, startDate, endDate,

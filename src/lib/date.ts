@@ -23,3 +23,19 @@ export function todayLocalISO(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * 임의의 날짜/타임스탬프 문자열 → 사용자 로컬 타임존 기준 YYYY-MM-DD.
+ *
+ * ⚠️ measured_at 이 timestamptz(시각 포함) 일 때 `.split('T')[0]` 로 자르면
+ * UTC 날짜라 KST 새벽 입력이 "어제"로 버킷팅됨. 이 함수는 new Date 로 파싱 후
+ * 로컬 캘린더 날짜를 뽑아 그 버그를 피함. (순수 date 문자열도 안전하게 동작)
+ */
+export function localDateKey(value: string): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value.split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
