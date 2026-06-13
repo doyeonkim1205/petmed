@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { supabase, type Pet, type ExcretionKind, type ExcretionLog } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { TimePicker } from '@/components/TimePicker';
 import { todayLocalISO } from '@/lib/date';
 import {
   conditionsFor, conditionMeta, amountLabel, colorMeta,
@@ -14,52 +15,19 @@ type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 const KIND_LABEL: Record<ExcretionKind, string> = { poop: '대변', pee: '소변' };
 
-// 날짜(YYYY-MM-DD) + 현재 시각 → ISO timestamp. 오늘이면 사실상 now, 과거면 그 날짜의 현재 시각.
-function buildMeasuredAt(dateISO: string): string {
-  const now = new Date();
+// 날짜(YYYY-MM-DD) + 시각(HH:MM) → ISO timestamp.
+function buildMeasuredAt(dateISO: string, timeHHMM: string): string {
   const [y, m, d] = dateISO.split('-').map(Number);
-  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
+  const [hh, mm] = timeHHMM.split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm, 0).toISOString();
+}
+
+function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 const dateKey = (iso: string) => iso.split('T')[0];
-
-// ─── 일별 횟수 막대 차트 ─────────────────────
-function CountBarChart({ data, color }: { data: { date: string; count: number }[]; color: string }) {
-  if (data.length === 0) return null;
-  const W = 320, H = 150, PX = 30, PY = 14, PB = 20;
-  const chartW = W - PX * 2;
-  const chartH = H - PY - PB;
-  const maxV = Math.max(...data.map((d) => d.count), 1) * 1.15;
-  const yOf = (v: number) => PY + chartH - (v / maxV) * chartH;
-  const n = data.length;
-  const slot = chartW / n;
-  const bw = Math.max(2, Math.min(slot * 0.6, 20));
-  const labelCount = Math.min(5, n);
-  const labelIdx = Array.from({ length: labelCount }, (_, i) => Math.round((i * (n - 1)) / Math.max(labelCount - 1, 1)));
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: '170px' }}>
-      {[0, 0.5, 1].map((r) => {
-        const y = PY + chartH - r * chartH;
-        return (
-          <g key={r}>
-            <line x1={PX} y1={y} x2={W - PX} y2={y} stroke="#f3f4f6" strokeWidth="1" />
-            <text x={PX - 7} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(r * maxV)}</text>
-          </g>
-        );
-      })}
-      {data.map((d, i) => {
-        const cx = PX + slot * i + slot / 2;
-        const y = yOf(d.count);
-        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={color} />;
-      })}
-      {labelIdx.map((idx) => (
-        <text key={idx} x={PX + slot * idx + slot / 2} y={H - 5} textAnchor="middle" fontSize="9" fill="#9ca3af">
-          {new Date(data[idx].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-        </text>
-      ))}
-    </svg>
-  );
-}
 
 export function ExcretionTracker({
   userId, pet, startDate, endDate,
@@ -80,6 +48,7 @@ export function ExcretionTracker({
   const [color, setColor] = useState<string>('');
   const [memo, setMemo] = useState('');
   const [newDate, setNewDate] = useState(todayLocalISO());
+  const [newTime, setNewTime] = useState(nowHHMM());
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -100,10 +69,15 @@ export function ExcretionTracker({
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   // 입력 폼 초기화 (kind 바뀌면 상태/색 리셋 — 옵션이 다름)
-  const resetInput = () => { setCondition(''); setAmount(''); setColor(''); setMemo(''); setNewDate(todayLocalISO()); };
+  const resetInput = () => { setCondition(''); setAmount(''); setColor(''); setMemo(''); setNewDate(todayLocalISO()); setNewTime(nowHHMM()); };
   useEffect(() => { setShowInput(false); resetInput(); }, [kind]);
 
   const todayStr = todayLocalISO();
+  const fmtWhen = (iso: string) => {
+    const d = new Date(iso);
+    const t = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return dateKey(iso) === todayStr ? `오늘 ${t}` : `${d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} ${t}`;
+  };
 
   // 기간 내 로그
   const inRange = useMemo(() => logs.filter((l) => {
@@ -112,18 +86,9 @@ export function ExcretionTracker({
   }), [logs, startDate, endDate]);
 
   const todayCount = useMemo(() => logs.filter((l) => dateKey(l.measured_at) === todayStr).length, [logs, todayStr]);
-  const periodCount = inRange.length;
   const abnormalCount = useMemo(() => inRange.filter((l) => isAbnormalCondition(kind, l.condition)).length, [inRange, kind]);
-
-  // 일별 횟수 (기간 내, 기록 있는 날만)
-  const daily = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const l of inRange) {
-      const k = dateKey(l.measured_at);
-      map.set(k, (map.get(k) || 0) + 1);
-    }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, count]) => ({ date, count }));
-  }, [inRange]);
+  // 마지막 기록 (logs 는 시간 오름차순 → 맨 뒤가 최신)
+  const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
 
   const handleAdd = async () => {
     if (!condition) return;
@@ -135,7 +100,7 @@ export function ExcretionTracker({
       amount: amount || null,
       color: kind === 'poop' ? (color || null) : null,
       memo: memo.trim() || null,
-      measured_at: buildMeasuredAt(date),
+      measured_at: buildMeasuredAt(date, newTime),
     });
     setShowInput(false);
     resetInput();
@@ -168,31 +133,23 @@ export function ExcretionTracker({
         <div className="py-10 text-center text-sm text-gray-400">불러오는 중…</div>
       ) : (
         <>
-          {/* 요약 */}
+          {/* 요약 — 오늘 횟수 + 마지막 기록(상태·시각) + 이상 pill(있을 때만) */}
           <div className="rounded-xl border border-gray-100 p-4 flex items-center justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] text-gray-400">오늘 {KIND_LABEL[kind]}</p>
               <p className="text-lg font-bold text-gray-800">{todayCount > 0 ? `${todayCount}회` : '-'}</p>
-            </div>
-            <div className="text-right">
-              {abnormalCount > 0 && (
-                <span className="text-xs font-bold px-2 py-1 rounded-full bg-rose-100 text-rose-600">이상 {abnormalCount}회</span>
+              {lastLog && (
+                <p className="text-[11px] text-gray-400 mt-0.5 inline-flex items-center gap-1">
+                  마지막
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: conditionMeta(kind, lastLog.condition).color }} />
+                  {conditionMeta(kind, lastLog.condition).label} · {fmtWhen(lastLog.measured_at)}
+                </p>
               )}
-              <p className="text-[11px] text-gray-400 mt-1">기간 {periodCount}회</p>
             </div>
+            {abnormalCount > 0 && (
+              <span className="flex-shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-rose-100 text-rose-600">이상 {abnormalCount}회</span>
+            )}
           </div>
-
-          {/* 그래프 */}
-          {daily.length > 0 ? (
-            <div className="rounded-xl border border-gray-100 p-4">
-              <h2 className="text-sm font-bold text-gray-700 mb-2">{KIND_LABEL[kind]} 횟수</h2>
-              <CountBarChart data={daily} color={accent} />
-            </div>
-          ) : (
-            <div className="rounded-xl border border-gray-100 py-8 text-center">
-              <p className="text-sm text-gray-400">아직 {KIND_LABEL[kind]} 기록이 없어요</p>
-            </div>
-          )}
 
           {/* 입력 */}
           {showInput ? (
@@ -243,13 +200,22 @@ export function ExcretionTracker({
                 </div>
               )}
 
-              {/* 메모 (선택) + 날짜 */}
-              <div className="flex gap-2">
-                <input type="search" placeholder="메모 (선택)" value={memo}
-                  onChange={(e) => setMemo(e.target.value)} maxLength={50} autoComplete="off"
-                  className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
-                <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-shrink-0 w-32"
-                  inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
+              {/* 메모 (선택) */}
+              <input type="search" placeholder="메모 (선택)" value={memo}
+                onChange={(e) => setMemo(e.target.value)} maxLength={50} autoComplete="off"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+
+              {/* 날짜 · 시간 (현재 시각 자동 채움 + 수정 가능) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
+                  <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
+                    inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
+                  <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+                </div>
               </div>
 
               <div className="flex gap-2">
