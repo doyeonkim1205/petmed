@@ -9,10 +9,11 @@ import type { PreventiveCare } from '@/lib/supabase';
 import { categoryMeta, careStatus, ddayLabel, ddayFrom, type CareStatus } from '@/lib/preventiveCare';
 
 // 홈 "예방 관리" 위젯 — 평소엔 한 줄 요약, 탭하면 다가오는 예방 리스트로 펼침.
-// 30일 이내(임박·지남 포함) 예방이 하나라도 있을 때만 노출 (없으면 자동 숨김).
+// D-7 이내(임박·지남 포함) 예방이 있을 때만 노출 (없으면 자동 숨김 → 홈 깔끔).
+// 페이지 '임박' 표시(D-7)·당일/3일전 푸시와 일관. 전체 항목은 예방 페이지에서 확인.
 // 완료 처리는 날짜 확인이 필요해 위젯에선 안 하고, 탭하면 예방 관리 페이지로 이동.
 
-const HORIZON_DAYS = 30;
+const HORIZON_DAYS = 7;
 
 const badgeCls: Record<CareStatus, string> = {
   overdue: 'text-red-600 bg-red-50',
@@ -31,10 +32,9 @@ export function HomePreventiveWidget() {
     setLoading(true);
     try {
       const all = await getUpcoming(); // next_due 오름차순
-      // 30일 이내(지난 것 포함)만 노출. 단 임박한 게 하나도 없어도, 방금 등록한 게
-      // 안 보여 혼란스럽지 않도록 "가장 가까운 1건"은 항상 보여줌(②안).
-      const within = all.filter((c) => ddayFrom(c.next_due_date) <= HORIZON_DAYS);
-      setCares(within.length > 0 ? within : all.slice(0, 1));
+      // D-7 이내(지난 것 포함)만 노출. 임박한 게 없으면 위젯 자체가 숨겨짐 → 홈 깔끔.
+      // (멀리 있는 항목은 예방 페이지에서 확인 — 홈은 '곧 챙길 것'만)
+      setCares(all.filter((c) => ddayFrom(c.next_due_date) <= HORIZON_DAYS));
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'preventive', action: 'home-widget-load' } });
     } finally {
