@@ -224,7 +224,7 @@ export function ExcretionTracker({
 
               {/* 메모 (선택) */}
               <input type="search" placeholder="메모 (선택)" value={memo}
-                onChange={(e) => setMemo(e.target.value)} maxLength={50} autoComplete="off"
+                onChange={(e) => setMemo(e.target.value)} maxLength={100} autoComplete="off"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
 
               {/* 날짜 · 시간 (현재 시각 자동 채움 + 수정 가능) */}

@@ -320,7 +320,7 @@ export function MetricTracker({
           {/* 메모 → 날짜 → 시간 (대소변 입력과 순서 통일) */}
           <input
             type="search" placeholder="메모 (선택)" value={newMemo}
-            onChange={(e) => setNewMemo(e.target.value)} maxLength={50} autoComplete="off"
+            onChange={(e) => setNewMemo(e.target.value)} maxLength={100} autoComplete="off"
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
