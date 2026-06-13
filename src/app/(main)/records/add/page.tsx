@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2, PawPrint, Footprints, CircleDot, Smile, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff, Pill, Paperclip, Trash2, Loader2, PawPrint } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
-import { supabase, Pet, RecordType, DailySubKind } from '@/lib/supabase';
+import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { ColorPicker } from '@/components/records/ColorPicker';
@@ -31,18 +31,6 @@ const recordTypes = [
   { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
 ];
 
-// 일상 세부 종류 — 라벨/아이콘.
-// 식사·수분(meal/hydration)은 건강 통계(수치 추적)로 일원화해 폼 선택지에서 제외.
-//   타입(DailySubKind)·표시 라벨맵엔 유지해 기존 기록 호환.
-const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'walk',      label: '산책', icon: Footprints     },
-  { id: 'poop',      label: '배변', icon: CircleDot      },
-  { id: 'mood',      label: '기분', icon: Smile          },
-  { id: 'other',     label: '기타', icon: MoreHorizontal },
-];
-
-// v12: sub_kind 는 분류 태그 역할만, 메모는 description 1개로 통합.
-// sub_entries 는 [{sub_kind}, ...] 형태로 저장 (memo/time 사용 X, DB 스키마는 호환).
 
 const frequencyOptions = [
   { value: '1일 1회', times: 1 },
@@ -89,8 +77,6 @@ export default function RecordAddPage() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [recordType, setRecordType] = useState<RecordType>('symptom');
   const [petId, setPetId] = useState('');
-  // v12: 선택한 sub_kind 목록만 추적 (멀티 선택 가능, 중복 X). 메모는 description state 활용.
-  const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hospitalName, setHospitalName] = useState('');
@@ -218,13 +204,6 @@ export default function RecordAddPage() {
     setRecordType(newType);
   };
 
-  // 뱃지 토글 — 있으면 제거, 없으면 추가. 중복 X.
-  const toggleDailySubKind = (kind: DailySubKind) => {
-    setSelectedSubKinds((prev) =>
-      prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]
-    );
-  };
-
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
   const [showHospitalSuggestions, setShowHospitalSuggestions] = useState(false);
 
@@ -287,14 +266,13 @@ export default function RecordAddPage() {
     if (d.nextAppointmentDate !== undefined) setNextAppointmentDate(d.nextAppointmentDate);
     if (d.recordColor) setRecordColor(d.recordColor);
     if (d.nextAppointmentColor) setNextAppointmentColor(d.nextAppointmentColor);
-    if (d.selectedSubKinds) setSelectedSubKinds(d.selectedSubKinds);
   };
 
   // hook 에 전달할 현재 form state — 매 render 마다 새 객체 (hook 안에서 ref mirror).
   const formState: RecordDraft = {
     recordType, title, description, hospitalName, cost, weight, symptomTime,
     visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
-    petId, selectedSubKinds,
+    petId,
   };
 
   const {
@@ -542,15 +520,14 @@ export default function RecordAddPage() {
       // title 은 NOT NULL 이라 "일상 기록" 로 채움 (펫 이름은 표시 시 join 으로 가져옴).
       let record;
       if (recordType === 'daily') {
-        // v12: sub_entries 는 sub_kind 만 저장 (분류 태그). 메모는 description 1개로 통합.
-        const subEntries = selectedSubKinds.map((k) => ({ sub_kind: k }));
+        // 일상 = 메모(일기) 1개. 세부 종류 제거 → sub_entries 비움.
         record = await createRecord({
           pet_id: petId,
           record_type: 'daily',
           title: '일상 기록',
           description: description.trim(),
           visit_date: visitDate,
-          sub_entries: subEntries,
+          sub_entries: [],
         });
       } else {
         record = await createRecord({
@@ -747,48 +724,20 @@ export default function RecordAddPage() {
           )}
         </div>
 
-        {/* 일상 — 세부 종류 멀티 선택 (분류 태그) + 통합 메모 1개 (일기 형식) */}
+        {/* 일상 — 메모(일기) 1개. 세부 종류 선택은 제거. */}
         {recordType === 'daily' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              세부 종류 <span className="text-gray-400 font-normal text-xs">(선택)</span>
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {dailySubKinds.map((sk) => {
-                const Icon = sk.icon;
-                const selected = selectedSubKinds.includes(sk.id);
-                return (
-                  <button
-                    key={sk.id}
-                    type="button"
-                    onClick={() => { toggleDailySubKind(sk.id); setIsDirty(true); }}
-                    className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-medium border-2 transition-colors ${
-                      selected
-                        ? 'bg-white text-blue-600 border-blue-500'
-                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon size={14} />
-                    {sk.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 통합 메모 1개 — 일기 형식. sub_kind 선택 여부와 별개로 항상 노출. */}
-            <div className="mt-4">
-              <label className="text-sm font-medium block mb-2">메모</label>
-              <textarea
-                name="description"
-                placeholder="오늘 하루를 기록해보세요"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
-                maxLength={1000}
-                autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium block mb-2">메모</label>
+            <textarea
+              name="description"
+              placeholder="오늘 하루를 기록해보세요"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
+              maxLength={1000}
+              autoComplete="off"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
+            />
           </div>
         )}
 
