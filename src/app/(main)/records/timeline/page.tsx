@@ -230,7 +230,7 @@ export default function TimelinePage() {
                         const Icon = TL_ICON[c.key as TLKind];
                         return (
                           <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                            {Icon && <Icon size={12} className={`flex-shrink-0 ${c.abnormal ? '' : TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ' · 주의' : ''}
+                            {Icon && <Icon size={12} className={`flex-shrink-0 ${TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ' · 주의' : ''}
                           </span>
                         );
                       })}
@@ -246,7 +246,7 @@ export default function TimelinePage() {
                           <button key={e.id} onClick={() => e.href && router.push(e.href)}
                             className="w-full flex items-center gap-2 py-1.5 text-left rounded-lg active:bg-gray-50">
                             <span className="text-[11px] text-gray-400 tabular-nums w-9 flex-shrink-0">{e.time || ''}</span>
-                            <Icon size={13} className={`flex-shrink-0 ${e.abnormal ? 'text-red-500' : TL_COLOR[e.kind]}`} />
+                            <Icon size={13} className={`flex-shrink-0 ${TL_COLOR[e.kind]}`} />
                             <span className="text-[13px] text-gray-700 flex-shrink-0">{TL_LABEL[e.kind]}</span>
                             <span className={`text-[13px] truncate ${e.abnormal ? 'text-red-600 font-medium' : 'text-gray-500'}`}>· {e.text}</span>
                           </button>
