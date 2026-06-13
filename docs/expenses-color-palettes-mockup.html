@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>지출 막대 색상 · 5안</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  body { font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif; background:#eef1f5; color:#1f2937; padding:32px 16px; }
+  h1 { text-align:center; font-size:20px; font-weight:800; margin-bottom:4px; }
+  p.sub { text-align:center; font-size:13px; color:#6b7280; margin-bottom:24px; }
+  .row { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+  .card { width:300px; background:#fff; border:1px solid #e5e7eb; border-radius:18px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+  .tag { font-size:12px; font-weight:800; color:#2563eb; margin-bottom:3px; }
+  .descline { font-size:11px; color:#9ca3af; margin-bottom:12px; }
+  .ttl { font-size:11px; color:#9ca3af; }
+  .amt { font-size:19px; font-weight:800; color:#1f2937; margin-bottom:10px; }
+  .stack { display:flex; height:14px; border-radius:999px; overflow:hidden; margin-bottom:12px; }
+  .stack > b { display:block; height:100%; }
+  .lg { display:flex; align-items:center; gap:7px; padding:5px 2px; }
+  .lg i { width:13px; height:13px; }
+  .lg .nm { font-size:12px; color:#374151; flex:1; }
+  .lg .am { font-size:11px; font-weight:700; color:#374151; }
+  .sw { width:10px; height:10px; border-radius:3px; flex:none; }
+  .note { max-width:960px; margin:24px auto 0; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px 20px; font-size:13px; color:#4b5563; }
+  .note b{ color:#111827; }
+</style>
+</head>
+<body>
+  <h1>지출 막대 색상 · 5안</h1>
+  <p class="sub">카테고리(병원·사료·간식·펫보험·용품·미용·기타)에 어울리는 색 팔레트 5가지</p>
+
+  <div class="row" id="root"></div>
+
+  <div class="note">
+    <b>각 안 컨셉</b> — A 의미 직관(병원=청록·사료=초록·간식=주황·보험=남색·용품=보라·미용=핑크·기타=회색) · B 파스텔 톤(채도↓ 부드럽게) · C 따뜻한 어스톤(베이지·테라코타 계열) · D 앱 블루 단색 그라데이션(톤 통일) · E 비비드(선명·대비 큼).<br>
+    실제 막대 + 범례로 미리보기. 보고 마음에 드는 안 골라줘요. (섞어도 OK)
+  </div>
+
+  <script>
+    const cats = [
+      { id:'medical', label:'병원·의료', icon:'stethoscope', v:100000, w:52 },
+      { id:'food', label:'사료', icon:'package', v:45000, w:23 },
+      { id:'snack', label:'간식', icon:'cookie', v:20000, w:10 },
+      { id:'insurance', label:'펫보험', icon:'shield-check', v:15000, w:8 },
+      { id:'supplies', label:'용품·장난감', icon:'gamepad-2', v:9000, w:5 },
+      { id:'grooming', label:'미용', icon:'scissors', v:5000, w:2 },
+    ];
+    const palettes = {
+      'A. 의미 직관': { medical:'#0ea5b7', food:'#22c55e', snack:'#f59e0b', insurance:'#4f46e5', supplies:'#a855f7', grooming:'#ec4899', other:'#94a3b8' },
+      'B. 파스텔(부드럽게)': { medical:'#7fd1d8', food:'#9fdcb0', snack:'#f8cf8e', insurance:'#a6b1ee', supplies:'#cdb4f0', grooming:'#f5b6cf', other:'#cbd5e1' },
+      'C. 어스톤(따뜻)': { medical:'#5b8a8c', food:'#7fa86b', snack:'#d99a5b', insurance:'#8a7e6b', supplies:'#b08968', grooming:'#c98a7a', other:'#a8a29e' },
+      'D. 앱 블루 단색': { medical:'#1e3a8a', food:'#2563eb', snack:'#3b82f6', insurance:'#60a5fa', supplies:'#93c5fd', grooming:'#bfdbfe', other:'#dbeafe' },
+      'E. 비비드(선명)': { medical:'#2563eb', food:'#16a34a', snack:'#f97316', insurance:'#0d9488', supplies:'#9333ea', grooming:'#db2777', other:'#64748b' },
+    };
+    const fmt = (n) => n.toLocaleString() + '원';
+    const root = document.getElementById('root');
+    Object.entries(palettes).forEach(([name, pal]) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const desc = name.split('. ')[1] || '';
+      card.innerHTML = `
+        <div class="tag">${name.split('. ')[0]}. ${desc}</div>
+        <div class="descline">카테고리에 맞춘 색</div>
+        <div class="ttl">1개월 총 지출</div>
+        <div class="amt">194,000원</div>
+        <div class="stack">${cats.map(c=>`<b style="width:${c.w}%;background:${pal[c.id]}"></b>`).join('')}</div>
+        ${cats.map(c=>`<div class="lg"><span class="sw" style="background:${pal[c.id]}"></span><i data-lucide="${c.icon}" style="color:#7c8696"></i><span class="nm">${c.label}</span><span class="am">${fmt(c.v)}</span></div>`).join('')}
+      `;
+      root.appendChild(card);
+    });
+    lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -231,7 +231,7 @@ export default function TimelinePage() {
                       {d.chips.map((c) => {
                         const Icon = TL_ICON[c.key as TLKind];
                         return (
-                          <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                          <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
                             {Icon && <Icon size={12} className={`flex-shrink-0 ${TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ' · 주의' : ''}
                           </span>
                         );
