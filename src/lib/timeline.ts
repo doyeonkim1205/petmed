@@ -21,6 +21,13 @@ const TITLED_PRIORITY: Partial<Record<TLKind, number>> = {
   hospitalization: 0, symptom: 1, visit: 2, preventive: 3,
 };
 
+// 상세 정렬 — 같은 시각(특히 무시각 00:00)일 때 중요도순 tie-break (작을수록 위).
+// 진료 > 입퇴원 > 증상 > 예방 > 약(무시각) > 체중 > 지출 > 일상.
+const DETAIL_RANK: Record<TLKind, number> = {
+  visit: 0, hospitalization: 1, symptom: 2, preventive: 3, med: 4, weight: 5, cost: 6, daily: 7,
+  poop: 4, pee: 4, food: 4, water: 4, fluid: 4,
+};
+
 export interface TLEvent {
   id: string;
   kind: TLKind;
@@ -112,10 +119,8 @@ export function buildTimeline(input: {
     if (scheduled) {
       time = scheduled;
       timeMs = new Date(`${dk}T${scheduled}:00`).getTime();
-    } else if (c.checked_at) {
-      time = hhmm(c.checked_at);
-      timeMs = new Date(c.checked_at).getTime();
     } else {
+      // 알림 off / free 계정 → 예정 시각 없음 → 무시각(중요도 순서로 정렬)
       time = '';
       timeMs = startOfDayMs(dk);
     }
@@ -183,7 +188,8 @@ export function buildTimeline(input: {
     if (a.daily > 0) chips.push({ key: 'daily', label: `일상 ${a.daily}` });
     if (a.cost > 0) chips.push({ key: 'cost', label: `${a.cost.toLocaleString()}원` });
 
-    const events = [...a.events].sort((x, y) => x.timeMs - y.timeMs);
+    // 시각 오름차순 → 같은 시각(무시각 00:00)은 중요도순(DETAIL_RANK)
+    const events = [...a.events].sort((x, y) => (x.timeMs - y.timeMs) || (DETAIL_RANK[x.kind] - DETAIL_RANK[y.kind]));
     days.push({ date, titled, chips, events });
   }
   days.sort((x, y) => y.date.localeCompare(x.date)); // 최신 날짜 먼저
