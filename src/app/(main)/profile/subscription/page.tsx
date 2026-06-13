@@ -77,7 +77,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '기록당 첨부파일', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}장` },
       // 분석 보관함 — Free 는 maxSavedAnalyses=0 이라 저장 불가(✗), Plus 는 저장 가능(✓).
       // 숫자(500) 대신 ✗/✓ 로 표기 → "500 cap 이 이상해 보임"·"무제한 거짓말" 둘 다 회피.
-      { label: '분석 보관함', sublabel: '(AI 분석 결과 저장)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
+      { label: '분석 보관함', sublabel: '(논문 검색 결과 저장)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
       // "반려동물(2 vs 10)" 라인은 제외 — 대부분 1~2마리라 차별 체감 낮음 (필요 시 추가).
       // "저장 용량" 라인도 제외 — 앱 설정의 "저장 공간" 섹션으로 충분히 노출.
     ],
