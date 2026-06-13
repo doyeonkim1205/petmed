@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check, CircleDot } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
+import { ExcretionTracker } from '@/components/records/ExcretionTracker';
 import type { MetricType } from '@/lib/healthMetrics';
 import { getEnabledStatsTabs, setEnabledStatsTabs, ALL_METRIC_TABS, STATS_TAB_LABELS, type MetricTabId } from '@/lib/statsTabPrefs';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -16,7 +17,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { OnboardHint } from '@/components/ui/OnboardHint';
 import { NumberPad } from '@/components/ui/NumberPad';
 
-type StatsTab = 'weight' | 'water' | 'food' | 'fluid';
+type StatsTab = 'weight' | 'water' | 'food' | 'fluid' | 'excretion';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -167,7 +168,7 @@ export default function StatsPage() {
     setEnabledTabs(enabled);
     const t = new URLSearchParams(window.location.search).get('tab');
     if (t === 'cost') { router.replace('/records/expenses'); return; }
-    if (t && (['weight', 'water', 'food', 'fluid'] as string[]).includes(t)) {
+    if (t && (['weight', 'water', 'food', 'fluid', 'excretion'] as string[]).includes(t)) {
       setTab(t as StatsTab);
     } else if (enabled.length > 0) {
       setTab(enabled[0]); // 첫 켜진 지표로 시작
@@ -408,15 +409,16 @@ export default function StatsPage() {
             ))}
           </div>
         )}
-        <div className="flex max-w-sm mx-auto">
+        <div className="flex max-w-sm mx-auto overflow-x-auto">
           {([
             { id: 'weight', label: '체중', Icon: Scale },
             { id: 'water', label: '음수량', Icon: Droplet },
             { id: 'food', label: '식사', Icon: Utensils },
             { id: 'fluid', label: '수액', Icon: Syringe },
+            { id: 'excretion', label: '대소변', Icon: CircleDot },
           ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+              className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
               <Icon size={13} />{label}
             </button>
           ))}
@@ -643,6 +645,28 @@ export default function StatsPage() {
               userId={user.id}
               pet={selPet}
               metricType={tab as MetricType}
+              period={period}
+              startDate={startDate}
+              endDate={endDate}
+            />
+          );
+        })()}
+
+        {/* ═══ 대소변 탭 ═══ */}
+        {tab === 'excretion' && enabledTabs.includes('excretion') && user && (() => {
+          const selPet = selectedPetId ? pets.find((p) => p.id === selectedPetId) : (pets.length === 1 ? pets[0] : null);
+          if (!selPet) {
+            return (
+              <div className="text-center py-16">
+                <CircleDot size={40} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-gray-400 text-sm">반려동물을 선택해주세요</p>
+              </div>
+            );
+          }
+          return (
+            <ExcretionTracker
+              userId={user.id}
+              pet={selPet}
               period={period}
               startDate={startDate}
               endDate={endDate}
