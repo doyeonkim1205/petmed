@@ -405,7 +405,12 @@ export function MetricTracker({
 
           {isPctMode ? (
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1.5">{pctQuestion}</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs text-gray-500 font-medium">{pctQuestion}</p>
+                {newPct != null && serving != null && (
+                  <span className="text-sm font-bold" style={{ color: meta.color }}>{Math.round((newPct / 100) * serving)}{meta.unit}</span>
+                )}
+              </div>
               <div className="grid grid-cols-5 gap-1.5">
                 {PCT_VALUES.map((p) => (
                   <button key={p} type="button" onClick={() => setNewPct(p)}
@@ -415,9 +420,6 @@ export function MetricTracker({
                   </button>
                 ))}
               </div>
-              {newPct != null && serving != null && (
-                <p className="text-[11px] text-gray-400 mt-1.5">= {Math.round((newPct / 100) * serving)}{meta.unit}</p>
-              )}
               <button onClick={() => { setDirectMode(true); setNewPct(null); }} className="text-[11px] text-gray-400 underline mt-1.5">직접 입력</button>
             </div>
           ) : (
