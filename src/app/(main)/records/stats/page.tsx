@@ -427,7 +427,8 @@ export default function StatsPage() {
 
               {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).length > 0 && (
                 <>
-                  <p className="text-[11px] font-bold text-gray-400 mt-4 mb-1">숨김</p>
+                  <div className="border-t border-dashed border-gray-200 my-3" />
+                  <p className="text-[11px] font-bold text-gray-400 mb-1">숨김</p>
                   {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).map((id) => (
                     <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
                       <span className="flex-1 text-sm font-medium text-gray-400">{STATS_TAB_LABELS[id]}</span>
