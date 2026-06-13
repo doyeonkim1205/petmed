@@ -469,7 +469,7 @@ export default function PreventivePage() {
                         type="button"
                         onClick={() => setForm((f) => ({ ...f, interval_unit: p.unit, interval_value: p.value }))}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          on ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500'
+                          on ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'
                         }`}
                       >
                         {p.label}

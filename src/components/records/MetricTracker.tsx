@@ -414,8 +414,7 @@ export function MetricTracker({
               <div className="grid grid-cols-5 gap-1.5">
                 {PCT_VALUES.map((p) => (
                   <button key={p} type="button" onClick={() => setNewPct(p)}
-                    className={`py-2.5 rounded-lg text-sm font-bold border transition-colors ${newPct === p ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-600'}`}
-                    style={newPct === p ? { background: meta.color } : undefined}>
+                    className={`py-2.5 rounded-lg text-sm font-bold border transition-colors ${newPct === p ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
                     {p}%
                   </button>
                 ))}
