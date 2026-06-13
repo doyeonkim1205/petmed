@@ -260,11 +260,6 @@ export function MetricTracker({
 
   // % 모드 = 정량 설정됨 + 직접입력 아님 (식사·수액)
   const isPctMode = supportsServing && serving != null && !directMode;
-  const stepLabel = (pct: number) => {
-    if (pct === 100) return metricType === 'food' ? '다 먹음' : '다 함';
-    if (pct === 0) return metricType === 'food' ? '안 먹음' : '안 함';
-    return pct === 75 ? '¾' : pct === 50 ? '반' : '¼';
-  };
   const pctQuestion = metricType === 'food' ? '얼마나 먹었나요?' : '얼마나 투여했나요?';
 
   const handleAdd = async () => {
@@ -399,10 +394,9 @@ export function MetricTracker({
               <div className="grid grid-cols-5 gap-1.5">
                 {PCT_VALUES.map((p) => (
                   <button key={p} type="button" onClick={() => setNewPct(p)}
-                    className={`py-2 rounded-lg text-xs font-medium border transition-colors ${newPct === p ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-600'}`}
+                    className={`py-2.5 rounded-lg text-sm font-bold border transition-colors ${newPct === p ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-600'}`}
                     style={newPct === p ? { background: meta.color } : undefined}>
-                    <span className="block leading-tight">{stepLabel(p)}</span>
-                    <span className="block text-[10px] opacity-80">{p}%</span>
+                    {p}%
                   </button>
                 ))}
               </div>
