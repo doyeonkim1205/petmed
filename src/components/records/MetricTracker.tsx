@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Droplet, Utensils, Syringe } from 'lucide-react';
+import { Plus, Droplet, Utensils, Syringe, StickyNote } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
+import { TimePicker } from '@/components/TimePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
-import { todayLocalISO } from '@/lib/date';
+import { todayLocalISO, localDateKey } from '@/lib/date';
 import {
   METRIC_META,
   metricTargetRange,
@@ -16,6 +17,18 @@ import {
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 type Daily = { date: string; value: number };
+
+// 날짜(YYYY-MM-DD) + 시각(HH:MM) → ISO timestamp.
+function buildMeasuredAt(dateISO: string, timeHHMM: string): string {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const [hh, mm] = timeHHMM.split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm, 0).toISOString();
+}
+function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 // ─── 일별 막대 차트 + 적정범위 밴드 ──────────────────────
 function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low: number; high: number } | null; color: string }) {
@@ -85,7 +98,9 @@ export function MetricTracker({
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [newValue, setNewValue] = useState('');
+  const [newMemo, setNewMemo] = useState('');
   const [newDate, setNewDate] = useState(todayLocalISO());
+  const [newTime, setNewTime] = useState(nowHHMM());
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loggedWeight, setLoggedWeight] = useState<number | null>(null);
@@ -130,13 +145,22 @@ export function MetricTracker({
   const target = useMemo(() => metricTargetRange(metricType, pet.type, effWeight), [metricType, pet.type, effWeight]);
 
   const todayStr = todayLocalISO();
+  const yesterdayStr = useMemo(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+  const fmtDateHeader = (dateK: string) => {
+    if (dateK === todayStr) return '오늘';
+    if (dateK === yesterdayStr) return '어제';
+    return new Date(`${dateK}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  };
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   // 기간 내 날짜별 합산 (입력 있는 날만)
   const dayTotals = useMemo(() => {
     const map = new Map<string, number>();
     for (const log of logs) {
-      const key = String(log.measured_at).split('T')[0];
+      const key = localDateKey(String(log.measured_at));
       const dt = new Date(`${key}T00:00:00`);
       if (dt >= startDate && dt <= endDate) map.set(key, (map.get(key) || 0) + Number(log.value));
     }
@@ -180,7 +204,7 @@ export function MetricTracker({
   }, [dayTotals, startDate, endDate, period]);
 
   // 오늘 총량 + 기간 일평균(입력한 날 기준 — 빈 날 제외)
-  const todayTotal = useMemo(() => logs.filter((l) => String(l.measured_at).split('T')[0] === todayStr).reduce((s, l) => s + Number(l.value), 0), [logs, todayStr]);
+  const todayTotal = useMemo(() => logs.filter((l) => localDateKey(String(l.measured_at)) === todayStr).reduce((s, l) => s + Number(l.value), 0), [logs, todayStr]);
   const avg = useMemo(() => {
     const vals = [...dayTotals.values()];
     return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
@@ -193,8 +217,10 @@ export function MetricTracker({
     if (!v) return;
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
-    await supabase.from('health_metrics').insert({ user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit, measured_at: date });
+    await supabase.from('health_metrics').insert({ user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit, measured_at: buildMeasuredAt(date, newTime), memo: newMemo.trim() || null });
     setNewValue('');
+    setNewMemo('');
+    setNewTime(nowHHMM());
     setShowInput(false);
     setSaving(false);
     fetchLogs();
@@ -206,7 +232,19 @@ export function MetricTracker({
     fetchLogs();
   };
 
-  const recent = useMemo(() => [...logs].reverse().slice(0, 30), [logs]);
+  // 최근 30건을 날짜별로 묶음 (날짜·시간 내림차순)
+  const grouped = useMemo(() => {
+    const recent = [...logs].reverse().slice(0, 30);
+    const out: { date: string; items: HealthMetric[] }[] = [];
+    const idx = new Map<string, { date: string; items: HealthMetric[] }>();
+    for (const l of recent) {
+      const k = localDateKey(String(l.measured_at));
+      let g = idx.get(k);
+      if (!g) { g = { date: k, items: [] }; idx.set(k, g); out.push(g); }
+      g.items.push(l);
+    }
+    return out;
+  }, [logs]);
 
   if (loading) {
     return <div className="py-10 text-center text-sm text-gray-400">불러오는 중…</div>;
@@ -252,25 +290,21 @@ export function MetricTracker({
       {/* 입력 */}
       {showInput ? (
         <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: meta.color + '55', background: meta.color + '0d' }}>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              inputMode={isTouch ? 'none' : 'decimal'}
-              placeholder={meta.placeholder}
-              value={newValue}
-              onChange={(e) => {
-                const v = e.target.value;
-                // 정수 최대 5자리 + 소수점 둘째자리까지
-                if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
-              }}
-              readOnly={isTouch}
-              onClick={() => { if (isTouch) setShowPad(true); }}
-              autoComplete="off"
-              className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
-            />
-            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
-              inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
-          </div>
+          <input
+            type="text"
+            inputMode={isTouch ? 'none' : 'decimal'}
+            placeholder={meta.placeholder}
+            value={newValue}
+            onChange={(e) => {
+              const v = e.target.value;
+              // 정수 최대 5자리 + 소수점 둘째자리까지
+              if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
+            }}
+            readOnly={isTouch}
+            onClick={() => { if (isTouch) setShowPad(true); }}
+            autoComplete="off"
+            className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
+          />
           {showPad && (
             <NumberPad
               value={newValue}
@@ -283,43 +317,67 @@ export function MetricTracker({
               onClose={() => setShowPad(false)}
             />
           )}
+          {/* 메모 → 날짜 → 시간 (대소변 입력과 순서 통일) */}
+          <input
+            type="search" placeholder="메모 (선택)" value={newMemo}
+            onChange={(e) => setNewMemo(e.target.value)} maxLength={100} autoComplete="off"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
+            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
+            <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+          </div>
           <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
-            <button onClick={() => setShowInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+            <button onClick={() => { setShowInput(false); setNewMemo(''); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
             <button onClick={handleAdd} disabled={!newValue || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
               {saving ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowInput(true)}
+        <button onClick={() => { setNewDate(todayLocalISO()); setNewTime(nowHHMM()); setShowInput(true); }}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
           style={{ borderColor: meta.color + '66', color: meta.color }}>
           <Plus size={16} /> {meta.label} 기록
         </button>
       )}
 
-      {/* 내역 */}
-      {recent.length > 0 && (
-        <div className="space-y-1">
-          <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역</h2>
-          {recent.map((log) => {
-            const isSel = selectedId === log.id;
-            return (
-              <div key={log.id}
-                onClick={() => setSelectedId(isSel ? null : log.id)}
-                className={`flex items-center justify-between py-2.5 px-2 border-b border-gray-50 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
-                <span className="text-xs text-gray-400">{new Date(log.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
-                  {isSel && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                      className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">삭제</button>
-                  )}
-                </div>
+      {/* 내역 — 날짜별로 묶고, 각 줄엔 시간만 */}
+      {grouped.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-bold text-gray-700">기록 내역</h2>
+          {grouped.map((g) => (
+            <div key={g.date}>
+              <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDateHeader(g.date)}</p>
+              <div className="space-y-0.5">
+                {g.items.map((log) => {
+                  const isSel = selectedId === log.id;
+                  return (
+                    <div key={log.id}
+                      onClick={() => setSelectedId(isSel ? null : log.id)}
+                      className={`flex items-center justify-between py-2 px-2 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(String(log.measured_at))}</span>
+                          <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
+                        </div>
+                        {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{log.memo}</span></p>}
+                      </div>
+                      {isSel && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
+                          className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>

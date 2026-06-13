@@ -10,6 +10,7 @@ export interface HealthMetric {
   value: number;
   unit: string;
   measured_at: string;
+  memo?: string | null;
   created_at?: string;
 }
 

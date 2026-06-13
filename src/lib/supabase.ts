@@ -143,6 +143,22 @@ export interface WeightLog {
   pet_id: string;
   weight: number;
   measured_at: string;
+  memo?: string | null;
+  created_at: string;
+}
+
+// 대소변 기록 (배변/배뇨)
+export type ExcretionKind = 'poop' | 'pee';
+export interface ExcretionLog {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  kind: ExcretionKind;
+  condition: string;          // 상태 코드 (kind 별)
+  amount?: string | null;     // less|normal|more
+  color?: string | null;      // 대변 색 (brown|black|red|yellow|gray)
+  memo?: string | null;
+  measured_at: string;        // ISO timestamp (시각 포함)
   created_at: string;
 }
 
