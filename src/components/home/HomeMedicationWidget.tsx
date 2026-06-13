@@ -58,6 +58,20 @@ export function HomeMedicationWidget() {
 
   useEffect(() => { load(); }, [load]);
 
+  // 홈 복귀 시 재조회 — 복약/기록 변경 후 돌아와도 stale 안 되게.
+  // pageshow=bfcache(뒤로가기) 복원, focus=창 포커스, visibilitychange=탭 전환 커버.
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') load(); };
+    window.addEventListener('pageshow', load);
+    window.addEventListener('focus', load);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('pageshow', load);
+      window.removeEventListener('focus', load);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [load]);
+
   const handleToggle = async (medicationId: string, doseNumber: number) => {
     const isChecked = checks.some((c) => c.medication_id === medicationId && c.dose_number === doseNumber && c.checked);
     try {

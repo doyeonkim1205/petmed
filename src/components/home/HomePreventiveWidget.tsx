@@ -50,9 +50,11 @@ export function HomePreventiveWidget() {
     const onVisible = () => { if (document.visibilityState === 'visible') load(); };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', load);
+    window.addEventListener('pageshow', load); // bfcache(뒤로가기) 복원 시에도 재조회
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', load);
+      window.removeEventListener('pageshow', load);
     };
   }, [load]);
 
