@@ -42,6 +42,7 @@ import webpush from 'web-push';
 import * as Sentry from '@sentry/nextjs';
 import { logActivityServer } from '@/lib/activityLogServer';
 import { isTrialActive } from '@/lib/plans';
+import { categoryMeta } from '@/lib/preventiveCare';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -180,6 +181,27 @@ function buildScheduleMessage(
   };
 }
 
+/**
+ * 펫별 예방(백신·심장사상충·구충 등) 통합 알림 메시지 빌드.
+ * items: 오늘 발송 대상 예방들 (dday 0=당일, 3=3일 전).
+ */
+function buildPreventiveMessage(
+  petName: string,
+  items: Array<{ label: string; dday: number }>,
+): { title: string; body: string } {
+  if (items.length === 1) {
+    const { label, dday } = items[0];
+    if (dday === 0) {
+      return { title: `💉 ${petName} 오늘의 건강 일정`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 챙겨주세요` };
+    }
+    return { title: `💉 ${petName} 건강 일정 ${dday}일 전`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 예정이에요` };
+  }
+  return {
+    title: `💉 ${petName} 챙길 일정이 있어요`,
+    body: `${truncate(items[0].label, 12, '일정')} 외 ${items.length - 1}개 챙겨주세요`,
+  };
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
@@ -260,6 +282,8 @@ export async function GET(request: NextRequest) {
   // 예약/퇴원/결제 대상 수집 (07:00 에만). 1일전 알림은 제거 — 당일만.
   const apptToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
   const dischargeToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
+  // 예방(백신·심장사상충·구충 등) — next_due_date 가 당일(D-0) 또는 3일 후(D-3) 인 항목.
+  const preventiveDue: Array<{ user_id: string; pet_id: string; category: string; name: string; dday: number }> = [];
   let expiringSoon: Array<{
     id: string;
     user_id: string;
@@ -296,6 +320,24 @@ export async function GET(request: NextRequest) {
       dischargeToday.push({ id: r.id, user_id: r.user_id, pet_id: r.pet_id, title: r.title });
     }
     expiringSoon = expiring.data || [];
+
+    // 예방 알림 — D-0(당일) + D-3(3일 전) 두 시점에 발송. next_due_date 가 고정이라
+    // 각 시점에 07:00 한 번씩만 매칭됨(별도 sent 플래그 불필요).
+    const plus3 = new Date(kstDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const { data: prevData } = await supabaseAdmin
+      .from('preventive_cares')
+      .select('user_id, pet_id, category, name, next_due_date')
+      .eq('alarm_enabled', true)
+      .in('next_due_date', [todayKST, plus3]);
+    for (const r of prevData || []) {
+      preventiveDue.push({
+        user_id: r.user_id,
+        pet_id: r.pet_id,
+        category: r.category,
+        name: r.name,
+        dday: r.next_due_date === todayKST ? 0 : 3,
+      });
+    }
   }
 
   // 예약·퇴원 펫별 그룹화: Map<userId, Map<petId, {appts[], dischs[]}>>
@@ -326,11 +368,25 @@ export async function GET(request: NextRequest) {
     ensurePetEvents(r.user_id, r.pet_id).dischs.push({ id: r.id, title: r.title });
   }
 
+  // 예방 펫별 그룹화: Map<userId, Map<petId, {label, dday}[]>>
+  const preventiveByUserPet = new Map<string, Map<string, Array<{ label: string; dday: number }>>>();
+  for (const p of preventiveDue) {
+    let petsMap = preventiveByUserPet.get(p.user_id);
+    if (!petsMap) { petsMap = new Map(); preventiveByUserPet.set(p.user_id, petsMap); }
+    const arr = petsMap.get(p.pet_id) || [];
+    // 제품명이 카테고리명과 다르면 "카테고리(제품)" 로, 같으면 카테고리명만.
+    const catLabel = categoryMeta(p.category as Parameters<typeof categoryMeta>[0]).label;
+    const label = p.name && p.name !== catLabel ? `${catLabel}(${p.name})` : catLabel;
+    arr.push({ label, dday: p.dday });
+    petsMap.set(p.pet_id, arr);
+  }
+
   // paid user 프리페치 — N+1 쿼리 제거.
   // 투약/예약·퇴원/결제 대상 user_id 를 전부 모아 profiles 한 번에 조회.
   const allTargetUserIds = new Set<string>([
     ...medByUserPet.keys(),
     ...scheduleByUserPet.keys(),
+    ...preventiveByUserPet.keys(),
     ...expiringSoon.map((r) => r.user_id),
   ]);
 
@@ -358,6 +414,9 @@ export async function GET(request: NextRequest) {
     for (const petId of petsMap.keys()) allPetIds.add(petId);
   }
   for (const petsMap of scheduleByUserPet.values()) {
+    for (const petId of petsMap.keys()) allPetIds.add(petId);
+  }
+  for (const petsMap of preventiveByUserPet.values()) {
     for (const petId of petsMap.keys()) allPetIds.add(petId);
   }
 
@@ -441,6 +500,29 @@ export async function GET(request: NextRequest) {
           url: '/records',
           category,
           tag: `schedule-${userId}-${petId}-${todayKST.replace(/-/g, '')}`,
+        },
+      });
+    }
+  }
+
+  // 2-b) 예방 — 펫 단위로 1 알림 (07:00 에만). D-0/D-3 대상.
+  //      tag: preventive-{userId}-{petId}-{YYYYMMDD}
+  for (const [userId, petsMap] of preventiveByUserPet) {
+    if (!paidSet.has(userId)) continue;
+    for (const [petId, items] of petsMap) {
+      if (items.length === 0) continue;
+      const pet = petMap.get(petId);
+      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
+      const { title, body } = buildPreventiveMessage(petName, items);
+      tasks.push({
+        userId,
+        notification: {
+          title,
+          body,
+          url: '/records/preventive',
+          // 예방 알림은 병원 아이콘(hos.webp) 사용 — sw.js 가 category 로 분기.
+          category: 'hospitalization',
+          tag: `preventive-${userId}-${petId}-${todayKST.replace(/-/g, '')}`,
         },
       });
     }

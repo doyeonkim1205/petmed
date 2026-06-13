@@ -23,11 +23,12 @@ import { sortPetsWithDefault } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
 
+// 2×2 그리드 배치 순서: [증상 · 일상] / [진료 · 입퇴원]
 const recordTypes = [
   { id: 'symptom' as RecordType, label: '증상 기록', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
+  { id: 'daily' as RecordType, label: '일상 기록', icon: PawPrint, color: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300' },
   { id: 'visit' as RecordType, label: '진료 기록', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   { id: 'hospitalization' as RecordType, label: '입퇴원', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
-  { id: 'daily' as RecordType, label: '일상 기록', icon: PawPrint, color: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300' },
 ];
 
 // 일상 세부 종류 — 라벨/아이콘.
@@ -702,9 +703,9 @@ export default function RecordAddPage() {
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
         )}
 
-        {/* Record Type Selection */}
+        {/* Record Type Selection — 2×2 그리드 (증상·일상 / 진료·입퇴원) */}
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {recordTypes.map((type) => {
               const Icon = type.icon;
               return (
@@ -712,11 +713,11 @@ export default function RecordAddPage() {
                   key={type.id}
                   type="button"
                   onClick={() => handleTypeChange(type.id)}
-                  className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 transition-all text-sm font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon size={20} />
+                  <Icon size={18} />
                   {type.label}
                 </button>
               );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity, Pill } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity, Pill, Syringe } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -321,8 +321,8 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {/* 건강 통계·의료비·복약 — 기록 없어도 항상 노출 (기능 발견성) */}
-              <div className="flex gap-2 mb-1">
+              {/* 건강 통계·복약·예방·의료비 — 기록 없어도 항상 노출 (기능 발견성). 2×2 그리드. */}
+              <div className="grid grid-cols-2 gap-2 mb-1">
                 <button
                   onClick={() => router.push('/records/stats')}
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
@@ -331,18 +331,25 @@ export default function RecordsPage() {
                   <p className="text-[13px] font-bold text-gray-700">건강 통계</p>
                 </button>
                 <button
-                  onClick={() => router.push('/records/meds')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                >
-                  <Pill size={14} className="text-pink-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">복약</p>
-                </button>
-                <button
                   onClick={() => router.push('/records/expenses')}
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
                 >
                   <Wallet size={14} className="text-gray-500 flex-shrink-0" />
                   <p className="text-[13px] font-bold text-gray-700">의료비</p>
+                </button>
+                <button
+                  onClick={() => router.push('/records/preventive')}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
+                >
+                  <Syringe size={14} className="text-sky-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">예방</p>
+                </button>
+                <button
+                  onClick={() => router.push('/records/meds')}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
+                >
+                  <Pill size={14} className="text-pink-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">복약</p>
                 </button>
               </div>
               {records.length === 0 ? (

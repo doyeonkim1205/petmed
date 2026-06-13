@@ -9,6 +9,7 @@ import {
 import { HomeBanner } from '@/components/home/HomeBanner';
 import { HealthBriefing } from '@/components/home/HealthBriefing';
 import { HomeMedicationWidget } from '@/components/home/HomeMedicationWidget';
+import { HomePreventiveWidget } from '@/components/home/HomePreventiveWidget';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
@@ -77,16 +78,21 @@ export default function HomePage() {
         <HomeMedicationWidget />
       </div>
 
-      {/* 기능 메뉴 — 섹션별 흰 카드 박스 */}
-      <div className="px-4 pt-4 space-y-3">
-        <section className="bg-white rounded-2xl p-4 border border-gray-100">
-          <SectionTitle icon={Stethoscope} title="AI 케어" />
-          <MenuGrid items={AI_CARE} />
-        </section>
+      {/* 예방 관리 — 30일 이내 챙길 예방이 있을 때만 노출 (없으면 자동 숨김) */}
+      <div className="px-4 pt-3 empty:hidden">
+        <HomePreventiveWidget />
+      </div>
 
+      {/* 기능 메뉴 — 섹션별 흰 카드 박스 (건강 기록 → AI 케어 순) */}
+      <div className="px-4 pt-4 space-y-3">
         <section className="bg-white rounded-2xl p-4 border border-gray-100">
           <SectionTitle icon={ClipboardList} title="건강 기록" />
           <MenuGrid items={HEALTH} />
+        </section>
+
+        <section className="bg-white rounded-2xl p-4 border border-gray-100">
+          <SectionTitle icon={Stethoscope} title="AI 케어" />
+          <MenuGrid items={AI_CARE} />
         </section>
       </div>
     </div>

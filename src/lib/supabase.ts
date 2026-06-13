@@ -188,6 +188,32 @@ export interface RecordFile {
   created_at: string;
 }
 
+// 예방 관리(Preventive Care) — 백신 + 정기 예방약(심장사상충·외부기생충·내부구충).
+export type PreventiveCategory =
+  | 'heartworm'         // 심장사상충
+  | 'external_parasite' // 외부기생충(벼룩·진드기)
+  | 'internal_worm'     // 내부구충
+  | 'vaccine'           // 종합백신
+  | 'rabies'            // 광견병
+  | 'health_check'      // 정기 건강검진
+  | 'other';            // 기타
+
+export interface PreventiveCare {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  category: PreventiveCategory;
+  name: string;                       // 제품/항목명 (예: 하트가드)
+  last_done_date: string;             // 마지막 시행일 (YYYY-MM-DD)
+  interval_unit: 'month' | 'year';    // 주기 단위
+  interval_value: number;             // 주기 값 (월1회=1, 3개월=3, 연1회=1)
+  next_due_date: string;              // 다음 예정일 (last_done + interval)
+  alarm_enabled: boolean;             // 예정일 D-3·당일 알림 (Plus)
+  memo?: string | null;
+  created_at: string;
+  pets?: { id: string; name: string; type: 'dog' | 'cat' } | null;
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
