@@ -11,7 +11,20 @@ export interface HealthMetric {
   unit: string;
   measured_at: string;
   memo?: string | null;
+  input_pct?: number | null;        // % 버튼 입력 비율(100/75/50/25/0). 직접 입력이면 null.
+  serving_snapshot?: number | null; // 입력 당시 1회 정량 (과거 % 보존용). 정량 미설정이면 null.
   created_at?: string;
+}
+
+// 식사·수액 1회 정량 (펫별)
+export interface MetricTarget {
+  id: string;
+  user_id: string;
+  pet_id: string;
+  metric_type: 'food' | 'fluid';
+  serving: number;
+  unit: string;
+  updated_at?: string;
 }
 
 export const METRIC_META: Record<MetricType, { label: string; unit: string; color: string; placeholder: string }> = {

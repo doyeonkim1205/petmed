@@ -15,6 +15,9 @@ import {
   type MetricType,
 } from '@/lib/healthMetrics';
 
+// % 입력 단계 (다 → 안 함)
+const PCT_VALUES = [100, 75, 50, 25, 0];
+
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 type Daily = { date: string; value: number };
 
@@ -108,9 +111,40 @@ export function MetricTracker({
   const [isTouch, setIsTouch] = useState(false);
   const [showPad, setShowPad] = useState(false);
 
+  // 정량(1회 기준) — 식사·수액만. 음수(water)는 자유급식이라 미사용.
+  const supportsServing = metricType !== 'water';
+  const [serving, setServing] = useState<number | null>(null);
+  const [servingEditing, setServingEditing] = useState(false);
+  const [servingDraft, setServingDraft] = useState('');
+  const [newPct, setNewPct] = useState<number | null>(null); // % 버튼 선택값
+  const [directMode, setDirectMode] = useState(false);       // true=직접 g/ml 입력
+
   useEffect(() => {
     setIsTouch(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   }, []);
+
+  // 정량 로드 (식사·수액)
+  useEffect(() => {
+    if (!supportsServing) { setServing(null); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from('metric_targets').select('serving')
+        .eq('pet_id', pet.id).eq('metric_type', metricType).maybeSingle();
+      if (alive) setServing(data ? Number((data as { serving: number }).serving) : null);
+    })();
+    return () => { alive = false; };
+  }, [pet.id, metricType, supportsServing]);
+
+  const saveServing = async () => {
+    const s = Math.round(Math.min(Math.max(0, Number(servingDraft) || 0), 99999));
+    if (!s) return;
+    await supabase.from('metric_targets').upsert(
+      { user_id: userId, pet_id: pet.id, metric_type: metricType, serving: s, unit: meta.unit, updated_at: new Date().toISOString() },
+      { onConflict: 'pet_id,metric_type' },
+    );
+    setServing(s);
+    setServingEditing(false);
+  };
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -211,15 +245,54 @@ export function MetricTracker({
   }, [dayTotals]);
   const todayPct = target && todayTotal > 0 ? Math.round((todayTotal / ((target.low + target.high) / 2)) * 100) : null;
 
+  // 오늘 "정량 대비 평균 %" (식사·수액 + 정량 설정 시). input_pct 우선, 없으면 value/정량스냅샷.
+  const todayAvgPct = useMemo(() => {
+    if (!supportsServing || serving == null) return null;
+    const todays = logs.filter((l) => localDateKey(String(l.measured_at)) === todayStr);
+    const pcts = todays.map((l) => {
+      if (l.input_pct != null) return l.input_pct;
+      const base = l.serving_snapshot != null ? Number(l.serving_snapshot) : serving;
+      return base ? Math.round((Number(l.value) / base) * 100) : null;
+    }).filter((x): x is number => x != null);
+    if (pcts.length === 0) return null;
+    return Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+  }, [logs, todayStr, serving, supportsServing]);
+
+  // % 모드 = 정량 설정됨 + 직접입력 아님 (식사·수액)
+  const isPctMode = supportsServing && serving != null && !directMode;
+  const stepLabel = (pct: number) => {
+    if (pct === 100) return metricType === 'food' ? '다 먹음' : '다 함';
+    if (pct === 0) return metricType === 'food' ? '안 먹음' : '안 함';
+    return pct === 75 ? '¾' : pct === 50 ? '반' : '¼';
+  };
+  const pctQuestion = metricType === 'food' ? '얼마나 먹었나요?' : '얼마나 투여했나요?';
+
   const handleAdd = async () => {
-    // 최대 5자리 + 소수점 2자리 (예: 99999.99)
-    const v = Math.round(Math.min(Math.max(0, Number(newValue) || 0), 99999.99) * 100) / 100;
-    if (!v) return;
+    let v: number;
+    let input_pct: number | null = null;
+    let serving_snapshot: number | null = null;
+    if (isPctMode) {
+      if (newPct == null) return; // % 선택 필요
+      v = Math.round((newPct / 100) * (serving as number) * 100) / 100;
+      input_pct = newPct;
+      serving_snapshot = serving;
+    } else {
+      // 직접 입력 — 최대 5자리 + 소수점 2자리
+      v = Math.round(Math.min(Math.max(0, Number(newValue) || 0), 99999.99) * 100) / 100;
+      if (!v) return;
+      // 직접 입력이어도 정량 설정돼 있으면 스냅샷 보존 (나중에 정량 대비 계산용)
+      serving_snapshot = supportsServing && serving != null ? serving : null;
+    }
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
-    await supabase.from('health_metrics').insert({ user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit, measured_at: buildMeasuredAt(date, newTime), memo: newMemo.trim() || null });
+    await supabase.from('health_metrics').insert({
+      user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit,
+      measured_at: buildMeasuredAt(date, newTime), memo: newMemo.trim() || null,
+      input_pct, serving_snapshot,
+    });
     setNewValue('');
     setNewMemo('');
+    setNewPct(null);
     setNewTime(nowHHMM());
     setShowInput(false);
     setSaving(false);
@@ -257,6 +330,9 @@ export function MetricTracker({
         <div>
           <p className="text-[11px] text-gray-400">오늘 {meta.label}</p>
           <p className="text-lg font-bold text-gray-800">{todayTotal > 0 ? `${todayTotal}${meta.unit}` : '-'}</p>
+          {todayAvgPct != null && (
+            <p className="text-[11px] font-bold text-blue-600 mt-0.5">정량 대비 평균 {todayAvgPct}%</p>
+          )}
           <p className="text-[11px] text-gray-400 mt-0.5 break-keep break-words">{metricTargetHint(metricType, target)}</p>
         </div>
         <div className="text-right">
@@ -290,32 +366,74 @@ export function MetricTracker({
       {/* 입력 */}
       {showInput ? (
         <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: meta.color + '55', background: meta.color + '0d' }}>
-          <input
-            type="text"
-            inputMode={isTouch ? 'none' : 'decimal'}
-            placeholder={meta.placeholder}
-            value={newValue}
-            onChange={(e) => {
-              const v = e.target.value;
-              // 정수 최대 5자리 + 소수점 둘째자리까지
-              if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
-            }}
-            readOnly={isTouch}
-            onClick={() => { if (isTouch) setShowPad(true); }}
-            autoComplete="off"
-            className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
-          />
-          {showPad && (
-            <NumberPad
-              value={newValue}
-              onChange={setNewValue}
-              decimal
-              maxIntDigits={5}
-              maxDecimals={2}
-              label={meta.label}
-              suffix={meta.unit}
-              onClose={() => setShowPad(false)}
-            />
+          {/* 1회 정량 설정 (식사·수액) */}
+          {supportsServing && (
+            servingEditing ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500 flex-shrink-0">1회 정량</span>
+                <input
+                  type="text" inputMode="numeric" value={servingDraft}
+                  onChange={(e) => { const v = e.target.value; if (v === '' || /^\d{0,5}$/.test(v)) setServingDraft(v); }}
+                  placeholder={metricType === 'food' ? '예: 100' : '예: 50'} autoComplete="off"
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2" />
+                <span className="text-xs text-gray-400 flex-shrink-0">{meta.unit}</span>
+                <button onClick={saveServing} disabled={!servingDraft} className="px-3 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-40 flex-shrink-0" style={{ background: meta.color }}>저장</button>
+                <button onClick={() => setServingEditing(false)} className="px-1.5 py-2 text-xs text-gray-400 flex-shrink-0">취소</button>
+              </div>
+            ) : serving != null ? (
+              <div className="flex items-center justify-between text-xs px-0.5">
+                <span className="text-gray-500">1회 정량 <b className="text-gray-800">{serving}{meta.unit}</b></span>
+                <button onClick={() => { setServingDraft(String(serving)); setServingEditing(true); }} className="text-gray-400 underline">변경</button>
+              </div>
+            ) : (
+              <button onClick={() => { setServingDraft(''); setServingEditing(true); }}
+                className="w-full py-2 text-xs font-medium rounded-lg border border-dashed" style={{ borderColor: meta.color + '66', color: meta.color }}>
+                ＋ 1회 정량 설정하고 %로 빠르게 기록
+              </button>
+            )
+          )}
+
+          {isPctMode ? (
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1.5">{pctQuestion}</p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {PCT_VALUES.map((p) => (
+                  <button key={p} type="button" onClick={() => setNewPct(p)}
+                    className={`py-2 rounded-lg text-xs font-medium border transition-colors ${newPct === p ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-600'}`}
+                    style={newPct === p ? { background: meta.color } : undefined}>
+                    <span className="block leading-tight">{stepLabel(p)}</span>
+                    <span className="block text-[10px] opacity-80">{p}%</span>
+                  </button>
+                ))}
+              </div>
+              {newPct != null && serving != null && (
+                <p className="text-[11px] text-gray-400 mt-1.5">= {Math.round((newPct / 100) * serving)}{meta.unit}</p>
+              )}
+              <button onClick={() => { setDirectMode(true); setNewPct(null); }} className="text-[11px] text-gray-400 underline mt-1.5">직접 입력</button>
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                inputMode={isTouch ? 'none' : 'decimal'}
+                placeholder={meta.placeholder}
+                value={newValue}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
+                }}
+                readOnly={isTouch}
+                onClick={() => { if (isTouch) setShowPad(true); }}
+                autoComplete="off"
+                className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
+              />
+              {showPad && (
+                <NumberPad value={newValue} onChange={setNewValue} decimal maxIntDigits={5} maxDecimals={2} label={meta.label} suffix={meta.unit} onClose={() => setShowPad(false)} />
+              )}
+              {supportsServing && serving != null && (
+                <button onClick={() => setDirectMode(false)} className="text-[11px] text-gray-400 underline">% 로 입력</button>
+              )}
+            </>
           )}
           {/* 메모 → 날짜 → 시간 (대소변 입력과 순서 통일) */}
           <input
@@ -333,14 +451,14 @@ export function MetricTracker({
           </div>
           <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
-            <button onClick={() => { setShowInput(false); setNewMemo(''); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
-            <button onClick={handleAdd} disabled={!newValue || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
+            <button onClick={() => { setShowInput(false); setNewMemo(''); setNewPct(null); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+            <button onClick={handleAdd} disabled={saving || (isPctMode ? newPct == null : !newValue)} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
               {saving ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>
       ) : (
-        <button onClick={() => { setNewDate(todayLocalISO()); setNewTime(nowHHMM()); setShowInput(true); }}
+        <button onClick={() => { setNewValue(''); setNewMemo(''); setNewPct(null); setDirectMode(!(supportsServing && serving != null)); setNewDate(todayLocalISO()); setNewTime(nowHHMM()); setShowInput(true); }}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
           style={{ borderColor: meta.color + '66', color: meta.color }}>
           <Plus size={16} /> {meta.label} 기록
@@ -364,6 +482,7 @@ export function MetricTracker({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(String(log.measured_at))}</span>
+                          {log.input_pct != null && <span className="text-[11px] font-bold text-blue-600 flex-shrink-0">{log.input_pct}%</span>}
                           <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
                         </div>
                         {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{log.memo}</span></p>}
