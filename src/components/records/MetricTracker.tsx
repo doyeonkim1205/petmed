@@ -290,29 +290,21 @@ export function MetricTracker({
       {/* 입력 */}
       {showInput ? (
         <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: meta.color + '55', background: meta.color + '0d' }}>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              inputMode={isTouch ? 'none' : 'decimal'}
-              placeholder={meta.placeholder}
-              value={newValue}
-              onChange={(e) => {
-                const v = e.target.value;
-                // 정수 최대 5자리 + 소수점 둘째자리까지
-                if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
-              }}
-              readOnly={isTouch}
-              onClick={() => { if (isTouch) setShowPad(true); }}
-              autoComplete="off"
-              className={`flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
-            />
-            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
-              inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
-            <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
-          </div>
+          <input
+            type="text"
+            inputMode={isTouch ? 'none' : 'decimal'}
+            placeholder={meta.placeholder}
+            value={newValue}
+            onChange={(e) => {
+              const v = e.target.value;
+              // 정수 최대 5자리 + 소수점 둘째자리까지
+              if (v === '' || /^\d{0,5}(\.\d{0,2})?$/.test(v)) setNewValue(v);
+            }}
+            readOnly={isTouch}
+            onClick={() => { if (isTouch) setShowPad(true); }}
+            autoComplete="off"
+            className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
+          />
           {showPad && (
             <NumberPad
               value={newValue}
@@ -325,10 +317,20 @@ export function MetricTracker({
               onClose={() => setShowPad(false)}
             />
           )}
+          {/* 메모 → 날짜 → 시간 (대소변 입력과 순서 통일) */}
           <input
             type="search" placeholder="메모 (선택)" value={newMemo}
             onChange={(e) => setNewMemo(e.target.value)} maxLength={50} autoComplete="off"
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
+            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
+            <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+          </div>
           <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
             <button onClick={() => { setShowInput(false); setNewMemo(''); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
