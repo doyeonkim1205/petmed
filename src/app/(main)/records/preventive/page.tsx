@@ -41,7 +41,7 @@ const emptyForm = (): CareForm => ({
   last_done_date: todayISO(),
   interval_unit: 'month',
   interval_value: 1,
-  alarm_enabled: true,
+  alarm_enabled: false, // 복약과 동일하게 기본 OFF (사용자가 직접 켬)
 });
 
 function fromCare(c: PreventiveCare): CareForm {
@@ -87,6 +87,7 @@ export default function PreventivePage() {
   const [doneTarget, setDoneTarget] = useState<PreventiveCare | null>(null);
   const [doneDate, setDoneDate] = useState<string>(todayISO());
   const [deleteTarget, setDeleteTarget] = useState<PreventiveCare | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   // 알림 (복약과 동일 정책 — PWA + Plus)
   const [isPWA, setIsPWA] = useState(false);
@@ -244,13 +245,23 @@ export default function PreventivePage() {
     const t = doneTarget;
     setDoneTarget(null);
     if (!t) return;
+    const nextDue = addInterval(doneDate, t.interval_unit, t.interval_value);
     try {
       await markDone(t.id, doneDate, t.interval_unit, t.interval_value);
       await load();
+      // 무엇이 일어났는지 즉시 보여주는 피드백 (방금 등록 직후 "안 변하는데?" 혼란 방지)
+      setToast(`다음 예정일이 ${nextDue.replace(/-/g, '. ')}로 갱신됐어요`);
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'preventive', action: 'done' }, extra: { userId: user?.id } });
     }
   };
+
+  // 토스트 자동 사라짐
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const confirmDelete = async () => {
     const t = deleteTarget;
@@ -286,7 +297,7 @@ export default function PreventivePage() {
               {c.alarm_enabled && <Bell size={11} className="flex-shrink-0 text-blue-500" />}
             </div>
             <p className="text-[11px] text-gray-400 mt-0.5 truncate">
-              마지막 {fmtDate(c.last_done_date)} · 예정 {fmtDate(c.next_due_date)} · {intervalLabel(c.interval_unit, c.interval_value)}
+              다음 {fmtDate(c.next_due_date)} · {intervalLabel(c.interval_unit, c.interval_value)}
             </p>
           </div>
         </button>
@@ -297,13 +308,6 @@ export default function PreventivePage() {
             className="text-[11px] font-bold text-blue-600 border border-blue-100 bg-white rounded-full px-2.5 py-1 hover:bg-blue-50 transition-colors"
           >
             완료
-          </button>
-          <button
-            onClick={() => setDeleteTarget(c)}
-            className="p-1 text-gray-300 hover:text-red-500 transition-colors"
-            aria-label="삭제"
-          >
-            <Trash2 size={14} />
           </button>
         </div>
       </div>
@@ -432,7 +436,7 @@ export default function PreventivePage() {
                       <button
                         key={p}
                         type="button"
-                        onClick={() => setForm((f) => ({ ...f, name: p }))}
+                        onClick={() => setForm((f) => ({ ...f, name: f.name === p ? '' : p }))}
                         className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                           form.name === p ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-gray-100 text-gray-500'
                         }`}
@@ -522,6 +526,18 @@ export default function PreventivePage() {
               >
                 {saving ? '저장 중...' : form.id ? '수정' : '추가'}
               </button>
+
+              {form.id && (
+                <button
+                  onClick={() => {
+                    const c = cares.find((x) => x.id === form.id);
+                    if (c) { closeEditor(); setDeleteTarget(c); }
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={13} /> 삭제
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -597,6 +613,14 @@ export default function PreventivePage() {
               <button onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">요금제 보기</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 완료 피드백 토스트 */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] px-4 py-2.5 rounded-full bg-gray-900/90 text-white text-xs font-medium shadow-lg flex items-center gap-1.5 max-w-[90vw]">
+          <Check size={13} className="text-green-400 flex-shrink-0" />
+          <span className="truncate">{toast}</span>
         </div>
       )}
     </div>

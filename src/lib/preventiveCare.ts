@@ -12,11 +12,12 @@ export interface CategoryMeta {
 }
 
 export const PREVENTIVE_CATEGORIES: CategoryMeta[] = [
-  { id: 'heartworm',         label: '심장사상충',   emoji: '🦟', defaultUnit: 'month', defaultValue: 1, products: ['하트가드', '넥스가드 스펙트라', '애드보킷', '레볼루션'] },
-  { id: 'external_parasite', label: '외부기생충',   emoji: '🛡️', defaultUnit: 'month', defaultValue: 1, products: ['넥스가드', '프론트라인', '브라벡토', '레볼루션'] },
-  { id: 'internal_worm',     label: '내부구충',     emoji: '🪱', defaultUnit: 'month', defaultValue: 3, products: ['드론탈', '파나쿠어'] },
-  { id: 'vaccine',           label: '종합백신',     emoji: '💉', defaultUnit: 'year',  defaultValue: 1, products: ['DHPPL(강아지)', 'FVRCP(고양이)'] },
+  { id: 'heartworm',         label: '심장사상충',   emoji: '🦟', defaultUnit: 'month', defaultValue: 1, products: ['하트가드 플러스', '넥스가드 스펙트라', '애드보킷', '레볼루션', '프로하트(주사)'] },
+  { id: 'external_parasite', label: '외부기생충',   emoji: '🛡️', defaultUnit: 'month', defaultValue: 1, products: ['넥스가드', '프론트라인', '브라벡토', '세레스토(목걸이)', '레볼루션'] },
+  { id: 'internal_worm',     label: '내부구충',     emoji: '🪱', defaultUnit: 'month', defaultValue: 3, products: ['드론탈', '파나쿠어', '버박'] },
+  { id: 'vaccine',           label: '종합백신',     emoji: '💉', defaultUnit: 'year',  defaultValue: 1, products: ['DHPPL(강아지)', 'FVRCP(고양이)', '켄넬코프', '인플루엔자', '백혈병(FeLV)'] },
   { id: 'rabies',            label: '광견병',       emoji: '🩹', defaultUnit: 'year',  defaultValue: 1, products: [] },
+  { id: 'health_check',      label: '건강검진',     emoji: '🩺', defaultUnit: 'year',  defaultValue: 1, products: ['종합검진', '혈액검사', '심장검사'] },
   { id: 'other',             label: '기타',         emoji: '➕', defaultUnit: 'month', defaultValue: 1, products: [] },
 ];
 

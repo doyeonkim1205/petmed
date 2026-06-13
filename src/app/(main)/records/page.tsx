@@ -321,8 +321,8 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {/* 건강 통계·의료비·복약 — 기록 없어도 항상 노출 (기능 발견성) */}
-              <div className="flex gap-2 mb-1">
+              {/* 건강 통계·복약·예방·의료비 — 기록 없어도 항상 노출 (기능 발견성). 2×2 그리드. */}
+              <div className="grid grid-cols-2 gap-2 mb-1">
                 <button
                   onClick={() => router.push('/records/stats')}
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"

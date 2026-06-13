@@ -30,9 +30,11 @@ export function HomePreventiveWidget() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const all = await getUpcoming();
-      // 30일 이내(지난 것 포함)만 — 멀리 있는 예방은 홈에서 숨겨 깔끔하게.
-      setCares(all.filter((c) => ddayFrom(c.next_due_date) <= HORIZON_DAYS));
+      const all = await getUpcoming(); // next_due 오름차순
+      // 30일 이내(지난 것 포함)만 노출. 단 임박한 게 하나도 없어도, 방금 등록한 게
+      // 안 보여 혼란스럽지 않도록 "가장 가까운 1건"은 항상 보여줌(②안).
+      const within = all.filter((c) => ddayFrom(c.next_due_date) <= HORIZON_DAYS);
+      setCares(within.length > 0 ? within : all.slice(0, 1));
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'preventive', action: 'home-widget-load' } });
     } finally {

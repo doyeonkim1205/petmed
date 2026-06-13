@@ -195,6 +195,7 @@ export type PreventiveCategory =
   | 'internal_worm'     // 내부구충
   | 'vaccine'           // 종합백신
   | 'rabies'            // 광견병
+  | 'health_check'      // 정기 건강검진
   | 'other';            // 기타
 
 export interface PreventiveCare {

@@ -312,13 +312,6 @@ export default function MedsPage() {
             {m.start_date && ` · ${fmtDate(m.start_date)}${m.end_date ? `~${fmtDate(m.end_date)}` : '~'}`}
           </p>
         </div>
-        <span
-          onClick={(e) => { e.stopPropagation(); setActionTarget(m); }}
-          className="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 transition-colors"
-          aria-label="삭제"
-        >
-          <Trash2 size={15} />
-        </span>
       </button>
     );
   };
@@ -541,6 +534,18 @@ export default function MedsPage() {
               >
                 {saving ? '저장 중...' : form.id ? '수정' : '추가'}
               </button>
+
+              {form.id && (
+                <button
+                  onClick={() => {
+                    const m = meds.find((x) => x.id === form.id);
+                    if (m) { closeEditor(); setActionTarget(m); }
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={13} /> 삭제
+                </button>
+              )}
             </div>
           </div>
         </div>
