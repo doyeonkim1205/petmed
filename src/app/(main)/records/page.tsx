@@ -331,11 +331,11 @@ export default function RecordsPage() {
                   <p className="text-[13px] font-bold text-gray-700">건강 통계</p>
                 </button>
                 <button
-                  onClick={() => router.push('/records/meds')}
+                  onClick={() => router.push('/records/expenses')}
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
                 >
-                  <Pill size={14} className="text-pink-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">복약</p>
+                  <Wallet size={14} className="text-gray-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">의료비</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/preventive')}
@@ -345,11 +345,11 @@ export default function RecordsPage() {
                   <p className="text-[13px] font-bold text-gray-700">예방</p>
                 </button>
                 <button
-                  onClick={() => router.push('/records/expenses')}
+                  onClick={() => router.push('/records/meds')}
                   className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
                 >
-                  <Wallet size={14} className="text-gray-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">의료비</p>
+                  <Pill size={14} className="text-pink-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">복약</p>
                 </button>
               </div>
               {records.length === 0 ? (
