@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity, Pill } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity, Pill, Syringe } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -336,6 +336,13 @@ export default function RecordsPage() {
                 >
                   <Pill size={14} className="text-pink-500 flex-shrink-0" />
                   <p className="text-[13px] font-bold text-gray-700">복약</p>
+                </button>
+                <button
+                  onClick={() => router.push('/records/preventive')}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
+                >
+                  <Syringe size={14} className="text-sky-500 flex-shrink-0" />
+                  <p className="text-[13px] font-bold text-gray-700">예방</p>
                 </button>
                 <button
                   onClick={() => router.push('/records/expenses')}
