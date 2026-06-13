@@ -412,7 +412,7 @@ export default function StatsPage() {
 
               <p className="text-[11px] font-bold text-gray-400 mb-1">표시 중</p>
               {enabledTabs.map((id, i) => (
-                <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
+                <div key={id} className="flex items-center gap-2 py-2.5">
                   <span className="flex-1 text-sm font-medium text-gray-800">{STATS_TAB_LABELS[id]}</span>
                   <button onClick={() => moveTab(id, 'up')} disabled={i <= 0}
                     className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label="위로"><ChevronUp size={18} /></button>
@@ -430,7 +430,7 @@ export default function StatsPage() {
                   <div className="border-t border-dashed border-gray-200 my-3" />
                   <p className="text-[11px] font-bold text-gray-400 mb-1">숨김</p>
                   {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).map((id) => (
-                    <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
+                    <div key={id} className="flex items-center gap-2 py-2.5">
                       <span className="flex-1 text-sm font-medium text-gray-400">{STATS_TAB_LABELS[id]}</span>
                       <button onClick={() => toggleStatTab(id)} aria-label="표시 켜기"
                         className="relative w-10 h-6 rounded-full flex-shrink-0 bg-gray-300 transition-colors">
