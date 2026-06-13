@@ -66,6 +66,9 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
           ? (PLANS[p].photoAnalysisLifetimeFree > 0 ? `${PLANS[p].photoAnalysisLifetimeFree}회 체험` : '-')
           : `${PLANS[p].photoAnalysisPerDay}회/일`,
       },
+      // 맞춤 분석 — Plus 핵심 차별점. 반려동물 의료정보(나이·체중·품종·만성질환)를 반영한
+      // AI 분석이라 AI 케어 그룹에 배치. 무료 ✗ / Plus ✓.
+      { label: '맞춤 분석', sublabel: '(반려동물 정보 반영)', key: 'petContext', format: () => '✓', unavailable: (p) => !PLANS[p].petContextAnalysis },
     ],
   },
   {
@@ -85,8 +88,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
   {
     title: '기능',
     features: [
-      // 맞춤 분석 — Plus 핵심 차별점. 무료 ✗ / Plus ✓ (반려동물 정보 반영).
-      { label: '맞춤 분석', sublabel: '(반려동물 정보 반영)', key: 'petContext', format: () => '✓', unavailable: (p) => !PLANS[p].petContextAnalysis },
+      // 맞춤 분석은 AI 케어 그룹으로 이동 — AI 분석 품질 차별점이라 거기에 묶음.
       { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
       { label: '로그인 기기', sublabel: '(가족과 함께)', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
