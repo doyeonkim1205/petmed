@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check, CircleDot, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
 import type { MetricType } from '@/lib/healthMetrics';
@@ -401,35 +401,48 @@ export default function StatsPage() {
             text={"여기서 보고 싶은 지표\n(체중·음수량·식사·수액)를 고를 수가 있어요."} />
         </div>
 
-        {/* 표시 지표 설정 팝오버 */}
+        {/* 지표 편집 바텀시트 — 배경 락 + 큰 ↑↓ 순서 변경 + 표시 토글 */}
         {showTabSettings && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setShowTabSettings(false)} />
-            <div className="absolute right-3 top-[52px] z-40 w-44 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5">
-              <p className="text-xs text-gray-400 px-1.5 pt-0.5 pb-1.5 break-keep break-words">표시 지표 · 순서</p>
-              {/* 켜진 지표(사용자 순서) → 화살표로 순서 변경, 체크로 끄기. 그 뒤 꺼진 지표(탭하면 켜짐). */}
-              {[...enabledTabs, ...ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t))].map((id) => {
-                const on = enabledTabs.includes(id);
-                const enIdx = enabledTabs.indexOf(id);
-                return (
-                  <div key={id} className="w-full flex items-center justify-between gap-1 px-1.5 py-1 rounded-lg hover:bg-gray-50">
-                    <button onClick={() => toggleStatTab(id)} className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-left">
-                      <span className={`w-3.5 flex-shrink-0 ${on ? 'text-blue-600' : 'text-transparent'}`}>{on && <Check size={13} />}</span>
-                      <span className={on ? 'text-gray-800 font-medium' : 'text-gray-400'}>{STATS_TAB_LABELS[id]}</span>
-                    </button>
-                    {on && (
-                      <span className="flex items-center flex-shrink-0">
-                        <button onClick={() => moveTab(id, 'up')} disabled={enIdx <= 0}
-                          className="p-0.5 text-gray-400 disabled:text-gray-200" aria-label="위로"><ChevronUp size={14} /></button>
-                        <button onClick={() => moveTab(id, 'down')} disabled={enIdx >= enabledTabs.length - 1}
-                          className="p-0.5 text-gray-400 disabled:text-gray-200" aria-label="아래로"><ChevronDown size={14} /></button>
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowTabSettings(false)}>
+            <div className="w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
+              <h3 className="text-base font-bold text-gray-900 text-center mb-1">지표 편집</h3>
+              <p className="text-xs text-gray-400 text-center mb-4 break-keep break-words">위/아래로 순서 변경 · 스위치로 표시 켜고 끄기</p>
+
+              <p className="text-[11px] font-bold text-gray-400 mb-1">표시 중</p>
+              {enabledTabs.map((id, i) => (
+                <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
+                  <span className="flex-1 text-sm font-medium text-gray-800">{STATS_TAB_LABELS[id]}</span>
+                  <button onClick={() => moveTab(id, 'up')} disabled={i <= 0}
+                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label="위로"><ChevronUp size={18} /></button>
+                  <button onClick={() => moveTab(id, 'down')} disabled={i >= enabledTabs.length - 1}
+                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label="아래로"><ChevronDown size={18} /></button>
+                  <button onClick={() => toggleStatTab(id)} aria-label="표시 끄기"
+                    className={`relative w-10 h-6 rounded-full flex-shrink-0 transition-colors ${enabledTabs.length === 1 ? 'bg-blue-300' : 'bg-blue-600'}`}>
+                    <span className="absolute top-0.5 left-[18px] w-5 h-5 rounded-full bg-white transition-all" />
+                  </button>
+                </div>
+              ))}
+
+              {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).length > 0 && (
+                <>
+                  <p className="text-[11px] font-bold text-gray-400 mt-4 mb-1">숨김</p>
+                  {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).map((id) => (
+                    <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
+                      <span className="flex-1 text-sm font-medium text-gray-400">{STATS_TAB_LABELS[id]}</span>
+                      <button onClick={() => toggleStatTab(id)} aria-label="표시 켜기"
+                        className="relative w-10 h-6 rounded-full flex-shrink-0 bg-gray-300 transition-colors">
+                        <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all" />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              <button onClick={() => setShowTabSettings(false)}
+                className="w-full h-11 mt-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">완료</button>
             </div>
-          </>
+          </div>
         )}
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
@@ -640,7 +653,7 @@ export default function StatsPage() {
                                 </span>
                               )}
                             </div>
-                            {item.memo && <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {item.memo}</p>}
+                            {item.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{item.memo}</span></p>}
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                             <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>

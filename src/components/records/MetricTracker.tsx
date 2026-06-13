@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Droplet, Utensils, Syringe } from 'lucide-react';
+import { Plus, Droplet, Utensils, Syringe, StickyNote } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
@@ -366,7 +366,7 @@ export function MetricTracker({
                           <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(String(log.measured_at))}</span>
                           <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
                         </div>
-                        {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>}
+                        {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{log.memo}</span></p>}
                       </div>
                       {isSel && (
                         <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}

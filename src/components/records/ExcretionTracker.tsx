@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, StickyNote } from 'lucide-react';
 import { supabase, type Pet, type ExcretionKind, type ExcretionLog } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
@@ -285,7 +285,7 @@ export function ExcretionTracker({
                               )}
                             </div>
                             {log.memo && (
-                              <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>
+                              <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{log.memo}</span></p>
                             )}
                           </div>
                           {isSel && (
