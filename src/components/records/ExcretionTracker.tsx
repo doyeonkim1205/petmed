@@ -182,8 +182,7 @@ export function ExcretionTracker({
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
                     <button key={o.id} type="button" onClick={() => setCondition(condition === o.id ? '' : o.id)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-600'}`}
-                      style={condition === o.id ? { backgroundColor: o.color } : undefined}>
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
                       <span className="inline-flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{o.label}
                       </span>
@@ -198,7 +197,7 @@ export function ExcretionTracker({
                 <div className="flex gap-1.5">
                   {AMOUNTS.map((o) => (
                     <button key={o.id} type="button" onClick={() => setAmount(amount === o.id ? '' : o.id)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${amount === o.id ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200 text-gray-500'}`}>
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${amount === o.id ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'}`}>
                       {o.label}
                     </button>
                   ))}
@@ -212,7 +211,7 @@ export function ExcretionTracker({
                   <div className="flex flex-wrap gap-1.5">
                     {POOP_COLORS.map((o) => (
                       <button key={o.id} type="button" onClick={() => setColor(color === o.id ? '' : o.id)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? 'border-gray-800' : 'border-gray-200 text-gray-500 bg-white'}`}>
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-500 bg-white'}`}>
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: o.color }} />{o.label}
                         </span>
