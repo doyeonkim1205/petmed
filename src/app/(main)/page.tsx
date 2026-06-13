@@ -27,8 +27,8 @@ const AI_CARE: MenuItem[] = [
 
 const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', bg: 'bg-green-50', href: '/records' },
-  { icon: History, label: '타임라인', color: 'text-green-500', bg: 'bg-green-50', href: '/records/timeline' },
   { icon: Activity, label: '건강 통계', color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/records/stats' },
+  { icon: History, label: '타임라인', color: 'text-green-500', bg: 'bg-green-50', href: '/records/timeline' },
   { icon: Wallet, label: '의료비', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
 ];
 
