@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, Footprints, CircleDot, Smile, MoreHorizontal, PawPrint } from 'lucide-react';
+import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, PawPrint } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
-import { supabase, Pet, HealthRecord, Medication, RecordFile, DailySubKind } from '@/lib/supabase';
+import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
@@ -45,17 +45,6 @@ for (let h = 0; h < 24; h++) {
     alarmTimeOptions.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
   }
 }
-
-// 일상 세부 종류 — add 페이지와 동일한 정의. 호환 위해 동일 순서 유지.
-// 식사·수분은 건강 통계로 일원화 — 폼 선택지 제외(타입·표시 라벨엔 유지, 기존 기록 호환).
-const dailySubKinds: { id: DailySubKind; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'walk',      label: '산책', icon: Footprints     },
-  { id: 'poop',      label: '배변', icon: CircleDot      },
-  { id: 'mood',      label: '기분', icon: Smile          },
-  { id: 'other',     label: '기타', icon: MoreHorizontal },
-];
-
-// v12: sub_kind 는 분류 태그용, 메모는 description 1개로 통합.
 
 interface MedicationInput {
   id?: string;
@@ -96,7 +85,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [recordType, setRecordType] = useState('');
   const [medications, setMedications] = useState<MedicationInput[]>([]);
   const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
-  const [selectedSubKinds, setSelectedSubKinds] = useState<DailySubKind[]>([]);
   const [dischargeDate, setDischargeDate] = useState('');
   // record updated_at — draft stale 판정용. record 로드 후 set.
   const [recordUpdatedAt, setRecordUpdatedAt] = useState<string | null>(null);
@@ -174,14 +162,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     if (d.nextAppointmentDate !== undefined) setNextAppointmentDate(d.nextAppointmentDate);
     if (d.recordColor) setRecordColor(d.recordColor);
     if (d.nextAppointmentColor) setNextAppointmentColor(d.nextAppointmentColor);
-    if (d.selectedSubKinds) setSelectedSubKinds(d.selectedSubKinds);
   };
 
   // hook 에 전달할 현재 form state — 매 render 마다 새 객체 (hook 안에서 ref 로 mirror).
   const formState: RecordDraft = {
     recordType: recordType as RecordDraft['recordType'], title, description, hospitalName,
     cost, weight, symptomTime, visitDate, dischargeDate, nextAppointmentDate,
-    recordColor, nextAppointmentColor, petId, selectedSubKinds,
+    recordColor, nextAppointmentColor, petId,
   };
 
   const {
@@ -260,17 +247,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         setFileUrls(Object.fromEntries(entries));
       }
 
-      // v12: sub_entries 에서 sub_kind 만 복원 (중복 제거). 메모는 description 으로 통합 사용.
-      // 기존 데이터 호환: description 비어있고 sub_entries[i].memo 가 있으면 합쳐서 description 으로.
-      const initialSubKinds: DailySubKind[] = record.record_type === 'daily' && record.sub_entries
-        ? Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
-        : [];
-      if (record.record_type === 'daily' && record.sub_entries) {
-        setSelectedSubKinds(initialSubKinds);
-        if (!record.description) {
-          const legacyMemos = record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n');
-          if (legacyMemos) setDescription(legacyMemos);
-        }
+      // 세부 종류는 제거됨 — 기존 일상 기록 호환: description 비어있고 sub_entries[i].memo 가
+      // 있으면 합쳐서 description 으로 복원 (옛 메모 손실 방지).
+      if (record.record_type === 'daily' && record.sub_entries && !record.description) {
+        const legacyMemos = record.sub_entries.map((e) => e.memo).filter(Boolean).join('\n');
+        if (legacyMemos) setDescription(legacyMemos);
       }
 
       // record 원본 스냅샷 — useDraftPersistence 의 state vs origin 비교 기준.
@@ -293,7 +274,6 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         recordColor: record.color || '#3B82F6',
         nextAppointmentColor: record.next_appointment_color || '#8B5CF6',
         petId: record.pet_id,
-        selectedSubKinds: initialSubKinds,
       });
 
       // recordUpdatedAt 은 가장 마지막에 set — useDraftPersistence 의 ready 트리거.
@@ -485,10 +465,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       if (recordType === 'daily') {
-        // v12: sub_entries 는 sub_kind 만, 메모는 description 으로 통합 저장.
-        const subEntries = selectedSubKinds.map((k) => ({ sub_kind: k }));
+        // 세부 종류 제거 → sub_entries 비움. 메모(description)만 저장.
         await updateRecord(id, {
-          sub_entries: subEntries,
+          sub_entries: [],
           description: description.trim(),
         } as any);
       } else {
@@ -667,46 +646,18 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
         {/* 일상 — 세부 종류 멀티 선택 (분류 태그) + 통합 메모 1개 (일기 형식, 수정용) */}
         {recordType === 'daily' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              세부 종류 <span className="text-gray-400 font-normal text-xs">(선택)</span>
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {dailySubKinds.map((sk) => {
-                const Icon = sk.icon;
-                const selected = selectedSubKinds.includes(sk.id);
-                return (
-                  <button
-                    key={sk.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubKinds((prev) => prev.includes(sk.id) ? prev.filter((k) => k !== sk.id) : [...prev, sk.id]);
-                      // dirty 는 state 비교 useEffect 가 자동 처리
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-medium border-2 transition-colors ${
-                      selected ? 'bg-white text-blue-600 border-blue-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon size={14} />
-                    {sk.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-medium block mb-2">메모</label>
-              <textarea
-                name="description"
-                placeholder="오늘 하루를 기록해보세요"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
-                maxLength={1000}
-                autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium block mb-2">메모</label>
+            <textarea
+              name="description"
+              placeholder="오늘 하루를 기록해보세요"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
+              maxLength={1000}
+              autoComplete="off"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
+            />
           </div>
         )}
 

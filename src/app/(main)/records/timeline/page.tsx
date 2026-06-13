@@ -86,7 +86,7 @@ export default function TimelinePage() {
       const pid = selectedPetId;
       const [recs, meds, prevs, exc, mets, wts, exps] = await Promise.all([
         supabase.from('health_records').select('id, record_type, title, visit_date').eq('pet_id', pid).gte('visit_date', startISO),
-        supabase.from('medications').select('id, name').eq('pet_id', pid),
+        supabase.from('medications').select('id, name, alarm_times').eq('pet_id', pid),
         supabase.from('preventive_cares').select('id, category, name, last_done_date').eq('pet_id', pid).gte('last_done_date', startISO),
         supabase.from('excretion_logs').select('id, kind, condition, measured_at').eq('pet_id', pid).gte('measured_at', startISO),
         supabase.from('health_metrics').select('id, metric_type, value, unit, input_pct, measured_at').eq('pet_id', pid).gte('measured_at', startISO),
@@ -94,22 +94,24 @@ export default function TimelinePage() {
         supabase.from('expenses').select('id, amount, reason, spent_at').eq('pet_id', pid).gte('spent_at', startISO),
       ]);
 
-      const medRows = meds.data || [];
-      const medNames = new Map<string, string>(medRows.map((m: { id: string; name: string }) => [m.id, m.name]));
-      const medIds = new Set(medRows.map((m: { id: string }) => m.id));
+      const medRows = (meds.data || []) as Array<{ id: string; name: string; alarm_times: string[] | null }>;
+      const medMeta = new Map<string, { name: string; alarm_times: string[] | null }>(
+        medRows.map((m) => [m.id, { name: m.name, alarm_times: m.alarm_times }]),
+      );
+      const medIds = new Set(medRows.map((m) => m.id));
       // 복약 체크 — 펫 약에 속한 것만 (checks 엔 pet_id 없음)
-      let checks: Array<{ id: string; medication_id: string; check_date: string; checked: boolean; checked_at?: string }> = [];
+      let checks: Array<{ id: string; medication_id: string; check_date: string; checked: boolean; checked_at?: string; dose_number?: number }> = [];
       if (medIds.size > 0) {
         const { data: ck } = await supabase
           .from('medication_checks')
-          .select('id, medication_id, check_date, checked, checked_at')
+          .select('id, medication_id, check_date, checked, checked_at, dose_number')
           .eq('user_id', user.id).gte('check_date', startISO);
         checks = (ck || []).filter((c: { medication_id: string }) => medIds.has(c.medication_id));
       }
 
       setDays(buildTimeline({
         records: recs.data || [],
-        medNames,
+        medMeta,
         checks,
         preventives: prevs.data || [],
         excretions: exc.data || [],

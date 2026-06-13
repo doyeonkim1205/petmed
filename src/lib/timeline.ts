@@ -45,8 +45,8 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: 
 // 각 소스 raw 배열을 받아 날짜별 TLDay[] 로 집계 (날짜 내림차순)
 export function buildTimeline(input: {
   records: Array<{ id: string; record_type: string; title: string; visit_date: string }>;
-  medNames: Map<string, string>;
-  checks: Array<{ id: string; medication_id: string; check_date: string; checked: boolean; checked_at?: string }>;
+  medMeta: Map<string, { name: string; alarm_times: string[] | null }>;
+  checks: Array<{ id: string; medication_id: string; check_date: string; checked: boolean; checked_at?: string; dose_number?: number }>;
   preventives: Array<{ id: string; category: string; name: string; last_done_date: string }>;
   excretions: Array<{ id: string; kind: string; condition: string; measured_at: string }>;
   metrics: Array<{ id: string; metric_type: string; value: number; unit: string; input_pct?: number | null; measured_at: string }>;
@@ -97,15 +97,29 @@ export function buildTimeline(input: {
     a.events.push({ id: `prev-${p.id}`, kind: 'preventive', timeMs: startOfDayMs(dk), time: '', text, href: '/records/preventive' });
   }
 
-  // 3) 복약 체크 (완료된 것)
+  // 3) 복약 체크 (완료된 것). 시각: 알림 설정된 약은 '예정 복용 시각'(alarm_times[dose]),
+  //    없으면 체크한 시각(checked_at) 으로 fallback.
   for (const c of input.checks) {
     if (!c.checked) continue;
     const dk = c.check_date;
     const a = get(dk);
     a.med += 1;
-    const name = input.medNames.get(c.medication_id) || '약';
-    const t = c.checked_at || `${dk}T00:00:00`;
-    a.events.push({ id: `chk-${c.id}`, kind: 'med', timeMs: new Date(t).getTime(), time: c.checked_at ? hhmm(c.checked_at) : '', text: `${name} 복용`, href: '/records/meds' });
+    const med = input.medMeta.get(c.medication_id);
+    const name = med?.name || '약';
+    const scheduled = med?.alarm_times && med.alarm_times[c.dose_number ?? 0]; // "HH:MM"
+    let timeMs: number;
+    let time: string;
+    if (scheduled) {
+      time = scheduled;
+      timeMs = new Date(`${dk}T${scheduled}:00`).getTime();
+    } else if (c.checked_at) {
+      time = hhmm(c.checked_at);
+      timeMs = new Date(c.checked_at).getTime();
+    } else {
+      time = '';
+      timeMs = startOfDayMs(dk);
+    }
+    a.events.push({ id: `chk-${c.id}`, kind: 'med', timeMs, time, text: `${name} 복용`, href: '/records/meds' });
   }
 
   // 4) 대소변
