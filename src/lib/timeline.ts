@@ -9,12 +9,7 @@ export type TLKind =
   | 'preventive' | 'med' | 'poop' | 'pee'
   | 'food' | 'water' | 'fluid' | 'weight' | 'cost';
 
-export const TL_EMOJI: Record<TLKind, string> = {
-  hospitalization: '🏥', symptom: '⚠️', visit: '🩺', daily: '🐾',
-  preventive: '💉', med: '💊', poop: '💩', pee: '🚽',
-  food: '🍚', water: '💧', fluid: '🧴', weight: '🐾', cost: '💳',
-};
-
+// 아이콘은 페이지에서 lucide 컴포넌트로 매핑 (앱 톤 통일). 여기선 라벨/텍스트만.
 export const TL_LABEL: Record<TLKind, string> = {
   hospitalization: '입퇴원', symptom: '증상', visit: '진료', daily: '일상',
   preventive: '예방', med: '약', poop: '대변', pee: '소변',
@@ -161,18 +156,18 @@ export function buildTimeline(input: {
       .sort((x, y) => (TITLED_PRIORITY[x.kind]! - TITLED_PRIORITY[y.kind]!) || x.timeMs - y.timeMs);
 
     const chips: TLChip[] = [];
-    if (a.med > 0) chips.push({ key: 'med', label: `💊 약 ${a.med}회` });
-    if (a.poop.n > 0) chips.push({ key: 'poop', label: `💩 대변 ${a.poop.n}`, abnormal: a.poop.abn });
-    if (a.pee.n > 0) chips.push({ key: 'pee', label: `🚽 소변 ${a.pee.n}`, abnormal: a.pee.abn });
+    if (a.med > 0) chips.push({ key: 'med', label: `약 ${a.med}회` });
+    if (a.poop.n > 0) chips.push({ key: 'poop', label: `대변 ${a.poop.n}`, abnormal: a.poop.abn });
+    if (a.pee.n > 0) chips.push({ key: 'pee', label: `소변 ${a.pee.n}`, abnormal: a.pee.abn });
     if (a.food.sum > 0 || a.food.pcts.length > 0) {
       const avg = a.food.pcts.length ? Math.round(a.food.pcts.reduce((s, v) => s + v, 0) / a.food.pcts.length) : null;
-      chips.push({ key: 'food', label: avg != null ? `🍚 식사 ${avg}%` : `🍚 식사 ${Math.round(a.food.sum)}${a.food.unit}` });
+      chips.push({ key: 'food', label: avg != null ? `식사 ${avg}%` : `식사 ${Math.round(a.food.sum)}${a.food.unit}` });
     }
-    if (a.water.sum > 0) chips.push({ key: 'water', label: `💧 음수 ${Math.round(a.water.sum)}${a.water.unit}` });
-    if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: `🧴 수액 ${Math.round(a.fluid.sum)}${a.fluid.unit}` });
-    if (a.weight != null) chips.push({ key: 'weight', label: `⚖️ ${a.weight}kg` });
-    if (a.daily > 0) chips.push({ key: 'daily', label: `🐾 일상 ${a.daily}` });
-    if (a.cost > 0) chips.push({ key: 'cost', label: `💰 ${a.cost.toLocaleString()}원` });
+    if (a.water.sum > 0) chips.push({ key: 'water', label: `음수 ${Math.round(a.water.sum)}${a.water.unit}` });
+    if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: `수액 ${Math.round(a.fluid.sum)}${a.fluid.unit}` });
+    if (a.weight != null) chips.push({ key: 'weight', label: `${a.weight}kg` });
+    if (a.daily > 0) chips.push({ key: 'daily', label: `일상 ${a.daily}` });
+    if (a.cost > 0) chips.push({ key: 'cost', label: `${a.cost.toLocaleString()}원` });
 
     const events = [...a.events].sort((x, y) => x.timeMs - y.timeMs);
     days.push({ date, titled, chips, events });

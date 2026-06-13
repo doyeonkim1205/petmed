@@ -2,13 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronDown, History } from 'lucide-react';
+import {
+  ArrowLeft, ChevronDown, History,
+  Building2, AlertTriangle, Stethoscope, PawPrint, ShieldCheck, Pill,
+  CircleDot, Droplet, Utensils, GlassWater, Syringe, Scale, Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
-import { buildTimeline, TL_EMOJI, TL_LABEL, type TLDay } from '@/lib/timeline';
+import { buildTimeline, TL_LABEL, type TLDay, type TLKind } from '@/lib/timeline';
+
+// 이벤트 종류 → lucide 아이콘 (앱 톤 통일). 음수=GlassWater·소변=Droplet, 예방=ShieldCheck·수액=Syringe 로 겹침 정리.
+const TL_ICON: Record<TLKind, LucideIcon> = {
+  hospitalization: Building2, symptom: AlertTriangle, visit: Stethoscope, daily: PawPrint,
+  preventive: ShieldCheck, med: Pill, poop: CircleDot, pee: Droplet,
+  food: Utensils, water: GlassWater, fluid: Syringe, weight: Scale, cost: Wallet,
+};
 
 const PERIODS: { id: string; label: string; days: number }[] = [
   { id: 'week', label: '1주', days: 7 },
@@ -192,38 +204,47 @@ export default function TimelinePage() {
                   </button>
 
                   {/* 중요 이벤트 (제목) */}
-                  {d.titled.map((e) => (
-                    <button key={e.id} onClick={() => e.href && router.push(e.href)}
-                      className="w-full flex items-center gap-1.5 text-left mt-1.5 active:opacity-60">
-                      <span className="text-sm">{TL_EMOJI[e.kind]}</span>
-                      <span className="text-[13px] font-semibold text-gray-800 truncate">{e.text}</span>
-                      <span className="text-[11px] text-gray-400 flex-shrink-0">{TL_LABEL[e.kind]}</span>
-                    </button>
-                  ))}
+                  {d.titled.map((e) => {
+                    const Icon = TL_ICON[e.kind];
+                    return (
+                      <button key={e.id} onClick={() => e.href && router.push(e.href)}
+                        className="w-full flex items-center gap-1.5 text-left mt-1.5 active:opacity-60">
+                        <Icon size={14} className="text-gray-500 flex-shrink-0" />
+                        <span className="text-[13px] font-semibold text-gray-800 truncate">{e.text}</span>
+                        <span className="text-[11px] text-gray-400 flex-shrink-0">{TL_LABEL[e.kind]}</span>
+                      </button>
+                    );
+                  })}
 
                   {/* 요약 칩 */}
                   {d.chips.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {d.chips.map((c) => (
-                        <span key={c.key} className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                          {c.label}{c.abnormal ? ' · 주의' : ''}
-                        </span>
-                      ))}
+                      {d.chips.map((c) => {
+                        const Icon = TL_ICON[c.key as TLKind];
+                        return (
+                          <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                            {Icon && <Icon size={12} className="flex-shrink-0" />}{c.label}{c.abnormal ? ' · 주의' : ''}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
 
                   {/* 펼침 상세 — 시각순 */}
                   {open && (
                     <div className="mt-2.5 pt-2.5 border-t border-dashed border-gray-200 space-y-0.5">
-                      {d.events.map((e) => (
-                        <button key={e.id} onClick={() => e.href && router.push(e.href)}
-                          className="w-full flex items-center gap-2 py-1.5 text-left rounded-lg active:bg-gray-50">
-                          <span className="text-[11px] text-gray-400 tabular-nums w-9 flex-shrink-0">{e.time || ''}</span>
-                          <span className="text-[13px] flex-shrink-0">{TL_EMOJI[e.kind]}</span>
-                          <span className="text-[13px] text-gray-700 flex-shrink-0">{TL_LABEL[e.kind]}</span>
-                          <span className={`text-[13px] truncate ${e.abnormal ? 'text-red-600 font-medium' : 'text-gray-500'}`}>· {e.text}</span>
-                        </button>
-                      ))}
+                      {d.events.map((e) => {
+                        const Icon = TL_ICON[e.kind];
+                        return (
+                          <button key={e.id} onClick={() => e.href && router.push(e.href)}
+                            className="w-full flex items-center gap-2 py-1.5 text-left rounded-lg active:bg-gray-50">
+                            <span className="text-[11px] text-gray-400 tabular-nums w-9 flex-shrink-0">{e.time || ''}</span>
+                            <Icon size={13} className={`flex-shrink-0 ${e.abnormal ? 'text-red-500' : 'text-gray-500'}`} />
+                            <span className="text-[13px] text-gray-700 flex-shrink-0">{TL_LABEL[e.kind]}</span>
+                            <span className={`text-[13px] truncate ${e.abnormal ? 'text-red-600 font-medium' : 'text-gray-500'}`}>· {e.text}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
