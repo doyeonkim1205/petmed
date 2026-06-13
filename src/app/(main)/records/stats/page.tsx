@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, X } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
 import type { MetricType } from '@/lib/healthMetrics';
@@ -404,7 +404,8 @@ export default function StatsPage() {
         {/* 지표 편집 바텀시트 — 배경 락 + 큰 ↑↓ 순서 변경 + 표시 토글 */}
         {showTabSettings && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowTabSettings(false)}>
-            <div className="w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowTabSettings(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600" aria-label="닫기"><X size={20} /></button>
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
               <h3 className="text-base font-bold text-gray-900 text-center mb-1">지표 편집</h3>
               <p className="text-xs text-gray-400 text-center mb-4 break-keep break-words">위/아래로 순서 변경 · 스위치로 표시 켜고 끄기</p>
@@ -426,7 +427,8 @@ export default function StatsPage() {
 
               {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).length > 0 && (
                 <>
-                  <p className="text-[11px] font-bold text-gray-400 mt-4 mb-1">숨김</p>
+                  <div className="border-t border-dashed border-gray-200 my-3" />
+                  <p className="text-[11px] font-bold text-gray-400 mb-1">숨김</p>
                   {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).map((id) => (
                     <div key={id} className="flex items-center gap-2 py-2.5 border-b border-gray-50">
                       <span className="flex-1 text-sm font-medium text-gray-400">{STATS_TAB_LABELS[id]}</span>
