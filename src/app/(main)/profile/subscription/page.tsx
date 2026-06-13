@@ -77,7 +77,7 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
       { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
       // 기록당 첨부파일 (1 vs 5) — 병원 검사지·처방전·사진 여러 장 첨부는 실사용 니즈가 커서
       // Plus 가치가 구체적으로 와닿는 라인.
-      { label: '기록당 첨부파일', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}장` },
+      { label: '첨부파일', sublabel: '(기록당)', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}개` },
       // 분석 보관함 — Free 는 maxSavedAnalyses=0 이라 저장 불가(✗), Plus 는 저장 가능(✓).
       // 숫자(500) 대신 ✗/✓ 로 표기 → "500 cap 이 이상해 보임"·"무제한 거짓말" 둘 다 회피.
       { label: '보관함', sublabel: '(논문 검색 결과)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
