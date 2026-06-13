@@ -72,25 +72,14 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
     ],
   },
   {
-    title: '총 한도',
+    // 'AI 케어' 외 항목은 한 그룹으로 통합 — 항목이 적어 한도/기능 2분할은 과하고,
+    // 숫자류·✗✓류가 섞여 분류가 모호했음. 순서는 사용 빈도·체감 가치 순으로 배치.
+    title: '기록 · 관리',
     features: [
       { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
-      // 기록당 첨부파일 (1 vs 5) — 병원 검사지·처방전·사진 여러 장 첨부는 실사용 니즈가 커서
-      // Plus 가치가 구체적으로 와닿는 라인.
+      // 첨부파일 (1 vs 5) — 병원 검사지·처방전·사진 여러 장 첨부는 실사용 니즈가 커서 Plus 가치가 구체적.
       { label: '첨부파일', sublabel: '(기록당)', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}개` },
-      // 분석 보관함 — Free 는 maxSavedAnalyses=0 이라 저장 불가(✗), Plus 는 저장 가능(✓).
-      // 숫자(500) 대신 ✗/✓ 로 표기 → "500 cap 이 이상해 보임"·"무제한 거짓말" 둘 다 회피.
-      { label: '보관함', sublabel: '(논문 검색 결과)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
-      // "반려동물(2 vs 10)" 라인은 제외 — 대부분 1~2마리라 차별 체감 낮음 (필요 시 추가).
-      // "저장 용량" 라인도 제외 — 앱 설정의 "저장 공간" 섹션으로 충분히 노출.
-    ],
-  },
-  {
-    title: '기능',
-    features: [
-      // 맞춤 분석은 AI 케어 그룹으로 이동 — AI 분석 품질 차별점이라 거기에 묶음.
       { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
-      { label: '로그인 기기', sublabel: '(가족과 함께)', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
       {
         label: '푸시 알림',
         sublabel: '(투약·예약·퇴원)',
@@ -98,6 +87,10 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
         format: () => '✓',
         unavailable: (p) => p === 'free',
       },
+      // 보관함 — Free 는 maxSavedAnalyses=0 이라 저장 불가(✗), Plus 는 저장 가능(✓).
+      // 숫자(500) 대신 ✗/✓ 로 표기 → "500 cap 이 이상해 보임"·"무제한 거짓말" 둘 다 회피.
+      { label: '보관함', sublabel: '(논문 검색 결과)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
+      { label: '로그인 기기', sublabel: '(가족과 함께)', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
     ],
   },
 ];
