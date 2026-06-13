@@ -143,6 +143,7 @@ export interface WeightLog {
   pet_id: string;
   weight: number;
   measured_at: string;
+  memo?: string | null;
   created_at: string;
 }
 

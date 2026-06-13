@@ -73,11 +73,21 @@ export function ExcretionTracker({
   useEffect(() => { setShowInput(false); resetInput(); }, [kind]);
 
   const todayStr = todayLocalISO();
+  const yesterdayStr = useMemo(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
   const fmtWhen = (iso: string) => {
     const d = new Date(iso);
     const t = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
     return dateKey(iso) === todayStr ? `오늘 ${t}` : `${d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} ${t}`;
   };
+  const fmtDateHeader = (dateK: string) => {
+    if (dateK === todayStr) return '오늘';
+    if (dateK === yesterdayStr) return '어제';
+    return new Date(`${dateK}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  };
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   // 기간 내 로그
   const inRange = useMemo(() => logs.filter((l) => {
@@ -114,7 +124,19 @@ export function ExcretionTracker({
     fetchLogs();
   };
 
-  const recent = useMemo(() => [...logs].reverse().slice(0, 40), [logs]);
+  // 최근 40건을 날짜별로 묶음 (날짜 내림차순, 같은 날 안에서도 최신순)
+  const grouped = useMemo(() => {
+    const recent = [...logs].reverse().slice(0, 40);
+    const out: { date: string; items: ExcretionLog[] }[] = [];
+    const idx = new Map<string, { date: string; items: ExcretionLog[] }>();
+    for (const l of recent) {
+      const k = dateKey(l.measured_at);
+      let g = idx.get(k);
+      if (!g) { g = { date: k, items: [] }; idx.set(k, g); out.push(g); }
+      g.items.push(l);
+    }
+    return out;
+  }, [logs]);
   const conds = conditionsFor(kind);
 
   return (
@@ -147,7 +169,7 @@ export function ExcretionTracker({
               )}
             </div>
             {abnormalCount > 0 && (
-              <span className="flex-shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-rose-100 text-rose-600">이상 {abnormalCount}회</span>
+              <span className="flex-shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700">주의 {abnormalCount}회</span>
             )}
           </div>
 
@@ -233,45 +255,49 @@ export function ExcretionTracker({
             </button>
           )}
 
-          {/* 내역 */}
-          {recent.length > 0 && (
-            <div className="space-y-1">
-              <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역</h2>
-              {recent.map((log) => {
-                const isSel = selectedId === log.id;
-                const cm = conditionMeta(kind, log.condition);
-                const am = amountLabel(log.amount);
-                const cl = colorMeta(log.color);
-                const dt = new Date(log.measured_at);
-                return (
-                  <div key={log.id} onClick={() => setSelectedId(isSel ? null : log.id)}
-                    className={`flex items-center justify-between py-2.5 px-2 border-b border-gray-50 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {dt.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} {dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </span>
-                        <span className="inline-flex items-center gap-1 flex-shrink-0">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cm.color }} />
-                          <span className="text-sm font-semibold text-gray-700">{cm.label}</span>
-                        </span>
-                        {(am || cl) && (
-                          <span className="text-[11px] text-gray-400 truncate">
-                            {am ? `· ${am}` : ''}{cl ? ` · ${cl.label}` : ''}
-                          </span>
-                        )}
-                      </div>
-                      {log.memo && (
-                        <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>
-                      )}
-                    </div>
-                    {isSel && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                        className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
-                    )}
+          {/* 내역 — 날짜별로 묶고, 각 줄엔 시간만 */}
+          {grouped.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-bold text-gray-700">기록 내역</h2>
+              {grouped.map((g) => (
+                <div key={g.date}>
+                  <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDateHeader(g.date)}</p>
+                  <div className="space-y-0.5">
+                    {g.items.map((log) => {
+                      const isSel = selectedId === log.id;
+                      const cm = conditionMeta(kind, log.condition);
+                      const am = amountLabel(log.amount);
+                      const cl = colorMeta(log.color);
+                      return (
+                        <div key={log.id} onClick={() => setSelectedId(isSel ? null : log.id)}
+                          className={`flex items-center justify-between py-2 px-2 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(log.measured_at)}</span>
+                              <span className="inline-flex items-center gap-1 flex-shrink-0">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cm.color }} />
+                                <span className="text-sm font-semibold text-gray-700">{cm.label}</span>
+                              </span>
+                              {(am || cl) && (
+                                <span className="text-[11px] text-gray-400 truncate">
+                                  {am ? `· ${am}` : ''}{cl ? ` · ${cl.label}` : ''}
+                                </span>
+                              )}
+                            </div>
+                            {log.memo && (
+                              <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>
+                            )}
+                          </div>
+                          {isSel && (
+                            <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
+                              className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </>

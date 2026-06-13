@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check, CircleDot } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, Check, CircleDot, ChevronUp, ChevronDown } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
 import type { MetricType } from '@/lib/healthMetrics';
@@ -19,6 +19,10 @@ import { NumberPad } from '@/components/ui/NumberPad';
 
 type StatsTab = 'weight' | 'water' | 'food' | 'fluid' | 'excretion';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
+// 탭 아이콘 (라벨은 STATS_TAB_LABELS). 탭 바·설정은 enabledTabs(사용자 순서)를 그대로 렌더.
+const TAB_ICON: Record<MetricTabId, ComponentType<{ size?: number; className?: string }>> = {
+  weight: Scale, water: Droplet, food: Utensils, fluid: Syringe, excretion: CircleDot,
+};
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
 const allPeriodOptions: { id: Period; label: string; months: number }[] = [
@@ -155,9 +159,23 @@ export default function StatsPage() {
       const removing = prev.includes(id);
       // 최소 1개는 항상 켜져 있어야 함 — 마지막 1개는 해제 불가.
       if (removing && prev.length === 1) return prev;
+      // 켤 땐 맨 뒤에 추가(순서 유지), 끌 땐 제거.
       const next = removing ? prev.filter((t) => t !== id) : [...prev, id];
       setEnabledStatsTabs(next);
       if (next.length > 0 && !next.includes(tab as MetricTabId)) setTab(next[0]);
+      return next;
+    });
+  };
+
+  // 켜진 지표 순서 변경 (위/아래)
+  const moveTab = (id: MetricTabId, dir: 'up' | 'down') => {
+    setEnabledTabs((prev) => {
+      const i = prev.indexOf(id);
+      const j = dir === 'up' ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      setEnabledStatsTabs(next);
       return next;
     });
   };
@@ -191,6 +209,7 @@ export default function StatsPage() {
   const [weightLoading, setWeightLoading] = useState(false);
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [newWeight, setNewWeight] = useState('');
+  const [newWeightMemo, setNewWeightMemo] = useState('');
   const [newWeightDate, setNewWeightDate] = useState(todayLocalISO());
   // Chrome autofill 차단 readonly trick.
   const [newWeightFocused, setNewWeightFocused] = useState(false);
@@ -246,7 +265,7 @@ export default function StatsPage() {
   // Merge weight_logs + health_records weight, filter by period.
   // allWeightData 와 같은 포맷/tie-breaker 규칙 적용 (버그 설명은 아래 주석 참고).
   const weightData = useMemo(() => {
-    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; createdAt: string; petName?: string; recordType?: string }[] = [];
+    const items: { date: string; weight: number; source: 'log' | 'record'; id: string; createdAt: string; petName?: string; recordType?: string; memo?: string | null }[] = [];
 
     for (const log of weightLogs) {
       const d = new Date(String(log.measured_at).split('T')[0] + 'T00:00:00'); // 로컬 자정 (UTC 파싱 함정 회피)
@@ -258,6 +277,7 @@ export default function StatsPage() {
           id: log.id,
           createdAt: (log as { created_at?: string }).created_at || '',
           petName: pets.find(p => p.id === log.pet_id)?.name,
+          memo: (log as { memo?: string | null }).memo ?? null,
         });
       }
     }
@@ -343,8 +363,9 @@ export default function StatsPage() {
     const today = todayLocalISO();
     const date = newWeightDate > today ? today : newWeightDate;
     setWeightSaving(true);
-    await supabase.from('weight_logs').insert({ user_id: user.id, pet_id: selectedPetId, weight: w, measured_at: date });
+    await supabase.from('weight_logs').insert({ user_id: user.id, pet_id: selectedPetId, weight: w, measured_at: date, memo: newWeightMemo.trim() || null });
     setNewWeight('');
+    setNewWeightMemo('');
     setShowWeightInput(false);
     setWeightSaving(false);
     fetchWeightLogs();
@@ -384,16 +405,27 @@ export default function StatsPage() {
         {showTabSettings && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowTabSettings(false)} />
-            <div className="absolute right-3 top-[52px] z-40 w-28 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
-              <p className="text-xs text-gray-400 px-2 pt-1 pb-1 break-keep break-words">표시할 지표</p>
-              {ALL_METRIC_TABS.map((id) => {
+            <div className="absolute right-3 top-[52px] z-40 w-44 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5">
+              <p className="text-xs text-gray-400 px-1.5 pt-0.5 pb-1.5 break-keep break-words">표시 지표 · 순서</p>
+              {/* 켜진 지표(사용자 순서) → 화살표로 순서 변경, 체크로 끄기. 그 뒤 꺼진 지표(탭하면 켜짐). */}
+              {[...enabledTabs, ...ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t))].map((id) => {
                 const on = enabledTabs.includes(id);
+                const enIdx = enabledTabs.indexOf(id);
                 return (
-                  <button key={id} onClick={() => toggleStatTab(id)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-gray-50 text-xs">
-                    <span className={on ? 'text-gray-800 font-medium' : 'text-gray-400'}>{STATS_TAB_LABELS[id]}</span>
-                    {on && <Check size={13} className="text-blue-600" />}
-                  </button>
+                  <div key={id} className="w-full flex items-center justify-between gap-1 px-1.5 py-1 rounded-lg hover:bg-gray-50">
+                    <button onClick={() => toggleStatTab(id)} className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-left">
+                      <span className={`w-3.5 flex-shrink-0 ${on ? 'text-blue-600' : 'text-transparent'}`}>{on && <Check size={13} />}</span>
+                      <span className={on ? 'text-gray-800 font-medium' : 'text-gray-400'}>{STATS_TAB_LABELS[id]}</span>
+                    </button>
+                    {on && (
+                      <span className="flex items-center flex-shrink-0">
+                        <button onClick={() => moveTab(id, 'up')} disabled={enIdx <= 0}
+                          className="p-0.5 text-gray-400 disabled:text-gray-200" aria-label="위로"><ChevronUp size={14} /></button>
+                        <button onClick={() => moveTab(id, 'down')} disabled={enIdx >= enabledTabs.length - 1}
+                          className="p-0.5 text-gray-400 disabled:text-gray-200" aria-label="아래로"><ChevronDown size={14} /></button>
+                      </span>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -410,18 +442,15 @@ export default function StatsPage() {
           </div>
         )}
         <div className="flex max-w-sm mx-auto overflow-x-auto">
-          {([
-            { id: 'weight', label: '체중', Icon: Scale },
-            { id: 'water', label: '음수량', Icon: Droplet },
-            { id: 'food', label: '식사', Icon: Utensils },
-            { id: 'fluid', label: '수액', Icon: Syringe },
-            { id: 'excretion', label: '대소변', Icon: CircleDot },
-          ] as const).filter((t) => enabledTabs.includes(t.id)).map(({ id, label, Icon }) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
-              <Icon size={13} />{label}
-            </button>
-          ))}
+          {enabledTabs.map((id) => {
+            const Icon = TAB_ICON[id];
+            return (
+              <button key={id} onClick={() => setTab(id)}
+                className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
+                <Icon size={13} />{STATS_TAB_LABELS[id]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -550,8 +579,11 @@ export default function StatsPage() {
                         className="flex-1 min-w-0"
                         inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                     </div>
+                    <input type="search" placeholder="메모 (선택)" value={newWeightMemo}
+                      onChange={(e) => setNewWeightMemo(e.target.value)} maxLength={50} autoComplete="off"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-blue-500 [&::-webkit-search-cancel-button]:hidden" />
                     <div className="flex gap-2">
-                      <button onClick={() => setShowWeightInput(false)}
+                      <button onClick={() => { setShowWeightInput(false); setNewWeightMemo(''); }}
                         className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
                       <button onClick={handleAddWeight} disabled={!newWeight || weightSaving}
                         className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
@@ -596,18 +628,21 @@ export default function StatsPage() {
                             isSelected ? 'bg-red-50' : item.source === 'log' ? 'active:bg-gray-50' : ''
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">
-                              {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                            </span>
-                            {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
-                            {item.source === 'record' && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
-                                {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                               </span>
-                            )}
+                              {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
+                              {item.source === 'record' && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
+                                  {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                                </span>
+                              )}
+                            </div>
+                            {item.memo && <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {item.memo}</p>}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                             <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
                             {isSelected && (
                               <button

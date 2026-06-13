@@ -85,6 +85,7 @@ export function MetricTracker({
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [newValue, setNewValue] = useState('');
+  const [newMemo, setNewMemo] = useState('');
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -193,8 +194,9 @@ export function MetricTracker({
     if (!v) return;
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
-    await supabase.from('health_metrics').insert({ user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit, measured_at: date });
+    await supabase.from('health_metrics').insert({ user_id: userId, pet_id: pet.id, metric_type: metricType, value: v, unit: meta.unit, measured_at: date, memo: newMemo.trim() || null });
     setNewValue('');
+    setNewMemo('');
     setShowInput(false);
     setSaving(false);
     fetchLogs();
@@ -283,9 +285,13 @@ export function MetricTracker({
               onClose={() => setShowPad(false)}
             />
           )}
+          <input
+            type="search" placeholder="메모 (선택)" value={newMemo}
+            onChange={(e) => setNewMemo(e.target.value)} maxLength={50} autoComplete="off"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
           <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
           <div className="flex gap-2">
-            <button onClick={() => setShowInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+            <button onClick={() => { setShowInput(false); setNewMemo(''); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
             <button onClick={handleAdd} disabled={!newValue || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
               {saving ? '저장 중...' : '저장'}
             </button>
@@ -309,8 +315,11 @@ export function MetricTracker({
               <div key={log.id}
                 onClick={() => setSelectedId(isSel ? null : log.id)}
                 className={`flex items-center justify-between py-2.5 px-2 border-b border-gray-50 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
-                <span className="text-xs text-gray-400">{new Date(log.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
-                <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs text-gray-400">{new Date(log.measured_at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>
+                  {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 truncate">📝 {log.memo}</p>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                   <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
                   {isSel && (
                     <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
