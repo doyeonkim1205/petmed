@@ -12,7 +12,7 @@ export type TLKind =
 export const TL_EMOJI: Record<TLKind, string> = {
   hospitalization: '🏥', symptom: '⚠️', visit: '🩺', daily: '🐾',
   preventive: '💉', med: '💊', poop: '💩', pee: '🚽',
-  food: '🍚', water: '💧', fluid: '🧴', weight: '⚖️', cost: '💰',
+  food: '🍚', water: '💧', fluid: '🧴', weight: '🐾', cost: '💳',
 };
 
 export const TL_LABEL: Record<TLKind, string> = {
