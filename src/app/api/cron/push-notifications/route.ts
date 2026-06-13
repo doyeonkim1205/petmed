@@ -192,13 +192,13 @@ function buildPreventiveMessage(
   if (items.length === 1) {
     const { label, dday } = items[0];
     if (dday === 0) {
-      return { title: `💉 ${petName} 예방일이에요`, body: `"${truncate(label, RECORD_TITLE_MAX, '예방')}" 챙겨주세요` };
+      return { title: `💉 ${petName} 오늘의 건강 일정`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 챙겨주세요` };
     }
-    return { title: `💉 ${petName} 예방 ${dday}일 전`, body: `"${truncate(label, RECORD_TITLE_MAX, '예방')}" 예정이에요` };
+    return { title: `💉 ${petName} 건강 일정 ${dday}일 전`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 예정이에요` };
   }
   return {
-    title: `💉 ${petName} 예방 알림`,
-    body: `${truncate(items[0].label, 12, '예방')} 외 ${items.length - 1}개 예방이 다가와요`,
+    title: `💉 ${petName} 챙길 일정이 있어요`,
+    body: `${truncate(items[0].label, 12, '일정')} 외 ${items.length - 1}개 챙겨주세요`,
   };
 }
 

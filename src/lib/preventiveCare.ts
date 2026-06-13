@@ -73,7 +73,9 @@ export function careStatus(nextDueISO: string, baseISO: string = todayISO()): Ca
 // D-day 표시 문구 (예: "D-3", "오늘", "3일 지남")
 export function ddayLabel(nextDueISO: string, baseISO: string = todayISO()): string {
   const dd = ddayFrom(nextDueISO, baseISO);
-  if (dd === 0) return '오늘';
+  if (dd === 0) return 'D-Day';
   if (dd > 0) return `D-${dd}`;
-  return `${-dd}일 지남`;
+  // 지난 항목: 숫자가 무한정 커지지 않게 30일까지만 일수 표기, 이후는 '30일+ 지남'.
+  const over = -dd;
+  return over > 30 ? '30일+ 지남' : `${over}일 지남`;
 }
