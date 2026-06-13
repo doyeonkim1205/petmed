@@ -22,6 +22,13 @@ const TL_ICON: Record<TLKind, LucideIcon> = {
   food: Utensils, water: GlassWater, fluid: Syringe, weight: Scale, cost: Wallet,
 };
 
+// 아이콘 색 — 앱 색 연상에 맞춤. 텍스트·칩 배경은 회색 유지, 아이콘만 색 포인트.
+const TL_COLOR: Record<TLKind, string> = {
+  hospitalization: 'text-emerald-500', symptom: 'text-orange-500', visit: 'text-blue-500', daily: 'text-purple-500',
+  preventive: 'text-sky-500', med: 'text-rose-500', poop: 'text-amber-600', pee: 'text-yellow-500',
+  food: 'text-orange-400', water: 'text-cyan-500', fluid: 'text-indigo-500', weight: 'text-slate-500', cost: 'text-teal-600',
+};
+
 const PERIODS: { id: string; label: string; days: number }[] = [
   { id: 'week', label: '1주', days: 7 },
   { id: 'month', label: '1개월', days: 30 },
@@ -209,7 +216,7 @@ export default function TimelinePage() {
                     return (
                       <button key={e.id} onClick={() => e.href && router.push(e.href)}
                         className="w-full flex items-center gap-1.5 text-left mt-1.5 active:opacity-60">
-                        <Icon size={14} className="text-gray-500 flex-shrink-0" />
+                        <Icon size={14} className={`flex-shrink-0 ${TL_COLOR[e.kind]}`} />
                         <span className="text-[13px] font-semibold text-gray-800 truncate">{e.text}</span>
                         <span className="text-[11px] text-gray-400 flex-shrink-0">{TL_LABEL[e.kind]}</span>
                       </button>
@@ -223,7 +230,7 @@ export default function TimelinePage() {
                         const Icon = TL_ICON[c.key as TLKind];
                         return (
                           <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                            {Icon && <Icon size={12} className="flex-shrink-0" />}{c.label}{c.abnormal ? ' · 주의' : ''}
+                            {Icon && <Icon size={12} className={`flex-shrink-0 ${c.abnormal ? '' : TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ' · 주의' : ''}
                           </span>
                         );
                       })}
@@ -239,7 +246,7 @@ export default function TimelinePage() {
                           <button key={e.id} onClick={() => e.href && router.push(e.href)}
                             className="w-full flex items-center gap-2 py-1.5 text-left rounded-lg active:bg-gray-50">
                             <span className="text-[11px] text-gray-400 tabular-nums w-9 flex-shrink-0">{e.time || ''}</span>
-                            <Icon size={13} className={`flex-shrink-0 ${e.abnormal ? 'text-red-500' : 'text-gray-500'}`} />
+                            <Icon size={13} className={`flex-shrink-0 ${e.abnormal ? 'text-red-500' : TL_COLOR[e.kind]}`} />
                             <span className="text-[13px] text-gray-700 flex-shrink-0">{TL_LABEL[e.kind]}</span>
                             <span className={`text-[13px] truncate ${e.abnormal ? 'text-red-600 font-medium' : 'text-gray-500'}`}>· {e.text}</span>
                           </button>
