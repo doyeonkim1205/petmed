@@ -74,43 +74,8 @@ function formatCost(cost: number): string {
   return new Intl.NumberFormat('ko-KR').format(cost) + '원';
 }
 
-// 도넛 중앙용 압축 표기 (예: 194000 → "19.4만")
-function compactWon(n: number): string {
-  if (n >= 10000) {
-    const man = n / 10000;
-    return `${Number.isInteger(man) ? man : man.toFixed(1)}만`;
-  }
-  return n.toLocaleString();
-}
-
 function formatMonthLabel(year: number, month: number): string {
   return `${year}년 ${month + 1}월`;
-}
-
-// ─── 도넛 차트 ──────────────────────
-function Donut({ segments, centerLabel, centerValue }: {
-  segments: { value: number; color: string }[];
-  centerLabel: string;
-  centerValue: string;
-}) {
-  const C = 2 * Math.PI * 50;
-  const total = segments.reduce((s, x) => s + x.value, 0);
-  let acc = 0;
-  return (
-    <svg width="148" height="148" viewBox="0 0 120 120">
-      <circle cx="60" cy="60" r="50" fill="none" stroke="#f1f3f6" strokeWidth="15" />
-      <g transform="rotate(-90 60 60)" fill="none" strokeWidth="15">
-        {total > 0 && segments.filter((s) => s.value > 0).map((s, i) => {
-          const len = (s.value / total) * C;
-          const off = -acc;
-          acc += len;
-          return <circle key={i} cx="60" cy="60" r="50" stroke={s.color} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={off} strokeLinecap="butt" />;
-        })}
-      </g>
-      <text x="60" y="55" textAnchor="middle" fontSize="9" fill="#9ca3af">{centerLabel}</text>
-      <text x="60" y="71" textAnchor="middle" fontSize="15" fontWeight="800" fill="#1f2937">{centerValue}</text>
-    </svg>
-  );
 }
 
 export default function ExpensesPage() {
@@ -281,33 +246,17 @@ export default function ExpensesPage() {
           <div className="space-y-3 py-8">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />)}</div>
         ) : (
           <>
-            {/* Period selector */}
-            <div className="flex gap-1.5 overflow-x-auto">
-              {periodOptions.map((opt) => (
-                <button key={opt.id} onClick={() => setPeriod(opt.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
-              ))}
-              {lockedOptions.map((opt) => (
-                <button key={opt.id} onClick={() => router.push('/profile/subscription')}
-                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-                  <Lock size={11} />{opt.label}
-                </button>
-              ))}
-            </div>
-            {period === 'custom' && (
-              <div className="flex gap-2 items-center">
-                <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
-                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-                <span className="text-gray-400 text-sm">~</span>
-                <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
-                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-              </div>
-            )}
-
-            {/* 도넛 + 접이식 범례 */}
+            {/* 총액 + 누적 막대 + 접이식 범례 */}
             {grandTotal > 0 ? (
-              <div className="rounded-xl border border-gray-100 p-4 flex flex-col items-center">
-                <Donut segments={segments} centerLabel="총 지출" centerValue={compactWon(grandTotal)} />
+              <div className="rounded-xl border border-gray-100 p-4">
+                <p className="text-[11px] text-gray-400">{allPeriodOptions.find((o) => o.id === period)?.label} 총 지출</p>
+                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatCost(grandTotal)}</p>
+                {/* 카테고리별 누적 막대 */}
+                <div className="flex w-full h-3.5 rounded-full overflow-hidden bg-gray-100">
+                  {segments.filter((s) => s.value > 0).map((s, i) => (
+                    <div key={i} style={{ width: `${(s.value / grandTotal) * 100}%`, backgroundColor: s.color }} />
+                  ))}
+                </div>
                 <button onClick={() => setLegendOpen((v) => !v)}
                   className="mt-3 w-full flex items-center justify-center gap-1 py-2 rounded-xl border border-gray-100 bg-gray-50/60 text-xs font-bold text-gray-500">
                   카테고리별 {legendOpen ? '접기' : '보기'} {legendOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -344,6 +293,29 @@ export default function ExpensesPage() {
                 <button onClick={() => setSelectedCategory(null)} className="text-xs text-blue-500 inline-flex items-center gap-0.5">
                   <X size={12} /> 전체
                 </button>
+              </div>
+            )}
+
+            {/* Period selector — 지출 추가 위 */}
+            <div className="flex gap-1.5 overflow-x-auto">
+              {periodOptions.map((opt) => (
+                <button key={opt.id} onClick={() => setPeriod(opt.id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
+              ))}
+              {lockedOptions.map((opt) => (
+                <button key={opt.id} onClick={() => router.push('/profile/subscription')}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
+                  <Lock size={11} />{opt.label}
+                </button>
+              ))}
+            </div>
+            {period === 'custom' && (
+              <div className="flex gap-2 items-center">
+                <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                <span className="text-gray-400 text-sm">~</span>
+                <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
               </div>
             )}
 
