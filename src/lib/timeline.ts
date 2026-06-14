@@ -22,10 +22,10 @@ const TITLED_PRIORITY: Partial<Record<TLKind, number>> = {
 };
 
 // 상세 정렬 — 같은 시각(특히 무시각 00:00)일 때 중요도순 tie-break (작을수록 위).
-// 진료 > 입퇴원 > 증상 > 예방 > 약(무시각) > 체중 > 지출 > 일상.
+// 진료 > 입퇴원 > 증상 > 일상 > 예방 > 약(무시각) > 체중 > 지출.
 const DETAIL_RANK: Record<TLKind, number> = {
-  visit: 0, hospitalization: 1, symptom: 2, preventive: 3, med: 4, weight: 5, cost: 6, daily: 7,
-  poop: 4, pee: 4, food: 4, water: 4, fluid: 4,
+  visit: 0, hospitalization: 1, symptom: 2, daily: 3, preventive: 4, med: 5, weight: 6, cost: 7,
+  poop: 5, pee: 5, food: 5, water: 5, fluid: 5,
 };
 
 export interface TLEvent {

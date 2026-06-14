@@ -1,13 +1,8 @@
 'use client';
 
 import { useRef } from 'react';
-import { HealthRecord, DailySubKind } from '@/lib/supabase';
+import { HealthRecord } from '@/lib/supabase';
 import { Stethoscope, AlertCircle, FileEdit, Building2, PawPrint } from 'lucide-react';
-
-// 일상 세부 종류 한글 라벨. RecordCard 에서 sub_entries 텍스트 표시용.
-const DAILY_SUB_LABEL: Record<DailySubKind, string> = {
-  meal: '식사', hydration: '수분', walk: '산책', poop: '배변', mood: '기분', other: '기타',
-};
 
 interface RecordCardProps {
   record: HealthRecord;
@@ -152,20 +147,9 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect, on
             </span>
           </div>
           <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">
-            {record.record_type === 'daily'
-              ? `${record.pets?.name ?? ''}의 일상 기록`
-              : record.title}
+            {record.title}
           </h3>
-          {record.record_type === 'daily' ? (
-            record.sub_entries && record.sub_entries.length > 0 ? (
-              <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">
-                {/* 같은 sub_kind 여러 entry 도 라벨은 1번만 (가독성). 등장 순서 유지. */}
-                {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
-                  .map((k) => DAILY_SUB_LABEL[k])
-                  .join(' · ')}
-              </p>
-            ) : null
-          ) : record.description ? (
+          {record.description ? (
             <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{record.description}</p>
           ) : null}
         </div>

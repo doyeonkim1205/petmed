@@ -29,7 +29,7 @@ const HEALTH: MenuItem[] = [
   { icon: ClipboardList, label: '기록장', color: 'text-green-700', bg: 'bg-green-50', href: '/records' },
   { icon: Activity, label: '건강 통계', color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/records/stats' },
   { icon: History, label: '타임라인', color: 'text-green-500', bg: 'bg-green-50', href: '/records/timeline' },
-  { icon: Wallet, label: '지출', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
+  { icon: Wallet, label: '지출 관리', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
@@ -84,7 +84,7 @@ export default function HomePage() {
       </div>
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 (건강 기록 → AI 케어 순) */}
-      <div className="px-4 pt-4 space-y-3">
+      <div className="px-4 pt-3 space-y-3">
         <section className="bg-white rounded-2xl p-4 border border-gray-100">
           <SectionTitle icon={ClipboardList} title="건강 기록" />
           <MenuGrid items={HEALTH} />
