@@ -178,7 +178,7 @@ export function ExcretionTracker({
             <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: accent + '55', background: accent + '0d' }}>
               {/* 상태 (필수) */}
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">상태 <span className="text-rose-400">*</span></label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 block">상태</label>
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
                     <button key={o.id} type="button" onClick={() => setCondition(o.id)}
