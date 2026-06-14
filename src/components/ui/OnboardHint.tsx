@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 /**
- * 첫 방문 안내 말풍선 — 처음 뜬 순간 '봤음' 처리(localStorage)라 다음 방문엔 안 뜸. X 는 즉시 닫기용.
+ * 안내 말풍선 — X(닫기)를 누르기 전까진 매 방문 노출, 닫으면 localStorage 에 기록돼 다신 안 뜸.
+ *   (뜨자마자 사라지는 1회성이 아니라, 사용자가 직접 닫아야 사라짐 → 인지율 ↑)
  * 톤: 증상분석 사진 물풍선과 동일 — 흰 배경 + 파란 테두리/글자(blue-300/600) + 위 방향 꼬리.
- *   storageKey: 안내별 고유 키 (예: 'hint_stats_filter')
+ *   storageKey: 안내별 고유 키 (예: 'hint_stats_filter'). 문구/디자인 갱신 시 _v2 처럼 올려 재노출.
  *   pointer: 위쪽 꼬리(삼각형) 위치 — 가리킬 대상 방향. 'none' 이면 꼬리 없음.
  */
 export function OnboardHint({
@@ -22,12 +23,15 @@ export function OnboardHint({
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem(storageKey)) {
-        setShow(true);
-        localStorage.setItem(storageKey, '1'); // 처음 본 순간 '봤음' 처리 → 다음 방문엔 안 뜸
-      }
+      if (!localStorage.getItem(storageKey)) setShow(true); // 아직 안 닫았으면 노출
     } catch { /* localStorage 불가 환경 — 안내 생략 */ }
   }, [storageKey]);
+
+  // 닫을 때만 '봤음' 처리 → 그 전까진 매 방문 노출 (놓침 방지).
+  const dismiss = () => {
+    setShow(false);
+    try { localStorage.setItem(storageKey, '1'); } catch { /* noop */ }
+  };
 
   if (!show) return null;
 
@@ -42,7 +46,7 @@ export function OnboardHint({
         <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-white border-l border-t border-blue-300`} />
       )}
       <p className="flex-1 leading-snug break-keep break-words whitespace-pre-line">{text}</p>
-      <button onClick={() => setShow(false)} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-blue-400 transition hover:text-blue-600 active:scale-90">
+      <button onClick={dismiss} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-blue-400 transition hover:text-blue-600 active:scale-90">
         <X size={13} />
       </button>
     </div>

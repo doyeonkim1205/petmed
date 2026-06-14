@@ -398,7 +398,7 @@ export default function StatsPage() {
 
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
         <div className="absolute right-2 top-[50px] z-20 w-64">
-          <OnboardHint storageKey="hint_stats_filter" pointer="right"
+          <OnboardHint storageKey="hint_stats_filter_v2" pointer="right"
             text={"여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요."} />
         </div>
 
@@ -548,7 +548,7 @@ export default function StatsPage() {
                   </div>
                 )}
 
-                <OnboardHint storageKey="hint_stats_weight_record" pointer="center"
+                <OnboardHint storageKey="hint_stats_weight_record_v2" pointer="center"
                   text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
 
                 {/* Chart */}
