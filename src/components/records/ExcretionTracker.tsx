@@ -181,7 +181,7 @@ export function ExcretionTracker({
                 <label className="text-xs text-gray-500 font-medium mb-1.5 block">상태 <span className="text-rose-400">*</span></label>
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
-                    <button key={o.id} type="button" onClick={() => setCondition(condition === o.id ? '' : o.id)}
+                    <button key={o.id} type="button" onClick={() => setCondition(o.id)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
                       <span className="inline-flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{o.label}

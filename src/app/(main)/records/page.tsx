@@ -309,7 +309,7 @@ export default function RecordsPage() {
                 <button
                   key={q.href}
                   onClick={() => router.push(q.href)}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-gray-50 active:bg-gray-100 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-white border border-gray-200 active:bg-gray-50 transition-colors"
                 >
                   <Icon size={13} className={`${q.color} flex-shrink-0`} />
                   <span className="text-[11px] font-bold text-gray-600">{q.short}</span>
