@@ -466,11 +466,10 @@ export default function RecordAddPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (!petId) { showError('반려동물을 선택해주세요.'); return; }
-    // 일상: 세부 종류는 선택 사항, 메모만 필수 (빈값 저장 차단).
+    // 일상: 제목 필수, 메모는 선택.
     if (recordType === 'daily') {
-      // 세부 종류는 선택 사항 (필수 아님). 메모만 있으면 저장 가능.
-      if (!description.trim()) {
-        showError('메모를 입력해주세요.'); return;
+      if (!title.trim()) {
+        showError('제목을 입력해주세요.'); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -516,15 +515,14 @@ export default function RecordAddPage() {
         }
       }
 
-      // 일상은 자동 제목 + 세부 종류 JSON 만 저장. 캘린더 반영 X (color/날짜 컬럼은 사용 안 함).
-      // title 은 NOT NULL 이라 "일상 기록" 로 채움 (펫 이름은 표시 시 join 으로 가져옴).
+      // 일상 = 제목(선택) + 메모(일기) 1개. 캘린더 반영 X (color/날짜 컬럼은 사용 안 함).
+      // title 은 NOT NULL 이라 비우면 "일상 기록" 으로 fallback.
       let record;
       if (recordType === 'daily') {
-        // 일상 = 메모(일기) 1개. 세부 종류 제거 → sub_entries 비움.
         record = await createRecord({
           pet_id: petId,
           record_type: 'daily',
-          title: '일상 기록',
+          title: title.trim() || '일상 기록',
           description: description.trim(),
           visit_date: visitDate,
           sub_entries: [],
@@ -724,21 +722,37 @@ export default function RecordAddPage() {
           )}
         </div>
 
-        {/* 일상 — 메모(일기) 1개. 세부 종류 선택은 제거. */}
+        {/* 일상 — 제목(선택) + 메모(일기) 1개. */}
         {recordType === 'daily' && (
-          <div>
-            <label className="text-sm font-medium block mb-2">메모</label>
-            <textarea
-              name="description"
-              placeholder="오늘 하루를 기록해보세요"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
-              maxLength={1000}
-              autoComplete="off"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
-            />
-          </div>
+          <>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">제목</label>
+              <input
+                type="search"
+                placeholder="예: 산책 30분, 미용, 가족 나들이"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={50}
+                autoComplete="off"
+                enterKeyHint="next"
+                name="record-title"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-2">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
+              <textarea
+                name="description"
+                placeholder="오늘 하루를 기록해보세요"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
+                maxLength={1000}
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
+              />
+            </div>
+          </>
         )}
 
         {/* Title (일상 제외) */}

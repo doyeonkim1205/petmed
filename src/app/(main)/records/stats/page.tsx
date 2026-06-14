@@ -398,8 +398,8 @@ export default function StatsPage() {
 
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
         <div className="absolute right-2 top-[50px] z-20 w-64">
-          <OnboardHint storageKey="hint_stats_filter" pointer="right"
-            text={"여기서 보고 싶은 지표\n(체중·음수량·식사·수액)를 고를 수가 있어요."} />
+          <OnboardHint storageKey="hint_stats_filter_v2" pointer="right"
+            text={"여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요."} />
         </div>
 
         {/* 지표 편집 바텀시트 — 배경 락 + 큰 ↑↓ 순서 변경 + 표시 토글 */}
@@ -548,7 +548,7 @@ export default function StatsPage() {
                   </div>
                 )}
 
-                <OnboardHint storageKey="hint_stats_weight_record" pointer="center"
+                <OnboardHint storageKey="hint_stats_weight_record_v2" pointer="center"
                   text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
 
                 {/* Chart */}
@@ -632,7 +632,7 @@ export default function StatsPage() {
                 {/* Weight history */}
                 {weightData.length > 0 && (
                   <div className="space-y-1">
-                    <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역</h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
                     {[...weightData].reverse().map((item) => {
                       const key = `${item.source}-${item.id}-${item.date}`;
                       const isSelected = selectedWeightId === key && item.source === 'log';

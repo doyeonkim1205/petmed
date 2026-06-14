@@ -221,10 +221,10 @@ export default function ExpensesPage() {
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">지출</h1>
+          <h1 className="text-sm font-semibold text-gray-700">지출 관리</h1>
         </header>
         <div className="absolute left-1/2 top-[50px] z-20 w-64 max-w-[88%] -translate-x-1/2">
-          <OnboardHint storageKey="hint_expense_record" pointer="center"
+          <OnboardHint storageKey="hint_expense_record_v2" pointer="center"
             text={"기록장(진료·입원)에 적은 비용은\n'병원·의료'로 자동 합산돼요."} />
         </div>
       </div>

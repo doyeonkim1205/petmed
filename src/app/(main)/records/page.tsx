@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, CheckSquare, X, Activity, Pill, Syringe } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -24,6 +24,14 @@ const filterOptions: { id: RecordFilter; label: string }[] = [
   { id: 'visit', label: '진료' },
   { id: 'hospitalization', label: '입퇴원' },
   { id: 'daily', label: '일상' },
+];
+
+// 기록장 상단 빠른 접근. 평소엔 2×2 카드, 스크롤로 가려지면 헤더에 슬림 1줄 바로 고정.
+const QUICK_LINKS = [
+  { icon: Activity, label: '건강 통계', short: '통계', color: 'text-blue-500', href: '/records/stats' },
+  { icon: Wallet, label: '지출 관리', short: '지출', color: 'text-gray-500', href: '/records/expenses' },
+  { icon: Syringe, label: '예방 관리', short: '예방', color: 'text-sky-500', href: '/records/preventive' },
+  { icon: Pill, label: '복약 관리', short: '복약', color: 'text-pink-500', href: '/records/meds' },
 ];
 
 export default function RecordsPage() {
@@ -63,6 +71,9 @@ export default function RecordsPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const quickRef = useRef<HTMLDivElement>(null);
+  const [showQuickBar, setShowQuickBar] = useState(false);
 
   const handleAddPet = async () => {
     if (!user) return;
@@ -174,6 +185,20 @@ export default function RecordsPage() {
     setSelectedIds(new Set([id]));
   };
 
+  // 상단 빠른 접근 — 2×2가 스크롤로 헤더 밑에 가려지면 슬림 바로 고정 노출.
+  useEffect(() => {
+    if (activeTab !== 'records') { setShowQuickBar(false); return; }
+    const el = quickRef.current;
+    if (!el) { setShowQuickBar(false); return; }
+    const headerH = headerRef.current?.offsetHeight ?? 0;
+    const obs = new IntersectionObserver(
+      ([entry]) => setShowQuickBar(!entry.isIntersecting),
+      { rootMargin: `-${48 + headerH}px 0px 0px 0px`, threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [activeTab, loading, error, selectMode, petCount]);
+
   if (authLoading) {
     return (
       <div className="bg-white min-h-[calc(100vh-8rem)] animate-pulse p-4 max-w-sm mx-auto">
@@ -198,6 +223,7 @@ export default function RecordsPage() {
   return (
     <div className="bg-white min-h-full pb-20 relative">
       <div className="sticky top-12 z-30 bg-white">
+        <div ref={headerRef}>
         <PetSelector key={petRefreshKey} selectedPetId={selectedPetId} onSelect={handlePetSelect} onPetsLoaded={setPetCount} />
         <div className="flex max-w-sm mx-auto">
           {tabs.map((tab) => {
@@ -274,6 +300,24 @@ export default function RecordsPage() {
             </div>
           )
         )}
+        </div>
+        {activeTab === 'records' && !selectMode && showQuickBar && (
+          <div className="flex gap-1.5 px-4 pb-2 pt-1.5 max-w-sm mx-auto border-t border-gray-50">
+            {QUICK_LINKS.map((q) => {
+              const Icon = q.icon;
+              return (
+                <button
+                  key={q.href}
+                  onClick={() => router.push(q.href)}
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-white border border-gray-200 active:bg-gray-50 transition-colors"
+                >
+                  <Icon size={13} className={`${q.color} flex-shrink-0`} />
+                  <span className="text-[11px] font-bold text-gray-600">{q.short}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {petCount === 0 ? (
@@ -321,36 +365,21 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {/* 건강 통계·복약·예방·의료비 — 기록 없어도 항상 노출 (기능 발견성). 2×2 그리드. */}
-              <div className="grid grid-cols-2 gap-2 mb-1">
-                <button
-                  onClick={() => router.push('/records/stats')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                >
-                  <Activity size={14} className="text-blue-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">건강 통계</p>
-                </button>
-                <button
-                  onClick={() => router.push('/records/expenses')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                >
-                  <Wallet size={14} className="text-gray-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">지출</p>
-                </button>
-                <button
-                  onClick={() => router.push('/records/preventive')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                >
-                  <Syringe size={14} className="text-sky-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">예방</p>
-                </button>
-                <button
-                  onClick={() => router.push('/records/meds')}
-                  className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                >
-                  <Pill size={14} className="text-pink-500 flex-shrink-0" />
-                  <p className="text-[13px] font-bold text-gray-700">복약</p>
-                </button>
+              {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 스크롤 시 헤더 슬림바로 고정. */}
+              <div ref={quickRef} className="grid grid-cols-2 gap-2 mb-1">
+                {QUICK_LINKS.map((q) => {
+                  const Icon = q.icon;
+                  return (
+                    <button
+                      key={q.href}
+                      onClick={() => router.push(q.href)}
+                      className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
+                    >
+                      <Icon size={14} className={`${q.color} flex-shrink-0`} />
+                      <p className="text-[13px] font-bold text-gray-700">{q.label}</p>
+                    </button>
+                  );
+                })}
               </div>
               {records.length === 0 ? (
                 <div className="text-center py-16">
