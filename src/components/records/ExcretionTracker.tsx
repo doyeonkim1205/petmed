@@ -257,7 +257,7 @@ export function ExcretionTracker({
           {/* 내역 — 날짜별로 묶고, 각 줄엔 시간만 */}
           {grouped.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-bold text-gray-700">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 눌러서 삭제</span></h2>
+              <h2 className="text-sm font-bold text-gray-700">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
               {grouped.map((g) => (
                 <div key={g.date}>
                   <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDateHeader(g.date)}</p>

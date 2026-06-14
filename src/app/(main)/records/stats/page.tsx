@@ -632,7 +632,7 @@ export default function StatsPage() {
                 {/* Weight history */}
                 {weightData.length > 0 && (
                   <div className="space-y-1">
-                    <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 눌러서 삭제</span></h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
                     {[...weightData].reverse().map((item) => {
                       const key = `${item.source}-${item.id}-${item.date}`;
                       const isSelected = selectedWeightId === key && item.source === 'log';
