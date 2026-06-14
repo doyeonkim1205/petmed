@@ -69,22 +69,22 @@ export default function HomePage() {
       <HomeBanner />
 
       {/* 건강 브리핑 — 펫별 메트릭 + 동적 강조 */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-2.5">
         <HealthBriefing />
       </div>
 
       {/* 오늘의 복약 — 복용 중인 약이 있을 때만 노출 (없으면 자동 숨김) */}
-      <div className="px-4 pt-3 empty:hidden">
+      <div className="px-4 pt-2.5 empty:hidden">
         <HomeMedicationWidget />
       </div>
 
       {/* 예방 관리 — 30일 이내 챙길 예방이 있을 때만 노출 (없으면 자동 숨김) */}
-      <div className="px-4 pt-3 empty:hidden">
+      <div className="px-4 pt-2.5 empty:hidden">
         <HomePreventiveWidget />
       </div>
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 (건강 기록 → AI 케어 순) */}
-      <div className="px-4 pt-3 space-y-3">
+      <div className="px-4 pt-2.5 space-y-2.5">
         <section className="bg-white rounded-2xl p-4 border border-gray-100">
           <SectionTitle icon={ClipboardList} title="건강 기록" />
           <MenuGrid items={HEALTH} />

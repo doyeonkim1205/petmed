@@ -416,9 +416,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     if (recordType === 'daily') {
-      // 세부 종류는 선택 사항 (필수 아님). 메모만 있으면 저장 가능.
-      if (!description.trim()) {
-        showError('메모를 입력해주세요.'); return;
+      // 제목 필수, 메모는 선택.
+      if (!title.trim()) {
+        showError('제목을 입력해주세요.'); return;
       }
     } else {
       const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
@@ -649,7 +649,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'daily' && (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium">제목 <span className="text-gray-400 font-normal">(선택)</span></label>
+              <label className="text-sm font-medium">제목</label>
               <input
                 type="search"
                 placeholder="예: 산책 30분, 미용, 가족 나들이"
@@ -663,7 +663,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-2">메모</label>
+              <label className="text-sm font-medium block mb-2">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
               <textarea
                 name="description"
                 placeholder="오늘 하루를 기록해보세요"

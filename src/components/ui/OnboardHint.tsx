@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 
 /**
  * 첫 방문 안내 말풍선 — 처음 뜬 순간 '봤음' 처리(localStorage)라 다음 방문엔 안 뜸. X 는 즉시 닫기용.
- * 톤: 선택 UI와 통일한 옅은 틴트(bg-blue-50 + 파란 글자/테두리) + 위 방향 꼬리.
+ * 톤: 증상분석 사진 물풍선과 동일 — 흰 배경 + 파란 테두리/글자(blue-300/600) + 위 방향 꼬리.
  *   storageKey: 안내별 고유 키 (예: 'hint_stats_filter')
  *   pointer: 위쪽 꼬리(삼각형) 위치 — 가리킬 대상 방향. 'none' 이면 꼬리 없음.
  */
@@ -37,9 +37,9 @@ export function OnboardHint({
     : 'left-4';
 
   return (
-    <div className="relative flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-[11px] font-medium text-blue-700 shadow-[0_2px_8px_rgba(37,99,235,0.12)]">
+    <div className="relative flex items-start gap-2 rounded-xl bg-white border border-blue-300 px-3 py-2 text-[11px] font-medium text-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.12)]">
       {pointer !== 'none' && (
-        <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-blue-50 border-l border-t border-blue-200`} />
+        <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-white border-l border-t border-blue-300`} />
       )}
       <p className="flex-1 leading-snug break-keep break-words whitespace-pre-line">{text}</p>
       <button onClick={() => setShow(false)} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-blue-400 transition hover:text-blue-600 active:scale-90">
