@@ -61,7 +61,7 @@ export default function StartPage() {
         >
           <GooglePlayIcon size={28} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] font-semibold tracking-[0.12em] opacity-70">ANDROID</span>
+            <span className="block text-[11px] font-semibold tracking-[0.04em] opacity-70">Android</span>
             <span className="block text-[17px] font-extrabold">Google Play</span>
           </span>
         </a>
