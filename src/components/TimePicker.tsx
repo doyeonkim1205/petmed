@@ -38,12 +38,17 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
 
   // 분 커스텀 드롭다운 (minuteStep=15 일 때만 사용)
   const [minuteOpen, setMinuteOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false); // 하단 공간 부족 시 위로 열기
   const minuteTriggerRef = useRef<HTMLButtonElement>(null);
   const minutePanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!minuteOpen) return;
-    const onDown = (e: MouseEvent | TouchEvent) => {
+    // 바깥 '클릭(click)' 으로만 닫는다. mousedown/touchstart 로 닫으면
+    // 모바일에서 스크롤 제스처의 첫 touchstart 에도 닫혀버려, 바텀시트에서
+    // 옵션을 보려고 스크롤하면 드롭다운이 사라지는 버그가 있었음.
+    // click 은 '탭' 에서만 발생(스크롤 시엔 발생 X) → 스크롤해도 유지.
+    const onClickOutside = (e: MouseEvent) => {
       const t = e.target as Node;
       if (minuteTriggerRef.current?.contains(t)) return;
       if (minutePanelRef.current?.contains(t)) return;
@@ -52,12 +57,10 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMinuteOpen(false);
     };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('touchstart', onDown);
+    document.addEventListener('click', onClickOutside);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('click', onClickOutside);
       document.removeEventListener('keydown', onKey);
     };
   }, [minuteOpen]);
@@ -188,7 +191,14 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
           <button
             ref={minuteTriggerRef}
             type="button"
-            onClick={() => setMinuteOpen((o) => !o)}
+            onClick={() => {
+              // 열 때 하단 공간 측정 → 부족하면 위로 열어 시트 밖으로 안 넘치게
+              if (!minuteOpen && minuteTriggerRef.current) {
+                const r = minuteTriggerRef.current.getBoundingClientRect();
+                setOpenUp(window.innerHeight - r.bottom < 200);
+              }
+              setMinuteOpen((o) => !o);
+            }}
             aria-haspopup="listbox"
             aria-expanded={minuteOpen}
             className="flex items-center gap-1 py-1.5 pl-3 pr-2 border border-gray-200 rounded-lg text-sm bg-white hover:border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none min-w-[60px] justify-between cursor-pointer"
@@ -203,7 +213,7 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
             <div
               ref={minutePanelRef}
               role="listbox"
-              className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden min-w-full animate-in fade-in-0 zoom-in-95 duration-100"
+              className={`absolute left-0 ${openUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden min-w-full animate-in fade-in-0 zoom-in-95 duration-100`}
             >
               {[0, 15, 30, 45].map((m) => {
                 const mStr = String(m).padStart(2, '0');
