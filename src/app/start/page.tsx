@@ -49,7 +49,7 @@ export default function StartPage() {
         <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#5a6478]">
           우리 아이 건강 기록을 한눈에.
           <br />
-          진료·증상·AI 분석·통계·알림까지 하나로.
+          AI 분석·통계·알림·지출까지.
         </p>
 
         {/* 버튼 */}
