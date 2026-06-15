@@ -2,8 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+
+// 온보딩/로그인 가드를 건너뛰는 공개 경로 (인스타 바이오 랜딩 + 약관/정책).
+// 콜드 유입(localStorage 비어있음)이 온보딩에 가려지지 않고 바로 페이지를 보게 한다.
+const PUBLIC_PREFIXES = ['/start', '/terms', '/privacy', '/business', '/refund', '/policies', '/location-terms'];
 
 /* ─── SVG Illustrations ─── */
 
@@ -408,14 +412,17 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [checked, setChecked] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname?.startsWith(p + '/'));
 
   useEffect(() => {
+    if (isPublic) { setChecked(true); return; }
     const done = localStorage.getItem('pawdex_onboarded');
     if (!done) {
       setShowOnboarding(true);
     }
     setChecked(true);
-  }, []);
+  }, [isPublic]);
 
   const handleComplete = () => {
     localStorage.setItem('pawdex_onboarded', 'true');
@@ -426,6 +433,9 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
       if (!session) router.replace('/login');
     });
   };
+
+  // 공개 경로(랜딩/약관)는 온보딩·로그인 가드 없이 즉시 렌더 (SEO + 콜드 유입)
+  if (isPublic) return <>{children}</>;
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
   if (!checked) return <div className="fixed inset-0 bg-white z-[200]" />;
