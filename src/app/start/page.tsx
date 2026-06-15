@@ -27,6 +27,17 @@ function ThreadsIcon({ size = 22 }: { size?: number }) {
   );
 }
 
+function GooglePlayIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={(size * 283) / 256} viewBox="0 0 256 283" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path fill="#EA4335" d="M119.553141 134.916362 1.0599006 259.060547c2.69629388 9.556451 9.6583830 17.330053 18.8609652 21.05943 9.2025823 3.729376 19.6122577 2.995739 28.2008062-1.987493L181.448642 202.197919z" />
+      <path fill="#FBBC04" d="M239.370822 113.813616 181.71353 80.7909097l-64.897565 56.9509243 65.162453 64.279492 57.215812-32.669522c10.331493-5.409352 16.80572-16.107154 16.80572-27.769094 0-11.66194-6.474227-22.359742-16.80572-27.7690944z" />
+      <path fill="#4285F4" d="M1.0599006 23.4868015C.343633396 26.134699-.012753882 28.8670014 0 31.6100341V250.937314c.00751268 2.741728.363556675 5.471398 1.0599006 8.123233L123.614758 138.095018z" />
+      <path fill="#34A853" d="M120.436101 141.273674 181.71353 80.7909097 48.5631521 4.50316009C43.5539929 1.56944036 37.8568091.015662967 32.0517989 0 17.6444261-.028487328 4.97836875 9.53420553 1.0599006 23.3985055z" />
+    </svg>
+  );
+}
+
 export default function StartPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#e9f1ff] via-[#f4f8ff] to-white px-6 py-12">
@@ -48,11 +59,9 @@ export default function StartPage() {
           rel="noopener noreferrer"
           className="mt-9 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#16213a] px-7 py-4 text-white shadow-lg shadow-blue-900/15 transition active:scale-[0.98]"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden>
-            <path d="M3 3l16.5 9L3 21V3z" />
-          </svg>
+          <GooglePlayIcon size={28} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] opacity-70">GET IT ON</span>
+            <span className="block text-[11px] font-semibold tracking-[0.12em] opacity-70">ANDROID</span>
             <span className="block text-[17px] font-extrabold">Google Play</span>
           </span>
         </a>
