@@ -56,12 +56,8 @@ export default function StartPage() {
             <span className="block text-[17px] font-extrabold">Google Play</span>
           </span>
         </a>
-        <a href="/" className="mt-3 text-[13px] font-semibold text-blue-500 underline-offset-2 hover:underline">
-          아이폰·PC는 웹에서 바로 시작 →
-        </a>
-
         {/* 소셜 */}
-        <div className="mt-9 flex items-center gap-4">
+        <div className="mt-10 flex items-center gap-4">
           <a
             href={INSTAGRAM_URL}
             target="_blank"
@@ -80,18 +76,6 @@ export default function StartPage() {
           >
             <ThreadsIcon size={22} />
           </a>
-        </div>
-
-        {/* 푸터 */}
-        <p className="mt-10 text-[11px] leading-relaxed text-gray-400">
-          * AI 분석은 참고용이며, 수의사의 진단을 대신하지 않아요.
-        </p>
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
-          <a href="/terms" className="hover:text-gray-600">이용약관</a>
-          <span className="text-gray-300">·</span>
-          <a href="/privacy" className="hover:text-gray-600">개인정보처리방침</a>
-          <span className="text-gray-300">·</span>
-          <a href="/business" className="hover:text-gray-600">사업자정보</a>
         </div>
       </div>
     </main>
