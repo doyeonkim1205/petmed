@@ -57,11 +57,17 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMinuteOpen(false);
     };
+    // 스크롤하면 닫는다. 드롭다운은 absolute(콘텐츠 따라 스크롤)이고 저장버튼은
+    // fixed 라, 열린 채 스크롤하면 서로 겹침. 네이티브 select 처럼 스크롤 시
+    // 닫아 겹침을 원천 차단. capture=true 로 내부 스크롤 컨테이너까지 감지.
+    const onScroll = () => setMinuteOpen(false);
     document.addEventListener('click', onClickOutside);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('click', onClickOutside);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [minuteOpen]);
 
