@@ -192,10 +192,13 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
             ref={minuteTriggerRef}
             type="button"
             onClick={() => {
-              // 열 때 하단 공간 측정 → 부족하면 위로 열어 시트 밖으로 안 넘치게
+              // 열 때 하단 공간 측정 → 부족하면 위로 연다.
+              // 320 = 드롭다운 높이(~170) + 화면 하단 고정 저장버튼·하단탭(~140) 여유.
+              // 작은 값이면 뷰포트 공간은 있어도 드롭다운이 고정 저장버튼을 덮거나
+              // 하단탭에 잘리는 버그(진료/입퇴원 약추가 화면)가 났음.
               if (!minuteOpen && minuteTriggerRef.current) {
                 const r = minuteTriggerRef.current.getBoundingClientRect();
-                setOpenUp(window.innerHeight - r.bottom < 200);
+                setOpenUp(window.innerHeight - r.bottom < 320);
               }
               setMinuteOpen((o) => !o);
             }}
