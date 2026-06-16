@@ -8,6 +8,7 @@ import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
+import { isNativeApp } from '@/lib/platform';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -1099,7 +1100,8 @@ export default function ProfilePage() {
   const canUseAlarm = isPWA && getEffectivePlan(profile?.plan) === 'plus';
 
   useEffect(() => {
-    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    // Capacitor 네이티브 앱은 standalone 으로 안 잡히므로 isNativeApp() 도 "설치된 앱"으로 인정.
+    setIsPWA(window.matchMedia('(display-mode: standalone)').matches || isNativeApp());
   }, []);
 
   // 모달 열릴 때 히스토리 추가, 뒤로가기 시 모달 닫기
