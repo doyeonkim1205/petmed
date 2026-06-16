@@ -6,3 +6,4 @@
 export { isNativeApp, isInstalledApp } from './env';
 export { platformAuth } from './auth';
 export { registerNativePush, unregisterNativePush, isNativePushRegistered, setupNativePushListeners } from './push';
+export { getCurrentPosition, isGeolocationAvailable } from './location';
