@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
 import { TextField } from '@/components/TextField';
+import { getCurrentPosition, isGeolocationAvailable } from '@/lib/platform';
 
 declare global {
   interface Window {
@@ -227,14 +228,14 @@ export default function MapPage() {
       }
     };
 
-    if (navigator.geolocation) {
+    if (isGeolocationAvailable()) {
       // 1차: HighAccuracy GPS (7s 안에 안 잡히면 fallback).
-      navigator.geolocation.getCurrentPosition(
+      getCurrentPosition(
         (pos) => createMap(pos.coords.latitude, pos.coords.longitude, true),
         () => {
           // 2차: LowAccuracy (wifi/IP 기반). 실내 / GPS 약한 환경 fallback.
           //   동물병원 검색은 도시 단위 OK 라 정확도 약간 ↓ 수용.
-          navigator.geolocation.getCurrentPosition(
+          getCurrentPosition(
             (pos) => createMap(pos.coords.latitude, pos.coords.longitude, true),
             () => {
               setLocationFailed(true);
@@ -413,9 +414,9 @@ export default function MapPage() {
 
   // Recenter
   const handleRecenter = () => {
-    if (!navigator.geolocation || !mapInstance.current) return;
+    if (!isGeolocationAvailable() || !mapInstance.current) return;
     setLocationFailed(false);
-    navigator.geolocation.getCurrentPosition(
+    getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         const position = new window.kakao.maps.LatLng(latitude, longitude);
