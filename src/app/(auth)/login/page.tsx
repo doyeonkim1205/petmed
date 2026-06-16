@@ -31,7 +31,8 @@ function isDevLoginEnv(): boolean {
       window.matchMedia('(display-mode: standalone)').matches ||
       window.matchMedia('(display-mode: fullscreen)').matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true ||
-      (typeof document !== 'undefined' && document.referrer.startsWith('android-app://'));
+      (typeof document !== 'undefined' && document.referrer.startsWith('android-app://')) ||
+      isNativeApp(); // Capacitor 네이티브 앱도 설치앱으로 인정 (개발자 로그인 숨김)
     return !installedApp;
   }
   return false;
