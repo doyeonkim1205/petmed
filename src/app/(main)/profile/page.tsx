@@ -1103,14 +1103,9 @@ export default function ProfilePage() {
     // Capacitor 네이티브 앱은 standalone 으로 안 잡히므로 isNativeApp() 도 "설치된 앱"으로 인정.
     const native = isNativeApp();
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
-    // [임시 디버그] isPWA 가 왜 false 인지 기기에서 확인
-    console.log('[PAWDEX_DBG] profile', JSON.stringify({
-      native,
-      standalone,
-      hasCap: typeof (window as { Capacitor?: unknown }).Capacitor,
-      isNativePlatformType: typeof (window as { Capacitor?: { isNativePlatform?: unknown } }).Capacitor?.isNativePlatform,
-      ua: navigator.userAgent.slice(0, 60),
-    }));
+    // [임시 디버그] console 은 removeConsole 로 제거되므로 alert 로 확인
+    const w = window as { Capacitor?: { isNativePlatform?: unknown } };
+    alert('[DBG] native=' + native + ' standalone=' + standalone + ' hasCap=' + (typeof w.Capacitor) + ' fn=' + (typeof w.Capacitor?.isNativePlatform));
     setIsPWA(standalone || native);
   }, []);
 
