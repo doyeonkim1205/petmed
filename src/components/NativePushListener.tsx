@@ -26,10 +26,6 @@ export function NativePushListener() {
       Keyboard.addListener('keyboardWillShow', () => document.body.classList.add('keyboard-open'));
       Keyboard.addListener('keyboardWillHide', () => document.body.classList.remove('keyboard-open'));
     });
-    // 웹 앱 마운트(원격 로드 완료) 후 스플래시 숨김 — 스플래시→앱, 흰 화면 갭 제거.
-    import('@capacitor/splash-screen').then(({ SplashScreen }) => {
-      setTimeout(() => { SplashScreen.hide(); }, 200);
-    });
   }, [router]);
   return null;
 }
