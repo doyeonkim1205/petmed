@@ -1249,7 +1249,7 @@ export default function ProfilePage() {
 
         {/* 알림 설정 */}
         <button
-          onClick={() => { alert('[DBG2] isPWA=' + isPWA + ' plan=' + String(profile?.plan) + ' eff=' + getEffectivePlan(profile?.plan) + ' email=' + String(profile?.email)); canUseAlarm ? setShowNotificationModal(true) : setShowAlarmUpgrade(true); }}
+          onClick={() => canUseAlarm ? setShowNotificationModal(true) : setShowAlarmUpgrade(true)}
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
