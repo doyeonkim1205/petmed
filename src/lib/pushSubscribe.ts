@@ -22,6 +22,8 @@
 
 import { supabase } from './supabase';
 import { authFetch } from './authFetch';
+import { isNativeApp } from './platform/env';
+import { registerNativePush } from './platform/push';
 
 export type EnsurePushResult =
   | { ok: true; endpoint: string; created: boolean }
@@ -29,6 +31,17 @@ export type EnsurePushResult =
 
 export async function ensurePushSubscribed(userId: string): Promise<EnsurePushResult> {
   if (typeof window === 'undefined') return { ok: false, reason: 'sw-not-ready' };
+
+  // 네이티브 앱: web-push 대신 FCM 등록 (권한+토큰→서버 저장).
+  if (isNativeApp()) {
+    const ok = await registerNativePush();
+    if (!ok) return { ok: false, reason: 'no-permission' };
+    try {
+      await supabase.from('profiles').update({ is_push_enabled: true }).eq('id', userId);
+    } catch {}
+    return { ok: true, endpoint: 'fcm', created: true };
+  }
+
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
     return { ok: false, reason: 'no-permission' };
   }

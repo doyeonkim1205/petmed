@@ -21,6 +21,7 @@ import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import { Loader2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { type RecordDraft } from '@/lib/recordDraft';
@@ -121,7 +122,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
-    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    setIsPWA(isInstalledApp());
   }, []);
 
   // 최근 병원명 DB 에서 로드 — add 페이지와 동일 패턴.
@@ -371,8 +372,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     if (
       turningOn &&
       canUseAlarm &&
-      typeof Notification !== 'undefined' &&
-      Notification.permission === 'granted' &&
+      (isNativeApp() || (typeof Notification !== 'undefined' && Notification.permission === 'granted')) &&
       user
     ) {
       setSubscribingIdx(index);
