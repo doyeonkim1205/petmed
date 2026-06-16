@@ -26,6 +26,15 @@ export function NativePushListener() {
       Keyboard.addListener('keyboardWillShow', () => document.body.classList.add('keyboard-open'));
       Keyboard.addListener('keyboardWillHide', () => document.body.classList.remove('keyboard-open'));
     });
+    // 스플래시 숨김 — TWA 처럼 "앱이 실제로 그려진 다음" 끄기 (타이머가 아닌 페인트 기준).
+    // launchAutoHide:false 로 원격 페이지 로드 동안 스플래시 유지 → 마운트+페인트 후 fadeOut.
+    // 빈 프레임(깜박임) 없이 부드럽게 전환. 안전장치로 5초 후 무조건 숨김(네트워크 지연 시 갇힘 방지).
+    import('@capacitor/splash-screen').then(({ SplashScreen }) => {
+      let hidden = false;
+      const hide = () => { if (!hidden) { hidden = true; SplashScreen.hide(); } };
+      requestAnimationFrame(() => requestAnimationFrame(hide)); // 다음 페인트 프레임에 숨김
+      setTimeout(hide, 5000); // 안전장치
+    });
   }, [router]);
   return null;
 }
