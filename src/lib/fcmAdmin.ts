@@ -68,6 +68,8 @@ export async function sendFcmToUser(
           ...(notification.tag ? { tag: notification.tag } : {}),
           channelId: 'default',
           sound: 'default',
+          icon: 'ic_stat_pawdex',
+          color: '#2563EB',
         },
       },
     });
