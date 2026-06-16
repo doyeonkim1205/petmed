@@ -7,6 +7,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
+import { isNativeApp } from '@/lib/native/platform';
 
 interface AuthContextType {
   user: User | null;
@@ -417,6 +418,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      // 네이티브 앱: OS 계정 시트로 로그인 (URL/브라우저 없음).
+      if (isNativeApp()) {
+        const { nativeGoogleSignIn } = await import('@/lib/native/socialAuth');
+        await nativeGoogleSignIn();
+        return { error: null };
+      }
+      // 웹/TWA: 기존 브라우저 OAuth 리다이렉트.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
