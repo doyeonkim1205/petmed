@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { isNativeApp } from '@/lib/native/platform';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -86,7 +87,10 @@ export default function LoginPage() {
     }
     setError('');
     const { error } = await signInWithGoogle();
-    if (error) setError(error.message);
+    if (error) { setError(error.message); return; }
+    // 네이티브 구글 로그인은 리다이렉트가 없어 세션만 설정되므로 수동으로 홈 이동.
+    // (웹 OAuth 는 /auth/callback 리다이렉트가 라우팅을 처리)
+    if (isNativeApp()) router.push('/');
   };
 
   const handleKakaoLogin = async () => {
