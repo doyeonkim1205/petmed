@@ -33,9 +33,12 @@ export async function nativeGoogleSignIn(): Promise<void> {
     googleInitialized = true;
   }
 
+  // scopes 를 넘기지 않는다 — 커스텀 scopes 는 MainActivity 수정을 요구하고(@capgo),
+  // 우리는 인증용 idToken 만 필요. email/profile/openid 는 플러그인이 기본 포함하며
+  // idToken 클레임에 email·이름이 담겨 Supabase 인증에 충분하다. (Credential Manager 계정 시트)
   const res = await SocialLogin.login({
     provider: 'google',
-    options: { scopes: ['email', 'profile'] },
+    options: {},
   });
 
   // 플러그인은 토큰을 res.result 에 담는다 (res.idToken 아님).
