@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { isNativeApp } from '@/lib/native/platform';
+import { isNativeApp } from '@/lib/platform';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -96,7 +96,9 @@ export default function LoginPage() {
   const handleKakaoLogin = async () => {
     setError('');
     const { error } = await signInWithKakao();
-    if (error) setError(error.message);
+    if (error) { setError(error.message); return; }
+    // 네이티브 카카오도 리다이렉트가 없어 수동으로 홈 이동 (웹은 콜백이 처리).
+    if (isNativeApp()) router.push('/');
   };
 
   return (
