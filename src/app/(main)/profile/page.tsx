@@ -1101,7 +1101,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Capacitor 네이티브 앱은 standalone 으로 안 잡히므로 isNativeApp() 도 "설치된 앱"으로 인정.
-    setIsPWA(window.matchMedia('(display-mode: standalone)').matches || isNativeApp());
+    const native = isNativeApp();
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    // [임시 디버그] isPWA 가 왜 false 인지 기기에서 확인
+    console.log('[PAWDEX_DBG] profile', JSON.stringify({
+      native,
+      standalone,
+      hasCap: typeof (window as { Capacitor?: unknown }).Capacitor,
+      isNativePlatformType: typeof (window as { Capacitor?: { isNativePlatform?: unknown } }).Capacitor?.isNativePlatform,
+      ua: navigator.userAgent.slice(0, 60),
+    }));
+    setIsPWA(standalone || native);
   }, []);
 
   // 모달 열릴 때 히스토리 추가, 뒤로가기 시 모달 닫기
