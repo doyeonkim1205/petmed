@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { isNativeApp } from '@/lib/platform';
 
 /**
  * 모바일에서 input/textarea focus 시 OS 키보드 처리.
@@ -40,9 +41,12 @@ export function KeyboardScrollFix() {
     document.addEventListener('focusin', onFocusIn);
 
     // ② visualViewport 로 키보드 ON/OFF 감지 → body class 토글
+    // 네이티브(Capacitor)는 adjustResize 라 innerHeight·vv.height 가 같이 줄어
+    // visualViewport 로 키보드 감지가 오판됨 → Capacitor Keyboard 이벤트(NativePushListener)가
+    // keyboard-open 을 토글하므로 여기선 건너뜀.
     const vv = window.visualViewport;
     let onVvResize: (() => void) | null = null;
-    if (vv) {
+    if (vv && !isNativeApp()) {
       onVvResize = () => {
         // 키보드 높이 임계치 100px — 작은 OS UI 변동은 키보드로 오인 안 함
         const keyboardOpen = window.innerHeight - vv.height > 100;
