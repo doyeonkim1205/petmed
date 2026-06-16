@@ -8,7 +8,7 @@ import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { isNativeApp } from '@/lib/platform';
+import { isNativeApp, registerNativePush, unregisterNativePush, isNativePushRegistered } from '@/lib/platform';
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
@@ -394,6 +394,12 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
       const storageOn = localStorage.getItem('debugPush') === '1';
       setDebugMode(urlOn || storageOn);
     }
+    // 네이티브 앱: FCM 사용 → "지원됨"으로 표시하고 web SW self-healing 은 건너뜀.
+    if (isNativeApp()) {
+      setPushSupported(true);
+      setPushEnabled(isNativePushRegistered());
+      return;
+    }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setPushSupported(supported);
     if (!supported) return;
@@ -462,6 +468,28 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   const handleTogglePush = async (enabled: boolean) => {
+    // 네이티브 앱: FCM 등록/해제 (web-push·Notification·ServiceWorker 경로 전부 건너뜀)
+    if (isNativeApp()) {
+      setPushLoading(true);
+      try {
+        let result = false;
+        if (enabled) {
+          result = await registerNativePush();
+        } else {
+          await unregisterNativePush();
+        }
+        setPushEnabled(result);
+        try {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          if (u) await supabase.from('profiles').update({ is_push_enabled: result }).eq('id', u.id);
+        } catch {}
+      } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'push', action: 'toggle-native' } });
+      } finally {
+        setPushLoading(false);
+      }
+      return;
+    }
     // Free 유저는 "알림 설정" 버튼에서 이미 showAlarmUpgrade 모달로 차단됨 (여기까지 도달 안 함)
     // Samsung Internet 유료 유저: 켜는 방향이면 사전 차단 (SPS 제약으로 알림 수신 불안정)
     if (enabled && /SamsungBrowser/i.test(navigator.userAgent)) {
