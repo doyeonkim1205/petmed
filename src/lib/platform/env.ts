@@ -12,3 +12,17 @@ export function isNativeApp(): boolean {
   const cap = (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
   return !!cap?.isNativePlatform?.();
 }
+
+/**
+ * "설치된 앱"(알림 등 기능 게이트용) 판정.
+ * PWA standalone/fullscreen + Capacitor 네이티브를 모두 "설치됨"으로 본다.
+ * 알림 화면들의 isPWA 체크(standalone 만)가 Capacitor 를 놓치던 문제를 한 곳에서 해결.
+ */
+export function isInstalledApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    isNativeApp()
+  );
+}

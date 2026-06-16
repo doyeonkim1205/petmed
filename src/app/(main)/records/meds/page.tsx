@@ -14,6 +14,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import { todayLocalISO } from '@/lib/date';
 
 const frequencyOptions = [
@@ -101,7 +102,7 @@ export default function MedsPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    setIsPWA(isInstalledApp());
     if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission);
   }, []);
 
@@ -171,7 +172,7 @@ export default function MedsPage() {
         const reg = await navigator.serviceWorker.getRegistration();
         hasExistingSub = !!(await reg?.pushManager.getSubscription());
       } catch {}
-      if (browserGranted || hasExistingSub) shouldSubscribe = true;
+      if (isNativeApp() || browserGranted || hasExistingSub) shouldSubscribe = true;
       else if (notifPermission === 'default') { setShowPushPrompt(true); return; }
     }
 

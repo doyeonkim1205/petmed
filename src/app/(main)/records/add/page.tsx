@@ -16,6 +16,7 @@ import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
+import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import { type RecordDraft } from '@/lib/recordDraft';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { todayLocalISO } from '@/lib/date';
@@ -126,7 +127,7 @@ export default function RecordAddPage() {
   const canUseAlarm = isPWA && isPaidUser;
 
   useEffect(() => {
-    setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    setIsPWA(isInstalledApp());
     if (typeof Notification !== 'undefined') {
       setNotifPermission(Notification.permission);
     }
@@ -345,8 +346,8 @@ export default function RecordAddPage() {
         hasExistingSub = !!(await reg?.pushManager.getSubscription());
       } catch {}
 
-      if (browserGranted || hasExistingSub) {
-        // 권한 있음 (또는 iOS quirk: 구독은 있는데 permission 이 default 로 보임)
+      if (isNativeApp() || browserGranted || hasExistingSub) {
+        // 네이티브(FCM) 또는 권한 있음 (또는 iOS quirk: 구독은 있는데 permission 이 default 로 보임)
         shouldSubscribe = true;
       } else if (notifPermission === 'default') {
         // 진짜 처음 — soft-prompt 먼저 (default→denied 영구차단 리스크 완화)
