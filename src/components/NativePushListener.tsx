@@ -12,6 +12,16 @@ export function NativePushListener() {
   const router = useRouter();
   useEffect(() => {
     if (!isNativeApp()) return;
+    // [임시 진단] 축소 원인 — WebView 뷰포트 폭 확인
+    setTimeout(() => {
+      alert(
+        'innerW=' + window.innerWidth +
+        ' scrollW=' + document.documentElement.scrollWidth +
+        ' clientW=' + document.documentElement.clientWidth +
+        ' screenW=' + window.screen.width +
+        ' dpr=' + window.devicePixelRatio,
+      );
+    }, 1500);
     setupNativePushListeners((url) => router.push(url));
   }, [router]);
   return null;
