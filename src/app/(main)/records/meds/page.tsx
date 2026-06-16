@@ -508,7 +508,7 @@ export default function MedsPage() {
                   {subscribing ? <Loader2 size={14} className="animate-spin" /> : form.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
                   {subscribing ? '알림 켜는 중...' : `투약 알림 ${form.alarm_enabled ? 'ON' : 'OFF'}`}
                 </button>
-                {canUseAlarm && form.alarm_enabled && notifPermission === 'denied' && (
+                {canUseAlarm && form.alarm_enabled && notifPermission === 'denied' && !isNativeApp() && (
                   <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
                     <BellOff size={11} className="flex-shrink-0 mt-0.5" />
                     <p>브라우저 알림이 차단되어 있어요! 앱 설정에서 알림 허용으로 변경 후 다시 시도해주세요</p>

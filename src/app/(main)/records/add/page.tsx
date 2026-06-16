@@ -1119,7 +1119,7 @@ export default function RecordAddPage() {
                   {/* 알림 ON 인데 브라우저 권한이 'denied' (차단) 면 인라인 안내.
                       DB 에 alarm_enabled=true 는 저장되지만 실제로 푸시 안 옴 →
                       사용자한테 명확히 알려주고 복구 경로(기기 설정) 링크 제공. */}
-                  {canUseAlarm && med.alarm_enabled && notifPermission === 'denied' && i === 0 && (
+                  {canUseAlarm && med.alarm_enabled && notifPermission === 'denied' && !isNativeApp() && i === 0 && (
                     <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
                       <BellOff size={11} className="flex-shrink-0 mt-0.5" />
                       <p>

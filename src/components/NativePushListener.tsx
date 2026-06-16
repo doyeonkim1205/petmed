@@ -13,6 +13,13 @@ export function NativePushListener() {
   useEffect(() => {
     if (!isNativeApp()) return;
     setupNativePushListeners((url) => router.push(url));
+    // 안드로이드 뒤로가기: 히스토리 있으면 뒤로, 루트면 앱 종료 (기본 핸들러는 항상 종료라 버그)
+    import('@capacitor/app').then(({ App }) => {
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back();
+        else App.exitApp();
+      });
+    });
   }, [router]);
   return null;
 }
