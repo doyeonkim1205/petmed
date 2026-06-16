@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.4.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@capgo/capacitor-social-login": "^8.3.22",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
