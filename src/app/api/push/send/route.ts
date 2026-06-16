@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { sendFcmToUser } from '@/lib/fcmAdmin';
 import webpush from 'web-push';
 
 export async function POST(request: Request) {
@@ -75,6 +76,25 @@ export async function POST(request: Request) {
         await supabase.from('push_subscriptions').delete().eq('id', sub.id);
       }
     }
+  }
+
+  // 네이티브(FCM) 발송 — web-push 와 동일 대상에게.
+  let fcmUserIds: string[];
+  if (targetUserIds) {
+    fcmUserIds = targetUserIds;
+  } else {
+    const { data: allFcm } = await supabase.from('fcm_tokens').select('user_id');
+    fcmUserIds = Array.from(new Set((allFcm || []).map((r) => r.user_id as string)));
+  }
+  for (const uid of fcmUserIds) {
+    const fcm = await sendFcmToUser(supabase, uid, {
+      title,
+      body,
+      url: url || '/',
+      tag: `${adminTag}-${uid}`,
+    });
+    sent += fcm.sent;
+    failed += fcm.failed;
   }
 
   // 관리자 발송 기록 — target='user' 일 땐 resolved 이메일도 기록 (감사 추적).

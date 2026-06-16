@@ -43,6 +43,7 @@ import * as Sentry from '@sentry/nextjs';
 import { logActivityServer } from '@/lib/activityLogServer';
 import { isTrialActive } from '@/lib/plans';
 import { categoryMeta } from '@/lib/preventiveCare';
+import { sendFcmToUser } from '@/lib/fcmAdmin';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -690,6 +691,11 @@ async function sendPushToUser(
     if (d.ok) sent++;
     else failed++;
   }
+
+  // 네이티브(FCM) 토큰에도 발송 — web-push 결과와 합산.
+  const fcm = await sendFcmToUser(supabaseAdmin, userId, notification);
+  sent += fcm.sent;
+  failed += fcm.failed;
 
   return { sent, failed };
 }
