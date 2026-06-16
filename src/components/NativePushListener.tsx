@@ -20,6 +20,12 @@ export function NativePushListener() {
         else App.exitApp();
       });
     });
+    // 네이티브 키보드 ON/OFF → body.keyboard-open 토글 (웹 visualViewport 가 WebView 에선
+    // 안 먹어서, 기존 .keyboard-hide-on-open CSS 를 네이티브 이벤트로 재활용 → 하단 탭바 숨김).
+    import('@capacitor/keyboard').then(({ Keyboard }) => {
+      Keyboard.addListener('keyboardWillShow', () => document.body.classList.add('keyboard-open'));
+      Keyboard.addListener('keyboardWillHide', () => document.body.classList.remove('keyboard-open'));
+    });
   }, [router]);
   return null;
 }
