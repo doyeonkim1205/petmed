@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
+import { isNativeApp, registerNativePush, unregisterNativePush, isNativePushRegistered } from '@/lib/platform';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -19,6 +20,12 @@ export function usePushNotification() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // 네이티브 앱: FCM 사용 → Service Worker 경로 건너뜀.
+    if (isNativeApp()) {
+      setIsSupported(true);
+      setIsSubscribed(isNativePushRegistered());
+      return;
+    }
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
     setIsSupported(supported);
 
@@ -36,6 +43,12 @@ export function usePushNotification() {
     setLoading(true);
 
     try {
+      // 네이티브: FCM 등록 (권한 → 토큰 → 서버 저장).
+      if (isNativeApp()) {
+        const ok = await registerNativePush();
+        setIsSubscribed(ok);
+        return ok;
+      }
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
         console.error('VAPID public key not configured');
@@ -77,6 +90,12 @@ export function usePushNotification() {
     setLoading(true);
 
     try {
+      // 네이티브: FCM 토큰 해제.
+      if (isNativeApp()) {
+        await unregisterNativePush();
+        setIsSubscribed(false);
+        return true;
+      }
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {

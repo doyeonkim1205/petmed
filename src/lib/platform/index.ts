@@ -5,3 +5,4 @@
  */
 export { isNativeApp } from './env';
 export { platformAuth } from './auth';
+export { registerNativePush, unregisterNativePush, isNativePushRegistered } from './push';
