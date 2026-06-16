@@ -1101,12 +1101,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Capacitor 네이티브 앱은 standalone 으로 안 잡히므로 isNativeApp() 도 "설치된 앱"으로 인정.
-    const native = isNativeApp();
-    const standalone = window.matchMedia('(display-mode: standalone)').matches;
-    // [임시 디버그] console 은 removeConsole 로 제거되므로 alert 로 확인
-    const w = window as { Capacitor?: { isNativePlatform?: unknown } };
-    alert('[DBG] native=' + native + ' standalone=' + standalone + ' hasCap=' + (typeof w.Capacitor) + ' fn=' + (typeof w.Capacitor?.isNativePlatform));
-    setIsPWA(standalone || native);
+    setIsPWA(window.matchMedia('(display-mode: standalone)').matches || isNativeApp());
   }, []);
 
   // 모달 열릴 때 히스토리 추가, 뒤로가기 시 모달 닫기
@@ -1254,7 +1249,7 @@ export default function ProfilePage() {
 
         {/* 알림 설정 */}
         <button
-          onClick={() => canUseAlarm ? setShowNotificationModal(true) : setShowAlarmUpgrade(true)}
+          onClick={() => { alert('[DBG2] isPWA=' + isPWA + ' plan=' + String(profile?.plan) + ' eff=' + getEffectivePlan(profile?.plan) + ' email=' + String(profile?.email)); canUseAlarm ? setShowNotificationModal(true) : setShowAlarmUpgrade(true); }}
           className="w-full px-4 py-3.5 flex items-center justify-between rounded-xl hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3 text-gray-600">
