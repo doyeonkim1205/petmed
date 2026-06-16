@@ -14,12 +14,13 @@ export function NativePushListener() {
     if (!isNativeApp()) return;
     // [임시 진단] 축소 원인 — WebView 뷰포트 폭 확인
     setTimeout(() => {
+      let ls = '(none)';
+      try { ls = String(localStorage.getItem('fontSize')); } catch {}
       alert(
-        'innerW=' + window.innerWidth +
-        ' scrollW=' + document.documentElement.scrollWidth +
-        ' clientW=' + document.documentElement.clientWidth +
-        ' screenW=' + window.screen.width +
-        ' dpr=' + window.devicePixelRatio,
+        'rootFont=' + getComputedStyle(document.documentElement).fontSize +
+        ' bodyFont=' + getComputedStyle(document.body).fontSize +
+        ' lsFontSize=' + ls +
+        ' htmlClass=' + document.documentElement.className,
       );
     }, 1500);
     setupNativePushListeners((url) => router.push(url));
