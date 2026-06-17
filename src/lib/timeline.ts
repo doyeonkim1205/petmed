@@ -1,6 +1,6 @@
 import { localDateKey } from '@/lib/date';
-import { conditionMeta, isAbnormalCondition } from '@/lib/excretion';
-import { categoryMeta } from '@/lib/preventiveCare';
+import { conditionLabel, isAbnormalCondition } from '@/lib/excretion';
+import { categoryMeta, categoryLabel } from '@/lib/preventiveCare';
 import type { ExcretionKind, PreventiveCategory } from '@/lib/supabase';
 
 // 타임라인 이벤트 종류
@@ -98,7 +98,9 @@ export function buildTimeline(t: TFn, input: {
     const dk = localDateKey(p.last_done_date);
     const a = get(dk);
     const meta = categoryMeta(p.category as PreventiveCategory);
-    const text = p.name && p.name !== meta.label ? `${meta.label} (${p.name})` : meta.label;
+    // 표시는 locale-aware, 비교는 저장 데이터(meta.label=한국어) 기준 — 사용자 커스텀명 여부 판별.
+    const label = categoryLabel(p.category as PreventiveCategory, t);
+    const text = p.name && p.name !== meta.label ? `${label} (${p.name})` : label;
     a.events.push({ id: `prev-${p.id}`, kind: 'preventive', timeMs: startOfDayMs(dk), time: '', text, href: '/records/preventive' });
   }
 
@@ -130,11 +132,10 @@ export function buildTimeline(t: TFn, input: {
     const dk = localDateKey(e.measured_at);
     const a = get(dk);
     const k = (e.kind === 'pee' ? 'pee' : 'poop') as TLKind;
-    const cm = conditionMeta(e.kind as ExcretionKind, e.condition);
     const abn = isAbnormalCondition(e.kind as ExcretionKind, e.condition);
     if (k === 'poop') { a.poop.n += 1; a.poop.abn = a.poop.abn || abn; }
     else { a.pee.n += 1; a.pee.abn = a.pee.abn || abn; }
-    a.events.push({ id: `exc-${e.id}`, kind: k, timeMs: new Date(e.measured_at).getTime(), time: hhmm(e.measured_at), text: cm.label, abnormal: abn, href: '/records/stats?tab=excretion' });
+    a.events.push({ id: `exc-${e.id}`, kind: k, timeMs: new Date(e.measured_at).getTime(), time: hhmm(e.measured_at), text: conditionLabel(e.kind as ExcretionKind, e.condition, t), abnormal: abn, href: '/records/stats?tab=excretion' });
   }
 
   // 5) 지표 (음수/식사/수액)

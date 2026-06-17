@@ -25,8 +25,20 @@ export function categoryMeta(id: PreventiveCategory): CategoryMeta {
   return PREVENTIVE_CATEGORIES.find((c) => c.id === id) || PREVENTIVE_CATEGORIES[PREVENTIVE_CATEGORIES.length - 1];
 }
 
+// i18n: 호출부가 t 를 넘기면 영어, 안 넘기면 한국어(fallback). 저장값/비교엔 categoryMeta(id).label(한국어) 사용.
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+
+// 카테고리 표시 라벨 (locale-aware).
+export function categoryLabel(id: PreventiveCategory, t: TFn): string {
+  return t(`preventive.category.${id}`);
+}
+
 // 주기 라벨 (예: "월 1회", "3개월", "연 1회")
-export function intervalLabel(unit: 'month' | 'year', value: number): string {
+export function intervalLabel(unit: 'month' | 'year', value: number, t?: TFn): string {
+  if (t) {
+    if (unit === 'year') return value === 1 ? t('preventive.interval.yearly') : t('preventive.interval.everyYears', { value });
+    return value === 1 ? t('preventive.interval.monthly') : t('preventive.interval.everyMonths', { value });
+  }
   if (unit === 'year') return value === 1 ? '연 1회' : `${value}년`;
   return value === 1 ? '월 1회' : `${value}개월`;
 }
@@ -70,9 +82,15 @@ export function careStatus(nextDueISO: string, baseISO: string = todayISO()): Ca
   return 'ok';
 }
 
-// D-day 표시 문구 (예: "D-3", "오늘", "3일 지남")
-export function ddayLabel(nextDueISO: string, baseISO: string = todayISO()): string {
+// D-day 표시 문구 (예: "D-3", "오늘", "3일 지남"). t 넘기면 locale-aware.
+export function ddayLabel(nextDueISO: string, t?: TFn, baseISO: string = todayISO()): string {
   const dd = ddayFrom(nextDueISO, baseISO);
+  if (t) {
+    if (dd === 0) return t('preventive.dday.today');
+    if (dd > 0) return t('preventive.dday.remaining', { days: dd });
+    const over = -dd;
+    return over > 30 ? t('preventive.dday.overdueMax') : t('preventive.dday.overdue', { days: over });
+  }
   if (dd === 0) return 'D-Day';
   if (dd > 0) return `D-${dd}`;
   // 지난 항목: 숫자가 무한정 커지지 않게 30일까지만 일수 표기, 이후는 '30일+ 지남'.

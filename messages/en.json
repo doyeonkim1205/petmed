@@ -295,5 +295,21 @@
       "fluid": "Fluid {amount}{unit}",
       "daily": "Daily {count}"
     }
+  },
+  "preventive": {
+    "category": {
+      "heartworm": "Heartworm", "external_parasite": "External parasite", "internal_worm": "Internal worm",
+      "vaccine": "Vaccine", "rabies": "Rabies", "health_check": "Health checkup", "other": "Other"
+    },
+    "interval": { "monthly": "Monthly", "yearly": "Yearly", "everyMonths": "Every {value} months", "everyYears": "Every {value} years" },
+    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days} days overdue", "overdueMax": "30+ days overdue" }
+  },
+  "excretion": {
+    "condition": {
+      "poop": { "normal": "Normal", "soft": "Soft", "diarrhea": "Diarrhea", "hard": "Hard", "blood": "Bloody" },
+      "pee": { "normal": "Normal", "dark": "Dark", "blood": "Reddish", "cloudy": "Cloudy", "none": "Barely any" }
+    },
+    "amount": { "less": "Less", "normal": "Normal", "more": "More" },
+    "color": { "brown": "Brown", "black": "Black", "red": "Red", "yellow": "Yellow", "gray": "Gray" }
   }
 }

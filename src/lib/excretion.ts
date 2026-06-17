@@ -56,6 +56,26 @@ export function colorMeta(id?: string | null): Option | null {
   return find(POOP_COLORS, id) ?? null;
 }
 
+// i18n: locale-aware 라벨 (id 기반). 색/이상여부는 conditionMeta/colorMeta(코드)로 그대로.
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+// 알려진 id 면 messages, 아니면 원본 id 그대로 (legacy 안전).
+const KNOWN: Record<string, true> = {
+  normal: true, soft: true, diarrhea: true, hard: true, blood: true,
+  dark: true, cloudy: true, none: true, less: true, more: true,
+  brown: true, black: true, red: true, yellow: true, gray: true,
+};
+export function conditionLabel(kind: ExcretionKind, id: string, t: TFn): string {
+  return KNOWN[id] ? t(`excretion.condition.${kind}.${id}`) : id;
+}
+export function amountLabelI18n(id: string | null | undefined, t: TFn): string | null {
+  if (!id) return null;
+  return KNOWN[id] ? t(`excretion.amount.${id}`) : id;
+}
+export function colorLabelI18n(id: string | null | undefined, t: TFn): string | null {
+  if (!id) return null;
+  return KNOWN[id] ? t(`excretion.color.${id}`) : id;
+}
+
 // 이상 상태 여부 (요약/강조용) — 정상 외 전부 이상으로 간주하되,
 // 빨강(혈변/붉음)·주황(설사/진함) 은 더 강하게. 정상만 false.
 export function isAbnormalCondition(kind: ExcretionKind, id: string): boolean {

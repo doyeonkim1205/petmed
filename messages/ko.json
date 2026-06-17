@@ -295,5 +295,21 @@
       "fluid": "수액 {amount}{unit}",
       "daily": "일상 {count}"
     }
+  },
+  "preventive": {
+    "category": {
+      "heartworm": "심장사상충", "external_parasite": "외부기생충", "internal_worm": "내부구충",
+      "vaccine": "종합백신", "rabies": "광견병", "health_check": "건강검진", "other": "기타"
+    },
+    "interval": { "monthly": "월 1회", "yearly": "연 1회", "everyMonths": "{value}개월", "everyYears": "{value}년" },
+    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days}일 지남", "overdueMax": "30일+ 지남" }
+  },
+  "excretion": {
+    "condition": {
+      "poop": { "normal": "정상", "soft": "무름", "diarrhea": "설사", "hard": "딱딱함", "blood": "혈변" },
+      "pee": { "normal": "정상", "dark": "진함", "blood": "붉음", "cloudy": "탁함", "none": "거의 못 봄" }
+    },
+    "amount": { "less": "적음", "normal": "보통", "more": "많음" },
+    "color": { "brown": "갈색", "black": "검은색", "red": "붉은색", "yellow": "노란색", "gray": "회색" }
   }
 }
