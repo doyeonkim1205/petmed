@@ -42,8 +42,11 @@ import webpush from 'web-push';
 import * as Sentry from '@sentry/nextjs';
 import { logActivityServer } from '@/lib/activityLogServer';
 import { isTrialActive } from '@/lib/plans';
-import { categoryMeta } from '@/lib/preventiveCare';
+import { categoryLabelI18n } from '@/lib/preventiveCare';
 import { sendFcmToUser } from '@/lib/fcmAdmin';
+import type { PreventiveCategory } from '@/lib/supabase';
+
+type Lang = 'ko' | 'en';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -88,6 +91,15 @@ function formatKoreanTime(hour24: number, minute: number): string {
   return minute === 0 ? `${ampm} ${hour12}시` : `${ampm} ${hour12}시 ${minute}분`;
 }
 
+/** locale 별 시각 표기 — EN: "9 AM" / "12:30 PM". */
+function formatTimeI18n(hour24: number, minute: number, locale: Lang): string {
+  if (locale !== 'en') return formatKoreanTime(hour24, minute);
+  const ampm = hour24 < 12 ? 'AM' : 'PM';
+  let h = hour24 % 12;
+  if (h === 0) h = 12;
+  return minute === 0 ? `${h} ${ampm}` : `${h}:${String(minute).padStart(2, '0')} ${ampm}`;
+}
+
 /** 작업 배열을 동시성 limit 로 병렬 실행. p-limit 외부 의존성 없이 가벼운 구현. */
 async function runWithConcurrency<T, R>(
   items: T[],
@@ -116,20 +128,23 @@ function buildScheduleMessage(
   petName: string,
   appts: Array<{ id: string; title: string }>,
   dischs: Array<{ id: string; title: string }>,
+  locale: Lang,
 ): { title: string; body: string; category: 'appointment' | 'hospitalization' } {
   const apptCount = appts.length;
   const dischCount = dischs.length;
+  const en = locale === 'en';
+  const fb = en ? 'schedule' : '일정';
 
   // 같은 record 가 예약+퇴원 둘 다 가진 케이스 검출.
-  // record_type='hospitalization' 의 next_appointment_date + discharge_date 동시 설정 시.
   const apptIds = new Set(appts.map((a) => a.id));
   const sameRecord = dischs.find((d) => apptIds.has(d.id));
 
   // Case 1: 같은 record 1건의 예약+퇴원 → 단일 통합 메시지
   if (apptCount === 1 && dischCount === 1 && sameRecord) {
+    const t = truncate(sameRecord.title, RECORD_TITLE_MAX, fb);
     return {
-      title: `🏥 오늘 ${petName} 일정`,
-      body: `"${truncate(sameRecord.title, RECORD_TITLE_MAX, '일정')}" 예약·퇴원이 있어요`,
+      title: en ? `🏥 ${petName}'s schedule today` : `🏥 오늘 ${petName} 일정`,
+      body: en ? `"${t}" has an appointment & discharge` : `"${t}" 예약·퇴원이 있어요`,
       category: 'hospitalization',
     };
   }
@@ -137,15 +152,16 @@ function buildScheduleMessage(
   // Case 2: 퇴원만
   if (apptCount === 0 && dischCount > 0) {
     if (dischCount === 1) {
+      const t = truncate(dischs[0].title, RECORD_TITLE_MAX, fb);
       return {
-        title: `🏥 오늘 ${petName} 퇴원`,
-        body: `"${truncate(dischs[0].title, RECORD_TITLE_MAX, '일정')}" 퇴원 예정이에요`,
+        title: en ? `🏥 ${petName}'s discharge today` : `🏥 오늘 ${petName} 퇴원`,
+        body: en ? `"${t}" is scheduled for discharge` : `"${t}" 퇴원 예정이에요`,
         category: 'hospitalization',
       };
     }
     return {
-      title: `🏥 오늘 ${petName} 퇴원`,
-      body: `퇴원 ${dischCount}건이 있어요`,
+      title: en ? `🏥 ${petName}'s discharge today` : `🏥 오늘 ${petName} 퇴원`,
+      body: en ? `${dischCount} discharges` : `퇴원 ${dischCount}건이 있어요`,
       category: 'hospitalization',
     };
   }
@@ -153,31 +169,33 @@ function buildScheduleMessage(
   // Case 3: 예약만
   if (dischCount === 0 && apptCount > 0) {
     if (apptCount === 1) {
+      const t = truncate(appts[0].title, RECORD_TITLE_MAX, fb);
       return {
-        title: `📅 오늘 ${petName} 예약`,
-        body: `"${truncate(appts[0].title, RECORD_TITLE_MAX, '일정')}" 일정이 있어요`,
+        title: en ? `📅 ${petName}'s appointment today` : `📅 오늘 ${petName} 예약`,
+        body: en ? `"${t}" is scheduled` : `"${t}" 일정이 있어요`,
         category: 'appointment',
       };
     }
     if (apptCount === 2) {
+      const a = truncate(appts[0].title, 12, fb);
+      const b = truncate(appts[1].title, 12, fb);
       return {
-        title: `📅 오늘 ${petName} 예약`,
-        // 2건은 이름 짧게 잘라 둘 다 표시 (각 12자 제한 → 26자 + 따옴표 = 32자)
-        body: `"${truncate(appts[0].title, 12, '일정')}", "${truncate(appts[1].title, 12, '일정')}" 일정이 있어요`,
+        title: en ? `📅 ${petName}'s appointments today` : `📅 오늘 ${petName} 예약`,
+        body: en ? `"${a}", "${b}" are scheduled` : `"${a}", "${b}" 일정이 있어요`,
         category: 'appointment',
       };
     }
     return {
-      title: `📅 오늘 ${petName} 예약`,
-      body: `예약 ${apptCount}건이 있어요`,
+      title: en ? `📅 ${petName}'s appointments today` : `📅 오늘 ${petName} 예약`,
+      body: en ? `${apptCount} appointments` : `예약 ${apptCount}건이 있어요`,
       category: 'appointment',
     };
   }
 
-  // Case 4: 예약+퇴원 mix (서로 다른 record 또는 다중)
+  // Case 4: 예약+퇴원 mix
   return {
-    title: `🏥 오늘 ${petName} 일정`,
-    body: `예약 ${apptCount}건, 퇴원 ${dischCount}건 있어요`,
+    title: en ? `🏥 ${petName}'s schedule today` : `🏥 오늘 ${petName} 일정`,
+    body: en ? `${apptCount} appointment(s), ${dischCount} discharge(s)` : `예약 ${apptCount}건, 퇴원 ${dischCount}건 있어요`,
     category: 'hospitalization',
   };
 }
@@ -188,18 +206,34 @@ function buildScheduleMessage(
  */
 function buildPreventiveMessage(
   petName: string,
-  items: Array<{ label: string; dday: number }>,
+  items: Array<{ category: string; name: string | null; dday: number }>,
+  locale: Lang,
 ): { title: string; body: string } {
+  const en = locale === 'en';
+  const fb = en ? 'schedule' : '일정';
+  // 제품명이 카테고리명과 다르면 "카테고리(제품)" 로, 같으면 카테고리명만.
+  const labelOf = (it: { category: string; name: string | null }) => {
+    const catLabel = categoryLabelI18n(it.category as PreventiveCategory, locale);
+    return it.name && it.name !== catLabel ? `${catLabel}(${it.name})` : catLabel;
+  };
   if (items.length === 1) {
-    const { label, dday } = items[0];
+    const { dday } = items[0];
+    const label = truncate(labelOf(items[0]), RECORD_TITLE_MAX, fb);
     if (dday === 0) {
-      return { title: `💉 ${petName} 오늘의 건강 일정`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 챙겨주세요` };
+      return {
+        title: en ? `💉 ${petName}'s health schedule today` : `💉 ${petName} 오늘의 건강 일정`,
+        body: en ? `Time for "${label}"` : `"${label}" 챙겨주세요`,
+      };
     }
-    return { title: `💉 ${petName} 건강 일정 ${dday}일 전`, body: `"${truncate(label, RECORD_TITLE_MAX, '일정')}" 예정이에요` };
+    return {
+      title: en ? `💉 ${petName}'s health schedule in ${dday} days` : `💉 ${petName} 건강 일정 ${dday}일 전`,
+      body: en ? `"${label}" is coming up` : `"${label}" 예정이에요`,
+    };
   }
+  const first = truncate(labelOf(items[0]), 12, fb);
   return {
-    title: `💉 ${petName} 챙길 일정이 있어요`,
-    body: `${truncate(items[0].label, 12, '일정')} 외 ${items.length - 1}개 챙겨주세요`,
+    title: en ? `💉 ${petName} has schedules to handle` : `💉 ${petName} 챙길 일정이 있어요`,
+    body: en ? `"${first}" and ${items.length - 1} more` : `${first} 외 ${items.length - 1}개 챙겨주세요`,
   };
 }
 
@@ -369,16 +403,14 @@ export async function GET(request: NextRequest) {
     ensurePetEvents(r.user_id, r.pet_id).dischs.push({ id: r.id, title: r.title });
   }
 
-  // 예방 펫별 그룹화: Map<userId, Map<petId, {label, dday}[]>>
-  const preventiveByUserPet = new Map<string, Map<string, Array<{ label: string; dday: number }>>>();
+  // 예방 펫별 그룹화: Map<userId, Map<petId, {category, name, dday}[]>>
+  // 라벨은 발송 시점에 유저 locale 로 resolve (buildPreventiveMessage).
+  const preventiveByUserPet = new Map<string, Map<string, Array<{ category: string; name: string | null; dday: number }>>>();
   for (const p of preventiveDue) {
     let petsMap = preventiveByUserPet.get(p.user_id);
     if (!petsMap) { petsMap = new Map(); preventiveByUserPet.set(p.user_id, petsMap); }
     const arr = petsMap.get(p.pet_id) || [];
-    // 제품명이 카테고리명과 다르면 "카테고리(제품)" 로, 같으면 카테고리명만.
-    const catLabel = categoryMeta(p.category as Parameters<typeof categoryMeta>[0]).label;
-    const label = p.name && p.name !== catLabel ? `${catLabel}(${p.name})` : catLabel;
-    arr.push({ label, dday: p.dday });
+    arr.push({ category: p.category, name: p.name, dday: p.dday });
     petsMap.set(p.pet_id, arr);
   }
 
@@ -394,19 +426,34 @@ export async function GET(request: NextRequest) {
   // 트라이얼 중엔 전체 유저를 plus 로 취급 (getEffectivePlan 과 동일 규칙).
   // 트라이얼 종료 후엔 실제 plan 이 'plus' 인 유저만.
   const paidSet = new Set<string>();
+  // 유저별 알림 언어 — profiles.preferred_language ('en'/'ko'/null). 기본 ko.
+  const langByUser = new Map<string, Lang>();
   if (allTargetUserIds.size > 0) {
+    const ids = Array.from(allTargetUserIds);
     if (isTrialActive()) {
-      for (const uid of allTargetUserIds) paidSet.add(uid);
+      for (const uid of ids) paidSet.add(uid);
     } else {
       const { data: profiles } = await supabaseAdmin
         .from('profiles')
         .select('id, plan')
-        .in('id', Array.from(allTargetUserIds));
+        .in('id', ids);
       for (const p of profiles || []) {
         if (p.plan && p.plan !== 'free') paidSet.add(p.id);
       }
     }
+    // 언어는 별도 조회 — preferred_language 컬럼이 (prod 마이그레이션 전이라) 없더라도
+    // error 만 받고 graceful 하게 전부 ko 로 fallback (알림 자체는 정상 발송).
+    const { data: langs, error: langErr } = await supabaseAdmin
+      .from('profiles')
+      .select('id, preferred_language')
+      .in('id', ids);
+    if (!langErr) {
+      for (const p of langs || []) {
+        if ((p as { preferred_language?: string | null }).preferred_language === 'en') langByUser.set(p.id, 'en');
+      }
+    }
   }
+  const userLang = (uid: string): Lang => langByUser.get(uid) ?? 'ko';
 
   // 펫 정보 일괄 프리페치 — 메시지에 펫 이름 사용.
   // 매칭된 모든 pet_id 모음 (투약 + 예약·퇴원 양쪽).
@@ -450,30 +497,31 @@ export async function GET(request: NextRequest) {
   //    (살구 맛 약 / 살구라는 약) 회피.
   //    body 의 3+ 케이스는 "[첫 약] 외 N-1개" 패턴으로 1/2개 케이스와 통일.
   //    이전 "약 N개 먹을 시간" 은 title 의 "약" 과 중복 + "먹을" 이 약간 어색.
-  const timeLabel = formatKoreanTime(parseInt(currentHour, 10), currentMinute);
   for (const [userId, petsMap] of medByUserPet) {
     if (!paidSet.has(userId)) continue;
+    const lang = userLang(userId);
+    const en = lang === 'en';
+    const drugFb = en ? 'medication' : '약';
+    const timeLabel = formatTimeI18n(parseInt(currentHour, 10), currentMinute, lang);
     for (const [petId, drugs] of petsMap) {
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
+      const petName = truncate(pet?.name, PET_NAME_MAX, en ? 'your pet' : '반려동물');
 
-      // 제목에 행동("먹을 시간이에요")을 올리고, 시각은 본문으로 내림.
-      //   title : "💊 살구 약 먹을 시간이에요"  body : "타이레놀 · 오후 12시 30분"
-      // 시각이 제목에서 빠져 펫 이름 여유(12자)가 생기고 잠금화면이 깔끔해짐.
       let drugText: string;
       if (drugs.length === 1) {
-        drugText = truncate(drugs[0], 30, '약');
+        drugText = truncate(drugs[0], 30, drugFb);
       } else if (drugs.length === 2) {
-        drugText = `${truncate(drugs[0], 12, '약')}, ${truncate(drugs[1], 12, '약')}`;
+        drugText = `${truncate(drugs[0], 12, drugFb)}, ${truncate(drugs[1], 12, drugFb)}`;
       } else {
-        // 3개+: 첫 약 노출 + 나머지 갯수
-        drugText = `${truncate(drugs[0], 15, '약')} 외 ${drugs.length - 1}개`;
+        drugText = en
+          ? `${truncate(drugs[0], 15, drugFb)} +${drugs.length - 1} more`
+          : `${truncate(drugs[0], 15, drugFb)} 외 ${drugs.length - 1}개`;
       }
 
       tasks.push({
         userId,
         notification: {
-          title: `💊 ${petName} 약 먹을 시간이에요`,
+          title: en ? `💊 Time for ${petName}'s meds` : `💊 ${petName} 약 먹을 시간이에요`,
           body: `${drugText} · ${timeLabel}`,
           url: '/records',
           category: 'medication',
@@ -488,11 +536,12 @@ export async function GET(request: NextRequest) {
   //    tag: schedule-{userId}-{petId}-{YYYYMMDD}
   for (const [userId, petsMap] of scheduleByUserPet) {
     if (!paidSet.has(userId)) continue;
+    const lang = userLang(userId);
     for (const [petId, ev] of petsMap) {
       if (ev.appts.length === 0 && ev.dischs.length === 0) continue;
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
-      const { title, body, category } = buildScheduleMessage(petName, ev.appts, ev.dischs);
+      const petName = truncate(pet?.name, PET_NAME_MAX, lang === 'en' ? 'your pet' : '반려동물');
+      const { title, body, category } = buildScheduleMessage(petName, ev.appts, ev.dischs, lang);
       tasks.push({
         userId,
         notification: {
@@ -510,11 +559,12 @@ export async function GET(request: NextRequest) {
   //      tag: preventive-{userId}-{petId}-{YYYYMMDD}
   for (const [userId, petsMap] of preventiveByUserPet) {
     if (!paidSet.has(userId)) continue;
+    const lang = userLang(userId);
     for (const [petId, items] of petsMap) {
       if (items.length === 0) continue;
       const pet = petMap.get(petId);
-      const petName = truncate(pet?.name, PET_NAME_MAX, '반려동물');
-      const { title, body } = buildPreventiveMessage(petName, items);
+      const petName = truncate(pet?.name, PET_NAME_MAX, lang === 'en' ? 'your pet' : '반려동물');
+      const { title, body } = buildPreventiveMessage(petName, items, lang);
       tasks.push({
         userId,
         notification: {
@@ -552,11 +602,14 @@ export async function GET(request: NextRequest) {
       let notification: { title: string; body: string; url: string; category: string; tag: string };
       // tag = sub-3day-{sub.id} — 구독 1건당 1개 알림이라 record id 기반.
       const tag = `sub-3day-${sub.id}`;
+      const en = userLang(sub.user_id) === 'en';
       // category 'subscription' → sw.js 에서 오른쪽 alarm.webp 아이콘 분기.
       if (sub.status === 'canceled') {
         notification = {
-          title: '📢 Plus 구독 기간 만료 안내',
-          body: '3일 후 무료 플랜으로 전환됩니다. 혜택 유지를 원하시면 구독 설정을 변경해 주세요.',
+          title: en ? '📢 Plus subscription ending' : '📢 Plus 구독 기간 만료 안내',
+          body: en
+            ? 'It switches to Free in 3 days. To keep your benefits, please update your subscription settings.'
+            : '3일 후 무료 플랜으로 전환됩니다. 혜택 유지를 원하시면 구독 설정을 변경해 주세요.',
           url: '/profile/subscription',
           category: 'subscription',
           tag,
@@ -564,11 +617,11 @@ export async function GET(request: NextRequest) {
       } else if (sub.billing_type === 'recurring') {
         const price = sub.product_id ? priceMap.get(sub.product_id) : null;
         // 가격 표시 — DB 에서 못 가져오면 일반 안내로 fallback.
-        const bodyWithPrice = price
-          ? `3일 후 Plus 구독료 ${price.toLocaleString()}원이 자동 결제됩니다.`
-          : '3일 후 Plus 구독료가 자동 결제됩니다.';
+        const bodyWithPrice = en
+          ? (price ? `Your Plus subscription fee of ₩${price.toLocaleString()} will be charged in 3 days.` : 'Your Plus subscription fee will be charged in 3 days.')
+          : (price ? `3일 후 Plus 구독료 ${price.toLocaleString()}원이 자동 결제됩니다.` : '3일 후 Plus 구독료가 자동 결제됩니다.');
         notification = {
-          title: '🔄 정기 결제 예정 안내',
+          title: en ? '🔄 Upcoming recurring payment' : '🔄 정기 결제 예정 안내',
           body: bodyWithPrice,
           url: '/profile/subscription',
           category: 'subscription',
@@ -576,8 +629,10 @@ export async function GET(request: NextRequest) {
         };
       } else {
         notification = {
-          title: '✨ Plus 이용 기간 종료 임박',
-          body: '3일 후 이용 기간이 만료됩니다. 서비스 지속을 원하시면 구독을 갱신해 주세요.',
+          title: en ? '✨ Plus access ending soon' : '✨ Plus 이용 기간 종료 임박',
+          body: en
+            ? 'Your access expires in 3 days. To keep using the service, please renew your subscription.'
+            : '3일 후 이용 기간이 만료됩니다. 서비스 지속을 원하시면 구독을 갱신해 주세요.',
           url: '/profile/subscription',
           category: 'subscription',
           tag,

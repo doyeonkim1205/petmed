@@ -40,6 +40,21 @@ export function categoryLabel(id: PreventiveCategory, t: TFn): string {
   return t(`preventive.category.${id}`);
 }
 
+// 서버용(next-intl t 없이) locale 라벨 — 푸시 cron 등에서 사용.
+// en.json preventive.category.* 와 동일하게 유지.
+const CATEGORY_LABEL_EN: Record<PreventiveCategory, string> = {
+  heartworm: 'Heartworm',
+  external_parasite: 'External parasite',
+  internal_worm: 'Deworming',
+  vaccine: 'Vaccination',
+  rabies: 'Rabies',
+  health_check: 'Health checkup',
+  other: 'Other',
+};
+export function categoryLabelI18n(id: PreventiveCategory, locale: 'ko' | 'en'): string {
+  return locale === 'en' ? (CATEGORY_LABEL_EN[id] ?? categoryMeta(id).label) : categoryMeta(id).label;
+}
+
 // 주기 라벨 (예: "월 1회", "3개월", "연 1회")
 export function intervalLabel(unit: 'month' | 'year', value: number, t?: TFn): string {
   if (t) {
