@@ -386,7 +386,7 @@ export default function SubscriptionPage() {
                 <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
-                  sub={t('subscription.subscribeYearlySub')}
+                  sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
                 <button onClick={handleRestore} disabled={purchasing}
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
@@ -505,7 +505,7 @@ export default function SubscriptionPage() {
                 <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
-                  sub={t('subscription.subscribeYearlySub')}
+                  sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
                 <button onClick={handleRestore} disabled={purchasing}
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
