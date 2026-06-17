@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   // (toss_billing_key, toss_customer_key, etc.)
   const { data: subscription } = await supabaseAdmin
     .from('subscriptions')
-    .select('plan, status, billing_type, product_id, period_start, period_end, next_billing_at, canceled_at, card_company, card_number, billing_failed_count, last_billing_failure_at, last_billing_failure_reason')
+    .select('plan, status, billing_type, product_id, store, period_start, period_end, next_billing_at, canceled_at, card_company, card_number, billing_failed_count, last_billing_failure_at, last_billing_failure_reason')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
