@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
-import { BrandLoading } from '@/components/BrandLoading';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -76,6 +76,7 @@ export default function AuthCallbackPage() {
     );
   }
 
-  // 로딩 화면 — (main) 가드와 동일한 BrandLoading 으로 통일(로그인 시 깜박임 제거).
-  return <BrandLoading />;
+  // 로딩 화면 — (main) 가드와 '동일한' LoadingScreen(스피너만)으로 통일.
+  // 두 화면이 같아야 로그인 시 한 번만 뜬 것처럼 보임(깜박임 제거).
+  return <LoadingScreen />;
 }

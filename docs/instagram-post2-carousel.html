@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PawDex · 게시물 2 (만든 이유) 7페이지 캐러셀</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f1115;color:#e7e9ee;padding:48px 24px 120px;}
+  .head{max-width:1180px;margin:0 auto 40px;}
+  .head h1{font-size:26px;font-weight:800;letter-spacing:-.5px;}
+  .head p{color:#9aa0ad;margin-top:8px;font-size:14px;line-height:1.6;}
+  .gallery{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:40px 32px;}
+  .item .lbl{font-size:13px;font-weight:700;color:#8a93a6;margin-bottom:12px;}
+  .item .lbl b{color:#5b8bff;}
+  .frame{width:100%;aspect-ratio:1080/1350;border-radius:18px;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.5);position:relative;background:#fff;}
+  .stage{position:absolute;top:0;left:0;width:1080px;height:1350px;transform-origin:top left;}
+
+  .appimg{display:block;border-radius:22%;}
+
+  .device{position:relative;width:520px;padding:14px;border-radius:64px;
+    background:linear-gradient(150deg,#3a3d45 0%,#15171c 38%,#0b0d12 100%);
+    box-shadow:0 55px 110px rgba(20,40,90,.34), inset 0 0 0 2px rgba(255,255,255,.07), inset 0 0 14px rgba(0,0,0,.6);}
+  .device .scr{position:relative;border-radius:50px;overflow:hidden;background:#fff;height:1010px;display:flex;flex-direction:column;}
+  .device .island{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:122px;height:33px;background:#000;border-radius:18px;z-index:6;}
+  .device .sbar{flex:0 0 auto;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 46px 0 50px;background:#fff;z-index:4;}
+  .device .sbar .t{font-size:25px;font-weight:700;color:#111;letter-spacing:.5px;}
+  .device .sbar .r{display:flex;align-items:center;gap:9px;}
+  .device .shot{flex:1;overflow:hidden;}
+  .device .shot img{width:100%;height:auto;display:block;}
+  .device .glare{position:absolute;inset:0;border-radius:50px;pointer-events:none;z-index:5;background:linear-gradient(125deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 34%);}
+  .device .pow{position:absolute;right:-4px;top:250px;width:5px;height:100px;border-radius:0 5px 5px 0;background:linear-gradient(#2a2d35,#0e1014);}
+  .device .v1{position:absolute;left:-4px;top:210px;width:5px;height:62px;border-radius:5px 0 0 5px;background:linear-gradient(#2a2d35,#0e1014);}
+  .device .v2{position:absolute;left:-4px;top:286px;width:5px;height:62px;border-radius:5px 0 0 5px;background:linear-gradient(#2a2d35,#0e1014);}
+
+  body.export{background:#fff;padding:0;}
+  body.export .head{display:none;}
+  body.export .gallery{display:block;max-width:none;margin:0;gap:0;}
+  body.export .item{margin:0;}
+  body.export .item .lbl{display:none;}
+  body.export .frame{width:1080px;height:1350px;border-radius:0;box-shadow:none;margin:0;}
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>🐾 게시물 2 — PawDex를 만든 이유 (기능 연결형) · 7페이지</h1>
+  <p>1080×1350. P5 AI·논문(밝은 톤·논문 화면) / P6 병원찾기(야간 톤·병원 화면, 정보 블러). 폰 위치 게시물1과 동일(top:500). F12에서 <code>.stage</code> transform 제거 시 원본.</p>
+</div>
+
+<div class="gallery" id="gallery">
+
+  <!-- P1 표지 -->
+  <div class="item">
+    <div class="lbl"><b>P1</b> · 표지·훅</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(165deg,#e9f1ff 0%,#f4f8ff 45%,#ffffff 100%);position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-90px;top:-80px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,#d4e4ff,transparent 70%);"></div>
+        <svg viewBox="0 0 100 100" style="position:absolute;right:-26px;bottom:6px;width:560px;height:560px;opacity:.07;transform:rotate(15deg);" fill="#2563EB"><ellipse cx="23" cy="42" rx="8.5" ry="12"/><ellipse cx="40" cy="29" rx="9" ry="13"/><ellipse cx="60" cy="29" rx="9" ry="13"/><ellipse cx="77" cy="42" rx="8.5" ry="12"/><path d="M50 50c14 0 25 9.5 25 21 0 8.5-7 13.5-15.5 13.5-3.3 0-5.5-1.7-9.5-1.7s-6.2 1.7-9.5 1.7C32 86 25 81 25 71c0-11.5 11-21 25-21z"/></svg>
+        <div style="display:flex;align-items:center;gap:16px;padding:104px 0 0 90px;"><img class="appimg" src="promo-assets/appicon.png" style="width:78px;height:78px;"><div style="font-size:40px;font-weight:800;color:#1e2a45;letter-spacing:-1px;">PawDex</div></div>
+        <div style="padding:90px 90px 0;">
+          <div style="font-size:84px;font-weight:800;line-height:1.22;color:#16213a;letter-spacing:-2.5px;">처음엔,<br><span style="color:#2563eb;">기록이 필요했어요</span></div>
+          <div style="font-size:34px;color:#5a6478;margin-top:42px;font-weight:500;">PawDex가 시작된 이야기</div>
+        </div>
+        <div style="position:absolute;left:90px;bottom:90px;display:flex;align-items:center;gap:14px;font-size:32px;font-weight:700;color:#2563eb;">넘겨보기 <span style="font-size:46px;">→</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P2 진단 -->
+  <div class="item">
+    <div class="lbl"><b>P2</b> · 진단·기록의 시작</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(180deg,#eef4ff,#f6f7f9 40%);position:relative;overflow:hidden;display:flex;align-items:center;">
+        <div style="padding:0 95px;width:100%;">
+          <div style="font-size:72px;font-weight:800;color:#16213a;letter-spacing:-2px;line-height:1.25;">이브가 열 살이 되던 해</div>
+          <div style="font-size:36px;color:#16213a;font-weight:600;margin-top:50px;line-height:1.5;">소화기 림포마 진단을 받았어요.</div>
+          <div style="font-size:32px;color:#5a6478;font-weight:500;margin-top:38px;line-height:1.6;">그날부터 증상, 약, 식사, 음수량,<br>진료 기록까지 하루하루<br>남겨야 할 것들이 많아졌어요.</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P3 한눈에 어려움 -->
+  <div class="item">
+    <div class="lbl"><b>P3</b> · 기록 관리의 어려움</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(180deg,#eef4ff,#f6f7f9 40%);position:relative;overflow:hidden;display:flex;align-items:center;">
+        <div style="padding:0 95px;width:100%;">
+          <div style="font-size:66px;font-weight:800;color:#16213a;letter-spacing:-2px;line-height:1.3;">기록은 남겼지만,<br><span style="color:#2563eb;">한눈에 보기 어려웠어요</span></div>
+          <div style="font-size:33px;color:#5a6478;font-weight:500;margin-top:50px;line-height:1.65;"><span style="color:#16213a;font-weight:700;">사진첩, 메모장, 캘린더</span> 속에<br>조금씩 나뉘어 있던 기록들.</div>
+          <div style="font-size:33px;color:#5a6478;font-weight:500;margin-top:34px;line-height:1.65;">평소 관리할 때도, 진료를 준비할 때도<br>한 번에 정리해서 보기 쉽지 않았어요.</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P4 찾아보던 행동 -->
+  <div class="item">
+    <div class="lbl"><b>P4</b> · 아플 때 보호자가 하는 행동</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(180deg,#eef4ff,#f6f7f9 40%);position:relative;overflow:hidden;display:flex;align-items:center;">
+        <div style="padding:0 95px;width:100%;">
+          <div style="font-size:66px;font-weight:800;color:#16213a;letter-spacing:-2px;line-height:1.3;">평소와 다르면<br><span style="color:#2563eb;">더 많이 찾아보게 됐어요</span></div>
+          <div style="font-size:33px;color:#16213a;font-weight:700;margin-top:50px;line-height:1.65;">증상을 검색하고,<br>사진과 영상을 남기고,<br>비슷한 사례가 있는지 찾아봤어요.</div>
+          <div style="font-size:33px;color:#5a6478;font-weight:500;margin-top:34px;line-height:1.6;">진료 때 보여드리려고<br>작은 변화도 기록해두고 싶었습니다.</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P5 AI·논문 -->
+  <div class="item">
+    <div class="lbl"><b>P5</b> · AI 분석 · 논문 (화면)</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(180deg,#edf3ff,#f6f7f9 38%);position:relative;overflow:hidden;">
+        <div style="padding:96px 90px 0;">
+          <div style="display:inline-flex;align-items:center;gap:10px;background:#e0e7ff;color:#4f46e5;font-size:29px;font-weight:800;padding:11px 24px;border-radius:999px;">✦ 논문 검색</div>
+          <div style="font-size:60px;font-weight:800;color:#16213a;letter-spacing:-2px;line-height:1.25;margin-top:24px;">그래서 논문 검색도 담았습니다</div>
+          <div style="font-size:28px;color:#5a6478;font-weight:500;line-height:1.55;margin-top:22px;">질병이나 키워드를 검색하면<br>관련 수의학 논문을 찾아 AI가 핵심 내용을 쉽게 정리해요.</div>
+        </div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);top:500px;">
+          <div class="device" data-img="promo-assets/search.jpg"></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P6 병원찾기 (야간) -->
+  <div class="item">
+    <div class="lbl"><b>P6</b> · 병원 찾기 (야간 톤 · 화면)</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:linear-gradient(170deg,#0e1830 0%,#152444 60%,#1c2e54 100%);position:relative;overflow:hidden;color:#fff;">
+        <svg viewBox="0 0 24 24" style="position:absolute;right:80px;top:96px;width:96px;height:96px;opacity:.9;" fill="#fde68a"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <div style="position:absolute;left:540px;top:120px;width:6px;height:6px;border-radius:50%;background:#fff;opacity:.45;"></div>
+        <div style="position:absolute;right:260px;top:210px;width:5px;height:5px;border-radius:50%;background:#fff;opacity:.35;"></div>
+        <div style="padding:96px 90px 0;">
+          <div style="font-size:56px;font-weight:800;letter-spacing:-1.5px;line-height:1.3;">급한 순간엔,<br>가까운 병원을 바로 알고 싶었어요</div>
+          <div style="font-size:26px;color:#aebfe0;font-weight:500;line-height:1.6;margin-top:24px;">늦은 밤, 갑자기 상태가 달라지면<br>지금 문 연 24시 병원이 어디인지 검색하고 전화해보며 확인하곤 했어요.</div>
+          <div style="font-size:29px;color:#fff;font-weight:700;line-height:1.5;margin-top:18px;">그래서 가까운 병원 찾기도 함께 담았습니다.</div>
+        </div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);top:500px;">
+          <div class="device" data-img="promo-assets/hospital.jpg"></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- P7 CTA -->
+  <div class="item">
+    <div class="lbl"><b>P7</b> · 마무리·CTA</div>
+    <div class="frame"><div class="stage">
+      <div style="width:1080px;height:1350px;background:#2563eb;position:relative;overflow:hidden;color:#fff;text-align:center;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;right:-120px;top:-120px;width:440px;height:440px;border-radius:50%;background:rgba(255,255,255,.08);"></div>
+        <div style="position:absolute;left:-110px;bottom:-120px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.06);"></div>
+        <div style="position:relative;padding:0 90px;">
+          <div style="display:flex;justify-content:center;margin-bottom:44px;"><img class="appimg" src="promo-assets/appicon.png" style="width:140px;height:140px;box-shadow:0 24px 50px rgba(0,0,0,.28);"></div>
+          <div style="font-size:74px;font-weight:800;letter-spacing:-2px;line-height:1.3;">같은 마음의<br>보호자분들께</div>
+          <div style="font-size:32px;font-weight:500;opacity:.95;margin-top:34px;line-height:1.65;">PawDex가 우리 아이의 기록을<br>조금 더 쉽게 남기고, 필요한 순간에<br>다시 볼 수 있는 공간이 되었으면 좋겠습니다.</div>
+          <div style="display:inline-flex;align-items:center;gap:16px;background:#fff;color:#1e2a45;padding:24px 40px;border-radius:20px;margin-top:50px;font-weight:800;">
+            <svg width="32" height="35" viewBox="0 0 256 283" xmlns="http://www.w3.org/2000/svg" aria-hidden><path fill="#EA4335" d="M119.553141 134.916362 1.0599006 259.060547c2.69629388 9.556451 9.6583830 17.330053 18.8609652 21.05943 9.2025823 3.729376 19.6122577 2.995739 28.2008062-1.987493L181.448642 202.197919z"/><path fill="#FBBC04" d="M239.370822 113.813616 181.71353 80.7909097l-64.897565 56.9509243 65.162453 64.279492 57.215812-32.669522c10.331493-5.409352 16.80572-16.107154 16.80572-27.769094 0-11.66194-6.474227-22.359742-16.80572-27.7690944z"/><path fill="#4285F4" d="M1.0599006 23.4868015C.343633396 26.134699-.012753882 28.8670014 0 31.6100341V250.937314c.00751268 2.741728.363556675 5.471398 1.0599006 8.123233L123.614758 138.095018z"/><path fill="#34A853" d="M120.436101 141.273674 181.71353 80.7909097 48.5631521 4.50316009C43.5539929 1.56944036 37.8568091.015662967 32.0517989 0 17.6444261-.028487328 4.97836875 9.53420553 1.0599006 23.3985055z"/></svg>
+            <span style="font-size:32px;">Play 스토어에서 'PawDex' 검색</span>
+          </div>
+          <div style="font-size:28px;opacity:.9;margin-top:36px;font-weight:600;">@pawdex_</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<script>
+const SB=`<span class="r">
+  <svg width="34" height="22" viewBox="0 0 28 18" fill="#111"><rect x="0" y="11" width="4" height="7" rx="1"/><rect x="6" y="8" width="4" height="10" rx="1"/><rect x="12" y="4" width="4" height="14" rx="1"/><rect x="18" y="0" width="4" height="18" rx="1"/></svg>
+  <svg width="30" height="22" viewBox="0 0 24 18" fill="#111"><path d="M12 3.5c3 0 5.7 1.1 7.7 3l-1.8 1.8C16.4 6.9 14.3 6 12 6S7.6 6.9 6.1 8.3L4.3 6.5C6.3 4.6 9 3.5 12 3.5z"/><path d="M12 9c1.6 0 3 .6 4.1 1.6l-1.8 1.8c-.6-.5-1.4-.9-2.3-.9s-1.7.4-2.3.9L7.9 10.6C9 9.6 10.4 9 12 9z"/><circle cx="12" cy="14.5" r="1.8"/></svg>
+  <span style="display:inline-flex;align-items:center;gap:3px;"><span style="display:inline-block;width:42px;height:21px;border:3px solid #111;border-radius:6px;position:relative;"><span style="position:absolute;inset:2px;width:70%;background:#111;border-radius:2px;"></span></span><span style="display:inline-block;width:4px;height:9px;background:#111;border-radius:0 2px 2px 0;"></span></span>
+</span>`;
+document.querySelectorAll('.device').forEach(d=>{
+  const img=d.dataset.img;
+  d.innerHTML=`<div class="island"></div><div class="scr"><div class="sbar"><span class="t">9:41</span>${SB}</div><div class="shot"><img src="${img}" alt=""></div></div><div class="glare"></div><span class="pow"></span><span class="v1"></span><span class="v2"></span>`;
+});
+if(location.hash==='#export'){document.body.classList.add('export');}
+function fit(){document.querySelectorAll('.frame').forEach(f=>{const s=f.clientWidth/1080;f.querySelector('.stage').style.transform=`scale(${s})`;});}
+window.addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>

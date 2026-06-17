@@ -8,7 +8,7 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 import { IosInstallPrompt } from '@/components/IosInstallPrompt';
 import { InAppBrowserHint } from '@/components/InAppBrowserHint';
 import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
-import { BrandLoading } from '@/components/BrandLoading';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -36,13 +36,14 @@ export default function MainLayout({
   }, [loading, user, router]);
 
   // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
-  // - loading 중: OAuth 콜백(/auth/callback)과 '동일한' BrandLoading(로고+스피너)을 렌더한다.
-  //   → 로그인 시 콜백 화면 → (main) 가드 화면이 같은 모습이라 "두 로딩이 번갈아 깜박이는"
-  //     현상이 사라지고, 네이티브 스플래시(흰 배경+로고)와도 자연스럽게 이어진다.
+  // - loading 중: OAuth 콜백(/auth/callback)과 '동일한' 풀스크린 LoadingScreen(스피너만).
+  //   → 콜백 스피너와 위치·모양이 같아 로그인 시 한 번만 뜬 것처럼 보임(깜박임 제거).
+  //     이전엔 콜백은 풀스크린 스피너, 여긴 Header+inMain 스피너라 위치가 달라
+  //     "두 번 뜨고 깜박이는" 것처럼 보였음.
   // - 미인증 (loading 끝났는데 user 없음): 위 useEffect 가 /login 으로 리다이렉트
   //   중이므로 깜빡임 방지 차 빈 흰 화면 유지
   if (loading) {
-    return <BrandLoading />;
+    return <LoadingScreen />;
   }
   if (!user) {
     return <div className="min-h-screen bg-white" />;
