@@ -14,38 +14,40 @@ import { HomePreventiveWidget } from '@/components/home/HomePreventiveWidget';
 import { TrialBanner } from '@/components/TrialBanner';
 import { SamsungBrowserHint } from '@/components/SamsungBrowserHint';
 
-type MenuItem = { icon: LucideIcon; label: string; color: string; bg: string; href: string };
+type MenuItem = { icon: LucideIcon; labelKey: string; color: string; bg: string; href: string };
 
 // 소프트 칩 — 아이콘을 같은 색 계열 옅은 배경 칩에 담음.
 //   AI 케어 = 파랑 계열: 증상=코발트 / 사진=스카이 / 논문=인디고 / 보관함=남색.
 //   건강 기록 = 그린·민트 계열: 기록장=딥그린 / 캘린더=소프트그린 / 건강통계=에메랄드 / 의료비=딥틸.
+// 라벨은 messages 키로 분리 (labelKey). 모듈명은 record.module.*/record.tab/timeline 재사용.
 const AI_CARE: MenuItem[] = [
-  { icon: MessageCircle, label: '증상 분석', color: 'text-blue-600', bg: 'bg-blue-50', href: '/search?mode=symptom' },
-  { icon: Camera, label: '사진 분석', color: 'text-sky-500', bg: 'bg-sky-50', href: '/search/photo' },
-  { icon: FileSearch, label: '논문 검색', color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/search?mode=disease' },
-  { icon: Bookmark, label: '보관함', color: 'text-blue-800', bg: 'bg-blue-50', href: '/profile/saved' },
+  { icon: MessageCircle, labelKey: 'home.menu.symptomAnalysis', color: 'text-blue-600', bg: 'bg-blue-50', href: '/search?mode=symptom' },
+  { icon: Camera, labelKey: 'home.menu.photoAnalysis', color: 'text-sky-500', bg: 'bg-sky-50', href: '/search/photo' },
+  { icon: FileSearch, labelKey: 'home.menu.paperSearch', color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/search?mode=disease' },
+  { icon: Bookmark, labelKey: 'home.menu.saved', color: 'text-blue-800', bg: 'bg-blue-50', href: '/profile/saved' },
 ];
 
 const HEALTH: MenuItem[] = [
-  { icon: ClipboardList, label: '기록장', color: 'text-green-700', bg: 'bg-green-50', href: '/records' },
-  { icon: Activity, label: '건강 통계', color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/records/stats' },
-  { icon: History, label: '타임라인', color: 'text-green-500', bg: 'bg-green-50', href: '/records/timeline' },
-  { icon: Wallet, label: '지출 관리', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
+  { icon: ClipboardList, labelKey: 'record.tab.records', color: 'text-green-700', bg: 'bg-green-50', href: '/records' },
+  { icon: Activity, labelKey: 'record.module.stats', color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/records/stats' },
+  { icon: History, labelKey: 'timeline.title', color: 'text-green-500', bg: 'bg-green-50', href: '/records/timeline' },
+  { icon: Wallet, labelKey: 'record.module.expenses', color: 'text-[#00687a]', bg: 'bg-cyan-50', href: '/records/expenses' },
 ];
 
 function MenuGrid({ items }: { items: MenuItem[] }) {
+  const t = useTranslations();
   return (
     <div className="grid grid-cols-4 gap-2">
-      {items.map(({ icon: Icon, label, color, bg, href }) => (
+      {items.map(({ icon: Icon, labelKey, color, bg, href }) => (
         <Link
-          key={label}
+          key={labelKey}
           href={href}
           className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
         >
           <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bg}`}>
             <Icon size={23} className={color} />
           </span>
-          <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{label}</span>
+          <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(labelKey)}</span>
         </Link>
       ))}
     </div>

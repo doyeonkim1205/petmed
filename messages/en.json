@@ -72,8 +72,14 @@
   },
   "home": {
     "section": {
-      "healthRecord": "Health records",
-      "aiCare": "AI care"
+      "healthRecord": "Health Records",
+      "aiCare": "AI Care"
+    },
+    "menu": {
+      "symptomAnalysis": "Symptom Analysis",
+      "photoAnalysis": "Photo Analysis",
+      "paperSearch": "Paper Search",
+      "saved": "Saved"
     },
     "welcome": {
       "title": "Register your beloved companion",
@@ -130,9 +136,9 @@
     },
     "tab": { "records": "Records", "calendar": "Calendar" },
     "module": {
-      "stats": "Health stats",
+      "stats": "Health Stats",
       "expenses": "Expenses",
-      "preventive": "Preventive care",
+      "preventive": "Preventive Care",
       "meds": "Medications"
     },
     "moduleShort": {

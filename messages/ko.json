@@ -75,6 +75,12 @@
       "healthRecord": "건강 기록",
       "aiCare": "AI 케어"
     },
+    "menu": {
+      "symptomAnalysis": "증상 분석",
+      "photoAnalysis": "사진 분석",
+      "paperSearch": "논문 검색",
+      "saved": "보관함"
+    },
     "welcome": {
       "title": "소중한 가족을 등록해주세요",
       "subtitle": "PawDex 와 함께해요"
