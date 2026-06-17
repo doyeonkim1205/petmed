@@ -76,10 +76,15 @@ const featureGroups: { title: string; features: FeatureItem[] }[] = [
     // 숫자류·✗✓류가 섞여 분류가 모호했음. 순서는 사용 빈도·체감 가치 순으로 배치.
     title: '기록 · 관리',
     features: [
+      // 반려동물 등록 수 (무료 2 / 플러스 10) — maxPets 그대로 읽음. 0 이면 무제한.
+      { label: '반려동물 등록', key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? '무제한' : `${PLANS[p].maxPets}마리` },
       { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
       // 첨부파일 (1 vs 5) — 병원 검사지·처방전·사진 여러 장 첨부는 실사용 니즈가 커서 Plus 가치가 구체적.
       { label: '첨부파일', sublabel: '(기록당)', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}개` },
-      { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
+      // 건강 통계·지출 통계는 동일한 보존창(costStatsMonths)을 공유 — 무료 3개월 / 플러스 전체.
+      // (stats·expenses 두 페이지 모두 costStatsMonths 로 기간 잠금. 같은 값을 두 행에 노출.)
+      { label: '건강 통계', key: 'healthStats', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
+      { label: '지출 통계', key: 'expenseStats', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
       {
         label: '푸시 알림',
         sublabel: '(투약·예약·퇴원)',
