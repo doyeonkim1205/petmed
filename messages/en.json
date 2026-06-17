@@ -50,14 +50,18 @@
       "desc": "From the symptoms you describe to a single photo, we surface\nlikely concerns and tailored care guides."
     },
     "slide3": {
+      "title": "Let today's notes\nbecome tomorrow's hints",
+      "desc": "Log symptoms, visits, daily life, meds, and prevention —\nsee them all at a glance on the timeline and calendar."
+    },
+    "slide4": {
+      "title": "The more you log,\nthe clearer the trends",
+      "desc": "Track weight, water, meals, fluids, and bathroom logs,\nthen spot the trends at a glance on charts."
+    },
+    "slide5": {
       "title": "Fast on the essentials,\ntransparent to the source",
       "desc": "We translate and summarize relevant papers for easy reading,\nand you can always check the original."
     },
-    "slide4": {
-      "title": "Let today's notes\nbecome tomorrow's hints",
-      "desc": "Log symptoms and vet visits and they appear on your\ncalendar, making scheduling easier."
-    },
-    "slide5": {
+    "slide6": {
       "title": "In urgent moments,\nless wandering",
       "desc": "Quickly find 24-hour hospitals on the map\nand head out right away."
     },
@@ -75,7 +79,6 @@
   "login": {
     "subtitle1": "Pet health care,",
     "subtitle2": "made smarter",
-    "agreement": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
     "required": "Required",
     "age14": "I am 14 years of age or older.",
     "agreeTermsCheck": "I agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",

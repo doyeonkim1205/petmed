@@ -123,48 +123,74 @@ function IllustSearch() {
   );
 }
 
-function IllustCalendar() {
-  const t = useTranslations('onboarding.calendar');
-  const weekdays = t('weekdays').split(',');
+function IllustRecord() {
   return (
     <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
-      {/* Background circle */}
+      {/* Background circle — teal 톤 (기록/타임라인) */}
+      <circle cx="100" cy="100" r="90" fill="#CCFBF1" />
+      <circle cx="100" cy="100" r="70" fill="#99F6E4" opacity="0.5" />
+      {/* 기록 카드 */}
+      <rect x="48" y="48" width="104" height="104" rx="12" fill="white" stroke="#14B8A6" strokeWidth="2.5" />
+      {/* 타임라인 세로선 */}
+      <line x1="70" y1="68" x2="70" y2="134" stroke="#5EEAD4" strokeWidth="2.5" strokeLinecap="round" />
+      {/* row 1 — 체크된 노드(기록 완료) */}
+      <circle cx="70" cy="74" r="7" fill="#14B8A6" />
+      <path d="M66.5 74 L69 76.5 L73.5 71.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <rect x="84" y="70" width="50" height="4" rx="2" fill="#5EEAD4" />
+      <rect x="84" y="78" width="36" height="4" rx="2" fill="#CCFBF1" />
+      {/* row 2 — 진료(blue) */}
+      <circle cx="70" cy="102" r="6" fill="#3B82F6" />
+      <rect x="84" y="98" width="46" height="4" rx="2" fill="#5EEAD4" />
+      <rect x="84" y="106" width="32" height="4" rx="2" fill="#CCFBF1" />
+      {/* row 3 — 복약(rose) */}
+      <circle cx="70" cy="128" r="6" fill="#F43F5E" />
+      <rect x="84" y="124" width="42" height="4" rx="2" fill="#5EEAD4" />
+      <rect x="84" y="132" width="38" height="4" rx="2" fill="#CCFBF1" />
+      {/* 작은 캘린더 배지 — 우상단(캘린더 연동 힌트) */}
+      <g transform="translate(116, 36)">
+        <rect x="0" y="0" width="34" height="30" rx="5" fill="white" stroke="#0D9488" strokeWidth="2" />
+        <rect x="0" y="0" width="34" height="9" rx="5" fill="#0D9488" />
+        <rect x="0" y="5" width="34" height="4" fill="#0D9488" />
+        <rect x="8" y="-2" width="3" height="7" rx="1.5" fill="#0D9488" />
+        <rect x="23" y="-2" width="3" height="7" rx="1.5" fill="#0D9488" />
+        <circle cx="9" cy="18" r="2.2" fill="#5EEAD4" />
+        <circle cx="17" cy="18" r="2.2" fill="#14B8A6" />
+        <circle cx="25" cy="18" r="2.2" fill="#99F6E4" />
+        <circle cx="9" cy="25" r="2.2" fill="#99F6E4" />
+        <circle cx="17" cy="25" r="2.2" fill="#5EEAD4" />
+      </g>
+      {/* sparkles */}
+      <circle cx="38" cy="64" r="3" fill="#FBBF24" />
+      <circle cx="40" cy="150" r="2.5" fill="#FBBF24" />
+    </svg>
+  );
+}
+
+function IllustStats() {
+  return (
+    <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
+      {/* Background circle — amber 톤 (건강 통계) */}
       <circle cx="100" cy="100" r="90" fill="#FEF3C7" />
       <circle cx="100" cy="100" r="70" fill="#FDE68A" opacity="0.4" />
-      {/* Calendar body */}
-      <rect x="45" y="55" width="110" height="100" rx="12" fill="white" stroke="#F59E0B" strokeWidth="2.5" />
-      {/* Calendar header */}
-      <rect x="45" y="55" width="110" height="28" rx="12" fill="#F59E0B" />
-      <rect x="45" y="71" width="110" height="12" fill="#F59E0B" />
-      {/* Calendar hooks */}
-      <rect x="72" y="48" width="6" height="16" rx="3" fill="#D97706" />
-      <rect x="122" y="48" width="6" height="16" rx="3" fill="#D97706" />
-      {/* Month text */}
-      <text x="100" y="74" textAnchor="middle" fontSize="13" fontWeight="bold" fill="white">{t('month')}</text>
-      {/* Day grid */}
-      {[0, 1, 2, 3, 4, 5, 6].map((col) => (
-        <text key={`h${col}`} x={57 + col * 14} y="97" textAnchor="middle" fontSize="7" fill="#9CA3AF">
-          {weekdays[col]}
-        </text>
-      ))}
-      {/* Day dots - colored events */}
-      <circle cx="57" cy="110" r="4" fill="#3B82F6" opacity="0.8" />
-      <circle cx="85" cy="110" r="4" fill="#EF4444" opacity="0.8" />
-      <circle cx="99" cy="124" r="4" fill="#10B981" opacity="0.8" />
-      <circle cx="71" cy="138" r="4" fill="#8B5CF6" opacity="0.8" />
-      <circle cx="113" cy="138" r="4" fill="#3B82F6" opacity="0.8" />
-      {/* Day numbers (faint) */}
-      <text x="57" y="113" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">3</text>
-      <text x="85" y="113" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">5</text>
-      <text x="99" y="127" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">12</text>
-      <text x="71" y="141" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">17</text>
-      <text x="113" y="141" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">19</text>
-      {/* Pencil */}
-      <rect x="140" y="115" width="8" height="38" rx="2" fill="#F59E0B" transform="rotate(25, 144, 134)" />
-      <polygon points="138,150 142,158 146,150" fill="#FDE68A" transform="rotate(25, 142, 154)" />
-      {/* Small sparkles */}
-      <circle cx="38" cy="60" r="3" fill="#FBBF24" />
-      <circle cx="165" cy="70" r="2.5" fill="#FBBF24" />
+      {/* 차트 카드 */}
+      <rect x="44" y="52" width="112" height="96" rx="12" fill="white" stroke="#F59E0B" strokeWidth="2.5" />
+      {/* 축 */}
+      <line x1="62" y1="66" x2="62" y2="132" stroke="#FDE68A" strokeWidth="2" strokeLinecap="round" />
+      <line x1="62" y1="132" x2="144" y2="132" stroke="#FDE68A" strokeWidth="2" strokeLinecap="round" />
+      {/* 막대 — 점점 증가 */}
+      <rect x="74" y="110" width="16" height="22" rx="3" fill="#FCD34D" />
+      <rect x="100" y="96" width="16" height="36" rx="3" fill="#FBBF24" />
+      <rect x="126" y="80" width="16" height="52" rx="3" fill="#F59E0B" />
+      {/* 추세선 + 포인트 */}
+      <polyline points="82,104 108,90 134,74" fill="none" stroke="#F97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="82" cy="104" r="3.5" fill="white" stroke="#F97316" strokeWidth="2" />
+      <circle cx="108" cy="90" r="3.5" fill="white" stroke="#F97316" strokeWidth="2" />
+      <circle cx="134" cy="74" r="3.5" fill="#F97316" />
+      {/* 상승 화살표 */}
+      <path d="M128 70 L134 64 L140 70" stroke="#F97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* sparkles */}
+      <circle cx="40" cy="62" r="3" fill="#FBBF24" />
+      <circle cx="166" cy="70" r="2.5" fill="#FBBF24" />
     </svg>
   );
 }
@@ -218,9 +244,10 @@ function IllustMap() {
 const slides = [
   { Illustration: IllustPaw, key: 'slide1', gradient: 'from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-950', accentColor: '#3B82F6' },
   { Illustration: IllustAI, key: 'slide2', gradient: 'from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-950', accentColor: '#8B5CF6' },
-  { Illustration: IllustSearch, key: 'slide3', gradient: 'from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-950', accentColor: '#10B981' },
-  { Illustration: IllustCalendar, key: 'slide4', gradient: 'from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-950', accentColor: '#F59E0B' },
-  { Illustration: IllustMap, key: 'slide5', gradient: 'from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-950', accentColor: '#F43F5E' },
+  { Illustration: IllustRecord, key: 'slide3', gradient: 'from-teal-50 to-white dark:from-teal-950/30 dark:to-gray-950', accentColor: '#14B8A6' },
+  { Illustration: IllustStats, key: 'slide4', gradient: 'from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-950', accentColor: '#F59E0B' },
+  { Illustration: IllustSearch, key: 'slide5', gradient: 'from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-950', accentColor: '#10B981' },
+  { Illustration: IllustMap, key: 'slide6', gradient: 'from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-950', accentColor: '#F43F5E' },
 ];
 
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
