@@ -494,6 +494,113 @@
   "pets": {
     "type": { "dog": "강아지", "cat": "고양이" }
   },
+  "profile": {
+    "fallbackName": "사용자",
+    "avatarAlt": "프로필",
+    "menu": {
+      "pets": "나의 반려동물",
+      "saved": "내 보관함",
+      "notifications": "알림 설정",
+      "appSettings": "앱 설정",
+      "policies": "약관 및 정책",
+      "logout": "로그아웃",
+      "deleteAccount": "회원 탈퇴"
+    },
+    "nickname": {
+      "title": "닉네임 변경",
+      "placeholder": "한글·영문·숫자 (1~10자)",
+      "empty": "닉네임을 입력해주세요",
+      "saveFailed": "저장에 실패했습니다"
+    },
+    "pet": {
+      "title": "나의 반려동물",
+      "loading": "로딩 중...",
+      "empty": "등록된 반려동물이 없습니다.",
+      "editAria": "수정",
+      "deleteAria": "삭제",
+      "editTitle": "반려동물 정보 수정",
+      "addTitle": "반려동물 추가",
+      "savingNew": "등록 중...",
+      "register": "등록",
+      "saveFailed": "저장에 실패했습니다. 다시 시도해주세요.",
+      "createFailed": "등록에 실패했습니다. 다시 시도해주세요.",
+      "limitPaid": "반려동물 등록 한도({max}마리)에 도달했습니다.<br></br>추가 용량이 필요하시면 문의해 주세요.",
+      "limitFree": "반려동물은 {max}마리까지 등록할 수 있어요<br></br>Plus로 업그레이드하여 더 많은 반려동물을 등록하세요",
+      "deleteTitle": "반려동물을 삭제할까요?",
+      "deleteMsg": "{name}의 건강기록도 함께 삭제돼요.<br></br>되돌릴 수 없어요.",
+      "limitTitle": "등록 한도에 도달했어요"
+    },
+    "notif": {
+      "title": "알림 설정",
+      "push": "푸시 알림",
+      "settingUp": "설정 중...",
+      "descOn": "투약, 예약일, 퇴원일 알림을 받습니다",
+      "descOff": "알림이 꺼져 있습니다",
+      "hint": "알림을 켜면 투약 시간, 예약일, 퇴원일에 푸시 알림을 받을 수 있습니다.",
+      "unsupported": "이 브라우저에서는 푸시 알림을 지원하지 않습니다.<br></br>PWA를 설치하면 알림을 받을 수 있습니다.",
+      "iosTitle": "알림을 받으려면 앱을 설치해야 해요",
+      "iosDesc": "iOS 에서는 홈 화면에 추가한 뒤에만 푸시 알림을 받을 수 있어요.",
+      "iosInstallGuide": "설치 방법 보기"
+    },
+    "settings": {
+      "title": "앱 설정",
+      "displayMode": "화면 모드",
+      "darkMode": "다크 모드",
+      "darkModeDesc": "어두운 배경으로 눈의 피로를 줄입니다",
+      "defaultPet": "기본 반려동물",
+      "defaultPetDesc": "모든 화면에서 우선 표시됩니다",
+      "security": "보안",
+      "autoLogin": "자동 로그인",
+      "autoLoginDesc": "앱 재시작 시 자동으로 로그인합니다",
+      "accessibility": "접근성",
+      "highContrast": "고대비 모드",
+      "highContrastDesc": "텍스트와 버튼의 대비를 높입니다",
+      "fontSize": "글자 크기",
+      "fontSmall": "작게",
+      "fontNormal": "보통",
+      "fontLarge": "크게",
+      "language": "언어 / Language",
+      "storage": "저장 공간",
+      "attachments": "첨부 파일",
+      "storageFailed": "사용량을 불러오지 못했어요",
+      "appInfo": "앱 정보",
+      "version": "버전"
+    },
+    "delete": {
+      "reasonExpectationGap": "서비스가 기대와 달라요",
+      "reasonPrice": "가격이 부담돼요",
+      "reasonLowUsage": "사용 빈도가 낮아요",
+      "reasonSwitching": "다른 앱으로 전환해요",
+      "reasonPrivacy": "개인정보가 걱정돼요",
+      "reasonOther": "기타",
+      "sessionExpired": "세션이 만료되었습니다.",
+      "deleteFailed": "삭제 실패",
+      "error": "오류가 발생했습니다.",
+      "title": "정말 탈퇴하시겠어요?",
+      "warning": "모든 데이터가 <b>영구 삭제</b>되며<br></br>복구할 수 없습니다.",
+      "reasonLabel": "탈퇴 이유",
+      "reasonOptional": "(선택)",
+      "detailPlaceholder": "자세한 사유를 입력해주세요 (선택)",
+      "confirmPrompt": "확인을 위해 <b>\"{word}\"</b>를 입력해주세요.",
+      "confirmWord": "탈퇴합니다",
+      "deleting": "처리 중...",
+      "deleteCta": "탈퇴하기"
+    },
+    "alarm": {
+      "title": "알림 기능",
+      "needAppPlus": "앱을 설치하고 Plus로 업그레이드하면 알림을 사용할 수 있어요.",
+      "needApp": "앱을 설치하면 알림을 사용할 수 있어요. 홈 화면에 추가해주세요.",
+      "needPlus": "Plus로 업그레이드하면 알림을 사용할 수 있어요.",
+      "subDesc": "투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드려요."
+    },
+    "business": {
+      "line1": "디와이랩스(DYLabs) | 대표: 김도연",
+      "regNo": "사업자등록번호: 769-77-00552",
+      "ecommerceNo": "통신판매업신고번호: 2026-화성동탄-1654",
+      "address": "경기도 화성시 동탄순환대로 26길 81",
+      "contact": "010-8306-9687 | dylabs.pawdex@gmail.com"
+    }
+  },
   "photo": {
     "title": "사진 분석",
     "quotaExhaustedTitle": "사진 분석 무료 체험을 모두 사용했어요.",
@@ -534,6 +641,19 @@
       "analyze": "분석 중 오류가 발생했어요.",
       "network": "네트워크 오류가 발생했어요. 다시 시도해 주세요."
     }
+  },
+  "saved": {
+    "loadingAria": "로딩 중",
+    "empty": "보관함이 비어있습니다.",
+    "emptyHint": "논문 검색 결과에서 보관하기를 눌러보세요.",
+    "deletePaperTitle": "논문을 삭제할까요?",
+    "deleteAnalysisTitle": "보관함에서 삭제할까요?",
+    "deleteMsg": "선택한 항목을 완전히 삭제합니다.<br></br>되돌릴 수 없어요.",
+    "paperCount": "논문 {n}편",
+    "savedPapers": "저장된 논문 ({n}편)",
+    "papers": "논문 ({n}편)",
+    "original": "원문",
+    "viewOriginal": "원문 보기"
   },
   "upsell": {
     "title": "우리 아이 건강, 빈틈없이 케어하기",

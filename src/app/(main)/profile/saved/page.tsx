@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Trash2, FileText, Clock, Loader2, AlertTriangle, Pill, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,7 @@ import { getPubMedUrl } from '@/services/pubmed';
 import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function SavedAnalysesPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>([]);
@@ -79,7 +81,7 @@ export default function SavedAnalysesPage() {
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] bg-white flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-blue-400 motion-reduce:animate-none" aria-label="로딩 중" />
+        <Loader2 size={28} className="animate-spin text-blue-400 motion-reduce:animate-none" aria-label={t('saved.loadingAria')} />
       </div>
     );
   }
@@ -90,15 +92,15 @@ export default function SavedAnalysesPage() {
         <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">내 보관함</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t('profile.menu.saved')}</h1>
       </header>
 
       <div className="p-4 space-y-3">
         {analyses.length === 0 ? (
           <div className="text-center py-20">
             <FileText size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm text-gray-400">보관함이 비어있습니다.</p>
-            <p className="text-xs text-gray-300 mt-1">논문 검색 결과에서 보관하기를 눌러보세요.</p>
+            <p className="text-sm text-gray-400">{t('saved.empty')}</p>
+            <p className="text-xs text-gray-300 mt-1">{t('saved.emptyHint')}</p>
           </div>
         ) : (
           analyses.map((item) => {
@@ -120,10 +122,10 @@ export default function SavedAnalysesPage() {
 
       <ConfirmModal
         open={confirmTarget !== null}
-        title={confirmTarget?.kind === 'paper' ? '논문을 삭제할까요?' : '보관함에서 삭제할까요?'}
-        message={<>선택한 항목을 완전히 삭제합니다.<br />되돌릴 수 없어요.</>}
+        title={confirmTarget?.kind === 'paper' ? t('saved.deletePaperTitle') : t('saved.deleteAnalysisTitle')}
+        message={t.rich('saved.deleteMsg', { br: () => <br /> })}
         variant="danger"
-        confirmLabel="삭제"
+        confirmLabel={t('common.delete')}
         onConfirm={() => {
           if (!confirmTarget) return;
           if (confirmTarget.kind === 'analysis') handleDeleteAnalysis(confirmTarget.id);
@@ -147,6 +149,7 @@ function PaperAnalysisCard({
   onDeletePaper: (paperId: string) => void;
   formatDate: (d: string) => string;
 }) {
+  const t = useTranslations();
   const papers = item.saved_papers || [];
   const legacyArticles = item.articles?.length > 0 ? item.articles : [];
   const hasPapers = papers.length > 0 || legacyArticles.length > 0;
@@ -162,11 +165,11 @@ function PaperAnalysisCard({
                 <Clock size={10} /> {formatDate(item.created_at)}
               </span>
               <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full">
-                {item.pet_type === 'dog' ? '강아지' : '고양이'}
+                {item.pet_type === 'dog' ? t('pets.type.dog') : t('pets.type.cat')}
               </span>
               {hasPapers && (
                 <span className="text-[10px] text-gray-300">
-                  논문 {papers.length || legacyArticles.length}편
+                  {t('saved.paperCount', { n: papers.length || legacyArticles.length })}
                 </span>
               )}
             </div>
@@ -189,7 +192,7 @@ function PaperAnalysisCard({
             <div className="mt-3">
               <p className="text-xs font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
                 <AlertTriangle size={12} className="text-orange-400" />
-                주의사항 & 대처방법
+                {t('search.precautions')}
               </p>
               <ul className="space-y-1">
                 {item.analysis.precautions.map((p: string, i: number) => (
@@ -206,7 +209,7 @@ function PaperAnalysisCard({
             <div className="mt-3">
               <p className="text-xs font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
                 <Pill size={12} className="text-purple-400" />
-                도움되는 성분
+                {t('search.ingredients')}
               </p>
               <div className="flex flex-wrap gap-1">
                 {item.analysis.ingredients.map((ing: string, i: number) => (
@@ -222,7 +225,7 @@ function PaperAnalysisCard({
             <div className="mt-4">
               <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
                 <FileText size={12} className="text-blue-400" />
-                저장된 논문 ({papers.length}편)
+                {t('saved.savedPapers', { n: papers.length })}
               </p>
               <div className="space-y-2">
                 {papers.map((paper) => (
@@ -249,7 +252,7 @@ function PaperAnalysisCard({
                             className="inline-flex items-center gap-1 text-xs text-blue-500 flex-shrink-0"
                           >
                             <ExternalLink size={10} />
-                            원문
+                            {t('saved.original')}
                           </a>
                         </div>
                       </div>
@@ -270,7 +273,7 @@ function PaperAnalysisCard({
             <div className="mt-4">
               <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
                 <FileText size={12} className="text-blue-400" />
-                논문 ({legacyArticles.length}편)
+                {t('saved.papers', { n: legacyArticles.length })}
               </p>
               {legacyArticles.map((article: any, idx: number) => (
                 <div key={article.pmid || idx} className="py-3 border-b border-gray-50 last:border-b-0">
@@ -295,7 +298,7 @@ function PaperAnalysisCard({
                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-500"
                   >
                     <ExternalLink size={10} />
-                    원문 보기
+                    {t('saved.viewOriginal')}
                   </a>
                 </div>
               ))}

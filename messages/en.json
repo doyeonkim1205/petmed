@@ -494,6 +494,113 @@
   "pets": {
     "type": { "dog": "Dog", "cat": "Cat" }
   },
+  "profile": {
+    "fallbackName": "User",
+    "avatarAlt": "Profile",
+    "menu": {
+      "pets": "My pets",
+      "saved": "My library",
+      "notifications": "Notification settings",
+      "appSettings": "App settings",
+      "policies": "Terms & policies",
+      "logout": "Log out",
+      "deleteAccount": "Delete account"
+    },
+    "nickname": {
+      "title": "Change nickname",
+      "placeholder": "Letters & numbers (1–10 chars)",
+      "empty": "Please enter a nickname",
+      "saveFailed": "Failed to save"
+    },
+    "pet": {
+      "title": "My pets",
+      "loading": "Loading...",
+      "empty": "No pets registered.",
+      "editAria": "Edit",
+      "deleteAria": "Delete",
+      "editTitle": "Edit pet info",
+      "addTitle": "Add a pet",
+      "savingNew": "Registering...",
+      "register": "Register",
+      "saveFailed": "Failed to save. Please try again.",
+      "createFailed": "Failed to register. Please try again.",
+      "limitPaid": "You've reached the pet limit ({max}).<br></br>Contact us if you need more space.",
+      "limitFree": "You can register up to {max} pets.<br></br>Upgrade to Plus to register more.",
+      "deleteTitle": "Delete this pet?",
+      "deleteMsg": "{name}'s health records will be deleted too.<br></br>This can't be undone.",
+      "limitTitle": "Registration limit reached"
+    },
+    "notif": {
+      "title": "Notification settings",
+      "push": "Push notifications",
+      "settingUp": "Setting up...",
+      "descOn": "You'll get medication, appointment, and discharge reminders",
+      "descOff": "Notifications are off",
+      "hint": "Turn on notifications to get push reminders for medication times, appointments, and discharge dates.",
+      "unsupported": "This browser doesn't support push notifications.<br></br>Install the PWA to receive them.",
+      "iosTitle": "Install the app to receive notifications",
+      "iosDesc": "On iOS, push notifications work only after you add the app to your home screen.",
+      "iosInstallGuide": "See how to install"
+    },
+    "settings": {
+      "title": "App settings",
+      "displayMode": "Display mode",
+      "darkMode": "Dark mode",
+      "darkModeDesc": "Reduce eye strain with a dark background",
+      "defaultPet": "Default pet",
+      "defaultPetDesc": "Shown first across all screens",
+      "security": "Security",
+      "autoLogin": "Auto login",
+      "autoLoginDesc": "Log in automatically when the app restarts",
+      "accessibility": "Accessibility",
+      "highContrast": "High contrast",
+      "highContrastDesc": "Increase the contrast of text and buttons",
+      "fontSize": "Font size",
+      "fontSmall": "Small",
+      "fontNormal": "Medium",
+      "fontLarge": "Large",
+      "language": "Language / 언어",
+      "storage": "Storage",
+      "attachments": "Attachments",
+      "storageFailed": "Couldn't load usage",
+      "appInfo": "App info",
+      "version": "Version"
+    },
+    "delete": {
+      "reasonExpectationGap": "Not what I expected",
+      "reasonPrice": "Too expensive",
+      "reasonLowUsage": "I don't use it much",
+      "reasonSwitching": "Switching to another app",
+      "reasonPrivacy": "Privacy concerns",
+      "reasonOther": "Other",
+      "sessionExpired": "Your session has expired.",
+      "deleteFailed": "Failed to delete",
+      "error": "An error occurred.",
+      "title": "Delete your account?",
+      "warning": "All your data will be <b>permanently deleted</b><br></br>and cannot be recovered.",
+      "reasonLabel": "Reason for leaving",
+      "reasonOptional": "(optional)",
+      "detailPlaceholder": "Tell us more (optional)",
+      "confirmPrompt": "Type <b>\"{word}\"</b> to confirm.",
+      "confirmWord": "DELETE",
+      "deleting": "Processing...",
+      "deleteCta": "Delete account"
+    },
+    "alarm": {
+      "title": "Notifications",
+      "needAppPlus": "Install the app and upgrade to Plus to use notifications.",
+      "needApp": "Install the app to use notifications. Add it to your home screen.",
+      "needPlus": "Upgrade to Plus to use notifications.",
+      "subDesc": "We send push reminders for medication times, appointments, and discharge dates."
+    },
+    "business": {
+      "line1": "DYLabs | CEO: 김도연",
+      "regNo": "Business reg. no.: 769-77-00552",
+      "ecommerceNo": "E-commerce license: 2026-화성동탄-1654",
+      "address": "81, Dongtansunhwan-daero 26-gil, Hwaseong-si, Gyeonggi-do",
+      "contact": "010-8306-9687 | dylabs.pawdex@gmail.com"
+    }
+  },
   "photo": {
     "title": "Photo analysis",
     "quotaExhaustedTitle": "You've used all your free photo analyses.",
@@ -534,6 +641,19 @@
       "analyze": "An error occurred during analysis.",
       "network": "A network error occurred. Please try again."
     }
+  },
+  "saved": {
+    "loadingAria": "Loading",
+    "empty": "Your library is empty.",
+    "emptyHint": "Tap Save on paper search results to add them here.",
+    "deletePaperTitle": "Delete this paper?",
+    "deleteAnalysisTitle": "Delete from library?",
+    "deleteMsg": "This permanently deletes the selected item.<br></br>It can't be undone.",
+    "paperCount": "{n} papers",
+    "savedPapers": "Saved papers ({n})",
+    "papers": "Papers ({n})",
+    "original": "Original",
+    "viewOriginal": "View original"
   },
   "upsell": {
     "title": "Care for your pet's health, with nothing missed",
