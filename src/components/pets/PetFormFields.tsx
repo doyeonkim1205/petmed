@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Dog, Cat } from 'lucide-react';
 import { TextField } from '@/components/TextField';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -25,6 +26,7 @@ export function PetFormFields({
   setForm: React.Dispatch<React.SetStateAction<PetFormState>>;
   showHint?: boolean;
 }) {
+  const t = useTranslations();
   // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (다른 체중 입력칸과 통일)
   const [isTouch, setIsTouch] = useState(false);
   const [showWeightPad, setShowWeightPad] = useState(false);
@@ -38,13 +40,13 @@ export function PetFormFields({
          등록 시 정보 입력 의욕을 부드럽게 유도. 모든 필드는 여전히 선택. */}
       {showHint && (
         <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-relaxed">
-          💡 정보를 자세히 입력할수록 AI 증상 분석이 더 정확해져요
+          {t('petForm.hint')}
         </p>
       )}
 
       {/* 이름 (필수) */}
       <TextField
-        placeholder="이름"
+        placeholder={t('petForm.name')}
         value={form.name}
         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
         maxLength={12}
@@ -60,7 +62,7 @@ export function PetFormFields({
             form.type === 'dog' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
           }`}
         >
-          <Dog size={14} /> 강아지
+          <Dog size={14} /> {t('pets.type.dog')}
         </button>
         <button
           type="button"
@@ -69,13 +71,13 @@ export function PetFormFields({
             form.type === 'cat' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
           }`}
         >
-          <Cat size={14} /> 고양이
+          <Cat size={14} /> {t('pets.type.cat')}
         </button>
       </div>
 
       {/* 품종 */}
       <TextField
-        placeholder="품종 (선택)"
+        placeholder={t('petForm.breed')}
         value={form.breed}
         onChange={e => setForm(f => ({ ...f, breed: e.target.value }))}
         maxLength={25}
@@ -86,7 +88,7 @@ export function PetFormFields({
           ⚠️ toISOString() 은 UTC 라 한국 시간 새벽엔 max 가 어제로 보임.
           getFullYear/getMonth/getDate 로 로컬 ISO 생성. */}
       <div>
-        <label className="text-[11px] text-gray-400 mb-1 block">생년월일 (선택)</label>
+        <label className="text-[11px] text-gray-400 mb-1 block">{t('petForm.birthDate')}</label>
         <DatePicker
           value={form.birth_date}
           onChange={(v) => setForm(f => ({ ...f, birth_date: v }))}
@@ -100,10 +102,10 @@ export function PetFormFields({
 
       {/* 성별 — 미선택 허용 */}
       <div>
-        <label className="text-[11px] text-gray-400 mb-1 block">성별 (선택)</label>
+        <label className="text-[11px] text-gray-400 mb-1 block">{t('petForm.sex')}</label>
         <div className="flex gap-1.5">
           {(['', 'male', 'female'] as const).map(s => {
-            const labelMap: Record<'' | 'male' | 'female', string> = { '': '모름', male: '수컷', female: '암컷' };
+            const labelMap: Record<'' | 'male' | 'female', string> = { '': t('petForm.unknown'), male: t('petForm.male'), female: t('petForm.female') };
             const active = form.sex === s;
             return (
               <button
@@ -123,10 +125,10 @@ export function PetFormFields({
 
       {/* 중성화 — 미선택 허용 */}
       <div>
-        <label className="text-[11px] text-gray-400 mb-1 block">중성화 여부 (선택)</label>
+        <label className="text-[11px] text-gray-400 mb-1 block">{t('petForm.neuter')}</label>
         <div className="flex gap-1.5">
           {(['', 'yes', 'no'] as const).map(v => {
-            const labelMap: Record<'' | 'yes' | 'no', string> = { '': '모름', yes: '했어요', no: '안 했어요' };
+            const labelMap: Record<'' | 'yes' | 'no', string> = { '': t('petForm.unknown'), yes: t('petForm.neuterYes'), no: t('petForm.neuterNo') };
             const active = form.neutered === v;
             return (
               <button
@@ -148,11 +150,11 @@ export function PetFormFields({
          입력 정규식 (^\d{0,3}(\.\d{0,2})?$): 정수 최대 3자리 + 소수 최대 2자리.
          inputMode=decimal 로 모바일 숫자 키패드. type=number 미사용. */}
       <div>
-        <label className="text-[11px] text-gray-400 mb-1 block">체중 (선택)</label>
+        <label className="text-[11px] text-gray-400 mb-1 block">{t('petForm.weight')}</label>
         <div className="relative">
           <TextField
             inputMode={isTouch ? 'none' : 'decimal'}
-            placeholder="예: 4.2"
+            placeholder={t('petForm.weightPlaceholder')}
             value={form.weight}
             onChange={e => {
               const v = e.target.value;
@@ -176,7 +178,7 @@ export function PetFormFields({
             decimal
             maxIntDigits={3}
             maxDecimals={2}
-            label="체중"
+            label={t('petForm.weightLabel')}
             suffix="kg"
             onClose={() => setShowWeightPad(false)}
           />
@@ -185,9 +187,9 @@ export function PetFormFields({
 
       {/* 만성질환 — 쉼표 구분 자유 입력 (100자 한도) */}
       <div>
-        <label className="text-[11px] text-gray-400 mb-1 block">만성질환 (선택, 쉼표로 구분)</label>
+        <label className="text-[11px] text-gray-400 mb-1 block">{t('petForm.chronic')}</label>
         <TextField
-          placeholder="예: 신부전, 관절염"
+          placeholder={t('petForm.chronicPlaceholder')}
           value={form.chronic_conditions}
           onChange={e => setForm(f => ({ ...f, chronic_conditions: e.target.value }))}
           maxLength={100}

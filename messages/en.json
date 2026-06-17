@@ -494,6 +494,24 @@
   "pets": {
     "type": { "dog": "Dog", "cat": "Cat" }
   },
+  "petForm": {
+    "hint": "💡 The more details you add, the more accurate the AI symptom analysis",
+    "name": "Name",
+    "breed": "Breed (optional)",
+    "birthDate": "Birth date (optional)",
+    "sex": "Sex (optional)",
+    "unknown": "Unknown",
+    "male": "Male",
+    "female": "Female",
+    "neuter": "Neutered (optional)",
+    "neuterYes": "Yes",
+    "neuterNo": "No",
+    "weight": "Weight (optional)",
+    "weightLabel": "Weight",
+    "weightPlaceholder": "e.g. 4.2",
+    "chronic": "Chronic conditions (optional, comma-separated)",
+    "chronicPlaceholder": "e.g. kidney failure, arthritis"
+  },
   "profile": {
     "fallbackName": "User",
     "avatarAlt": "Profile",

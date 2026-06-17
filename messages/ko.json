@@ -494,6 +494,24 @@
   "pets": {
     "type": { "dog": "강아지", "cat": "고양이" }
   },
+  "petForm": {
+    "hint": "💡 정보를 자세히 입력할수록 AI 증상 분석이 더 정확해져요",
+    "name": "이름",
+    "breed": "품종 (선택)",
+    "birthDate": "생년월일 (선택)",
+    "sex": "성별 (선택)",
+    "unknown": "모름",
+    "male": "수컷",
+    "female": "암컷",
+    "neuter": "중성화 여부 (선택)",
+    "neuterYes": "했어요",
+    "neuterNo": "안 했어요",
+    "weight": "체중 (선택)",
+    "weightLabel": "체중",
+    "weightPlaceholder": "예: 4.2",
+    "chronic": "만성질환 (선택, 쉼표로 구분)",
+    "chronicPlaceholder": "예: 신부전, 관절염"
+  },
   "profile": {
     "fallbackName": "사용자",
     "avatarAlt": "프로필",
