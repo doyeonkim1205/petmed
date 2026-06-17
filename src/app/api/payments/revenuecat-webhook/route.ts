@@ -33,8 +33,10 @@ const GRANT_TYPES = new Set([
   'PRODUCT_CHANGE',
   'NON_RENEWING_PURCHASE',
 ]);
-// 권한 회수 (만료). CANCELLATION/BILLING_ISSUE 는 만료 시점까지 유지하므로 다운그레이드 X.
-const REVOKE_TYPES = new Set(['EXPIRATION']);
+// 권한 즉시 회수: EXPIRATION(만료) / REFUND(환불됨).
+// ⚠️ CANCELLATION 은 '해지 예약'(자동갱신 OFF)일 뿐 만료 시점까지는 active → 즉시 다운그레이드 X.
+//    BILLING_ISSUE(grace) 도 즉시 회수 X (EXPIRATION 이 최종 판정). 실권한은 expires_at/entitlement 기준.
+const REVOKE_TYPES = new Set(['EXPIRATION', 'REFUND']);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -141,7 +143,8 @@ export async function POST(request: NextRequest) {
     // 구독 이벤트 로그 (유효 type 만). BILLING_ISSUE/TRANSFER 등은 로깅 생략.
     const evt = type === 'RENEWAL' ? 'renew'
       : GRANT_TYPES.has(type) ? 'purchase'
-      : REVOKE_TYPES.has(type) ? 'expired'
+      : type === 'EXPIRATION' ? 'expired'
+      : type === 'REFUND' ? 'refund'
       : type === 'CANCELLATION' ? 'cancel'
       : null;
     if (evt) {
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
       await logSubscriptionEvent(
         appUserId,
         evt,
-        evt === 'expired' ? 'free' : 'plus',
+        REVOKE_TYPES.has(type) ? 'free' : 'plus',
         undefined,
         `RevenueCat: ${type}`,
       ).catch(() => {});
