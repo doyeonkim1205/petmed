@@ -17,7 +17,9 @@
     "edit": "Edit",
     "add": "Add",
     "registerPetFirst": "Please register a pet first",
-    "category": "Category"
+    "category": "Category",
+    "done": "Done",
+    "selectPet": "Please select a pet"
   },
   "nav": {
     "home": "Home",
@@ -385,5 +387,33 @@
     "amountPlaceholder": "Amount (₩)",
     "amount": "Amount",
     "addExpense": "Add expense"
+  },
+  "stats": {
+    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion" },
+    "tabSettingsLabel": "Metric display settings",
+    "filterHint": "Choose the metrics you want to see here,\nand reorder them too.",
+    "editMetrics": "Edit metrics",
+    "editMetricsDesc": "Reorder with up/down · toggle visibility with the switch",
+    "shown": "Shown",
+    "hidden": "Hidden",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "showMetric": "Show",
+    "hideMetric": "Hide",
+    "customDateHint": "Pick any start/end date",
+    "noMetrics": "No metrics to show. Turn them on in My page > App settings.",
+    "current": "Current",
+    "petWeight": "{name}'s weight",
+    "noChange": "No change",
+    "noWeightRecords": "No weight records yet",
+    "weightHint": "Weights entered in records (visits/hospitalization) gather here automatically.",
+    "weightChange": "Weight trend",
+    "min": "Min",
+    "max": "Max",
+    "memoPlaceholder": "Memo (optional)",
+    "addWeight": "Log weight",
+    "history": "History",
+    "tapToDelete": "Tap a record to delete",
+    "recordGeneric": "Record"
   }
 }

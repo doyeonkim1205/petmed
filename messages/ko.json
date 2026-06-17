@@ -17,7 +17,9 @@
     "edit": "수정",
     "add": "추가",
     "registerPetFirst": "먼저 반려동물을 등록해주세요",
-    "category": "카테고리"
+    "category": "카테고리",
+    "done": "완료",
+    "selectPet": "반려동물을 선택해주세요"
   },
   "nav": {
     "home": "홈",
@@ -385,5 +387,33 @@
     "amountPlaceholder": "금액(원)",
     "amount": "금액",
     "addExpense": "지출 추가"
+  },
+  "stats": {
+    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변" },
+    "tabSettingsLabel": "표시 지표 설정",
+    "filterHint": "여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요.",
+    "editMetrics": "지표 편집",
+    "editMetricsDesc": "위/아래로 순서 변경 · 스위치로 표시 켜고 끄기",
+    "shown": "표시 중",
+    "hidden": "숨김",
+    "moveUp": "위로",
+    "moveDown": "아래로",
+    "showMetric": "표시 켜기",
+    "hideMetric": "표시 끄기",
+    "customDateHint": "시작/종료 날짜를 자유롭게 선택하세요",
+    "noMetrics": "표시할 지표가 없어요. 마이페이지 > 앱 설정에서 켜주세요.",
+    "current": "현재",
+    "petWeight": "{name} 체중",
+    "noChange": "변화없음",
+    "noWeightRecords": "아직 체중 기록이 없어요",
+    "weightHint": "기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요.",
+    "weightChange": "체중 변화",
+    "min": "최저",
+    "max": "최고",
+    "memoPlaceholder": "메모 (선택)",
+    "addWeight": "체중 기록",
+    "history": "기록 내역",
+    "tapToDelete": "기록을 눌러 삭제",
+    "recordGeneric": "기록"
   }
 }

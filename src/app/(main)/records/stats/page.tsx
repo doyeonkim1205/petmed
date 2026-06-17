@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, X } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
@@ -25,14 +26,15 @@ const TAB_ICON: Record<MetricTabId, ComponentType<{ size?: number; className?: s
 };
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
-const allPeriodOptions: { id: Period; label: string; months: number }[] = [
-  { id: 'month', label: '1개월', months: 1 },
-  { id: '3month', label: '3개월', months: 3 },
-  { id: 'year', label: '1년', months: 12 },
+// 라벨은 messages(stats.period.* === expenses.period.* 동일)로 분리 — id 로 t() 참조.
+const allPeriodOptions: { id: Period; months: number }[] = [
+  { id: 'month', months: 1 },
+  { id: '3month', months: 3 },
+  { id: 'year', months: 12 },
   // "전체" 와 "직접 선택" 은 큰 값 (200 개월 = 16년+) 으로 Free(3) 에선 자물쇠,
   // Plus(999) 에선 사용 가능하게 분류.
-  { id: 'all', label: '전체', months: 200 },
-  { id: 'custom', label: '직접 선택', months: 200 },
+  { id: 'all', months: 200 },
+  { id: 'custom', months: 200 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
@@ -144,6 +146,8 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
 }
 
 export default function StatsPage() {
+  const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { user, profile } = useAuth();
   const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
@@ -390,8 +394,8 @@ export default function StatsPage() {
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">건강 통계</h1>
-          <button onClick={() => setShowTabSettings((v) => !v)} className="absolute right-2 p-2 text-gray-400" aria-label="표시 지표 설정">
+          <h1 className="text-sm font-semibold text-gray-700">{t('record.module.stats')}</h1>
+          <button onClick={() => setShowTabSettings((v) => !v)} className="absolute right-2 p-2 text-gray-400" aria-label={t('stats.tabSettingsLabel')}>
             <SlidersHorizontal size={16} />
           </button>
         </header>
@@ -399,41 +403,41 @@ export default function StatsPage() {
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
         <div className="absolute right-2 top-[50px] z-20 w-64">
           <OnboardHint storageKey="hint_stats_filter_v2" pointer="right"
-            text={"여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요."} />
+            text={t('stats.filterHint')} />
         </div>
 
         {/* 지표 편집 바텀시트 — 배경 락 + 큰 ↑↓ 순서 변경 + 표시 토글 */}
         {showTabSettings && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowTabSettings(false)}>
             <div className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowTabSettings(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600" aria-label="닫기"><X size={20} /></button>
+              <button onClick={() => setShowTabSettings(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600" aria-label={t('common.close')}><X size={20} /></button>
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
-              <h3 className="text-base font-bold text-gray-900 text-center mb-1">지표 편집</h3>
-              <p className="text-xs text-gray-400 text-center mb-4 break-keep break-words">위/아래로 순서 변경 · 스위치로 표시 켜고 끄기</p>
+              <h3 className="text-base font-bold text-gray-900 text-center mb-1">{t('stats.editMetrics')}</h3>
+              <p className="text-xs text-gray-400 text-center mb-4 break-keep break-words">{t('stats.editMetricsDesc')}</p>
 
-              <p className="text-[11px] font-bold text-gray-400 mb-1">표시 중</p>
+              <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.shown')}</p>
               {enabledTabs.map((id, i) => (
                 <div key={id} className="flex items-center gap-2 py-2.5">
-                  <span className="flex-1 text-sm font-medium text-gray-800">{STATS_TAB_LABELS[id]}</span>
+                  <span className="flex-1 text-sm font-medium text-gray-800">{t(`stats.tab.${id}`)}</span>
                   <button onClick={() => moveTab(id, 'up')} disabled={i <= 0}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label="위로"><ChevronUp size={18} /></button>
+                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveUp')}><ChevronUp size={18} /></button>
                   <button onClick={() => moveTab(id, 'down')} disabled={i >= enabledTabs.length - 1}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label="아래로"><ChevronDown size={18} /></button>
-                  <button onClick={() => toggleStatTab(id)} aria-label="표시 끄기"
+                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveDown')}><ChevronDown size={18} /></button>
+                  <button onClick={() => toggleStatTab(id)} aria-label={t('stats.hideMetric')}
                     className={`relative w-10 h-6 rounded-full flex-shrink-0 transition-colors ${enabledTabs.length === 1 ? 'bg-blue-300' : 'bg-blue-600'}`}>
                     <span className="absolute top-0.5 left-[18px] w-5 h-5 rounded-full bg-white transition-all" />
                   </button>
                 </div>
               ))}
 
-              {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).length > 0 && (
+              {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).length > 0 && (
                 <>
                   <div className="border-t border-dashed border-gray-200 my-3" />
-                  <p className="text-[11px] font-bold text-gray-400 mb-1">숨김</p>
-                  {ALL_METRIC_TABS.filter((t) => !enabledTabs.includes(t)).map((id) => (
+                  <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.hidden')}</p>
+                  {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).map((id) => (
                     <div key={id} className="flex items-center gap-2 py-2.5">
-                      <span className="flex-1 text-sm font-medium text-gray-400">{STATS_TAB_LABELS[id]}</span>
-                      <button onClick={() => toggleStatTab(id)} aria-label="표시 켜기"
+                      <span className="flex-1 text-sm font-medium text-gray-400">{t(`stats.tab.${id}`)}</span>
+                      <button onClick={() => toggleStatTab(id)} aria-label={t('stats.showMetric')}
                         className="relative w-10 h-6 rounded-full flex-shrink-0 bg-gray-300 transition-colors">
                         <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all" />
                       </button>
@@ -443,7 +447,7 @@ export default function StatsPage() {
               )}
 
               <button onClick={() => setShowTabSettings(false)}
-                className="w-full h-11 mt-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">완료</button>
+                className="w-full h-11 mt-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">{t('common.done')}</button>
             </div>
           </div>
         )}
@@ -463,7 +467,7 @@ export default function StatsPage() {
             return (
               <button key={id} onClick={() => setTab(id)}
                 className={`flex-1 min-w-[68px] flex items-center justify-center gap-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${tab === id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
-                <Icon size={13} />{STATS_TAB_LABELS[id]}
+                <Icon size={13} />{t(`stats.tab.${id}`)}
               </button>
             );
           })}
@@ -475,12 +479,12 @@ export default function StatsPage() {
         <div className="flex gap-1.5 overflow-x-auto">
           {periodOptions.map((p) => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{p.label}</button>
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t(`expenses.period.${p.id}`)}</button>
           ))}
           {lockedOptions.map((p) => (
             <button key={p.id} onClick={() => router.push('/profile/subscription')}
               className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-              <Lock size={11} />{p.label}
+              <Lock size={11} />{t(`expenses.period.${p.id}`)}
             </button>
           ))}
         </div>
@@ -497,13 +501,13 @@ export default function StatsPage() {
                 className="flex-1 min-w-0"
                 inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">시작/종료 날짜를 자유롭게 선택하세요</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('stats.customDateHint')}</p>
           </div>
         )}
 
         {enabledTabs.length === 0 && (
           <div className="rounded-xl border border-gray-100 py-10 text-center text-sm text-gray-400 break-keep break-words">
-            표시할 지표가 없어요. 마이페이지 &gt; 앱 설정에서 켜주세요.
+            {t('stats.noMetrics')}
           </div>
         )}
 
@@ -515,7 +519,7 @@ export default function StatsPage() {
             ) : (noPets || needPetSelect) ? (
               <div className="text-center py-16">
                 <Scale size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
+                <p className="text-gray-400 text-sm">{noPets ? t('common.registerPetFirst') : t('common.selectPet')}</p>
               </div>
             ) : (
               <>
@@ -524,7 +528,7 @@ export default function StatsPage() {
                   <div className="rounded-xl bg-blue-50 p-4 flex items-center justify-between">
                     <div>
                       <p className="text-[11px] text-blue-400 font-medium">
-                        {pets.find(p => p.id === selectedPetId)?.name || '현재'} 체중
+                        {t('stats.petWeight', { name: pets.find(p => p.id === selectedPetId)?.name || t('stats.current') })}
                       </p>
                       <p className="text-xl font-bold text-gray-800">{latestWeight.weight}kg</p>
                     </div>
@@ -537,32 +541,32 @@ export default function StatsPage() {
                       </div>
                     ) : weightDiff === 0 ? (
                       <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                        <Minus size={12} /> 변화없음
+                        <Minus size={12} /> {t('stats.noChange')}
                       </div>
                     ) : null}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-gray-100 py-8 text-center">
                     <Scale size={32} className="mx-auto text-gray-300 mb-1.5" />
-                    <p className="text-sm text-gray-400">아직 체중 기록이 없어요</p>
+                    <p className="text-sm text-gray-400">{t('stats.noWeightRecords')}</p>
                   </div>
                 )}
 
                 <OnboardHint storageKey="hint_stats_weight_record_v2" pointer="center"
-                  text="기록장(진료·입퇴원)에 적은 체중도 자동으로 여기에 모여요." />
+                  text={t('stats.weightHint')} />
 
                 {/* Chart */}
                 {chartData.length >= 2 && (
                   <div className="rounded-xl border border-gray-100 p-4">
-                    <h2 className="text-sm font-bold text-gray-700 mb-3">체중 변화</h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-3">{t('stats.weightChange')}</h2>
                     <WeightChart data={chartData} />
                     <div className="flex justify-center gap-6 mt-3">
                       <div className="text-center">
-                        <p className="text-[10px] text-gray-400">최저</p>
+                        <p className="text-[10px] text-gray-400">{t('stats.min')}</p>
                         <p className="text-sm font-bold text-blue-600">{weightMin}kg</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[10px] text-gray-400">최고</p>
+                        <p className="text-[10px] text-gray-400">{t('stats.max')}</p>
                         <p className="text-sm font-bold text-red-500">{weightMax}kg</p>
                       </div>
                     </div>
@@ -575,7 +579,7 @@ export default function StatsPage() {
                     <div className="flex gap-2">
                       <input type="text"
                         inputMode={isTouch ? 'none' : 'decimal'}
-                        placeholder="체중 (kg)" value={newWeight}
+                        placeholder={t('record.form.weightKg')} value={newWeight}
                         onChange={(e) => {
                           const v = e.target.value;
                           if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
@@ -595,15 +599,15 @@ export default function StatsPage() {
                         className="flex-1 min-w-0"
                         inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                     </div>
-                    <input type="search" placeholder="메모 (선택)" value={newWeightMemo}
+                    <input type="search" placeholder={t('stats.memoPlaceholder')} value={newWeightMemo}
                       onChange={(e) => setNewWeightMemo(e.target.value)} maxLength={100} autoComplete="off"
                       className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-blue-500 [&::-webkit-search-cancel-button]:hidden" />
                     <div className="flex gap-2">
                       <button onClick={() => { setShowWeightInput(false); setNewWeightMemo(''); }}
-                        className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+                        className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
                       <button onClick={handleAddWeight} disabled={!newWeight || weightSaving}
                         className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">
-                        {weightSaving ? '저장 중...' : '저장'}
+                        {weightSaving ? t('record.form.saving') : t('common.save')}
                       </button>
                     </div>
                     {showWeightPad && (
@@ -613,7 +617,7 @@ export default function StatsPage() {
                         decimal
                         maxIntDigits={3}
                         maxDecimals={2}
-                        label="체중"
+                        label={t('record.field.weight')}
                         suffix="kg"
                         onClose={() => setShowWeightPad(false)}
                       />
@@ -625,14 +629,14 @@ export default function StatsPage() {
                     setShowWeightInput(true);
                   }}
                     className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm font-medium hover:bg-blue-50 transition-colors">
-                    <Plus size={16} /> 체중 기록
+                    <Plus size={16} /> {t('stats.addWeight')}
                   </button>
                 )}
 
                 {/* Weight history */}
                 {weightData.length > 0 && (
                   <div className="space-y-1">
-                    <h2 className="text-sm font-bold text-gray-700 mb-2">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-2">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
                     {[...weightData].reverse().map((item) => {
                       const key = `${item.source}-${item.id}-${item.date}`;
                       const isSelected = selectedWeightId === key && item.source === 'log';
@@ -647,12 +651,12 @@ export default function StatsPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400">
-                                {new Date(item.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                                {new Date(item.date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'numeric', day: 'numeric' })}
                               </span>
                               {!selectedPetId && item.petName && <span className="text-[11px] text-gray-400">{item.petName}</span>}
                               {item.source === 'record' && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded">
-                                  {item.recordType === 'symptom' ? '증상' : item.recordType === 'hospitalization' ? '입퇴원' : item.recordType === 'visit' ? '진료' : '기록'}
+                                  {item.recordType === 'symptom' ? t('record.typeShort.symptom') : item.recordType === 'hospitalization' ? t('record.typeShort.hospitalization') : item.recordType === 'visit' ? t('record.typeShort.visit') : t('stats.recordGeneric')}
                                 </span>
                               )}
                             </div>
@@ -665,7 +669,7 @@ export default function StatsPage() {
                                 onClick={(e) => { e.stopPropagation(); handleDeleteWeight(item.id); setSelectedWeightId(null); }}
                                 className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium"
                               >
-                                삭제
+                                {t('common.delete')}
                               </button>
                             )}
                           </div>
@@ -687,7 +691,7 @@ export default function StatsPage() {
             return (
               <div className="text-center py-16">
                 <Icon size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
+                <p className="text-gray-400 text-sm">{noPets ? t('common.registerPetFirst') : t('common.selectPet')}</p>
               </div>
             );
           }
@@ -710,7 +714,7 @@ export default function StatsPage() {
             return (
               <div className="text-center py-16">
                 <CircleDot size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">{noPets ? '먼저 반려동물을 등록해주세요' : '반려동물을 선택해주세요'}</p>
+                <p className="text-gray-400 text-sm">{noPets ? t('common.registerPetFirst') : t('common.selectPet')}</p>
               </div>
             );
           }
