@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { localeFromRequest } from '@/lib/aiLocale';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -17,11 +18,13 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+    const locale = localeFromRequest(request);
+    const en = locale === 'en';
 
     // 분 단위 burst 방어
     if (!checkRateLimit(`${userId}:disease-description`, 10, 60_000)) {
       return NextResponse.json(
-        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { error: en ? 'Too many requests. Please try again shortly.' : '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
         { status: 429 },
       );
     }
@@ -48,11 +51,11 @@ export async function POST(request: NextRequest) {
       .eq('action', 'disease.describe')
       .gte('created_at', oneHourAgo);
     if ((count || 0) >= 20) {
-      return NextResponse.json({ error: '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
+      return NextResponse.json({ error: en ? 'Please try again later. (rate limit exceeded)' : '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
     }
 
-    // Check cache (90-day TTL)
-    const cacheKey = `disease_desc:${sanitized}:${pet}`;
+    // Check cache (90-day TTL) — locale 포함 (EN/KO 캐시 분리, 교차 오염 방지)
+    const cacheKey = `disease_desc:${sanitized}:${pet}:${locale}`;
     const ttl = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data: cached } = await supabaseAdmin
       .from('search_cache')
@@ -81,7 +84,23 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `너는 수의학 질병 설명 전문가야. ${petLabel} 보호자가 이해할 수 있도록 간결하게 설명해.
+            content: en
+              ? `You are a veterinary disease explanation expert. Explain concisely so a ${pet === 'cat' ? 'cat' : 'dog'} guardian can understand. Respond in ENGLISH.
+
+You MUST respond ONLY in the following JSON format:
+{
+  "name_ko": "the disease name in plain English",
+  "name_en": "the scientific English name",
+  "description": "a brief explanation of the disease (2-3 sentences, guardian-friendly English)",
+  "symptoms": ["main symptom 1", "symptom 2", "symptom 3"],
+  "when_to_visit": "when to see a vet (1 sentence)"
+}
+
+Rules:
+- symptoms: up to 5
+- When using technical terms, add a plain explanation in parentheses
+- Do not speculate; provide only reliable information`
+              : `너는 수의학 질병 설명 전문가야. ${petLabel} 보호자가 이해할 수 있도록 간결하게 설명해.
 
 반드시 아래 JSON 형식으로만 응답해:
 {
@@ -99,7 +118,9 @@ export async function POST(request: NextRequest) {
           },
           {
             role: 'user',
-            content: `${petLabel}의 "${sanitized}"에 대해 설명해줘.`,
+            content: en
+              ? `Explain "${sanitized}" in a ${pet === 'cat' ? 'cat' : 'dog'}.`
+              : `${petLabel}의 "${sanitized}"에 대해 설명해줘.`,
           },
         ],
       }),

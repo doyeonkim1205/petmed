@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { localeFromRequest } from '@/lib/aiLocale';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -20,8 +21,11 @@ async function analyzeBatch(
   diseaseName: string,
   petType: string,
   apiKey: string,
+  locale: 'ko' | 'en' = 'ko',
 ) {
+  const en = locale === 'en';
   const petLabel = petType === 'cat' ? '고양이' : '강아지';
+  const petLabelEn = petType === 'cat' ? 'cat' : 'dog';
 
   const papersText = papers
     .map((p: any, i: number) => {
@@ -51,7 +55,30 @@ async function analyzeBatch(
       messages: [
         {
           role: 'system',
-          content: `너는 수의학 논문 분석 전문가야. 사용자가 제공하는 PubMed 논문 정보${hasAbstracts ? '(초록 포함)' : ''}를 바탕으로 반드시 아래 JSON 형식으로만 응답해.
+          content: en
+            ? `You are a veterinary paper analysis expert. Based on the PubMed paper information${hasAbstracts ? ' (including abstracts)' : ''} the user provides, respond ONLY in the following JSON format. Write all text in ENGLISH.
+
+{
+  "titles": ["paper 1 title", ...],
+  "summaries": ["paper 1 summary", ...],
+  "relevant": [true, false, ...],
+  "precautions": ["precaution 1", ...],
+  "ingredients": ["ingredient 1", ...]
+}
+
+★ Relevance judgment (most important):
+- relevant: a true/false array of whether each paper directly addresses "${diseaseName}".
+  - true: the paper's topic itself concerns the diagnosis, treatment, prognosis, or management of "${diseaseName}"
+  - false: merely mentions "${diseaseName}", is indirectly related, or is about a different topic
+- Extract precautions and ingredients only from relevant=true papers; ignore relevant=false papers.
+
+Rules:
+- titles: each paper's title in natural English (you may keep/lightly clean the original English title). Same count as the papers.
+- summaries: summarize each paper in 2-3 plain English sentences a ${petLabelEn} guardian can understand, ${hasAbstracts ? 'based on the abstract' : 'based on the title'}. Same count as the papers. ${hasAbstracts ? 'Include specific figures, results, and conclusions from the abstract.' : ''}
+- precautions: synthesize relevant=true papers into up to 5 precautions/what-to-do items for "${diseaseName}" in a ${petLabelEn}. Prioritize content common across papers. Specific and practical.
+- ingredients: up to 5 helpful ingredients/nutrients/therapeutic substances mentioned in relevant=true papers. Format "name (English explanation)".
+- Never include anything without direct support in the paper abstracts/titles. Do not fill in with guesses or general knowledge.`
+            : `너는 수의학 논문 분석 전문가야. 사용자가 제공하는 PubMed 논문 정보${hasAbstracts ? '(초록 포함)' : ''}를 바탕으로 반드시 아래 JSON 형식으로만 응답해.
 
 {
   "titles": ["논문1 제목 한국어 번역", ...],
@@ -76,7 +103,9 @@ async function analyzeBatch(
         },
         {
           role: 'user',
-          content: `${petLabel}의 "${diseaseName}"에 대한 PubMed 논문 ${papers.length}편입니다. 각 논문을 개별적으로 요약하고, 전체를 종합하여 주의사항과 도움되는 성분을 추출해주세요.\n\n${papersText}`,
+          content: en
+            ? `These are ${papers.length} PubMed papers on "${diseaseName}" in a ${petLabelEn}. Summarize each paper individually, then synthesize the whole into precautions and helpful ingredients.\n\n${papersText}`
+            : `${petLabel}의 "${diseaseName}"에 대한 PubMed 논문 ${papers.length}편입니다. 각 논문을 개별적으로 요약하고, 전체를 종합하여 주의사항과 도움되는 성분을 추출해주세요.\n\n${papersText}`,
         },
       ],
     }),
@@ -96,11 +125,13 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+    const locale = localeFromRequest(request);
+    const en = locale === 'en';
 
     // 분 단위 burst 방어 (일일 한도와 별개)
     if (!checkRateLimit(`${userId}:analyze-papers`, 10, 60_000)) {
       return NextResponse.json(
-        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { error: en ? 'Too many requests. Please try again shortly.' : '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
         { status: 429 },
       );
     }
@@ -127,12 +158,12 @@ export async function POST(request: NextRequest) {
       .eq('action', 'papers.analyze')
       .gte('created_at', oneHourAgo);
     if ((count || 0) >= 15) {
-      return NextResponse.json({ error: '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
+      return NextResponse.json({ error: en ? 'Please try again later. (rate limit exceeded)' : '잠시 후 다시 시도해주세요. (요청 한도 초과)' }, { status: 429 });
     }
 
-    // Check cache (30-day TTL)
+    // Check cache (30-day TTL) — locale 포함 (EN/KO 캐시 분리)
     const pmids = papers.map((p: { pmid: string }) => p.pmid).sort().join(',');
-    const cacheKey = `paper_analysis:${sanitized}:${pet}:${pmids}`;
+    const cacheKey = `paper_analysis:${sanitized}:${pet}:${locale}:${pmids}`;
     const ttl = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: cached } = await supabaseAdmin
       .from('search_cache')
@@ -157,8 +188,8 @@ export async function POST(request: NextRequest) {
       const batch2 = papers.slice(mid);
 
       const [result1, result2] = await Promise.all([
-        analyzeBatch(batch1, diseaseName, petType, OPENAI_API_KEY),
-        analyzeBatch(batch2, diseaseName, petType, OPENAI_API_KEY),
+        analyzeBatch(batch1, diseaseName, petType, OPENAI_API_KEY, locale),
+        analyzeBatch(batch2, diseaseName, petType, OPENAI_API_KEY, locale),
       ]);
 
       // 배열 결과 병합 (titles, summaries, relevant는 순서대로 연결)
@@ -185,7 +216,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5편 이하는 단일 호출
-    const parsed = await analyzeBatch(papers, sanitized, petType, OPENAI_API_KEY);
+    const parsed = await analyzeBatch(papers, sanitized, petType, OPENAI_API_KEY, locale);
     const singleResult = {
       titles: parsed.titles ?? [],
       summaries: parsed.summaries ?? [],
