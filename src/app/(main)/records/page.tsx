@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,23 +19,26 @@ import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'daily';
 
-const filterOptions: { id: RecordFilter; label: string }[] = [
-  { id: 'all', label: '전체' },
-  { id: 'symptom', label: '증상' },
-  { id: 'visit', label: '진료' },
-  { id: 'hospitalization', label: '입퇴원' },
-  { id: 'daily', label: '일상' },
+// 라벨은 messages 로 분리 — id 로 t('record.typeShort.*' | 'common.all') 참조.
+const filterOptions: { id: RecordFilter }[] = [
+  { id: 'all' },
+  { id: 'symptom' },
+  { id: 'visit' },
+  { id: 'hospitalization' },
+  { id: 'daily' },
 ];
 
 // 기록장 상단 빠른 접근. 평소엔 2×2 카드, 스크롤로 가려지면 헤더에 슬림 1줄 바로 고정.
+// 라벨/숏라벨은 messages(record.module.* / record.moduleShort.*)로 분리 — key 로 참조.
 const QUICK_LINKS = [
-  { icon: Activity, label: '건강 통계', short: '통계', color: 'text-blue-500', href: '/records/stats' },
-  { icon: Wallet, label: '지출 관리', short: '지출', color: 'text-gray-500', href: '/records/expenses' },
-  { icon: Syringe, label: '예방 관리', short: '예방', color: 'text-sky-500', href: '/records/preventive' },
-  { icon: Pill, label: '복약 관리', short: '복약', color: 'text-pink-500', href: '/records/meds' },
-];
+  { icon: Activity, key: 'stats', color: 'text-blue-500', href: '/records/stats' },
+  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
+  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
+  { icon: Pill, key: 'meds', color: 'text-pink-500', href: '/records/meds' },
+] as const;
 
 export default function RecordsPage() {
+  const t = useTranslations();
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId') || null;
@@ -172,7 +176,7 @@ export default function RecordsPage() {
         extra: { userId: user?.id, count: selectedIds.size },
       });
       console.error('Bulk delete error:', err);
-      setDeleteError('삭제 중 오류가 발생했습니다.');
+      setDeleteError(t('record.list.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -216,8 +220,8 @@ export default function RecordsPage() {
   if (!user) return null;
 
   const tabs = [
-    { id: 'records' as Tab, label: '기록', icon: ClipboardList },
-    { id: 'calendar' as Tab, label: '캘린더', icon: Calendar },
+    { id: 'records' as Tab, icon: ClipboardList },
+    { id: 'calendar' as Tab, icon: Calendar },
   ];
 
   return (
@@ -239,7 +243,7 @@ export default function RecordsPage() {
                 }`}
               >
                 <Icon size={14} />
-                {tab.label}
+                {t(`record.tab.${tab.id}`)}
               </button>
             );
           })}
@@ -263,7 +267,7 @@ export default function RecordsPage() {
                   )}
                 </button>
                 <span className="text-sm text-gray-600">
-                  {selectedIds.size > 0 ? `${selectedIds.size}개 선택됨` : '전체 선택'}
+                  {selectedIds.size > 0 ? t('record.select.count', { count: selectedIds.size }) : t('record.select.all')}
                 </span>
               </div>
               <button
@@ -271,7 +275,7 @@ export default function RecordsPage() {
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
               >
                 <X size={14} />
-                취소
+                {t('common.cancel')}
               </button>
             </div>
           ) : (
@@ -286,7 +290,7 @@ export default function RecordsPage() {
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {f.label}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
+                  {f.id === 'all' ? t('common.all') : t(`record.typeShort.${f.id}`)}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
                 </button>
               ))}
               {filteredRecords.length > 0 && (
@@ -294,7 +298,7 @@ export default function RecordsPage() {
                   onClick={() => setSelectMode(true)}
                   className="flex-shrink-0 ml-auto px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
                 >
-                  선택
+                  {t('record.select.enter')}
                 </button>
               )}
             </div>
@@ -312,7 +316,7 @@ export default function RecordsPage() {
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-white border border-gray-200 active:bg-gray-50 transition-colors"
                 >
                   <Icon size={13} className={`${q.color} flex-shrink-0`} />
-                  <span className="text-[11px] font-bold text-gray-600">{q.short}</span>
+                  <span className="text-[11px] font-bold text-gray-600">{t(`record.moduleShort.${q.key}`)}</span>
                 </button>
               );
             })}
@@ -325,9 +329,9 @@ export default function RecordsPage() {
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
             {newPet.type === 'cat' ? <Cat size={28} className="text-blue-400" /> : <Dog size={28} className="text-blue-400" />}
           </div>
-          <h2 className="text-lg font-bold text-gray-800 mb-1">반려동물을 등록해주세요</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">{t('record.noPets.title')}</h2>
           <p className="text-sm text-gray-400 text-center mb-8">
-            건강 기록을 시작하려면<br />먼저 반려동물을 등록해야 합니다.
+            {t.rich('record.noPets.message', { br: () => <br /> })}
           </p>
 
           <div className="w-full max-w-sm space-y-3">
@@ -338,7 +342,7 @@ export default function RecordsPage() {
               disabled={savingPet || !newPet.name.trim()}
               className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors"
             >
-              {savingPet ? '등록 중...' : '등록하기'}
+              {savingPet ? t('record.noPets.registering') : t('record.noPets.register')}
             </button>
           </div>
         </div>
@@ -353,14 +357,14 @@ export default function RecordsPage() {
           ) : error ? (
             <div className="text-center py-20">
               <AlertTriangle size={40} className="mx-auto mb-3 text-orange-300" />
-              <p className="text-gray-600 text-sm mb-1">기록을 불러올 수 없습니다</p>
+              <p className="text-gray-600 text-sm mb-1">{t('record.list.loadError')}</p>
               <p className="text-gray-400 text-xs mb-4">{error}</p>
               <button
                 onClick={fetchRecords}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-[#fff] rounded-full text-sm font-medium"
               >
                 <RefreshCw size={14} />
-                다시 시도
+                {t('common.retry')}
               </button>
             </div>
           ) : (
@@ -376,7 +380,7 @@ export default function RecordsPage() {
                       className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
                     >
                       <Icon size={14} className={`${q.color} flex-shrink-0`} />
-                      <p className="text-[13px] font-bold text-gray-700">{q.label}</p>
+                      <p className="text-[13px] font-bold text-gray-700">{t(`record.module.${q.key}`)}</p>
                     </button>
                   );
                 })}
@@ -384,13 +388,13 @@ export default function RecordsPage() {
               {records.length === 0 ? (
                 <div className="text-center py-16">
                   <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
-                  <p className="text-gray-400 text-sm">아직 기록이 없습니다.</p>
-                  <p className="text-gray-300 text-xs mt-1">+ 버튼을 눌러 첫 기록을 추가해보세요</p>
+                  <p className="text-gray-400 text-sm">{t('record.list.empty')}</p>
+                  <p className="text-gray-300 text-xs mt-1">{t('record.list.emptyHint')}</p>
                 </div>
               ) : filteredRecords.length === 0 ? (
                 <div className="text-center py-16">
                   <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
-                  <p className="text-gray-400 text-sm">해당 유형의 기록이 없습니다.</p>
+                  <p className="text-gray-400 text-sm">{t('record.list.emptyFiltered')}</p>
                 </div>
               ) : (
                 filteredRecords.map((record) => (
@@ -432,7 +436,7 @@ export default function RecordsPage() {
             className="fixed bottom-20 left-1/2 -translate-x-1/2 h-12 px-6 bg-red-500 text-[#fff] rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-red-600 active:scale-95 transition-all z-40 disabled:opacity-50"
           >
             <Trash2 size={18} />
-            <span className="font-medium text-sm">{deleting ? '삭제 중...' : `${selectedIds.size}개 삭제`}</span>
+            <span className="font-medium text-sm">{deleting ? t('record.select.deleting') : t('record.select.deleteCount', { count: selectedIds.size })}</span>
           </button>
         ) : !selectMode && (
           <button
@@ -447,10 +451,10 @@ export default function RecordsPage() {
 
       <ConfirmModal
         open={showDeleteConfirm}
-        title={`${selectedIds.size}개의 기록을 삭제할까요?`}
-        message="삭제된 기록은 복구할 수 없어요."
-        confirmLabel="삭제"
-        cancelLabel="취소"
+        title={t('record.delete.confirmTitle', { count: selectedIds.size })}
+        message={t('record.delete.confirmMessage')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={confirmBulkDelete}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -458,9 +462,9 @@ export default function RecordsPage() {
 
       <ConfirmModal
         open={!!deleteError}
-        title="삭제 실패"
+        title={t('record.delete.failTitle')}
         message={deleteError || ''}
-        confirmLabel="확인"
+        confirmLabel={t('common.confirm')}
         hideCancel
         onConfirm={() => setDeleteError(null)}
         onCancel={() => setDeleteError(null)}

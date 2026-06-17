@@ -9,7 +9,8 @@
     "skip": "Skip",
     "next": "Next",
     "start": "Get started",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "all": "All"
   },
   "nav": {
     "home": "Home",
@@ -94,6 +95,58 @@
         "title": "AI reads your records with you",
         "subtitle": "We analyze symptoms from your pet's health records"
       }
+    }
+  },
+  "record": {
+    "type": {
+      "symptom": "Symptom record",
+      "daily": "Daily record",
+      "visit": "Visit record",
+      "hospitalization": "Hospitalization"
+    },
+    "typeShort": {
+      "symptom": "Symptom",
+      "daily": "Daily",
+      "visit": "Visit",
+      "hospitalization": "Hospital"
+    },
+    "tab": { "records": "Records", "calendar": "Calendar" },
+    "module": {
+      "stats": "Health stats",
+      "expenses": "Expenses",
+      "preventive": "Preventive care",
+      "meds": "Medications"
+    },
+    "moduleShort": {
+      "stats": "Stats",
+      "expenses": "Cost",
+      "preventive": "Care",
+      "meds": "Meds"
+    },
+    "select": {
+      "all": "Select all",
+      "count": "{count} selected",
+      "enter": "Select",
+      "deleting": "Deleting...",
+      "deleteCount": "Delete {count}"
+    },
+    "noPets": {
+      "title": "Please register a pet",
+      "message": "To start health records,<br></br>you need to register a pet first.",
+      "register": "Register",
+      "registering": "Registering..."
+    },
+    "list": {
+      "loadError": "Couldn't load records",
+      "empty": "No records yet.",
+      "emptyHint": "Tap + to add your first record",
+      "emptyFiltered": "No records of this type.",
+      "deleteError": "An error occurred while deleting."
+    },
+    "delete": {
+      "confirmTitle": "Delete {count, plural, one {# record} other {# records}}?",
+      "confirmMessage": "Deleted records can't be recovered.",
+      "failTitle": "Delete failed"
     }
   }
 }
