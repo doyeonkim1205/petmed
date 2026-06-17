@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, Plus, Syringe, Bell, BellOff, Loader2, Trash2, X, AlertTriangle, Check } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +15,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import {
-  PREVENTIVE_CATEGORIES, categoryMeta, categoryLabel, intervalLabel,
+  PREVENTIVE_CATEGORIES, categoryMeta, categoryLabel, categoryProducts, intervalLabel,
   addInterval, careStatus, ddayLabel, todayISO, type CareStatus,
 } from '@/lib/preventiveCare';
 
@@ -73,6 +73,7 @@ const groupMeta: Record<CareStatus, { dot: string; text: string }> = {
 
 export default function PreventivePage() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
   const { getByPet, addCare, updateCare, markDone, deleteCare } = usePreventiveCares();
@@ -279,7 +280,12 @@ export default function PreventivePage() {
     }
   };
 
-  const fmtDate = (d?: string | null) => (d ? `${parseInt(d.split('-')[1])}.${parseInt(d.split('-')[2])}` : '');
+  // 영어는 "Jun 16", 한국어는 "6.16".
+  const fmtDate = (d?: string | null) => {
+    if (!d) return '';
+    if (locale === 'en') return new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${parseInt(d.split('-')[1])}.${parseInt(d.split('-')[2])}`;
+  };
 
   // 상태별 그룹 (이미 next_due 오름차순 정렬됨)
   const grouped: Record<CareStatus, PreventiveCare[]> = { overdue: [], soon: [], ok: [] };
@@ -434,9 +440,9 @@ export default function PreventivePage() {
               {/* 제품 (선택) */}
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block">{t('preventive.product')} <span className="text-gray-300">{t('common.optional')}</span></label>
-                {categoryMeta(form.category).products.length > 0 && (
+                {categoryProducts(form.category, locale).length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2">
-                    {categoryMeta(form.category).products.map((p) => (
+                    {categoryProducts(form.category, locale).map((p) => (
                       <button
                         key={p}
                         type="button"

@@ -8,18 +8,25 @@ export interface CategoryMeta {
   emoji: string;
   defaultUnit: 'month' | 'year';
   defaultValue: number;
-  products: string[];
+  products: string[];   // 한국어 제품명(선택 시 DB 저장값)
+  productsEn: string[]; // 영어 브랜드명 (locale=en 표시용)
 }
 
 export const PREVENTIVE_CATEGORIES: CategoryMeta[] = [
-  { id: 'heartworm',         label: '심장사상충',   emoji: '🦟', defaultUnit: 'month', defaultValue: 1, products: ['하트가드 플러스', '넥스가드 스펙트라', '애드보킷', '레볼루션', '프로하트(주사)'] },
-  { id: 'external_parasite', label: '외부기생충',   emoji: '🛡️', defaultUnit: 'month', defaultValue: 1, products: ['넥스가드', '프론트라인', '브라벡토', '세레스토(목걸이)', '레볼루션'] },
-  { id: 'internal_worm',     label: '내부구충',     emoji: '🪱', defaultUnit: 'month', defaultValue: 3, products: ['드론탈', '파나쿠어', '버박'] },
-  { id: 'vaccine',           label: '종합백신',     emoji: '💉', defaultUnit: 'year',  defaultValue: 1, products: ['DHPPL(강아지)', 'FVRCP(고양이)', '켄넬코프', '인플루엔자', '백혈병(FeLV)'] },
-  { id: 'rabies',            label: '광견병',       emoji: '🩹', defaultUnit: 'year',  defaultValue: 1, products: [] },
-  { id: 'health_check',      label: '건강검진',     emoji: '🩺', defaultUnit: 'year',  defaultValue: 1, products: ['종합검진', '혈액검사', '심장검사'] },
-  { id: 'other',             label: '기타',         emoji: '➕', defaultUnit: 'month', defaultValue: 1, products: [] },
+  { id: 'heartworm',         label: '심장사상충',   emoji: '🦟', defaultUnit: 'month', defaultValue: 1, products: ['하트가드 플러스', '넥스가드 스펙트라', '애드보킷', '레볼루션', '프로하트(주사)'], productsEn: ['Heartgard Plus', 'NexGard Spectra', 'Advocate', 'Revolution', 'ProHeart (injection)'] },
+  { id: 'external_parasite', label: '외부기생충',   emoji: '🛡️', defaultUnit: 'month', defaultValue: 1, products: ['넥스가드', '프론트라인', '브라벡토', '세레스토(목걸이)', '레볼루션'], productsEn: ['NexGard', 'Frontline', 'Bravecto', 'Seresto (collar)', 'Revolution'] },
+  { id: 'internal_worm',     label: '내부구충',     emoji: '🪱', defaultUnit: 'month', defaultValue: 3, products: ['드론탈', '파나쿠어', '버박'], productsEn: ['Drontal', 'Panacur', 'Virbac'] },
+  { id: 'vaccine',           label: '종합백신',     emoji: '💉', defaultUnit: 'year',  defaultValue: 1, products: ['DHPPL(강아지)', 'FVRCP(고양이)', '켄넬코프', '인플루엔자', '백혈병(FeLV)'], productsEn: ['DHPPL (dog)', 'FVRCP (cat)', 'Kennel cough', 'Influenza', 'Leukemia (FeLV)'] },
+  { id: 'rabies',            label: '광견병',       emoji: '🩹', defaultUnit: 'year',  defaultValue: 1, products: [], productsEn: [] },
+  { id: 'health_check',      label: '건강검진',     emoji: '🩺', defaultUnit: 'year',  defaultValue: 1, products: ['종합검진', '혈액검사', '심장검사'], productsEn: ['Full checkup', 'Blood test', 'Cardiac exam'] },
+  { id: 'other',             label: '기타',         emoji: '➕', defaultUnit: 'month', defaultValue: 1, products: [], productsEn: [] },
 ];
+
+// 표시용 제품 목록 (locale-aware). 선택 시 저장되는 값도 표시값과 동일 — 제품명은 자유 입력 필드라 파싱 의존 없음.
+export function categoryProducts(id: PreventiveCategory, locale: string): string[] {
+  const m = categoryMeta(id);
+  return locale === 'en' ? m.productsEn : m.products;
+}
 
 export function categoryMeta(id: PreventiveCategory): CategoryMeta {
   return PREVENTIVE_CATEGORIES.find((c) => c.id === id) || PREVENTIVE_CATEGORIES[PREVENTIVE_CATEGORIES.length - 1];

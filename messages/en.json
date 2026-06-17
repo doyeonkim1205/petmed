@@ -116,7 +116,7 @@
       "symptom": "Symptom",
       "daily": "Daily",
       "visit": "Visit",
-      "hospitalization": "Hospital"
+      "hospitalization": "Hospitalization"
     },
     "tab": { "records": "Records", "calendar": "Calendar" },
     "module": {
@@ -205,7 +205,7 @@
       "title": "Title",
       "memo": "Memo",
       "description": "Description",
-      "titleLabel": { "symptom": "Symptom name", "hospitalization": "Admission reason", "visit": "Visit reason" },
+      "titleLabel": { "symptom": "Symptom name", "hospitalization": "Reason for admission", "visit": "Reason for visit" },
       "titlePlaceholder": { "symptom": "e.g. vomiting, diarrhea", "hospitalization": "e.g. patella surgery, enteritis treatment", "visit": "e.g. checkup, vaccination" },
       "dateLabel": { "symptom": "Onset date", "hospitalization": "Admission date", "visit": "Visit date" },
       "dailyTitlePlaceholder": "e.g. 30-min walk, grooming, family outing",
@@ -283,7 +283,7 @@
     "emptyHint": "Try a longer period or add a record",
     "period": { "week": "1 week", "month": "1 month", "3month": "3 months" },
     "label": {
-      "hospitalization": "Hospital", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
+      "hospitalization": "Hospitalization", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
       "preventive": "Preventive", "med": "Med", "poop": "Stool", "pee": "Urine",
       "food": "Food", "water": "Water", "fluid": "Fluid", "weight": "Weight", "cost": "Cost"
     },
@@ -302,22 +302,22 @@
   },
   "preventive": {
     "category": {
-      "heartworm": "Heartworm", "external_parasite": "External parasite", "internal_worm": "Internal worm",
-      "vaccine": "Vaccine", "rabies": "Rabies", "health_check": "Health checkup", "other": "Other"
+      "heartworm": "Heartworm", "external_parasite": "External parasite", "internal_worm": "Deworming",
+      "vaccine": "Vaccination", "rabies": "Rabies", "health_check": "Health checkup", "other": "Other"
     },
     "interval": { "monthly": "Monthly", "yearly": "Yearly", "everyMonths": "Every {value} months", "everyYears": "Every {value} years" },
-    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days} days overdue", "overdueMax": "30+ days overdue" },
+    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days, plural, one {# day} other {# days}} overdue", "overdueMax": "30+ days overdue" },
     "status": { "overdue": "Overdue", "soon": "Soon", "ok": "OK" },
     "selectPet": "Please select a pet first",
     "saveError": "Something went wrong while saving. Please try again.",
     "toastUpdated": "Next due date updated to {date}",
-    "nextPrefix": "Next",
-    "done": "Done",
+    "nextPrefix": "Next:",
+    "done": "Mark done",
     "intro": "Manage recurring preventive care like vaccines, heartworm, and deworming in one place! We'll remind you as the due date approaches.",
     "empty": "No preventive items yet",
     "emptyHint": "Tap + to add one",
-    "addTitle": "Add preventive item",
-    "editTitle": "Edit preventive item",
+    "addTitle": "Add preventive care item",
+    "editTitle": "Edit preventive care item",
     "categoryLabel": "Category",
     "product": "Product",
     "productPlaceholder": "Enter product/item name (e.g. Heartgard)",
