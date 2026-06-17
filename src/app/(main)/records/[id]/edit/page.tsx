@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, Trash2, Stethoscope, Pill, Bell, BellOff, PawPrint } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,10 +28,11 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { type RecordDraft } from '@/lib/recordDraft';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
+// value 는 DB 저장값(한국어 고정). 표시는 labelKey 로 분리 (add 와 동일).
 const frequencyOptions = [
-  { value: '1일 1회', times: 1 },
-  { value: '1일 2회', times: 2 },
-  { value: '1일 3회', times: 3 },
+  { value: '1일 1회', times: 1, labelKey: 'onceDaily' },
+  { value: '1일 2회', times: 2, labelKey: 'twiceDaily' },
+  { value: '1일 3회', times: 3, labelKey: 'thriceDaily' },
 ];
 
 const defaultAlarmTimes: Record<number, string[]> = {
@@ -62,6 +64,7 @@ interface MedicationInput {
 
 export default function RecordEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations();
   const router = useRouter();
   const { user, profile } = useAuth();
   const { getRecord, updateRecord } = useHealthRecords();
@@ -418,28 +421,28 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     if (recordType === 'daily') {
       // 제목 필수, 메모는 선택.
       if (!title.trim()) {
-        showError('제목을 입력해주세요.'); return;
+        showError(t('record.form.error.titleRequired')); return;
       }
     } else {
-      const titleLabel = recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유';
-      if (!title.trim()) { showError(`${titleLabel}를 입력해주세요.`); return; }
+      const titleLabel = t(`record.form.titleLabel.${recordType}`);
+      if (!title.trim()) { showError(t('record.form.error.fieldRequired', { field: titleLabel })); return; }
       if (dischargeDate && dischargeDate < visitDate) {
-        showError('퇴원일은 입원일 이후여야 합니다.'); return;
+        showError(t('record.form.error.dischargeAfterAdmission')); return;
       }
       if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-        showError('다음 예약일은 ' + (recordType === 'hospitalization' ? '입원일' : '진료일') + ' 이후여야 합니다.'); return;
+        showError(recordType === 'hospitalization' ? t('record.form.error.appointmentAfterAdmission') : t('record.form.error.appointmentAfterVisit')); return;
       }
       const emptyNameMed = medications.find(m => !m.name.trim());
       if (emptyNameMed) {
-        showError('약 이름을 입력해주세요.'); return;
+        showError(t('record.form.error.medNameRequired')); return;
       }
       const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
       if (noEndMed) {
-        showError(`투약 종료일을 선택해주세요. (${noEndMed.name})`); return;
+        showError(t('record.form.error.medEndRequired', { name: noEndMed.name })); return;
       }
       const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
       if (badMed) {
-        showError(`투약 종료일은 시작일 이후여야 합니다. (${badMed.name})`); return;
+        showError(t('record.form.error.medEndAfterStart', { name: badMed.name })); return;
       }
     }
 
@@ -455,8 +458,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           if (!storage.canUpload) {
             showError(
               getEffectivePlan(profile?.plan) === 'plus'
-                ? `저장 공간이 부족해요(${storage.limitMB}MB) 추가 용량이 필요하시면 문의해 주세요`
-                : `저장 공간이 부족해요(${storage.limitMB}MB) Plus로 업그레이드하여 용량을 늘려보세요!`,
+                ? t('record.form.error.storageFullApp', { mb: storage.limitMB })
+                : t('record.form.error.storageFullWeb', { mb: storage.limitMB }),
             );
             setSaving(false);
             return;
@@ -600,7 +603,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         extra: { recordId: id, userId: user?.id },
       });
       console.error('Error updating record:', err);
-      setError('수정에 실패했습니다.');
+      setError(t('record.form.error.editFailed'));
     } finally {
       setSaving(false);
     }
@@ -616,7 +619,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <button onClick={handleBack} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">기록 수정</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t('record.form.editTitle')}</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
@@ -632,16 +635,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             <Stethoscope size={16} className="text-gray-400" />
           )}
           <h3 className="text-sm font-semibold text-gray-800">
-            {recordType === 'daily' ? '일상 기록' : '기본 정보'}
+            {recordType === 'daily' ? t('record.type.daily') : t('record.section.basicInfo')}
           </h3>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">반려동물</label>
+          <label className="text-sm font-medium">{t('common.pet')}</label>
           {pets.length > 0 ? (
             <PetSelectDropdown pets={pets} value={petId} onChange={setPetId} />
           ) : (
-            <p className="text-xs text-gray-400">등록된 반려동물이 없습니다.</p>
+            <p className="text-xs text-gray-400">{t('record.form.noPets')}</p>
           )}
         </div>
 
@@ -649,10 +652,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'daily' && (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium">제목</label>
+              <label className="text-sm font-medium">{t('record.form.title')}</label>
               <input
                 type="search"
-                placeholder="예: 산책 30분, 미용, 가족 나들이"
+                placeholder={t('record.form.dailyTitlePlaceholder')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={50}
@@ -663,10 +666,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-2">메모 <span className="text-gray-400 font-normal">(선택)</span></label>
+              <label className="text-sm font-medium block mb-2">{t('record.form.memo')} <span className="text-gray-400 font-normal">{t('common.optional')}</span></label>
               <textarea
                 name="description"
-                placeholder="오늘 하루를 기록해보세요"
+                placeholder={t('record.form.dailyMemoPlaceholder')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
@@ -681,7 +684,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '증상명' : recordType === 'hospitalization' ? '입원 사유' : '진료 사유'}
+            {t(`record.form.titleLabel.${recordType}`)}
           </label>
           <input
             type="search"
@@ -700,12 +703,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+              {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <input
               type="text"
               inputMode={isTouch ? 'none' : 'decimal'}
-              placeholder="예: 3.5"
+              placeholder={t('record.form.weightPlaceholder')}
               autoComplete="off"
               maxLength={6}
               name="pet-weight-kg"
@@ -724,7 +727,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType !== 'daily' && (
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {recordType === 'symptom' ? '발생일' : recordType === 'hospitalization' ? '입원일' : '진료일'}
+            {t(`record.form.dateLabel.${recordType}`)}
           </label>
           <DatePicker
             value={visitDate}
@@ -732,7 +735,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             name="visit-date"
           />
           {recordType === 'visit' && (
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
+            <ColorPicker label={t('record.form.calendarColor')} value={recordColor} onChange={setRecordColor}  />
           )}
         </div>
         )}
@@ -741,7 +744,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              발생 시간 <span className="text-gray-400 font-normal">(선택)</span>
+              {t('record.form.onsetTime')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <TimePicker value={symptomTime} onChange={setSymptomTime} />
           </div>
@@ -751,7 +754,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'hospitalization' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              퇴원일 <span className="text-gray-400 font-normal">(선택)</span>
+              {t('record.field.dischargeDate')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <DatePicker
               value={dischargeDate}
@@ -759,8 +762,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               name="discharge-date"
               min={visitDate}
             />
-            <p className="text-xs text-gray-400">아직 입원 중이면 비워두세요</p>
-            <ColorPicker label="캘린더 표시 색상" value={recordColor} onChange={setRecordColor}  />
+            <p className="text-xs text-gray-400">{t('record.form.dischargeHint')}</p>
+            <ColorPicker label={t('record.form.calendarColor')} value={recordColor} onChange={setRecordColor}  />
           </div>
         )}
 
@@ -768,7 +771,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              설명 <span className="text-gray-400 font-normal">(선택)</span>
+              {t('record.form.description')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <textarea
               name="description"
@@ -786,13 +789,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <>
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Stethoscope size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">진료 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('record.section.visitInfo')}</h3>
             </div>
 
             {/* Description (진료/입퇴원 → 진료정보에) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                설명 <span className="text-gray-400 font-normal">(선택)</span>
+                {t('record.form.description')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <textarea
                 name="description"
@@ -807,12 +810,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {/* Weight (진료/입퇴원: 설명 아래) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                체중 (kg) <span className="text-gray-400 font-normal">(선택)</span>
+                {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <input
                 type="text"
                 inputMode={isTouch ? 'none' : 'decimal'}
-                placeholder="예: 3.5"
+                placeholder={t('record.form.weightPlaceholder')}
                 value={weight}
                 onChange={(e) => {
                 const v = e.target.value;
@@ -833,12 +836,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                병원명 <span className="text-gray-400 font-normal">(선택)</span>
+                {t('record.form.hospitalName')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <div className="relative">
                 <input
                   type="search"
-                  placeholder="병원명을 입력하세요"
+                  placeholder={t('record.form.hospitalNamePlaceholder')}
                   value={hospitalName}
                   onChange={(e) => { setHospitalName(e.target.value); setShowHospitalSuggestions(true); }}
                   onFocus={() => setShowHospitalSuggestions(true)}
@@ -888,7 +891,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                비용 (원) <span className="text-gray-400 font-normal">(선택)</span>
+                {t('record.form.costWon')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <input
                 type="text"
@@ -912,7 +915,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {/* Next Appointment Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                다음 예약일 <span className="text-gray-400 font-normal">(선택)</span>
+                {t('record.field.nextAppointment')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <DatePicker
                 value={nextAppointmentDate}
@@ -922,7 +925,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               />
               {nextAppointmentDate && (
                 <div className="ml-3 pl-3 border-l-2 border-purple-200">
-                  <ColorPicker label="예약일 색상" value={nextAppointmentColor} onChange={setNextAppointmentColor} />
+                  <ColorPicker label={t('record.form.appointmentColor')} value={nextAppointmentColor} onChange={setNextAppointmentColor} />
                 </div>
               )}
             </div>
@@ -934,20 +937,20 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <div className="space-y-3">
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Pill size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">투약 정보</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('record.section.medicationInfo')}</h3>
               <button
                 type="button"
                 onClick={addMedicationRow}
                 className="flex items-center gap-1 text-sm text-blue-600 font-medium ml-auto"
               >
-                <Plus size={16} /> 약 추가
+                <Plus size={16} /> {t('record.form.addMed')}
               </button>
             </div>
             {medications.map((med, i) => (
               <div key={med.id || i} className="p-3 bg-gray-50 rounded-xl space-y-2">
                 <input
                   type="search"
-                  placeholder="약 이름"
+                  placeholder={t('record.form.medNamePlaceholder')}
                   value={med.name}
                   onChange={(e) => updateMedicationField(i, 'name', e.target.value)}
                   maxLength={20}
@@ -958,7 +961,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 />
                 <input
                   type="search"
-                  placeholder="용량 (예: 1정)"
+                  placeholder={t('record.form.dosagePlaceholder')}
                   maxLength={20}
                   autoComplete="off"
                   enterKeyHint="next"
@@ -969,7 +972,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 />
                 {/* Frequency selector */}
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
+                  <label className="text-xs text-gray-400 mb-1 block">{t('record.form.frequency')}</label>
                   <div className="flex gap-1.5">
                     {frequencyOptions.map((opt) => (
                       <button
@@ -982,14 +985,14 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                             : 'bg-white border border-gray-200 text-gray-500'
                         }`}
                       >
-                        {opt.value}
+                        {t(`record.dose.${opt.labelKey}`)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-gray-400">시작일</label>
+                    <label className="text-xs text-gray-400">{t('record.form.startDate')}</label>
                     <DatePicker
                       value={med.start_date}
                       onChange={(v) => updateMedicationField(i, 'start_date', v)}
@@ -997,7 +1000,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">종료일</label>
+                    <label className="text-xs text-gray-400">{t('record.form.endDate')}</label>
                     <DatePicker
                       value={med.end_date}
                       onChange={(v) => updateMedicationField(i, 'end_date', v)}
@@ -1007,7 +1010,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   </div>
                 </div>
                 <ColorPicker
-                  label="캘린더 색상"
+                  label={t('record.form.medCalendarColor')}
                   value={med.color}
                   onChange={(c) => updateMedicationField(i, 'color', c)}
                 />
@@ -1028,13 +1031,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     ) : (
                       <BellOff size={14} />
                     )}
-                    {subscribingIdx === i ? '알림 켜는 중...' : `투약 알림 ${med.alarm_enabled ? 'ON' : 'OFF'}`}
+                    {subscribingIdx === i ? t('record.form.alarmTurningOn') : t('record.form.medAlarm', { state: med.alarm_enabled ? 'ON' : 'OFF' })}
                   </button>
                   {canUseAlarm && med.alarm_enabled && (
                     <div className="space-y-1.5 mt-1">
                       {med.alarm_times.map((time, ti) => (
                         <div key={ti} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
+                          <span className="text-xs text-gray-400 w-12">{t('record.form.doseNth', { n: ti + 1 })}</span>
                           <TimePicker
                             value={time}
                             onChange={(v) => updateMedAlarmTime(i, ti, v)}
@@ -1052,7 +1055,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     className="flex items-center gap-1 py-1.5 px-3 text-xs text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={13} />
-                    삭제
+                    {t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -1066,7 +1069,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
           <Paperclip size={16} className="text-gray-400" />
           <h3 className="text-sm font-semibold text-gray-800">
-            {recordType === 'daily' ? '오늘을 담은 한 컷' : '첨부파일'}
+            {recordType === 'daily' ? t('record.detail.dailyPhoto') : t('record.form.attachments')}
           </h3>
         </div>
 
@@ -1121,7 +1124,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       type="button"
                       onClick={handleDownload}
                       className="p-1.5 text-gray-400 hover:text-blue-600"
-                      title="다운로드"
+                      title={t('record.detail.download')}
                     >
                       <Download size={16} />
                     </button>
@@ -1129,7 +1132,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       type="button"
                       onClick={() => removeExistingFile(file.id)}
                       className="p-1.5 text-gray-400 hover:text-red-500"
-                      title="삭제"
+                      title={t('common.delete')}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -1150,7 +1153,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               }
             }}
             maxFiles={Math.max(maxNewFiles, 0)}
-            placeholder={recordType === 'daily' ? '오늘 하루를 담은 사진 한 장을 올려보세요' : undefined}
+            placeholder={recordType === 'daily' ? t('record.form.dailyPhotoPlaceholder') : undefined}
             atLimitUpsell={recordType === 'daily' ? 'none' : (isPaidUser ? 'plus' : 'free')}
           />
           <div ref={fileEndRef} />
@@ -1169,7 +1172,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           decimal
           maxIntDigits={3}
           maxDecimals={2}
-          label="체중"
+          label={t('record.field.weight')}
           suffix="kg"
           onClose={() => setShowWeightPad(false)}
         />
@@ -1181,8 +1184,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           decimal={false}
           maxIntDigits={8}
           thousands
-          label="비용"
-          suffix="원"
+          label={t('record.field.cost')}
+          suffix={t('record.form.wonSuffix')}
           onClose={() => setShowCostPad(false)}
         />
       )}
@@ -1195,7 +1198,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           disabled={saving}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-colors"
         >
-          {saving ? '저장 중...' : '저장'}
+          {saving ? t('record.form.saving') : t('common.save')}
         </button>
       </div>
 
@@ -1205,26 +1208,24 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
             <div className="flex items-center gap-2 mb-3">
               <Bell size={18} className="text-blue-500" />
-              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+              <h3 className="text-sm font-bold text-gray-800">{t('record.form.alarmFeatureTitle')}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
-              {!isPWA
-                ? '앱을 설치하고 유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'
-                : '유료 플랜으로 업그레이드하면 투약 알림을 받을 수 있습니다.'}
+              {!isPWA ? t('record.form.alarmUpsellApp') : t('record.form.alarmUpsellWeb')}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드립니다.</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('record.form.alarmUpsellDesc')}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
               >
-                닫기
+                {t('common.close')}
               </button>
               <button
                 onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               >
-                요금제 보기
+                {t('record.form.viewPlans')}
               </button>
             </div>
           </div>
@@ -1233,10 +1234,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       <ConfirmModal
         open={showExitConfirm}
-        title="저장하지 않고 나갈까요?"
-        message="저장되지 않은 변경사항이 있습니다."
-        confirmLabel="나가기"
-        cancelLabel="계속 수정"
+        title={t('record.form.leaveTitle')}
+        message={t('record.form.leaveMessage')}
+        confirmLabel={t('record.form.leave')}
+        cancelLabel={t('record.form.keepEditing')}
         variant="danger"
         onConfirm={() => {
           // "나가기" = 수정 포기. draft + 세션 마커 모두 정리 → 다음 진입 시 모달 안 뜸.
@@ -1253,17 +1254,17 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           [불러오기] = state 에 적용 (서버 값 덮어씀) / [새로 시작] = draft 삭제, 서버 record 그대로. */}
       <ConfirmModal
         open={!!pendingDraft}
-        title="이전 수정 중인 내용 불러올까요?"
+        title={t('record.form.draftTitle')}
         message={
           <>
-            <p>최근 수정하다가 멈춘 내용이 있어요.</p>
+            <p>{t('record.form.draftMessage1')}</p>
             <p className="mt-2 text-[10px] text-gray-400">
-              약·첨부 파일은 저장된 그대로 유지돼요
+              {t('record.form.draftMessage2Edit')}
             </p>
           </>
         }
-        confirmLabel="불러오기"
-        cancelLabel="새로 시작"
+        confirmLabel={t('record.form.draftLoad')}
+        cancelLabel={t('record.form.draftNew')}
         onConfirm={applyDraft}
         onCancel={discardDraft}
       />

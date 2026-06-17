@@ -262,8 +262,10 @@
         "medEndAfterStart": "End date must be after the start date. ({name})",
         "storageFullApp": "Storage is full ({mb}MB). Contact us if you need more space.",
         "storageFullWeb": "Storage is full ({mb}MB). Upgrade to Plus to increase your space!",
-        "saveFailed": "Failed to save the record."
-      }
+        "saveFailed": "Failed to save the record.",
+        "editFailed": "Failed to update the record."
+      },
+      "draftMessage2Edit": "Medications and attachments stay as saved"
     }
   }
 }
