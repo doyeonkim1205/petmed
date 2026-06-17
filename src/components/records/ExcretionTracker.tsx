@@ -1,19 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Plus, StickyNote } from 'lucide-react';
 import { supabase, type Pet, type ExcretionKind, type ExcretionLog } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
 import { todayLocalISO, localDateKey } from '@/lib/date';
 import {
-  conditionsFor, conditionMeta, amountLabel, colorMeta,
+  conditionsFor, conditionMeta, conditionLabel, amountLabelI18n, colorLabelI18n,
   AMOUNTS, POOP_COLORS, isAbnormalCondition,
 } from '@/lib/excretion';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
-
-const KIND_LABEL: Record<ExcretionKind, string> = { poop: '대변', pee: '소변' };
 
 // 날짜(YYYY-MM-DD) + 시각(HH:MM) → ISO timestamp.
 function buildMeasuredAt(dateISO: string, timeHHMM: string): string {
@@ -38,6 +37,8 @@ export function ExcretionTracker({
   startDate: Date;
   endDate: Date;
 }) {
+  const t = useTranslations();
+  const locale = useLocale();
   const [kind, setKind] = useState<ExcretionKind>('poop');
   const [logs, setLogs] = useState<ExcretionLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,15 +80,16 @@ export function ExcretionTracker({
   }, []);
   const fmtWhen = (iso: string) => {
     const d = new Date(iso);
-    const t = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-    return dateKey(iso) === todayStr ? `오늘 ${t}` : `${d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} ${t}`;
+    const tm = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (dateKey(iso) === todayStr) return t('excretion.todayTime', { time: tm });
+    return `${d.toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'numeric', day: 'numeric' })} ${tm}`;
   };
   const fmtDateHeader = (dateK: string) => {
-    if (dateK === todayStr) return '오늘';
-    if (dateK === yesterdayStr) return '어제';
-    return new Date(`${dateK}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+    if (dateK === todayStr) return t('timeline.today');
+    if (dateK === yesterdayStr) return t('timeline.yesterday');
+    return new Date(`${dateK}T00:00:00`).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   };
-  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   // 기간 내 로그
   const inRange = useMemo(() => logs.filter((l) => {
@@ -146,30 +148,30 @@ export function ExcretionTracker({
         {(['poop', 'pee'] as ExcretionKind[]).map((k) => (
           <button key={k} onClick={() => setKind(k)}
             className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${kind === k ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
-            {KIND_LABEL[k]}
+            {t(`excretion.kindLabel.${k}`)}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-sm text-gray-400">불러오는 중…</div>
+        <div className="py-10 text-center text-sm text-gray-400">{t('excretion.loading')}</div>
       ) : (
         <>
           {/* 요약 — 오늘 횟수 + 마지막 기록(상태·시각) + 이상 pill(있을 때만) */}
           <div className="rounded-xl border border-gray-100 p-4 flex items-center justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] text-gray-400">오늘 {KIND_LABEL[kind]}</p>
-              <p className="text-lg font-bold text-gray-800">{todayCount > 0 ? `${todayCount}회` : '-'}</p>
+              <p className="text-[11px] text-gray-400">{t('excretion.todayKind', { kind: t(`excretion.kindLabel.${kind}`) })}</p>
+              <p className="text-lg font-bold text-gray-800">{todayCount > 0 ? t('excretion.times', { count: todayCount }) : '-'}</p>
               {lastLog && (
                 <p className="text-[11px] text-gray-400 mt-0.5 inline-flex items-center gap-1">
-                  마지막
+                  {t('excretion.last')}
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: conditionMeta(kind, lastLog.condition).color }} />
-                  {conditionMeta(kind, lastLog.condition).label} · {fmtWhen(lastLog.measured_at)}
+                  {conditionLabel(kind, lastLog.condition, t)} · {fmtWhen(lastLog.measured_at)}
                 </p>
               )}
             </div>
             {abnormalCount > 0 && (
-              <span className="flex-shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700">주의 {abnormalCount}회</span>
+              <span className="flex-shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700">{t('excretion.cautionCount', { count: abnormalCount })}</span>
             )}
           </div>
 
@@ -178,13 +180,13 @@ export function ExcretionTracker({
             <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: accent + '55', background: accent + '0d' }}>
               {/* 상태 (필수) */}
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">상태</label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('excretion.conditionTitle')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
                     <button key={o.id} type="button" onClick={() => setCondition(o.id)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
                       <span className="inline-flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{o.label}
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{conditionLabel(kind, o.id, t)}
                       </span>
                     </button>
                   ))}
@@ -193,12 +195,12 @@ export function ExcretionTracker({
 
               {/* 양 (선택) */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">양 <span className="text-gray-300">(선택)</span></label>
+                <label className="text-xs text-gray-400 mb-1.5 block">{t('excretion.amountTitle')} <span className="text-gray-300">{t('common.optional')}</span></label>
                 <div className="flex gap-1.5">
                   {AMOUNTS.map((o) => (
                     <button key={o.id} type="button" onClick={() => setAmount(amount === o.id ? '' : o.id)}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${amount === o.id ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'}`}>
-                      {o.label}
+                      {amountLabelI18n(o.id, t)}
                     </button>
                   ))}
                 </div>
@@ -207,13 +209,13 @@ export function ExcretionTracker({
               {/* 색 (대변만, 선택) */}
               {kind === 'poop' && (
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">색 <span className="text-gray-300">(선택)</span></label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">{t('excretion.colorTitle')} <span className="text-gray-300">{t('common.optional')}</span></label>
                   <div className="flex flex-wrap gap-1.5">
                     {POOP_COLORS.map((o) => (
                       <button key={o.id} type="button" onClick={() => setColor(color === o.id ? '' : o.id)}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-500 bg-white'}`}>
                         <span className="inline-flex items-center gap-1">
-                          <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: o.color }} />{o.label}
+                          <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: o.color }} />{colorLabelI18n(o.id, t)}
                         </span>
                       </button>
                     ))}
@@ -222,27 +224,27 @@ export function ExcretionTracker({
               )}
 
               {/* 메모 (선택) */}
-              <input type="search" placeholder="메모 (선택)" value={memo}
+              <input type="search" placeholder={t('stats.memoPlaceholder')} value={memo}
                 onChange={(e) => setMemo(e.target.value)} maxLength={100} autoComplete="off"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
 
               {/* 날짜 · 시간 (현재 시각 자동 채움 + 수정 가능) */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
+                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.date')}</span>
                   <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
+                  <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.time')}</span>
                   <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button onClick={() => { setShowInput(false); resetInput(); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+                <button onClick={() => { setShowInput(false); resetInput(); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
                 <button onClick={handleAdd} disabled={!condition || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: accent }}>
-                  {saving ? '저장 중...' : '저장'}
+                  {saving ? t('record.form.saving') : t('common.save')}
                 </button>
               </div>
             </div>
@@ -250,14 +252,14 @@ export function ExcretionTracker({
             <button onClick={() => setShowInput(true)}
               className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
               style={{ borderColor: accent + '66', color: accent }}>
-              <Plus size={16} /> {KIND_LABEL[kind]} 기록
+              <Plus size={16} /> {t('excretion.addRecord', { kind: t(`excretion.kindLabel.${kind}`) })}
             </button>
           )}
 
           {/* 내역 — 날짜별로 묶고, 각 줄엔 시간만 */}
           {grouped.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-bold text-gray-700">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
+              <h2 className="text-sm font-bold text-gray-700">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
               {grouped.map((g) => (
                 <div key={g.date}>
                   <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDateHeader(g.date)}</p>
@@ -265,8 +267,8 @@ export function ExcretionTracker({
                     {g.items.map((log) => {
                       const isSel = selectedId === log.id;
                       const cm = conditionMeta(kind, log.condition);
-                      const am = amountLabel(log.amount);
-                      const cl = colorMeta(log.color);
+                      const am = amountLabelI18n(log.amount, t);
+                      const cl = colorLabelI18n(log.color, t);
                       return (
                         <div key={log.id} onClick={() => setSelectedId(isSel ? null : log.id)}
                           className={`flex items-center justify-between py-2 px-2 rounded-lg transition-colors ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
@@ -275,11 +277,11 @@ export function ExcretionTracker({
                               <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(log.measured_at)}</span>
                               <span className="inline-flex items-center gap-1 flex-shrink-0">
                                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cm.color }} />
-                                <span className="text-sm font-semibold text-gray-700">{cm.label}</span>
+                                <span className="text-sm font-semibold text-gray-700">{conditionLabel(kind, log.condition, t)}</span>
                               </span>
                               {(am || cl) && (
                                 <span className="text-[11px] text-gray-400 truncate">
-                                  {am ? `· ${am}` : ''}{cl ? ` · ${cl.label}` : ''}
+                                  {am ? `· ${am}` : ''}{cl ? ` · ${cl}` : ''}
                                 </span>
                               )}
                             </div>
@@ -289,7 +291,7 @@ export function ExcretionTracker({
                           </div>
                           {isSel && (
                             <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                              className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
+                              className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">{t('common.delete')}</button>
                           )}
                         </div>
                       );

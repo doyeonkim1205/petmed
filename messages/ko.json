@@ -19,7 +19,9 @@
     "registerPetFirst": "먼저 반려동물을 등록해주세요",
     "category": "카테고리",
     "done": "완료",
-    "selectPet": "반려동물을 선택해주세요"
+    "selectPet": "반려동물을 선택해주세요",
+    "date": "날짜",
+    "time": "시간"
   },
   "nav": {
     "home": "홈",
@@ -357,7 +359,46 @@
       "pee": { "normal": "정상", "dark": "진함", "blood": "붉음", "cloudy": "탁함", "none": "거의 못 봄" }
     },
     "amount": { "less": "적음", "normal": "보통", "more": "많음" },
-    "color": { "brown": "갈색", "black": "검은색", "red": "붉은색", "yellow": "노란색", "gray": "회색" }
+    "color": { "brown": "갈색", "black": "검은색", "red": "붉은색", "yellow": "노란색", "gray": "회색" },
+    "kindLabel": { "poop": "대변", "pee": "소변" },
+    "loading": "불러오는 중…",
+    "todayKind": "오늘 {kind}",
+    "times": "{count}회",
+    "last": "마지막",
+    "cautionCount": "주의 {count}회",
+    "conditionTitle": "상태",
+    "amountTitle": "양",
+    "colorTitle": "색",
+    "addRecord": "{kind} 기록",
+    "todayTime": "오늘 {time}"
+  },
+  "metrics": {
+    "label": { "water": "음수량", "food": "식사량", "fluid": "수액" },
+    "placeholder": { "water": "오늘 마신 물 (ml)", "food": "오늘 먹은 사료 (g)", "fluid": "투여한 수액 (ml)" },
+    "loading": "불러오는 중…",
+    "today": "오늘 {label}",
+    "recommendedVs": "권장 대비 {pct}%",
+    "periodAvg": "기간 일평균 {value}",
+    "vsServing": "오늘 정량 대비",
+    "vsServingMulti": "오늘 정량 대비 · {n}회 평균",
+    "chartTitle": "{label} 변화",
+    "band": "연한 띠 = 적정 범위({low}~{high}{unit}) · 참고용이며 개체차가 있어요",
+    "noRecords": "아직 {label} 기록이 없어요",
+    "servingOnce": "1회 정량",
+    "servingHintFood": "예: 100",
+    "servingHintFluid": "예: 50",
+    "change": "변경",
+    "servingSetCta": "＋ 1회 정량 설정하고 %로 빠르게 기록",
+    "askFood": "얼마나 먹었나요?",
+    "askFluid": "얼마나 투여했나요?",
+    "directInput": "직접 입력",
+    "pctInput": "% 로 입력",
+    "sumHint": "하루에 여러 번 입력하면 그날 총량으로 합산돼요",
+    "addRecord": "{label} 기록",
+    "hintFood": "사료 포장의 급여 가이드를 참고하세요",
+    "hintFluid": "수의사 처방량을 기준으로 기록하세요",
+    "hintWater": "권장 약 {low}~{high}ml",
+    "hintWaterNoWeight": "반려동물 체중을 등록하면 적정량을 알려드려요"
   },
   "meds": {
     "type": { "prescription": "처방약", "supplement": "영양제", "other": "기타" },

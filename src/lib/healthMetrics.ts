@@ -1,5 +1,7 @@
 // 건강 지표(음수/식사/수액) 공통 타입·메타·적정량 계산.
 
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+
 export type MetricType = 'water' | 'food' | 'fluid';
 
 export interface HealthMetric {
@@ -35,6 +37,14 @@ export const METRIC_META: Record<MetricType, { label: string; unit: string; colo
 
 export const METRIC_ORDER: MetricType[] = ['water', 'food', 'fluid'];
 
+// i18n: 호출부가 t 를 넘기면 영어, 안 넘기면 한국어(fallback=METRIC_META).
+export function metricLabel(type: MetricType, t?: TFn): string {
+  return t ? t(`metrics.label.${type}`) : METRIC_META[type].label;
+}
+export function metricPlaceholder(type: MetricType, t?: TFn): string {
+  return t ? t(`metrics.placeholder.${type}`) : METRIC_META[type].placeholder;
+}
+
 /**
  * 적정 음수량(ml/일) — 종·체중 기반 참고 범위.
  *   개 약 50~60 ml/kg, 고양이 약 45~55 ml/kg. 습식/건식·기온·개체차로 달라짐(참고용).
@@ -56,10 +66,10 @@ export function metricTargetRange(type: MetricType, species: 'dog' | 'cat', weig
   return null;
 }
 
-/** 적정량 안내 문구 (입력 힌트·요약용). */
-export function metricTargetHint(type: MetricType, target: { low: number; high: number } | null): string {
-  if (type === 'food') return '사료 포장의 급여 가이드를 참고하세요';
-  if (type === 'fluid') return '수의사 처방량을 기준으로 기록하세요';
-  if (target) return `권장 약 ${target.low}~${target.high}ml`;
-  return '반려동물 체중을 등록하면 적정량을 알려드려요';
+/** 적정량 안내 문구 (입력 힌트·요약용). t 미전달 시 한국어 fallback. */
+export function metricTargetHint(type: MetricType, target: { low: number; high: number } | null, t?: TFn): string {
+  if (type === 'food') return t ? t('metrics.hintFood') : '사료 포장의 급여 가이드를 참고하세요';
+  if (type === 'fluid') return t ? t('metrics.hintFluid') : '수의사 처방량을 기준으로 기록하세요';
+  if (target) return t ? t('metrics.hintWater', { low: target.low, high: target.high }) : `권장 약 ${target.low}~${target.high}ml`;
+  return t ? t('metrics.hintWaterNoWeight') : '반려동물 체중을 등록하면 적정량을 알려드려요';
 }

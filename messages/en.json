@@ -19,7 +19,9 @@
     "registerPetFirst": "Please register a pet first",
     "category": "Category",
     "done": "Done",
-    "selectPet": "Please select a pet"
+    "selectPet": "Please select a pet",
+    "date": "Date",
+    "time": "Time"
   },
   "nav": {
     "home": "Home",
@@ -357,7 +359,46 @@
       "pee": { "normal": "Normal", "dark": "Dark", "blood": "Reddish", "cloudy": "Cloudy", "none": "Barely any" }
     },
     "amount": { "less": "Less", "normal": "Normal", "more": "More" },
-    "color": { "brown": "Brown", "black": "Black", "red": "Red", "yellow": "Yellow", "gray": "Gray" }
+    "color": { "brown": "Brown", "black": "Black", "red": "Red", "yellow": "Yellow", "gray": "Gray" },
+    "kindLabel": { "poop": "Stool", "pee": "Urine" },
+    "loading": "Loading…",
+    "todayKind": "Today's {kind}",
+    "times": "{count}×",
+    "last": "Last",
+    "cautionCount": "{count} flagged",
+    "conditionTitle": "Condition",
+    "amountTitle": "Amount",
+    "colorTitle": "Color",
+    "addRecord": "Log {kind}",
+    "todayTime": "Today {time}"
+  },
+  "metrics": {
+    "label": { "water": "Water", "food": "Food", "fluid": "Fluids" },
+    "placeholder": { "water": "Water today (ml)", "food": "Food today (g)", "fluid": "Fluids given (ml)" },
+    "loading": "Loading…",
+    "today": "Today's {label}",
+    "recommendedVs": "{pct}% of recommended",
+    "periodAvg": "Daily avg {value}",
+    "vsServing": "Today vs serving",
+    "vsServingMulti": "Today vs serving · {n}-dose avg",
+    "chartTitle": "{label} trend",
+    "band": "Light band = healthy range ({low}–{high}{unit}) · for reference, varies by individual",
+    "noRecords": "No {label} records yet",
+    "servingOnce": "Serving size",
+    "servingHintFood": "e.g. 100",
+    "servingHintFluid": "e.g. 50",
+    "change": "Change",
+    "servingSetCta": "＋ Set a serving size to log quickly with %",
+    "askFood": "How much did they eat?",
+    "askFluid": "How much was given?",
+    "directInput": "Enter directly",
+    "pctInput": "Enter as %",
+    "sumHint": "Multiple entries on the same day are summed into that day's total",
+    "addRecord": "Log {label}",
+    "hintFood": "Refer to the feeding guide on the food packaging",
+    "hintFluid": "Log based on your vet's prescribed amount",
+    "hintWater": "Recommended approx. {low}–{high}ml",
+    "hintWaterNoWeight": "Register your pet's weight to see the recommended amount"
   },
   "meds": {
     "type": { "prescription": "Prescription", "supplement": "Supplement", "other": "Other" },

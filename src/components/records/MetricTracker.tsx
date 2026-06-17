@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Plus, Droplet, Utensils, Syringe, StickyNote } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -11,6 +12,8 @@ import {
   METRIC_META,
   metricTargetRange,
   metricTargetHint,
+  metricLabel,
+  metricPlaceholder,
   type HealthMetric,
   type MetricType,
 } from '@/lib/healthMetrics';
@@ -34,7 +37,7 @@ function nowHHMM(): string {
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 // ─── 일별 막대 차트 + 적정범위 밴드 ──────────────────────
-function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low: number; high: number } | null; color: string }) {
+function MetricBarChart({ data, target, color, locale }: { data: Daily[]; target: { low: number; high: number } | null; color: string; locale: string }) {
   if (data.length === 0) return null;
   const W = 320, H = 168, PX = 42, PY = 14, PB = 20;
   const chartW = W - PX * 2;
@@ -73,7 +76,7 @@ function MetricBarChart({ data, target, color }: { data: Daily[]; target: { low:
       })}
       {labelIdx.map((idx) => (
         <text key={idx} x={PX + slot * idx + slot / 2} y={H - 5} textAnchor="middle" fontSize="9" fill="#9ca3af">
-          {new Date(data[idx].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+          {new Date(data[idx].date).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'numeric', day: 'numeric' })}
         </text>
       ))}
     </svg>
@@ -95,7 +98,10 @@ export function MetricTracker({
   startDate: Date;
   endDate: Date;
 }) {
+  const t = useTranslations();
+  const locale = useLocale();
   const meta = METRIC_META[metricType];
+  const mLabel = metricLabel(metricType, t);
   const MetricIcon = metricType === 'water' ? Droplet : metricType === 'food' ? Utensils : Syringe;
   const [logs, setLogs] = useState<HealthMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,9 +192,9 @@ export function MetricTracker({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, []);
   const fmtDateHeader = (dateK: string) => {
-    if (dateK === todayStr) return '오늘';
-    if (dateK === yesterdayStr) return '어제';
-    return new Date(`${dateK}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+    if (dateK === todayStr) return t('timeline.today');
+    if (dateK === yesterdayStr) return t('timeline.yesterday');
+    return new Date(`${dateK}T00:00:00`).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   };
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -263,7 +269,7 @@ export function MetricTracker({
 
   // % 모드 = 정량 설정됨 + 직접입력 아님 (식사·수액)
   const isPctMode = supportsServing && serving != null && !directMode;
-  const pctQuestion = metricType === 'food' ? '얼마나 먹었나요?' : '얼마나 투여했나요?';
+  const pctQuestion = metricType === 'food' ? t('metrics.askFood') : t('metrics.askFluid');
 
   const handleAdd = async () => {
     let v: number;
@@ -318,7 +324,7 @@ export function MetricTracker({
   }, [logs]);
 
   if (loading) {
-    return <div className="py-10 text-center text-sm text-gray-400">불러오는 중…</div>;
+    return <div className="py-10 text-center text-sm text-gray-400">{t('metrics.loading')}</div>;
   }
 
   return (
@@ -327,17 +333,17 @@ export function MetricTracker({
       <div className="rounded-xl border border-gray-100 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] text-gray-400">오늘 {meta.label}</p>
+            <p className="text-[11px] text-gray-400">{t('metrics.today', { label: mLabel })}</p>
             <p className="text-lg font-bold text-gray-800">{todayTotal > 0 ? `${todayTotal}${meta.unit}` : '-'}</p>
-            <p className="text-[11px] text-gray-400 mt-0.5 break-keep break-words">{metricTargetHint(metricType, target)}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5 break-keep break-words">{metricTargetHint(metricType, target, t)}</p>
           </div>
           <div className="text-right">
             {todayPct !== null && (
               <span className={`text-xs font-bold px-2 py-1 rounded-full ${todayPct < 80 || todayPct > 120 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                권장 대비 {todayPct}%
+                {t('metrics.recommendedVs', { pct: todayPct })}
               </span>
             )}
-            <p className="text-[11px] text-gray-400 mt-1">기간 일평균 {avg > 0 ? `${avg}${meta.unit}` : '-'}</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('metrics.periodAvg', { value: avg > 0 ? `${avg}${meta.unit}` : '-' })}</p>
           </div>
         </div>
 
@@ -346,7 +352,7 @@ export function MetricTracker({
           <div className="mt-3 pt-3 border-t border-gray-50">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] text-gray-500">
-                오늘 정량 대비{todayPctInfo.n > 1 ? ` · ${todayPctInfo.n}회 평균` : ''}
+                {todayPctInfo.n > 1 ? t('metrics.vsServingMulti', { n: todayPctInfo.n }) : t('metrics.vsServing')}
               </span>
               <span className="text-xs font-bold" style={{ color: meta.color }}>{todayPctInfo.avg}%</span>
             </div>
@@ -360,18 +366,18 @@ export function MetricTracker({
       {/* 그래프 */}
       {dayTotals.size > 0 ? (
         <div className="rounded-xl border border-gray-100 p-4">
-          <h2 className="text-sm font-bold text-gray-700 mb-2">{meta.label} 변화</h2>
-          <MetricBarChart data={daily} target={target} color={meta.color} />
+          <h2 className="text-sm font-bold text-gray-700 mb-2">{t('metrics.chartTitle', { label: mLabel })}</h2>
+          <MetricBarChart data={daily} target={target} color={meta.color} locale={locale} />
           {target && (
             <p className="text-[10px] text-gray-400 text-center mt-2 break-keep break-words">
-              연한 띠 = 적정 범위({target.low}~{target.high}{meta.unit}) · 참고용이며 개체차가 있어요
+              {t('metrics.band', { low: target.low, high: target.high, unit: meta.unit })}
             </p>
           )}
         </div>
       ) : (
         <div className="rounded-xl border border-gray-100 py-8 text-center">
           <MetricIcon size={32} className="mx-auto text-gray-300 mb-1.5" />
-          <p className="text-sm text-gray-400 break-keep break-words">아직 {meta.label} 기록이 없어요</p>
+          <p className="text-sm text-gray-400 break-keep break-words">{t('metrics.noRecords', { label: mLabel })}</p>
         </div>
       )}
 
@@ -382,25 +388,25 @@ export function MetricTracker({
           {supportsServing && (
             servingEditing ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500 flex-shrink-0">1회 정량</span>
+                <span className="text-xs text-gray-500 flex-shrink-0">{t('metrics.servingOnce')}</span>
                 <input
                   type="text" inputMode="numeric" value={servingDraft}
                   onChange={(e) => { const v = e.target.value; if (v === '' || /^\d{0,5}$/.test(v)) setServingDraft(v); }}
-                  placeholder={metricType === 'food' ? '예: 100' : '예: 50'} autoComplete="off"
+                  placeholder={metricType === 'food' ? t('metrics.servingHintFood') : t('metrics.servingHintFluid')} autoComplete="off"
                   className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2" />
                 <span className="text-xs text-gray-400 flex-shrink-0">{meta.unit}</span>
-                <button onClick={saveServing} disabled={!servingDraft} className="px-3 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-40 flex-shrink-0" style={{ background: meta.color }}>저장</button>
-                <button onClick={() => setServingEditing(false)} className="px-1.5 py-2 text-xs text-gray-400 flex-shrink-0">취소</button>
+                <button onClick={saveServing} disabled={!servingDraft} className="px-3 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-40 flex-shrink-0" style={{ background: meta.color }}>{t('common.save')}</button>
+                <button onClick={() => setServingEditing(false)} className="px-1.5 py-2 text-xs text-gray-400 flex-shrink-0">{t('common.cancel')}</button>
               </div>
             ) : serving != null ? (
               <div className="flex items-center justify-between text-xs px-0.5">
-                <span className="text-gray-500">1회 정량 <b className="text-gray-800">{serving}{meta.unit}</b></span>
-                <button onClick={() => { setServingDraft(String(serving)); setServingEditing(true); }} className="text-gray-400 underline">변경</button>
+                <span className="text-gray-500">{t('metrics.servingOnce')} <b className="text-gray-800">{serving}{meta.unit}</b></span>
+                <button onClick={() => { setServingDraft(String(serving)); setServingEditing(true); }} className="text-gray-400 underline">{t('metrics.change')}</button>
               </div>
             ) : (
               <button onClick={() => { setServingDraft(''); setServingEditing(true); }}
                 className="w-full py-2 text-xs font-medium rounded-lg border border-dashed" style={{ borderColor: meta.color + '66', color: meta.color }}>
-                ＋ 1회 정량 설정하고 %로 빠르게 기록
+                {t('metrics.servingSetCta')}
               </button>
             )
           )}
@@ -421,14 +427,14 @@ export function MetricTracker({
                   </button>
                 ))}
               </div>
-              <button onClick={() => { setDirectMode(true); setNewPct(null); }} className="text-[11px] text-gray-400 underline mt-1.5">직접 입력</button>
+              <button onClick={() => { setDirectMode(true); setNewPct(null); }} className="text-[11px] text-gray-400 underline mt-1.5">{t('metrics.directInput')}</button>
             </div>
           ) : (
             <>
               <input
                 type="text"
                 inputMode={isTouch ? 'none' : 'decimal'}
-                placeholder={meta.placeholder}
+                placeholder={metricPlaceholder(metricType, t)}
                 value={newValue}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -440,32 +446,32 @@ export function MetricTracker({
                 className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
               />
               {showPad && (
-                <NumberPad value={newValue} onChange={setNewValue} decimal maxIntDigits={5} maxDecimals={2} label={meta.label} suffix={meta.unit} onClose={() => setShowPad(false)} />
+                <NumberPad value={newValue} onChange={setNewValue} decimal maxIntDigits={5} maxDecimals={2} label={mLabel} suffix={meta.unit} onClose={() => setShowPad(false)} />
               )}
               {supportsServing && serving != null && (
-                <button onClick={() => setDirectMode(false)} className="text-[11px] text-gray-400 underline">% 로 입력</button>
+                <button onClick={() => setDirectMode(false)} className="text-[11px] text-gray-400 underline">{t('metrics.pctInput')}</button>
               )}
             </>
           )}
           {/* 메모 → 날짜 → 시간 (대소변 입력과 순서 통일) */}
           <input
-            type="search" placeholder="메모 (선택)" value={newMemo}
+            type="search" placeholder={t('stats.memoPlaceholder')} value={newMemo}
             onChange={(e) => setNewMemo(e.target.value)} maxLength={100} autoComplete="off"
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 w-8 flex-shrink-0">날짜</span>
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.date')}</span>
             <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
               inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 w-8 flex-shrink-0">시간</span>
+            <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.time')}</span>
             <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
           </div>
-          <p className="text-[11px] text-gray-400 break-keep break-words">하루에 여러 번 입력하면 그날 총량으로 합산돼요</p>
+          <p className="text-[11px] text-gray-400 break-keep break-words">{t('metrics.sumHint')}</p>
           <div className="flex gap-2">
-            <button onClick={() => { setShowInput(false); setNewMemo(''); setNewPct(null); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+            <button onClick={() => { setShowInput(false); setNewMemo(''); setNewPct(null); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
             <button onClick={handleAdd} disabled={saving || (isPctMode ? newPct == null : !newValue)} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
-              {saving ? '저장 중...' : '저장'}
+              {saving ? t('record.form.saving') : t('common.save')}
             </button>
           </div>
         </div>
@@ -473,14 +479,14 @@ export function MetricTracker({
         <button onClick={() => { setNewValue(''); setNewMemo(''); setNewPct(null); setDirectMode(!(supportsServing && serving != null)); setNewDate(todayLocalISO()); setNewTime(nowHHMM()); setShowInput(true); }}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
           style={{ borderColor: meta.color + '66', color: meta.color }}>
-          <Plus size={16} /> {meta.label} 기록
+          <Plus size={16} /> {t('metrics.addRecord', { label: mLabel })}
         </button>
       )}
 
       {/* 내역 — 날짜별로 묶고, 각 줄엔 시간만 */}
       {grouped.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-gray-700">기록 내역 <span className="text-[11px] font-normal text-gray-400">· 기록을 눌러 삭제</span></h2>
+          <h2 className="text-sm font-bold text-gray-700">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
           {grouped.map((g) => (
             <div key={g.date}>
               <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDateHeader(g.date)}</p>
@@ -501,7 +507,7 @@ export function MetricTracker({
                       </div>
                       {isSel && (
                         <button onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                          className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">삭제</button>
+                          className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">{t('common.delete')}</button>
                       )}
                     </div>
                   );
