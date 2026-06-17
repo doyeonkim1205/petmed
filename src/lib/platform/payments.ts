@@ -35,7 +35,17 @@ export interface PurchaseResult {
 }
 
 export const platformPayments = {
-  /** 앱(네이티브)에서 Play Billing 사용 가능 여부. 웹은 항상 false(토스 사용), 키 미설정도 false. */
+  /** RevenueCat SDK 키 설정 여부 (플랫폼 무관). 앱에서 RC 사용 가능 여부 판단에 쓴다. */
+  isRevenueCatReady(): boolean {
+    return !!RC_GOOGLE_API_KEY;
+  },
+
+  /**
+   * 앱에서 실제 RC 구매를 띄울 수 있는 상태 (네이티브 앱 + RC 키 존재).
+   * ⚠️ UI 분기에서 "이게 false 면 토스"로 쓰면 안 됨 — 앱+키없음도 false 라 토스로 샘.
+   *    토스 노출은 반드시 isNativeApp()===false(웹) 로만 판단할 것.
+   *    이 플래그는 purchase/restore 내부 가드 + "RC 구매 버튼을 띄울지"에만 사용.
+   */
   isNativeBilling(): boolean {
     return isNativeApp() && !!RC_GOOGLE_API_KEY;
   },
