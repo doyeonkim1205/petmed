@@ -81,6 +81,22 @@ export const platformPayments = {
     }
   },
 
+  /** productId 의 RC 로컬라이즈 가격 문자열(예: '₩3,500') — 앱은 Play 실제가를 표시해야 함. 없으면 null. */
+  async getPriceString(userId: string, productId: string): Promise<string | null> {
+    if (!this.isNativeBilling()) return null;
+    try {
+      const Purchases = await ensureConfigured(userId);
+      const offerings = await Purchases.getOfferings();
+      const pkgs = offerings.current?.availablePackages ?? [];
+      const pkg = pkgs.find(
+        (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
+      ) ?? pkgs[0];
+      return pkg?.product.priceString ?? null;
+    } catch {
+      return null;
+    }
+  },
+
   /** 현재 'plus' 엔타이틀먼트 활성 여부 조회 (로그인 후 동기화 보조용). */
   async hasActiveEntitlement(userId: string): Promise<boolean> {
     if (!this.isNativeBilling()) return false;

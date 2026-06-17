@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { platformPayments } from '@/lib/platform';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
@@ -123,6 +124,12 @@ export default function SubscriptionPage() {
   // "나중에 진행" 닫기 / "이어서 진행" 실제 결제창. 유저 실수 결제 방지 + 토스 심사 경로 확보.
   const [trialConfirmTarget, setTrialConfirmTarget] = useState<string | null>(null);
   // billingPeriod and billingMode removed — replaced by 3 direct buttons
+  // ── 네이티브 앱(Play Billing/RevenueCat) 분기 ──
+  // Play 정책상 앱에선 토스 라우트(/payment*)를 절대 노출하지 않고 RC 구매만 사용.
+  // RC 키 미설정이면 isNativeBilling()=false → 기존 토스 UI 그대로(dormant).
+  const nativeBilling = platformPayments.isNativeBilling();
+  const [purchasing, setPurchasing] = useState(false);
+  const [nativePrice, setNativePrice] = useState<string | null>(null);
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -150,6 +157,12 @@ export default function SubscriptionPage() {
     // Track page view
     import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
   }, [user, authLoading, router]);
+
+  // 네이티브: RC 오퍼링에서 월간 상품의 로컬라이즈 가격(Play 실제가)을 가져와 표시.
+  useEffect(() => {
+    if (!user || !nativeBilling) return;
+    platformPayments.getPriceString(user.id, 'plus_monthly').then(setNativePrice).catch(() => {});
+  }, [user, nativeBilling]);
 
   const handleRetryBilling = async () => {
     setActionLoading('retry');
@@ -207,6 +220,50 @@ export default function SubscriptionPage() {
     }
   };
 
+  // ── 네이티브 결제(RevenueCat) 핸들러 ──
+  // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
+  const handleNativePurchase = async (productId: string) => {
+    if (!user || purchasing) return;
+    setPurchasing(true);
+    setActionMessage('');
+    try {
+      const res = await platformPayments.purchase(user.id, productId);
+      if (res.canceled) return; // 사용자가 결제창에서 취소 — 조용히 무시
+      if (res.ok && res.active) {
+        setActionMessage(t('subscription.purchaseSuccess'));
+        await refreshProfile();
+        await fetchData();
+      } else {
+        setActionMessage(res.error || t('subscription.purchaseError'));
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'subscription', action: 'rc-purchase' }, extra: { userId: user?.id, productId } });
+      setActionMessage(t('subscription.purchaseError'));
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!user || purchasing) return;
+    setPurchasing(true);
+    setActionMessage('');
+    try {
+      const res = await platformPayments.restore(user.id);
+      if (res.active) {
+        setActionMessage(t('subscription.purchaseSuccess'));
+        await refreshProfile();
+        await fetchData();
+      } else {
+        setActionMessage(t('subscription.restoreNone'));
+      }
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  // Google Play 구독 화면 딥링크 (변경·해지·환불은 여기서). 시스템 브라우저로 열림(Capacitor).
+  const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
 
   const currentPlan = profile?.plan || 'free';
   const isPaid = currentPlan !== 'free';
@@ -297,6 +354,20 @@ export default function SubscriptionPage() {
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
+            {nativeBilling ? (
+              /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 옵션·단건/연간 노출 X. */
+              <div className="space-y-2.5">
+                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')}
+                  title={t('subscription.subscribeMonthlyTitle')}
+                  price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+                  sub={t('subscription.subscribeMonthlySub')}
+                  badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+                <button onClick={handleRestore} disabled={purchasing}
+                  className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
+                  {t('subscription.restorePurchase')}
+                </button>
+              </div>
+            ) : (
             <div className="space-y-2.5">
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
@@ -310,12 +381,13 @@ export default function SubscriptionPage() {
                 sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
                 badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
             </div>
+            )}
             </div>
           </div>
         )}
 
-        {/* ── Billing retry banner ── */}
-        {isInRetry && subscription && (
+        {/* ── Billing retry banner (토스 전용 — Play 는 Google 이 재시도 처리) ── */}
+        {isInRetry && !nativeBilling && subscription && (
           <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-start gap-2">
               <AlertTriangle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
@@ -390,6 +462,20 @@ export default function SubscriptionPage() {
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
+            {nativeBilling ? (
+              /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 옵션·단건/연간 노출 X. */
+              <div className="space-y-2.5">
+                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')}
+                  title={t('subscription.subscribeMonthlyTitle')}
+                  price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+                  sub={t('subscription.subscribeMonthlySub')}
+                  badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+                <button onClick={handleRestore} disabled={purchasing}
+                  className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
+                  {t('subscription.restorePurchase')}
+                </button>
+              </div>
+            ) : (
             <div className="space-y-2.5">
               <PlanBtn onClick={() => setShowComingSoon(true)}
                 title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
@@ -403,6 +489,7 @@ export default function SubscriptionPage() {
                 sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
                 badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
             </div>
+            )}
             </div>
           </div>
         )}
@@ -412,8 +499,8 @@ export default function SubscriptionPage() {
           <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700 mb-4 leading-relaxed">{actionMessage}</div>
         )}
 
-        {/* ── 4. Primary Actions ── */}
-        {isActive && (
+        {/* ── 4. Primary Actions (토스 전용 — 정기전환·연간전환·카드변경) ── */}
+        {isActive && !nativeBilling && (
           <div className="space-y-2 mb-6">
             <p className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mb-2 text-center">
               {t('subscription.planChangeNote')}
@@ -441,6 +528,14 @@ export default function SubscriptionPage() {
                 {t('subscription.changeCard')}
               </ActionBtn>
             )}
+          </div>
+        )}
+
+        {/* ── 4-native. 앱(Play) 구독 관리 — 변경·해지·환불은 Google Play 에서 ── */}
+        {isActive && nativeBilling && (
+          <div className="space-y-2 mb-6">
+            <ActionBtn onClick={goManageInPlay}>{t('subscription.manageInPlay')}</ActionBtn>
+            <p className="text-[10px] text-gray-400 text-center px-2 leading-relaxed">{t('subscription.manageInPlayDesc')}</p>
           </div>
         )}
 
@@ -491,8 +586,8 @@ export default function SubscriptionPage() {
 
         </div>
 
-        {/* ── 6. Cancel (below feature comparison) ── */}
-        {isActive && (
+        {/* ── 6. Cancel (토스 전용 — Play 는 위 'Google Play 에서 관리'로 해지) ── */}
+        {isActive && !nativeBilling && (
           <div className="mb-6">
             {!showCancelConfirm && (
               <ActionBtn onClick={() => setShowCancelConfirm(true)} variant="muted">
