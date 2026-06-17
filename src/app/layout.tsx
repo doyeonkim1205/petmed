@@ -85,10 +85,12 @@ export default async function RootLayout({
           <Providers>
             {children}
           </Providers>
+          {/* UpdateToast 는 useTranslations 사용 → 반드시 Provider 안에 둬야 함.
+              (ServiceWorkerRegister/KeyboardScrollFix 는 intl 미사용이나 함께 안에 둠) */}
+          <ServiceWorkerRegister />
+          <UpdateToast />
+          <KeyboardScrollFix />
         </NextIntlClientProvider>
-        <ServiceWorkerRegister />
-        <UpdateToast />
-        <KeyboardScrollFix />
       </body>
     </html>
   );
