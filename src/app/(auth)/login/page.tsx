@@ -48,6 +48,10 @@ export default function LoginPage() {
   const [devPassword, setDevPassword] = useState('');
   const [devLoading, setDevLoading] = useState(false);
   const [showDevToggle, setShowDevToggle] = useState(false);
+  // 필수 동의 — 둘 다 체크해야 구글/카카오 로그인 가능 (가입=첫 OAuth 로그인이라 이 화면이 유일한 동의 지점).
+  const [agreeAge, setAgreeAge] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const canLogin = agreeAge && agreeTerms;
   const router = useRouter();
   const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
 
@@ -82,6 +86,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!canLogin) { setError(t('login.agreeRequired')); return; }
     if (inApp) {
       const loginUrl = `${window.location.origin}/login`;
       window.location.href = `intent://${window.location.host}/login#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(loginUrl)};end`;
@@ -97,6 +102,7 @@ export default function LoginPage() {
   };
 
   const handleKakaoLogin = async () => {
+    if (!canLogin) { setError(t('login.agreeRequired')); return; }
     setError('');
     const { error } = await signInWithKakao();
     if (error) { setError(error.message); return; }
@@ -125,10 +131,39 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+            {/* 필수 동의 — 체크해야 로그인 버튼 활성화 (가입=첫 OAuth 로그인) */}
+            <div className="w-full space-y-2 mb-4">
+              <label className="flex items-center gap-2 text-[12px] text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreeAge}
+                  onChange={(e) => setAgreeAge(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                />
+                <span><span className="text-blue-600 font-semibold">[{t('login.required')}]</span> {t('login.age14')}</span>
+              </label>
+              <label className="flex items-center gap-2 text-[12px] text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                />
+                <span>
+                  <span className="text-blue-600 font-semibold">[{t('login.required')}]</span>{' '}
+                  {t.rich('login.agreeTermsCheck', {
+                    terms: (chunks) => <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline" onClick={(e) => e.stopPropagation()}>{chunks}</a>,
+                    privacy: (chunks) => <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline" onClick={(e) => e.stopPropagation()}>{chunks}</a>,
+                  })}
+                </span>
+              </label>
+            </div>
+
             <div className="w-full space-y-3">
               <button
                 onClick={handleKakaoLogin}
-                className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm"
+                disabled={!canLogin}
+                className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                 style={{ backgroundColor: '#FEE500', color: '#191919' }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#191919">
@@ -139,7 +174,8 @@ export default function LoginPage() {
 
               <button
                 onClick={handleGoogleLogin}
-                className="w-full h-12 flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-transform shadow-sm"
+                disabled={!canLogin}
+                className="w-full h-12 flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-transform shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -152,13 +188,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* 약관 — 카드 하단 고정 */}
-          <p className="text-[11px] text-gray-400 text-center leading-relaxed pt-6">
-            {t.rich('login.agreement', {
-              terms: (chunks) => <a href="/terms" className="underline">{chunks}</a>,
-              privacy: (chunks) => <a href="/privacy" className="underline">{chunks}</a>,
-            })}
-          </p>
 
           {/* 개발자 로그인 — test.pawdex.store / localhost 에서만 표시.
               prod (pawdex.store) 에선 hostname 분기로 안 보임. */}

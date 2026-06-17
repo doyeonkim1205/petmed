@@ -75,7 +75,11 @@
   "login": {
     "subtitle1": "Pet health care,",
     "subtitle2": "made smarter",
-    "agreement": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
+    "agreement": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
+    "required": "Required",
+    "age14": "I am 14 years of age or older.",
+    "agreeTermsCheck": "I agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
+    "agreeRequired": "Please agree to the required items to sign in."
   },
   "home": {
     "section": {
@@ -385,16 +389,16 @@
     "today": "Today's {label}",
     "recommendedVs": "{pct}% of recommended",
     "periodAvg": "Daily avg {value}",
-    "vsServing": "Today vs serving",
-    "vsServingMulti": "Today vs serving · {n}-dose avg",
+    "vsServing": "Today vs target",
+    "vsServingMulti": "Today vs target · {n} logs",
     "chartTitle": "{label} trend",
     "band": "Light band = healthy range ({low}–{high}{unit}) · for reference, varies by individual",
     "noRecords": "No {label} records yet",
-    "servingOnce": "Serving size",
+    "servingOnce": "Daily target",
     "servingHintFood": "e.g. 100",
     "servingHintFluid": "e.g. 50",
     "change": "Change",
-    "servingSetCta": "＋ Set a serving size to log quickly with %",
+    "servingSetCta": "＋ Set a daily target to log quickly with %",
     "askFood": "How much did they eat?",
     "askFluid": "How much was given?",
     "directInput": "Enter directly",

@@ -117,7 +117,7 @@ export function MetricTracker({
   const [isTouch, setIsTouch] = useState(false);
   const [showPad, setShowPad] = useState(false);
 
-  // 정량(1회 기준) — 식사·수액만. 음수(water)는 자유급식이라 미사용.
+  // 정량(하루 기준) — 식사·수액만. 음수(water)는 자유급식이라 미사용.
   const supportsServing = metricType !== 'water';
   const [serving, setServing] = useState<number | null>(null);
   const [servingEditing, setServingEditing] = useState(false);
@@ -253,18 +253,14 @@ export function MetricTracker({
   }, [dayTotals]);
   const todayPct = target && todayTotal > 0 ? Math.round((todayTotal / ((target.low + target.high) / 2)) * 100) : null;
 
-  // 오늘 "정량 대비 %" (식사·수액 + 정량 설정 시). 끼니별 % 의 평균 + 기록 건수.
-  // input_pct 우선, 없으면 value/정량스냅샷으로 환산.
-  const todayPctInfo = useMemo<{ avg: number; n: number } | null>(() => {
-    if (!supportsServing || serving == null) return null;
+  // 오늘 "하루 정량 대비 %" (식사·수액 + 하루 정량 설정 시). 오늘 섭취량 누적 합산 ÷ 하루 정량.
+  // (끼니별 % 평균이 아니라 누적 — 하루 정량 60g 에 45+15 먹으면 100%). 권장범위 지표(todayPct)와 동일한 합산 방식.
+  const todayPctInfo = useMemo<{ pct: number; n: number } | null>(() => {
+    if (!supportsServing || serving == null || serving <= 0) return null;
     const todays = logs.filter((l) => localDateKey(String(l.measured_at)) === todayStr);
-    const pcts = todays.map((l) => {
-      if (l.input_pct != null) return l.input_pct;
-      const base = l.serving_snapshot != null ? Number(l.serving_snapshot) : serving;
-      return base ? Math.round((Number(l.value) / base) * 100) : null;
-    }).filter((x): x is number => x != null);
-    if (pcts.length === 0) return null;
-    return { avg: Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length), n: pcts.length };
+    if (todays.length === 0) return null;
+    const total = todays.reduce((s, l) => s + Number(l.value), 0);
+    return { pct: Math.round((total / serving) * 100), n: todays.length };
   }, [logs, todayStr, serving, supportsServing]);
 
   // % 모드 = 정량 설정됨 + 직접입력 아님 (식사·수액)
@@ -354,10 +350,10 @@ export function MetricTracker({
               <span className="text-[11px] text-gray-500">
                 {todayPctInfo.n > 1 ? t('metrics.vsServingMulti', { n: todayPctInfo.n }) : t('metrics.vsServing')}
               </span>
-              <span className="text-xs font-bold" style={{ color: meta.color }}>{todayPctInfo.avg}%</span>
+              <span className="text-xs font-bold" style={{ color: meta.color }}>{todayPctInfo.pct}%</span>
             </div>
             <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(todayPctInfo.avg, 100)}%`, background: meta.color }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(todayPctInfo.pct, 100)}%`, background: meta.color }} />
             </div>
           </div>
         )}
@@ -384,7 +380,7 @@ export function MetricTracker({
       {/* 입력 */}
       {showInput ? (
         <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: meta.color + '55', background: meta.color + '0d' }}>
-          {/* 1회 정량 설정 (식사·수액) */}
+          {/* 하루 정량 설정 (식사·수액) */}
           {supportsServing && (
             servingEditing ? (
               <div className="flex items-center gap-1.5">

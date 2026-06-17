@@ -75,7 +75,11 @@
   "login": {
     "subtitle1": "반려동물 건강 케어,",
     "subtitle2": "더 똑똑하게",
-    "agreement": "로그인 시 <terms>이용약관</terms> 및 <privacy>개인정보처리방침</privacy>에 동의하게 됩니다."
+    "agreement": "로그인 시 <terms>이용약관</terms> 및 <privacy>개인정보처리방침</privacy>에 동의하게 됩니다.",
+    "required": "필수",
+    "age14": "만 14세 이상입니다.",
+    "agreeTermsCheck": "<terms>이용약관</terms> 및 <privacy>개인정보처리방침</privacy>에 동의합니다.",
+    "agreeRequired": "필수 항목에 동의해야 로그인할 수 있어요."
   },
   "home": {
     "section": {
@@ -386,15 +390,15 @@
     "recommendedVs": "권장 대비 {pct}%",
     "periodAvg": "기간 일평균 {value}",
     "vsServing": "오늘 정량 대비",
-    "vsServingMulti": "오늘 정량 대비 · {n}회 평균",
+    "vsServingMulti": "오늘 정량 대비 · {n}회 기록",
     "chartTitle": "{label} 변화",
     "band": "연한 띠 = 적정 범위({low}~{high}{unit}) · 참고용이며 개체차가 있어요",
     "noRecords": "아직 {label} 기록이 없어요",
-    "servingOnce": "1회 정량",
+    "servingOnce": "하루 정량",
     "servingHintFood": "예: 100",
     "servingHintFluid": "예: 50",
     "change": "변경",
-    "servingSetCta": "＋ 1회 정량 설정하고 %로 빠르게 기록",
+    "servingSetCta": "＋ 하루 정량 설정하고 %로 빠르게 기록",
     "askFood": "얼마나 먹었나요?",
     "askFluid": "얼마나 투여했나요?",
     "directInput": "직접 입력",
