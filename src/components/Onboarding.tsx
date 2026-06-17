@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 
 // 온보딩/로그인 가드를 건너뛰는 공개 경로 (인스타 바이오 랜딩 + 약관/정책).
@@ -123,6 +124,8 @@ function IllustSearch() {
 }
 
 function IllustCalendar() {
+  const t = useTranslations('onboarding.calendar');
+  const weekdays = t('weekdays').split(',');
   return (
     <svg viewBox="0 0 200 200" fill="none" className="w-full h-full">
       {/* Background circle */}
@@ -137,11 +140,11 @@ function IllustCalendar() {
       <rect x="72" y="48" width="6" height="16" rx="3" fill="#D97706" />
       <rect x="122" y="48" width="6" height="16" rx="3" fill="#D97706" />
       {/* Month text */}
-      <text x="100" y="74" textAnchor="middle" fontSize="13" fontWeight="bold" fill="white">2월</text>
+      <text x="100" y="74" textAnchor="middle" fontSize="13" fontWeight="bold" fill="white">{t('month')}</text>
       {/* Day grid */}
       {[0, 1, 2, 3, 4, 5, 6].map((col) => (
         <text key={`h${col}`} x={57 + col * 14} y="97" textAnchor="middle" fontSize="7" fill="#9CA3AF">
-          {['일', '월', '화', '수', '목', '금', '토'][col]}
+          {weekdays[col]}
         </text>
       ))}
       {/* Day dots - colored events */}
@@ -211,45 +214,17 @@ function IllustMap() {
   );
 }
 
+// 슬라이드 텍스트는 messages(onboarding.slideN.title/desc)로 분리 — key 로 참조.
 const slides = [
-  {
-    Illustration: IllustPaw,
-    title: 'PawDex는 이브의 치료 경험에서\n시작됐어요',
-    desc: '10살 이브가 치료를 받던 시간,\n믿을 수 있는 정보와 꾸준한 기록이 꼭 필요했습니다.',
-    gradient: 'from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-950',
-    accentColor: '#3B82F6',
-  },
-  {
-    Illustration: IllustAI,
-    title: '증상이나 사진으로\nAI 분석을 받아보세요',
-    desc: '직접 입력하신 증상은 물론, 사진 한 장만으로도\n의심 증상과 맞춤 행동 가이드를 알려드려요.',
-    gradient: 'from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-950',
-    accentColor: '#8B5CF6',
-  },
-  {
-    Illustration: IllustSearch,
-    title: '핵심만 빠르게,\n원문까지 투명하게',
-    desc: '관련 논문을 번역·요약해 쉽게 이해하고,\n필요하면 원문으로 직접 확인할 수 있어요.',
-    gradient: 'from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-950',
-    accentColor: '#10B981',
-  },
-  {
-    Illustration: IllustCalendar,
-    title: '오늘의 상태가\n내일의 힌트가 되도록',
-    desc: '증상·진료 기록을 남기면 캘린더에 반영되어\n일정 관리가 쉬워집니다.',
-    gradient: 'from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-950',
-    accentColor: '#F59E0B',
-  },
-  {
-    Illustration: IllustMap,
-    title: '급한 순간,\n덜 헤매도록',
-    desc: '지도에서 24시 병원을 빠르게 찾고,\n바로 이동할 수 있게 연결해요.',
-    gradient: 'from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-950',
-    accentColor: '#F43F5E',
-  },
+  { Illustration: IllustPaw, key: 'slide1', gradient: 'from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-950', accentColor: '#3B82F6' },
+  { Illustration: IllustAI, key: 'slide2', gradient: 'from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-950', accentColor: '#8B5CF6' },
+  { Illustration: IllustSearch, key: 'slide3', gradient: 'from-emerald-50 to-white dark:from-emerald-950/30 dark:to-gray-950', accentColor: '#10B981' },
+  { Illustration: IllustCalendar, key: 'slide4', gradient: 'from-amber-50 to-white dark:from-amber-950/30 dark:to-gray-950', accentColor: '#F59E0B' },
+  { Illustration: IllustMap, key: 'slide5', gradient: 'from-rose-50 to-white dark:from-rose-950/30 dark:to-gray-950', accentColor: '#F43F5E' },
 ];
 
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
+  const t = useTranslations();
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(1);
   const touchStartX = useRef(0);
@@ -308,7 +283,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
             onClick={() => onComplete()}
             className="px-4 py-2 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
-            건너뛰기
+            {t('common.skip')}
           </button>
         </div>
       )}
@@ -354,7 +329,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               transition={{ delay: 0.15, duration: 0.4 }}
               className="text-[22px] font-bold text-gray-900 dark:text-white mb-4 leading-snug whitespace-pre-line tracking-tight"
             >
-              {slide.title}
+              {t(`onboarding.${slide.key}.title`)}
             </motion.h2>
 
             {/* Description */}
@@ -364,7 +339,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               transition={{ delay: 0.25, duration: 0.4 }}
               className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line"
             >
-              {slide.desc}
+              {t(`onboarding.${slide.key}.desc`)}
             </motion.p>
           </motion.div>
         </AnimatePresence>
@@ -401,7 +376,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           className="w-full h-[52px] text-white font-semibold rounded-2xl text-[16px] shadow-lg"
           style={{ boxShadow: `0 8px 24px ${slide.accentColor}33` }}
         >
-          {page === slides.length - 1 ? '시작하기' : '다음'}
+          {page === slides.length - 1 ? t('common.start') : t('common.next')}
         </motion.button>
       </div>
     </div>

@@ -5,7 +5,11 @@
     "delete": "Delete",
     "confirm": "Confirm",
     "close": "Close",
-    "retry": "Retry"
+    "retry": "Retry",
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Get started",
+    "signIn": "Sign in"
   },
   "nav": {
     "home": "Home",
@@ -18,5 +22,42 @@
     "language": "Language",
     "korean": "한국어",
     "english": "English"
+  },
+  "onboarding": {
+    "slide1": {
+      "title": "PawDex began with\nEve's treatment journey",
+      "desc": "When 10-year-old Eve was in treatment, we needed\ntrustworthy information and consistent records."
+    },
+    "slide2": {
+      "title": "Get AI analysis from\nsymptoms or a photo",
+      "desc": "From the symptoms you describe to a single photo, we surface\nlikely concerns and tailored care guides."
+    },
+    "slide3": {
+      "title": "Fast on the essentials,\ntransparent to the source",
+      "desc": "We translate and summarize relevant papers for easy reading,\nand you can always check the original."
+    },
+    "slide4": {
+      "title": "Let today's notes\nbecome tomorrow's hints",
+      "desc": "Log symptoms and vet visits and they appear on your\ncalendar, making scheduling easier."
+    },
+    "slide5": {
+      "title": "In urgent moments,\nless wandering",
+      "desc": "Quickly find 24-hour hospitals on the map\nand head out right away."
+    },
+    "calendar": {
+      "month": "FEB",
+      "weekdays": "S,M,T,W,T,F,S"
+    }
+  },
+  "auth": {
+    "kakaoSignIn": "Continue with Kakao",
+    "googleSignIn": "Continue with Google",
+    "sessionEvicted": "You were signed out because this account signed in on another device. Please sign in again.",
+    "signInFailed": "Sign-in failed"
+  },
+  "login": {
+    "subtitle1": "Pet health care,",
+    "subtitle2": "made smarter",
+    "agreement": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   }
 }
