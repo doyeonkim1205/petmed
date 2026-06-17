@@ -16,7 +16,8 @@
     "back": "뒤로",
     "edit": "수정",
     "add": "추가",
-    "registerPetFirst": "먼저 반려동물을 등록해주세요"
+    "registerPetFirst": "먼저 반려동물을 등록해주세요",
+    "category": "카테고리"
   },
   "nav": {
     "home": "홈",
@@ -369,5 +370,20 @@
     "actionMsgDelete": "삭제하면 복용 기록·알림도 함께 사라져요",
     "endToday": "오늘까지 복용 종료 <preserve>(기록 보존)</preserve>",
     "deleteFully": "완전 삭제"
+  },
+  "expenses": {
+    "category": { "medical": "병원·의료", "food": "사료", "snack": "간식", "insurance": "펫보험", "supplies": "용품·장난감", "grooming": "미용", "other": "기타" },
+    "period": { "month": "1개월", "3month": "3개월", "year": "1년", "all": "전체", "custom": "직접 선택" },
+    "hint": "기록장(진료·입원)에 적은 비용은\n'{category}'로 자동 합산돼요.",
+    "totalSpent": "{period} 총 지출",
+    "byCategoryShow": "카테고리별 보기",
+    "byCategoryHide": "카테고리별 접기",
+    "empty": "해당 기간에 지출 기록이 없어요",
+    "filterActive": "{category}만 보는 중",
+    "selectPetAbove": "위에서 반려동물을 먼저 선택해주세요",
+    "reasonPlaceholder": "사유 (예: 로얄캐닌 2kg, 건강검진)",
+    "amountPlaceholder": "금액(원)",
+    "amount": "금액",
+    "addExpense": "지출 추가"
   }
 }

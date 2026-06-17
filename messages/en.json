@@ -16,7 +16,8 @@
     "back": "Back",
     "edit": "Edit",
     "add": "Add",
-    "registerPetFirst": "Please register a pet first"
+    "registerPetFirst": "Please register a pet first",
+    "category": "Category"
   },
   "nav": {
     "home": "Home",
@@ -369,5 +370,20 @@
     "actionMsgDelete": "Deleting also removes dose history and reminders",
     "endToday": "End dosing today <preserve>(keep records)</preserve>",
     "deleteFully": "Delete completely"
+  },
+  "expenses": {
+    "category": { "medical": "Medical", "food": "Food", "snack": "Treats", "insurance": "Insurance", "supplies": "Supplies & toys", "grooming": "Grooming", "other": "Other" },
+    "period": { "month": "1 month", "3month": "3 months", "year": "1 year", "all": "All", "custom": "Custom" },
+    "hint": "Costs entered in records (visits/hospitalization) are\nauto-summed into '{category}'.",
+    "totalSpent": "{period} total",
+    "byCategoryShow": "Show categories",
+    "byCategoryHide": "Hide categories",
+    "empty": "No expenses in this period",
+    "filterActive": "Showing {category} only",
+    "selectPetAbove": "Please select a pet above first",
+    "reasonPlaceholder": "Reason (e.g. Royal Canin 2kg, checkup)",
+    "amountPlaceholder": "Amount (₩)",
+    "amount": "Amount",
+    "addExpense": "Add expense"
   }
 }

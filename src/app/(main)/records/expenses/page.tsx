@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   ArrowLeft, Wallet, Lock, Plus, ChevronDown, ChevronUp, X,
   Stethoscope, Package, Cookie, ShieldCheck, Gamepad2, Scissors, Tag,
@@ -35,6 +36,8 @@ type Item = {
 };
 
 // 지출 카테고리 — expenses.category 와 동일 키. 기존 데이터('medical')는 '병원·의료'로 자동 매핑.
+// 표시 라벨은 messages(expenses.category.*)로 분리 — id 로 t() 참조.
+// label(한국어)은 빈 사유 저장 fallback(저장값)·비교용으로만 유지(표시 X).
 const EXP_CATEGORIES: { id: string; label: string; Icon: LucideIcon; color: string }[] = [
   { id: 'medical', label: '병원·의료', Icon: Stethoscope, color: '#2563eb' },
   { id: 'food', label: '사료', Icon: Package, color: '#16a34a' },
@@ -46,12 +49,13 @@ const EXP_CATEGORIES: { id: string; label: string; Icon: LucideIcon; color: stri
 ];
 const catMeta = (id: string) => EXP_CATEGORIES.find((c) => c.id === id) || EXP_CATEGORIES[EXP_CATEGORIES.length - 1];
 
-const allPeriodOptions: { id: Period; label: string; months: number }[] = [
-  { id: 'month', label: '1개월', months: 1 },
-  { id: '3month', label: '3개월', months: 3 },
-  { id: 'year', label: '1년', months: 12 },
-  { id: 'all', label: '전체', months: 200 },
-  { id: 'custom', label: '직접 선택', months: 200 },
+// label 은 messages(expenses.period.*)로 분리 — id 로 참조.
+const allPeriodOptions: { id: Period; months: number }[] = [
+  { id: 'month', months: 1 },
+  { id: '3month', months: 3 },
+  { id: 'year', months: 12 },
+  { id: 'all', months: 200 },
+  { id: 'custom', months: 200 },
 ];
 
 function getStartDate(period: Period, customStart?: string): Date {
@@ -70,15 +74,20 @@ function getEndDate(period: Period, customEnd?: string): Date {
   return new Date();
 }
 
-function formatCost(cost: number): string {
-  return new Intl.NumberFormat('ko-KR').format(cost) + '원';
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+
+function formatCost(cost: number, t: TFn): string {
+  return t('record.money', { value: new Intl.NumberFormat('en-US').format(cost) });
 }
 
-function formatMonthLabel(year: number, month: number): string {
+function formatMonthLabel(year: number, month: number, locale: string): string {
+  if (locale === 'en') return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   return `${year}년 ${month + 1}월`;
 }
 
 export default function ExpensesPage() {
+  const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { user, profile } = useAuth();
   const maxMonths = getPlanConfig(getEffectivePlan(profile?.plan)).costStatsMonths;
@@ -154,10 +163,10 @@ export default function ExpensesPage() {
     for (const e of expenses) {
       const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || catMeta(e.category).label, category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
     return out;
-  }, [records, expenses, startDate, endDate, pets]);
+  }, [records, expenses, startDate, endDate, pets, t]);
 
   // 카테고리별 합계 (전체 — 도넛/범례용)
   const categoryTotals = useMemo(() => {
@@ -185,14 +194,14 @@ export default function ExpensesPage() {
     for (const it of filteredItems) {
       const d = new Date(it.date + 'T00:00:00');
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth()), total: 0, items: [] });
+      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth(), locale), total: 0, items: [] });
       const g = map.get(key)!;
       g.total += it.amount;
       g.items.push(it);
     }
     for (const g of map.values()) g.items.sort((a, b) => b.date.localeCompare(a.date));
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
-  }, [filteredItems]);
+  }, [filteredItems, locale]);
 
   const resolvedPetId = selectedPetId || (pets.length === 1 ? pets[0].id : null);
 
@@ -221,11 +230,11 @@ export default function ExpensesPage() {
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">지출 관리</h1>
+          <h1 className="text-sm font-semibold text-gray-700">{t('record.module.expenses')}</h1>
         </header>
         <div className="absolute left-1/2 top-[50px] z-20 w-64 max-w-[88%] -translate-x-1/2">
           <OnboardHint storageKey="hint_expense_record_v2" pointer="center"
-            text={"기록장(진료·입원)에 적은 비용은\n'병원·의료'로 자동 합산돼요."} />
+            text={t('expenses.hint', { category: t('expenses.category.medical') })} />
         </div>
       </div>
 
@@ -233,7 +242,7 @@ export default function ExpensesPage() {
       {pets.length > 1 && (
         <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
           <button onClick={() => setSelectedPetId(undefined)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>전체</button>
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!selectedPetId ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t('common.all')}</button>
           {pets.map((pet) => (
             <button key={pet.id} onClick={() => setSelectedPetId(pet.id)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === pet.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{pet.name}</button>
@@ -247,15 +256,15 @@ export default function ExpensesPage() {
         ) : pets.length === 0 ? (
           <div className="text-center py-16">
             <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
+            <p className="text-gray-400 text-sm">{t('common.registerPetFirst')}</p>
           </div>
         ) : (
           <>
             {/* 총액 + 누적 막대 + 접이식 범례 */}
             {grandTotal > 0 ? (
               <div className="rounded-xl border border-gray-100 p-4">
-                <p className="text-[11px] text-gray-400">{allPeriodOptions.find((o) => o.id === period)?.label} 총 지출</p>
-                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatCost(grandTotal)}</p>
+                <p className="text-[11px] text-gray-400">{t('expenses.totalSpent', { period: t(`expenses.period.${period}`) })}</p>
+                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatCost(grandTotal, t)}</p>
                 {/* 카테고리별 누적 막대 */}
                 <div className="flex w-full h-3.5 rounded-full overflow-hidden bg-gray-100">
                   {segments.filter((s) => s.value > 0).map((s, i) => (
@@ -264,7 +273,7 @@ export default function ExpensesPage() {
                 </div>
                 <button onClick={() => setLegendOpen((v) => !v)}
                   className="mt-3 w-full flex items-center justify-center gap-1 py-2 rounded-xl border border-gray-100 bg-gray-50/60 text-xs font-bold text-gray-500">
-                  카테고리별 {legendOpen ? '접기' : '보기'} {legendOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {legendOpen ? t('expenses.byCategoryHide') : t('expenses.byCategoryShow')} {legendOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
                 {legendOpen && (
                   <div className="w-full mt-2 space-y-0.5">
@@ -275,8 +284,8 @@ export default function ExpensesPage() {
                         <button key={c.id} onClick={() => setSelectedCategory(sel ? null : c.id)}
                           className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${sel ? 'bg-blue-50' : 'active:bg-gray-50'}`}>
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
-                          <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{c.label}</span>
-                          <span className="text-xs font-semibold text-gray-700">{formatCost(c.value)}</span>
+                          <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{t(`expenses.category.${c.id}`)}</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatCost(c.value, t)}</span>
                           <span className="text-[10px] text-gray-400 w-8 text-right">{pct}%</span>
                         </button>
                       );
@@ -287,16 +296,16 @@ export default function ExpensesPage() {
             ) : (
               <div className="rounded-xl border border-gray-100 py-10 text-center">
                 <Wallet size={36} className="mx-auto mb-2 text-gray-200" />
-                <p className="text-gray-400 text-sm">해당 기간에 지출 기록이 없어요</p>
+                <p className="text-gray-400 text-sm">{t('expenses.empty')}</p>
               </div>
             )}
 
             {/* 필터 표시 */}
             {selectedCategory && (
               <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
-                <span className="text-xs font-medium text-blue-600">{catMeta(selectedCategory).label}만 보는 중</span>
+                <span className="text-xs font-medium text-blue-600">{t('expenses.filterActive', { category: t(`expenses.category.${selectedCategory}`) })}</span>
                 <button onClick={() => setSelectedCategory(null)} className="text-xs text-blue-500 inline-flex items-center gap-0.5">
-                  <X size={12} /> 전체
+                  <X size={12} /> {t('common.all')}
                 </button>
               </div>
             )}
@@ -305,12 +314,12 @@ export default function ExpensesPage() {
             <div className="flex gap-1.5 overflow-x-auto">
               {periodOptions.map((opt) => (
                 <button key={opt.id} onClick={() => setPeriod(opt.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{opt.label}</button>
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t(`expenses.period.${opt.id}`)}</button>
               ))}
               {lockedOptions.map((opt) => (
                 <button key={opt.id} onClick={() => router.push('/profile/subscription')}
                   className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-                  <Lock size={11} />{opt.label}
+                  <Lock size={11} />{t(`expenses.period.${opt.id}`)}
                 </button>
               ))}
             </div>
@@ -328,11 +337,11 @@ export default function ExpensesPage() {
             {showAddInput ? (
               <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
                 {!resolvedPetId ? (
-                  <p className="text-xs text-amber-600 break-keep break-words">위에서 반려동물을 먼저 선택해주세요</p>
+                  <p className="text-xs text-amber-600 break-keep break-words">{t('expenses.selectPetAbove')}</p>
                 ) : null}
                 {/* 카테고리 선택 */}
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">카테고리</label>
+                  <label className="text-xs text-gray-400 mb-1.5 block">{t('common.category')}</label>
                   <div className="flex flex-wrap gap-1.5">
                     {EXP_CATEGORIES.map((c) => {
                       const Icon = c.Icon;
@@ -340,13 +349,13 @@ export default function ExpensesPage() {
                       return (
                         <button key={c.id} type="button" onClick={() => setNewCategory(c.id)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${on ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-500'}`}>
-                          <Icon size={12} />{c.label}
+                          <Icon size={12} />{t(`expenses.category.${c.id}`)}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-                <input type="search" placeholder="사유 (예: 로얄캐닌 2kg, 건강검진)" value={newReason}
+                <input type="search" placeholder={t('expenses.reasonPlaceholder')} value={newReason}
                   onChange={(e) => setNewReason(e.target.value)} maxLength={50}
                   autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-memo-reason"
                   enterKeyHint="done"
@@ -354,7 +363,7 @@ export default function ExpensesPage() {
                 <div className="flex gap-2">
                   <input type="text"
                     inputMode={isTouch ? 'none' : 'numeric'}
-                    placeholder="금액(원)" value={newAmount ? Number(newAmount).toLocaleString() : ''}
+                    placeholder={t('expenses.amountPlaceholder')} value={newAmount ? Number(newAmount).toLocaleString() : ''}
                     onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 9))}
                     readOnly={isTouch}
                     onClick={() => { if (isTouch) setShowAmountPad(true); }}
@@ -364,20 +373,20 @@ export default function ExpensesPage() {
                     inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowAddInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">취소</button>
+                  <button onClick={() => setShowAddInput(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
                   <button onClick={handleAddExpense} disabled={!newAmount || !resolvedPetId || saving}
                     className="flex-1 py-2.5 bg-gray-700 text-white rounded-lg text-sm font-medium disabled:opacity-40">
-                    {saving ? '저장 중...' : '저장'}
+                    {saving ? t('record.form.saving') : t('common.save')}
                   </button>
                 </div>
                 {showAmountPad && (
-                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={false} maxIntDigits={9} thousands label="금액" suffix="원" onClose={() => setShowAmountPad(false)} />
+                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={false} maxIntDigits={9} thousands label={t('expenses.amount')} suffix={t('record.form.wonSuffix')} onClose={() => setShowAmountPad(false)} />
                 )}
               </div>
             ) : (
               <button onClick={() => setShowAddInput(true)}
                 className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors">
-                <Plus size={16} /> 지출 추가
+                <Plus size={16} /> {t('expenses.addExpense')}
               </button>
             )}
 
@@ -387,11 +396,11 @@ export default function ExpensesPage() {
                   <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                       <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
-                      <span className="text-sm font-bold text-blue-600">{formatCost(group.total)}</span>
+                      <span className="text-sm font-bold text-blue-600">{formatCost(group.total, t)}</span>
                     </div>
                     <div className="divide-y divide-gray-50">
                       {group.items.map((it) => {
-                        const dateLabel = new Date(it.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                        const dateLabel = new Date(it.date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'numeric', day: 'numeric' });
                         const cm = catMeta(it.category);
                         const CatIcon = cm.Icon;
                         const head = (
@@ -399,7 +408,7 @@ export default function ExpensesPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400 flex-shrink-0">{dateLabel}</span>
                               <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 flex-shrink-0">
-                                <CatIcon size={10} />{cm.label}
+                                <CatIcon size={10} />{t(`expenses.category.${it.category}`)}
                               </span>
                               {!selectedPetId && it.petName && <span className="text-[11px] text-gray-400 flex-shrink-0">{it.petName}</span>}
                               {it.source === 'record' && it.hospital && <span className="text-[11px] text-gray-400 truncate">{it.hospital}</span>}
@@ -412,7 +421,7 @@ export default function ExpensesPage() {
                             <button key={it.key} onClick={() => router.push(`/records/${it.id}`)}
                               className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
                               <div className="min-w-0 flex-1">{head}</div>
-                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(it.amount)}</span>
+                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(it.amount, t)}</span>
                             </button>
                           );
                         }
@@ -422,10 +431,10 @@ export default function ExpensesPage() {
                             className={`w-full flex items-center justify-between py-3 px-4 transition-colors text-left ${sel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
                             <div className="min-w-0 flex-1">{head}</div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                              <span className="text-sm font-semibold text-gray-700">{formatCost(it.amount)}</span>
+                              <span className="text-sm font-semibold text-gray-700">{formatCost(it.amount, t)}</span>
                               {sel && (
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteExpense(it.id); }}
-                                  className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">삭제</button>
+                                  className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">{t('common.delete')}</button>
                               )}
                             </div>
                           </div>
