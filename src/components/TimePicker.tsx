@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, Check } from 'lucide-react';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
  *   - blur / 증감 버튼 / AM-PM 토글에서만 emit 하도록 분리.
  */
 export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: Props) {
+  const t = useTranslations();
   const parsed = parse24h(value);
   const [ampm, setAmpm] = useState<'AM' | 'PM'>(parsed.ampm);
   const [hour, setHour] = useState(parsed.hour12);
@@ -158,14 +160,14 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
           onClick={() => { setAmpm('AM'); emit('AM', hour, minute); }}
           className={`px-3 py-2 text-xs font-medium ${ampm === 'AM' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}
         >
-          오전
+          {t('common.am')}
         </button>
         <button
           type="button"
           onClick={() => { setAmpm('PM'); emit('PM', hour, minute); }}
           className={`px-3 py-2 text-xs font-medium ${ampm === 'PM' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}
         >
-          오후
+          {t('common.pm')}
         </button>
       </div>
 

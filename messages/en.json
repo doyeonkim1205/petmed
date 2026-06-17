@@ -21,7 +21,10 @@
     "done": "Done",
     "selectPet": "Please select a pet",
     "date": "Date",
-    "time": "Time"
+    "time": "Time",
+    "am": "AM",
+    "pm": "PM",
+    "selectDate": "Select date"
   },
   "nav": {
     "home": "Home",
@@ -420,7 +423,9 @@
     "medicating": "On medication",
     "appointment": "Appointment",
     "discharge": "Discharge",
-    "noRecords": "No records"
+    "noRecords": "No records",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
   },
   "meds": {
     "type": { "prescription": "Prescription", "supplement": "Supplement", "other": "Other" },

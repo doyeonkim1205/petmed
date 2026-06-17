@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { DayPicker, type Matcher } from 'react-day-picker';
-import { ko } from 'date-fns/locale';
+import { ko, enUS } from 'date-fns/locale';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'react-day-picker/style.css';
 
@@ -38,13 +39,18 @@ function parseYmd(s: string): Date | undefined {
 export function DatePicker({
   value,
   onChange,
-  placeholder = '날짜 선택',
+  placeholder,
   max,
   min,
   name,
   className = '',
   inputClassName = '',
 }: DatePickerProps) {
+  const t = useTranslations();
+  const uiLocale = useLocale();
+  const isEn = uiLocale === 'en';
+  const ph = placeholder ?? t('common.selectDate');
+  const monthLabel = (m: number) => isEn ? new Date(2000, m, 1).toLocaleDateString('en-US', { month: 'short' }) : `${m + 1}월`;
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => parseYmd(value) || new Date());
   // 'day' 일반 달력 / 'year' 연도 그리드 / 'month' 월 그리드 (네이티브 select 대신 커스텀 패널)
@@ -97,7 +103,7 @@ export function DatePicker({
         className={`w-full text-left flex items-center justify-between ${inputClassName || 'px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'}`}
       >
         <span className={value ? 'text-gray-900' : 'text-gray-400'}>
-          {value || placeholder}
+          {value || ph}
         </span>
         <Calendar size={16} className="text-gray-400 flex-shrink-0" />
       </button>
@@ -118,7 +124,7 @@ export function DatePicker({
                 type="button"
                 onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
-                aria-label="이전 달"
+                aria-label={t('calendar.prevMonth')}
               >
                 <ChevronLeft size={18} />
               </button>
@@ -128,21 +134,21 @@ export function DatePicker({
                   onClick={() => setView(view === 'year' ? 'day' : 'year')}
                   className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${view === 'year' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
                 >
-                  {month.getFullYear()}년
+                  {isEn ? month.getFullYear() : `${month.getFullYear()}년`}
                 </button>
                 <button
                   type="button"
                   onClick={() => setView(view === 'month' ? 'day' : 'month')}
                   className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${view === 'month' ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100'}`}
                 >
-                  {month.getMonth() + 1}월
+                  {monthLabel(month.getMonth())}
                 </button>
               </div>
               <button
                 type="button"
                 onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
-                aria-label="다음 달"
+                aria-label={t('calendar.nextMonth')}
               >
                 <ChevronRight size={18} />
               </button>
@@ -170,7 +176,7 @@ export function DatePicker({
                     onClick={() => { setMonth(new Date(month.getFullYear(), m, 1)); setView('day'); }}
                     className={`py-2.5 rounded-lg text-sm transition-colors ${m === month.getMonth() ? 'bg-blue-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
                   >
-                    {m + 1}월
+                    {monthLabel(m)}
                   </button>
                 ))}
               </div>
@@ -187,7 +193,7 @@ export function DatePicker({
                     setOpen(false);
                   }
                 }}
-                locale={ko}
+                locale={isEn ? enUS : ko}
                 disabled={disabled.length > 0 ? disabled : undefined}
                 showOutsideDays
                 className="pawdex-dp"

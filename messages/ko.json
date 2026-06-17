@@ -21,7 +21,10 @@
     "done": "완료",
     "selectPet": "반려동물을 선택해주세요",
     "date": "날짜",
-    "time": "시간"
+    "time": "시간",
+    "am": "오전",
+    "pm": "오후",
+    "selectDate": "날짜 선택"
   },
   "nav": {
     "home": "홈",
@@ -420,7 +423,9 @@
     "medicating": "투약 중",
     "appointment": "예약",
     "discharge": "퇴원",
-    "noRecords": "기록이 없습니다"
+    "noRecords": "기록이 없습니다",
+    "prevMonth": "이전 달",
+    "nextMonth": "다음 달"
   },
   "meds": {
     "type": { "prescription": "처방약", "supplement": "영양제", "other": "기타" },
