@@ -74,7 +74,11 @@
     "kakaoSignIn": "Continue with Kakao",
     "googleSignIn": "Continue with Google",
     "sessionEvicted": "You were signed out because this account signed in on another device. Please sign in again.",
-    "signInFailed": "Sign-in failed"
+    "signInFailed": "Sign-in failed",
+    "loginCancelled": "Sign-in was cancelled.",
+    "loginError": "Sign-in error: {error}",
+    "loginTimeout": "Sign-in timed out. Please try again.",
+    "redirectingToLogin": "Redirecting to the sign-in page..."
   },
   "login": {
     "subtitle1": "Pet health care,",

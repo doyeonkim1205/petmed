@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const t = useTranslations('auth');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,8 +18,8 @@ export default function AuthCallbackPage() {
     if (errorParam) {
       const errorDesc = params.get('error_description');
       setError(errorParam === 'access_denied'
-        ? '로그인이 취소되었습니다.'
-        : errorDesc || `로그인 오류: ${errorParam}`);
+        ? t('loginCancelled')
+        : errorDesc || t('loginError', { error: errorParam }));
       setTimeout(() => router.replace('/login'), 2000);
       return;
     }
@@ -54,7 +56,7 @@ export default function AuthCallbackPage() {
     const timeout = setTimeout(() => {
       if (!redirected) {
         subscription.unsubscribe();
-        setError('로그인 처리 시간이 초과되었습니다. 다시 시도해주세요.');
+        setError(t('loginTimeout'));
         setTimeout(() => router.replace('/login'), 2000);
       }
     }, 8000);
@@ -63,21 +65,25 @@ export default function AuthCallbackPage() {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [router]);
+  }, [router, t]);
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white px-6 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-512x512.png" alt="PawDex" className="w-16 h-16 rounded-[22%] mb-4 opacity-80" />
         <p className="text-red-500 mb-2 text-sm">{error}</p>
-        <p className="text-xs text-gray-400">로그인 페이지로 이동합니다...</p>
+        <p className="text-xs text-gray-400">{t('redirectingToLogin')}</p>
       </div>
     );
   }
 
+  // 로딩 화면 — 언어 무관하게 로고 + 스피너만 (텍스트 없음).
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-      <Loader2 className="animate-spin text-blue-500 mb-3" size={32} />
-      <p className="text-sm text-gray-600">로그인 처리 중...</p>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/icons/icon-512x512.png" alt="PawDex" className="w-20 h-20 rounded-[22%] mb-5" />
+      <Loader2 className="animate-spin text-blue-500" size={26} />
     </div>
   );
 }
