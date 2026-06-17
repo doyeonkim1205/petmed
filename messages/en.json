@@ -134,7 +134,8 @@
       "symptom": "Symptom",
       "daily": "Daily",
       "visit": "Visit",
-      "hospitalization": "Hospitalization"
+      "hospitalization": "Hospitalization",
+      "manual": "Manual"
     },
     "tab": { "records": "Records", "calendar": "Calendar" },
     "module": {
@@ -399,6 +400,27 @@
     "hintFluid": "Log based on your vet's prescribed amount",
     "hintWater": "Recommended approx. {low}–{high}ml",
     "hintWaterNoWeight": "Register your pet's weight to see the recommended amount"
+  },
+  "uploader": {
+    "placeholder": "Tap here to upload a photo or file",
+    "typeOnly": "Only JPG, PNG, PDF allowed",
+    "pdfTooLarge": "PDFs must be 5MB or less ({mb}MB)",
+    "rejectedOne": "Couldn't add {name}",
+    "rejectedMany": "{count} files couldn't be added",
+    "limitReachedZero": "Attachment limit reached",
+    "limitReached": "You can attach up to {max} files",
+    "upsellFree": "Plus supports up to 5 files and about 20× the storage (1GB)",
+    "storageCheckHint": "Check your storage in My page > App settings",
+    "formatHint": "JPG, PNG, PDF · up to {max}",
+    "remaining": "Remaining"
+  },
+  "calendar": {
+    "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "label": { "symptom": "Symptom", "visit": "Visit", "hospitalization": "Admission", "manual": "Record", "daily": "Daily" },
+    "medicating": "On medication",
+    "appointment": "Appointment",
+    "discharge": "Discharge",
+    "noRecords": "No records"
   },
   "meds": {
     "type": { "prescription": "Prescription", "supplement": "Supplement", "other": "Other" },

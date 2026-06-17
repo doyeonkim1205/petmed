@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 
 interface FileUploaderProps {
@@ -22,7 +23,9 @@ function formatStorageMB(mb: number): string {
   return `${Math.round(mb)}MB`;
 }
 
-export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder = '여기를 눌러 사진이나 파일을 올려주세요', storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
+export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
+  const t = useTranslations();
+  const ph = placeholder ?? t('uploader.placeholder');
   const [dragOver, setDragOver] = useState(false);
   // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
   const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
@@ -44,14 +47,14 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
 
     for (const f of Array.from(newFiles)) {
       if (!validTypes.includes(f.type)) {
-        rejected.push({ name: f.name, reason: 'JPG, PNG, PDF 만 가능' });
+        rejected.push({ name: f.name, reason: t('uploader.typeOnly') });
         continue;
       }
       // 이미지는 업로드 시점에 자동 압축되므로 원본 크기 무관.
       // PDF 만 원본 5MB 검사 (PDF 는 압축 안 함).
       if (f.type === 'application/pdf' && f.size > 5 * 1024 * 1024) {
         const mb = (f.size / (1024 * 1024)).toFixed(1);
-        rejected.push({ name: f.name, reason: `PDF 는 5MB 이하만 가능 (${mb}MB)` });
+        rejected.push({ name: f.name, reason: t('uploader.pdfTooLarge', { mb }) });
         continue;
       }
       validFiles.push(f);
@@ -92,12 +95,12 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
           <div className="leading-snug flex-1 min-w-0">
             {rejectedFiles.length === 1 ? (
               <>
-                <p className="text-xs font-medium break-all">{rejectedFiles[0].name} 는 추가하지 못했어요</p>
+                <p className="text-xs font-medium break-all">{t('uploader.rejectedOne', { name: rejectedFiles[0].name })}</p>
                 <p className="text-[11px] text-red-500 mt-0.5">{rejectedFiles[0].reason}</p>
               </>
             ) : (
               <>
-                <p className="text-xs font-medium">{rejectedFiles.length}개 파일이 추가되지 못했어요</p>
+                <p className="text-xs font-medium">{t('uploader.rejectedMany', { count: rejectedFiles.length })}</p>
                 <ul className="text-[11px] text-red-500 mt-0.5 list-disc list-inside space-y-0.5">
                   {rejectedFiles.map((r, i) => (
                     <li key={i} className="break-all">{r.name} — {r.reason}</li>
@@ -111,12 +114,12 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
       {atLimit ? (
         // 한도 도달: 업로드 영역 대신 안내 문구만 (파일 리스트는 아래 유지)
         <div className="text-center py-2 break-keep break-words">
-          <p className="text-xs text-gray-400">{maxFiles === 0 ? '첨부 한도에 도달했어요' : `최대 ${maxFiles}개 파일까지 첨부할 수 있어요`}</p>
+          <p className="text-xs text-gray-400">{maxFiles === 0 ? t('uploader.limitReachedZero') : t('uploader.limitReached', { max: maxFiles })}</p>
           {atLimitUpsell === 'free' && (
-            <p className="text-[11px] text-gray-400 mt-1">Plus는 최대 5개 파일과 약 20배 저장공간(1GB)을 지원해요</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('uploader.upsellFree')}</p>
           )}
           {atLimitUpsell !== 'none' && (
-            <p className="text-[10px] text-gray-300 mt-0.5">저장 용량은 마이페이지 &gt; 앱 설정에서 확인할 수 있어요</p>
+            <p className="text-[10px] text-gray-300 mt-0.5">{t('uploader.storageCheckHint')}</p>
           )}
         </div>
       ) : (
@@ -130,11 +133,11 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder =
           }`}
         >
           <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-          <p className="text-sm text-gray-600">{placeholder}</p>
-          <p className="text-[11px] text-gray-400 mt-1">JPG, PNG, PDF · 최대 {maxFiles}개</p>
+          <p className="text-sm text-gray-600">{ph}</p>
+          <p className="text-[11px] text-gray-400 mt-1">{t('uploader.formatHint', { max: maxFiles })}</p>
           {storageUsage && storageUsage.limitMB > 0 && (
             <p className="text-[11px] text-gray-400 mt-0.5">
-              남은 용량 <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
+              {t('uploader.remaining')} <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
             </p>
           )}
           <input

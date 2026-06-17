@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { HealthRecord } from '@/lib/supabase';
 import { Stethoscope, AlertCircle, FileEdit, Building2, PawPrint } from 'lucide-react';
 
@@ -15,11 +16,11 @@ interface RecordCardProps {
 }
 
 const typeConfig = {
-  symptom: { icon: AlertCircle, label: '증상', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' },
-  visit: { icon: Stethoscope, label: '진료', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
-  hospitalization: { icon: Building2, label: '입퇴원', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
-  manual: { icon: FileEdit, label: '수동', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400' },
+  symptom: { icon: AlertCircle, labelKey: 'record.typeShort.symptom', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' },
+  visit: { icon: Stethoscope, labelKey: 'record.typeShort.visit', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' },
+  hospitalization: { icon: Building2, labelKey: 'record.typeShort.hospitalization', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' },
+  manual: { icon: FileEdit, labelKey: 'record.typeShort.manual', color: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' },
+  daily: { icon: PawPrint, labelKey: 'record.typeShort.daily', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400' },
 };
 
 // 500ms = Material Design 의 표준 long-press 시간. 짧은 탭과 명확히 구분되면서
@@ -29,11 +30,13 @@ const LONG_PRESS_MS = 500;
 const MOVE_THRESHOLD = 5;
 
 export function RecordCard({ record, onClick, selectMode, selected, onSelect, onLongPress }: RecordCardProps) {
+  const t = useTranslations();
+  const locale = useLocale();
   const config = typeConfig[record.record_type] || typeConfig.manual;
   const Icon = config.icon;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
+    return new Date(dateString).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -137,7 +140,7 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect, on
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${config.color}`}>
-              {config.label}
+              {t(config.labelKey)}
             </span>
             {record.pets && (
               <span className="text-[11px] text-gray-400">{record.pets.name}</span>

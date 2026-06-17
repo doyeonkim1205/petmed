@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko, enUS } from 'date-fns/locale';
 import { HealthRecord } from '@/lib/supabase';
 import { Stethoscope, AlertCircle, FileEdit, Building2, ChevronLeft, ChevronRight, Pill, Calendar } from 'lucide-react';
 
@@ -13,9 +14,11 @@ interface CalendarViewProps {
   onRecordClick?: (recordId: string) => void;
 }
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-
 export function CalendarView({ records, onDateSelect, selectedDate, onRecordClick }: CalendarViewProps) {
+  const t = useTranslations();
+  const uiLocale = useLocale();
+  const dfnsLocale = uiLocale === 'en' ? enUS : ko;
+  const WEEKDAYS = t.raw('calendar.weekdays') as string[];
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
 
   // Build dot map, appointment dates, medication map, and hospitalization range map
@@ -168,11 +171,11 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
   };
 
   const typeLabel = {
-    symptom: '증상',
-    visit: '진료',
-    hospitalization: '입원',
-    manual: '기록',
-    daily: '일상',
+    symptom: 'calendar.label.symptom',
+    visit: 'calendar.label.visit',
+    hospitalization: 'calendar.label.hospitalization',
+    manual: 'calendar.label.manual',
+    daily: 'calendar.label.daily',
   };
 
   // Build calendar grid
@@ -199,7 +202,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
           <ChevronLeft size={20} />
         </button>
         <h3 className="text-base font-bold text-gray-900">
-          {format(currentMonth, 'yyyy년 M월', { locale: ko })}
+          {format(currentMonth, uiLocale === 'en' ? 'MMMM yyyy' : 'yyyy년 M월', { locale: dfnsLocale })}
         </h3>
         <button
           onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
@@ -303,7 +306,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
       {/* Selected Date Details */}
       <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
         <h4 className="text-sm font-bold text-gray-800 mb-2">
-          {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}
+          {format(selectedDate, uiLocale === 'en' ? 'EEEE, MMMM d' : 'M월 d일 (EEEE)', { locale: dfnsLocale })}
         </h4>
 
         {/* Records */}
@@ -312,7 +315,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
             {dayRecords.map((record) => {
               const Icon = typeIcon[record.record_type] || FileEdit;
               const color = typeColor[record.record_type] || 'text-gray-500';
-              const label = typeLabel[record.record_type] || '기록';
+              const label = t(typeLabel[record.record_type] || 'calendar.label.manual');
               return (
                 <button
                   key={record.id}
@@ -350,7 +353,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
         {dayMedications.length > 0 && (
           <div className="mb-3">
             <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-              <Pill size={12} /> 투약 중
+              <Pill size={12} /> {t('calendar.medicating')}
             </p>
             <div className="space-y-1.5">
               {dayMedications.map((med, i) => (
@@ -369,7 +372,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
         {dayAppointments.length > 0 && (
           <div className="mb-3">
             <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-              <Calendar size={12} /> 예약
+              <Calendar size={12} /> {t('calendar.appointment')}
             </p>
             <div className="space-y-1.5">
               {dayAppointments.map((record) => {
@@ -392,7 +395,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
         {dayDischarges.length > 0 && (
           <div className="mb-3">
             <p className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
-              <Building2 size={12} /> 퇴원
+              <Building2 size={12} /> {t('calendar.discharge')}
             </p>
             <div className="space-y-1.5">
               {dayDischarges.map((record) => (
@@ -409,7 +412,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
         )}
 
         {dayRecords.length === 0 && dayMedications.length === 0 && dayAppointments.length === 0 && dayDischarges.length === 0 && (
-          <p className="text-sm text-gray-400 py-2">기록이 없습니다</p>
+          <p className="text-sm text-gray-400 py-2">{t('calendar.noRecords')}</p>
         )}
       </div>
     </div>
