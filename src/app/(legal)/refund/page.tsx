@@ -22,6 +22,16 @@ function RefundKo() {
         <p>PawDex(이하 &quot;서비스&quot;)는 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 다음과 같은 환불 정책을 운영합니다.</p>
       </Section>
 
+      <Section title="1-1. 앱(Google Play) 결제 안내">
+        <p>PawDex Android 앱에서 결제한 Plus 구독은 <strong>Google Play 결제 시스템</strong>으로 처리되며, 결제·자동 갱신·해지·환불은 <strong>Google Play 정책 및 절차</strong>를 따릅니다.</p>
+        <ul>
+          <li>구독 해지·자동 갱신 중지·환불 요청은 <strong>Google Play 구독 관리 화면</strong> 또는 Google Play 고객센터를 통해 진행해 주세요.</li>
+          <li>환불 가능 여부는 본 정책의 환불 기준(결제 24시간 이내·미사용)을 바탕으로 검토되며, Google Play 정책에 따라 처리됩니다.</li>
+          <li>자동 갱신 결제가 실패하면 Google의 유예 기간 및 계정 보류 정책에 따라 재시도되며, 회수되지 않으면 구독이 자동 종료됩니다.</li>
+          <li>아래 2항 이하의 세부 절차(서비스 내 환불 신청·재시도 주기 등)는 웹(pawdex.store)에서 결제한 경우에 적용됩니다.</li>
+        </ul>
+      </Section>
+
       <Section title="2. 월간 구독 환불">
         <ul>
           <li>결제일로부터 <strong>24시간 이내</strong>이고, 유료 서비스를 이용하지 않은 경우 <strong>전액 환불</strong>이 가능합니다.</li>
@@ -105,6 +115,16 @@ function RefundEn({ refNotice }: { refNotice: string }) {
 
       <Section title="1. Overview of the Refund Policy">
         <p>PawDex (the &quot;Service&quot;) operates the following refund policy in accordance with the Act on the Consumer Protection in Electronic Commerce of the Republic of Korea.</p>
+      </Section>
+
+      <Section title="1-1. App (Google Play) Purchases">
+        <p>Plus subscriptions purchased in the PawDex Android app are processed through the <strong>Google Play billing system</strong>, and payment, automatic renewal, cancellation, and refunds follow <strong>Google Play&apos;s policies and procedures</strong>.</p>
+        <ul>
+          <li>To cancel your subscription, turn off auto-renewal, or request a refund, please use the <strong>Google Play subscriptions screen</strong> or Google Play support.</li>
+          <li>Refund eligibility is reviewed based on this policy&apos;s standards (within 24 hours of payment and unused) and processed in accordance with Google Play policy.</li>
+          <li>If an automatic renewal payment fails, Google retries under its grace period and account hold policies; if it is not recovered, the subscription is automatically terminated.</li>
+          <li>The detailed procedures in Section 2 and below (in-app refund requests, retry intervals, etc.) apply to payments made on the web (pawdex.store).</li>
+        </ul>
       </Section>
 
       <Section title="2. Monthly Subscription Refunds">
