@@ -866,6 +866,8 @@
     "preparingDesc": "In-app purchases are being set up. See you soon!",
     "subscribeMonthlyTitle": "Plus monthly",
     "subscribeMonthlySub": "Auto-renews monthly · cancel anytime",
+    "subscribeYearlyTitle": "Plus annual",
+    "subscribeYearlySub": "Auto-renews yearly · cancel anytime",
     "manageInPlay": "Manage subscription in Google Play",
     "manageInPlayDesc": "Change, cancel, or refund your subscription in the Google Play subscriptions screen.",
     "manageOnWeb": "This subscription was purchased on the web. Manage or cancel it at pawdex.store.",

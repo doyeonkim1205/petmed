@@ -135,6 +135,7 @@ export default function SubscriptionPage() {
   const appRcBilling = isApp && rcReady;  // 앱에서 RC 구매 버튼 노출
   const [purchasing, setPurchasing] = useState(false);
   const [nativePrice, setNativePrice] = useState<string | null>(null);
+  const [nativePriceYearly, setNativePriceYearly] = useState<string | null>(null);
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -163,10 +164,11 @@ export default function SubscriptionPage() {
     import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
   }, [user, authLoading, router]);
 
-  // 앱+RC: 오퍼링에서 월간 상품의 로컬라이즈 가격(Play 실제가)을 가져와 표시.
+  // 앱+RC: 오퍼링에서 월간·연간 상품의 로컬라이즈 가격(Play 실제가)을 가져와 표시.
   useEffect(() => {
     if (!user || !appRcBilling) return;
     platformPayments.getPriceString(user.id, 'plus_monthly').then(setNativePrice).catch(() => {});
+    platformPayments.getPriceString(user.id, 'plus_yearly').then(setNativePriceYearly).catch(() => {});
   }, [user, appRcBilling]);
 
   const handleRetryBilling = async () => {
@@ -382,6 +384,11 @@ export default function SubscriptionPage() {
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
+                  title={t('subscription.subscribeYearlyTitle')}
+                  price={nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() })}
+                  sub={t('subscription.subscribeYearlySub')}
+                  badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
                 <button onClick={handleRestore} disabled={purchasing}
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
                   {t('subscription.restorePurchase')}
@@ -497,6 +504,11 @@ export default function SubscriptionPage() {
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
+                  title={t('subscription.subscribeYearlyTitle')}
+                  price={nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() })}
+                  sub={t('subscription.subscribeYearlySub')}
+                  badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
                 <button onClick={handleRestore} disabled={purchasing}
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
                   {t('subscription.restorePurchase')}
