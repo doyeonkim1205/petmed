@@ -53,3 +53,8 @@ next-env.d.ts
 tmp-banner-preview.html
 tmp-loading-preview.html
 tmp-soft-prompt-preview.html
+
+# 마케팅 작업 자산 (로컬 전용 — git 추적 안 함)
+/docs/instagram-*.html
+/docs/promo-assets/
+/docs/promo-export/
