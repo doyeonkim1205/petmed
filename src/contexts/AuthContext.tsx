@@ -8,6 +8,7 @@ import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
+import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
   user: User | null;
@@ -487,6 +488,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch {}
+
+    // 2.1) 언어 쿠키 초기화 — 언어는 계정 종속. 안 지우면 이전 계정의 언어가
+    // 다음 로그인 계정으로 새어나감(공유 기기). 다음 로그인 시 그 계정의
+    // preferred_language(없으면 기본 ko)가 LocaleSync 로 다시 적용됨.
+    try { document.cookie = `${LOCALE_COOKIE}=; path=/; max-age=0; SameSite=Lax`; } catch {}
 
     // 2.5) Clear all record draft storage — defense in depth.
     // Draft 키에 userId 가 포함되어 격리는 보장되지만, 같은 디바이스에서 사용자
