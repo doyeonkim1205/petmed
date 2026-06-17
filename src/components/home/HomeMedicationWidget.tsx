@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Pill, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
+
+type TFn = (key: string, values?: Record<string, string | number>) => string;
 
 // 홈 "오늘의 복약" 위젯 — 평소엔 V5(한 줄 요약), 탭하면 V1(체크 리스트)로 펼침.
 // 체크는 medication_checks 에 저장되어 캘린더와 동일 데이터(같은 테이블) 공유.
@@ -17,12 +20,12 @@ function parseDoseCount(frequency: string): number {
   return 1;
 }
 
-function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }): string[] {
+function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }, t: TFn): string[] {
   const count = parseDoseCount(med.frequency);
   const times = med.alarm_times;
   if (times && times.length === count) return times;
-  if (count === 1) return ['복용'];
-  return Array.from({ length: count }, (_, i) => `${i + 1}회차`);
+  if (count === 1) return [t('home.medWidget.dose')];
+  return Array.from({ length: count }, (_, i) => t('record.form.doseNth', { n: i + 1 }));
 }
 
 function localTodayISO(): string {
@@ -31,6 +34,7 @@ function localTodayISO(): string {
 }
 
 export function HomeMedicationWidget() {
+  const t = useTranslations();
   const [meds, setMeds] = useState<any[]>([]);
   const [checks, setChecks] = useState<MedicationCheck[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,10 +102,10 @@ export function HomeMedicationWidget() {
     return cc < dc;
   });
   const summary = allDone
-    ? '오늘 약을 모두 챙겼어요'
+    ? t('home.medWidget.allDone')
     : remaining.length <= 1
-      ? `${remaining[0]?.name ?? ''} 남았어요`
-      : `${remaining[0].name} 외 ${remaining.length - 1}개 남았어요`;
+      ? t('home.medWidget.remaining', { name: remaining[0]?.name ?? '' })
+      : t('home.medWidget.remainingMore', { name: remaining[0].name, count: remaining.length - 1 });
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100">
@@ -111,7 +115,7 @@ export function HomeMedicationWidget() {
           <Pill size={18} className="text-rose-500" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-gray-900">오늘의 약</p>
+          <p className="text-[13px] font-bold text-gray-900">{t('home.medWidget.title')}</p>
           <p className="text-[11px] text-gray-400 truncate">{summary}</p>
         </div>
         <span className={`text-[11px] font-bold px-2 py-1 rounded-full flex-none ${allDone ? 'text-green-600 bg-green-50' : 'text-rose-500 bg-rose-50'}`}>
@@ -129,7 +133,7 @@ export function HomeMedicationWidget() {
           <div className="space-y-1.5">
             {meds.map((med) => {
               const doseCount = parseDoseCount(med.frequency);
-              const labels = getDoseLabels(med);
+              const labels = getDoseLabels(med, t);
               const petName = med.pets?.name;
               return labels.map((label, di) => {
                 const isChecked = checks.some((c) => c.medication_id === med.id && c.dose_number === di && c.checked);
@@ -162,7 +166,7 @@ export function HomeMedicationWidget() {
             onClick={() => router.push('/records/meds')}
             className="mt-2 w-full flex items-center justify-center gap-0.5 py-2 text-[12px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
           >
-            복약 관리 <ChevronRight size={13} />
+            {t('record.module.meds')} <ChevronRight size={13} />
           </button>
         </div>
       )}

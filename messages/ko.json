@@ -102,7 +102,14 @@
         "subtitle": "우리 아이 건강 기록을 바탕으로 증상을 분석해요"
       }
     },
-    "preventiveWidget": { "summaryMore": "{label} 외 {count}개 예정" }
+    "preventiveWidget": { "summaryMore": "{label} 외 {count}개 예정" },
+    "medWidget": {
+      "title": "오늘의 약",
+      "allDone": "오늘 약을 모두 챙겼어요",
+      "remaining": "{name} 남았어요",
+      "remainingMore": "{name} 외 {count}개 남았어요",
+      "dose": "복용"
+    }
   },
   "record": {
     "type": {
@@ -342,5 +349,25 @@
     },
     "amount": { "less": "적음", "normal": "보통", "more": "많음" },
     "color": { "brown": "갈색", "black": "검은색", "red": "붉은색", "yellow": "노란색", "gray": "회색" }
+  },
+  "meds": {
+    "type": { "prescription": "처방약", "supplement": "영양제", "other": "기타" },
+    "endBeforeStart": "종료일이 시작일보다 빠를 수 없어요",
+    "intro": "진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요! 복용 체크는 홈·캘린더에서 할 수 있어요",
+    "empty": "등록된 약·영양제가 없어요",
+    "activeCount": "복용 중 {count}",
+    "endedCount": "종료 {count}",
+    "addTitle": "약 추가",
+    "editTitle": "약 수정",
+    "typeLabel": "종류",
+    "namePlaceholder": "약·영양제 이름",
+    "softPromptTitle": "투약 알림을 받을까요?",
+    "softPromptMsg": "설정한 시간에 투약 알림을 보내드려요! 알림을 허용하면 바로 적용돼요",
+    "actionTitleLinked": "'{name}' 어떻게 할까요?",
+    "actionTitleDelete": "'{name}' 삭제할까요?",
+    "actionMsgLinked": "이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요",
+    "actionMsgDelete": "삭제하면 복용 기록·알림도 함께 사라져요",
+    "endToday": "오늘까지 복용 종료 <preserve>(기록 보존)</preserve>",
+    "deleteFully": "완전 삭제"
   }
 }

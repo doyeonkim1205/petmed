@@ -102,7 +102,14 @@
         "subtitle": "We analyze symptoms from your pet's health records"
       }
     },
-    "preventiveWidget": { "summaryMore": "{label} +{count} more upcoming" }
+    "preventiveWidget": { "summaryMore": "{label} +{count} more upcoming" },
+    "medWidget": {
+      "title": "Today's meds",
+      "allDone": "All meds done for today",
+      "remaining": "{name} remaining",
+      "remainingMore": "{name} +{count} more remaining",
+      "dose": "Dose"
+    }
   },
   "record": {
     "type": {
@@ -342,5 +349,25 @@
     },
     "amount": { "less": "Less", "normal": "Normal", "more": "More" },
     "color": { "brown": "Brown", "black": "Black", "red": "Red", "yellow": "Yellow", "gray": "Gray" }
+  },
+  "meds": {
+    "type": { "prescription": "Prescription", "supplement": "Supplement", "other": "Other" },
+    "endBeforeStart": "End date can't be earlier than start date",
+    "intro": "Medications from visit/hospitalization records gather here automatically! You can check off doses from Home or the calendar.",
+    "empty": "No medications or supplements yet",
+    "activeCount": "Active {count}",
+    "endedCount": "Ended {count}",
+    "addTitle": "Add medication",
+    "editTitle": "Edit medication",
+    "typeLabel": "Type",
+    "namePlaceholder": "Medication/supplement name",
+    "softPromptTitle": "Turn on medication reminders?",
+    "softPromptMsg": "We'll send reminders at the set times! Allow notifications to apply right away.",
+    "actionTitleLinked": "What would you like to do with '{name}'?",
+    "actionTitleDelete": "Delete '{name}'?",
+    "actionMsgLinked": "This medication is also in a visit record! Deleting it completely removes it from the visit record too.",
+    "actionMsgDelete": "Deleting also removes dose history and reminders",
+    "endToday": "End dosing today <preserve>(keep records)</preserve>",
+    "deleteFully": "Delete completely"
   }
 }
