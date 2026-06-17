@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { supabase, Pet } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +15,7 @@ interface PetSelectorProps {
 }
 
 export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelectorProps) {
+  const t = useTranslations();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loaded, setLoaded] = useState(false);
   const { user } = useAuth();
@@ -67,7 +69,7 @@ export function PetSelector({ selectedPetId, onSelect, onPetsLoaded }: PetSelect
             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
         }`}
       >
-        전체
+        {t('common.all')}
       </button>
       {pets.map((pet) => (
           <button

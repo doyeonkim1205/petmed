@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download, X, Smartphone } from 'lucide-react';
 import { isRunningInInstalledApp, isTwaAppInstalled } from '@/lib/installState';
 
@@ -30,6 +31,7 @@ const INSTALLED_KEY = 'pwaInstalled';
  *   asyncCheckDone flag 로 게이팅.
  */
 export function InstallPrompt() {
+  const t = useTranslations();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [hasTwa, setHasTwa] = useState(false);
@@ -102,20 +104,20 @@ export function InstallPrompt() {
           <Smartphone size={18} className="text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-gray-900">PawDex 앱 설치하고 더 빠르게!</p>
-          <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요</p>
+          <p className="text-xs font-semibold text-gray-900">{t('install.androidTitle')}</p>
+          <p className="text-[11px] text-gray-500">{t('install.subTitle')}</p>
         </div>
         <button
           onClick={handleInstall}
           className="flex items-center gap-1 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
         >
           <Download size={12} />
-          설치
+          {t('install.install')}
         </button>
         <button
           onClick={() => setDismissed(true)}
           className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>

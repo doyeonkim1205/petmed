@@ -25,7 +25,8 @@
     "am": "AM",
     "pm": "PM",
     "selectDate": "Select date",
-    "required": "(required)"
+    "required": "(required)",
+    "loading": "Loading"
   },
   "nav": {
     "home": "Home",
@@ -446,7 +447,9 @@
     "actionMsgLinked": "This medication is also in a visit record! Deleting it completely removes it from the visit record too.",
     "actionMsgDelete": "Deleting also removes dose history and reminders",
     "endToday": "End dosing today <preserve>(keep records)</preserve>",
-    "deleteFully": "Delete completely"
+    "deleteFully": "Delete completely",
+    "datedTitle": "{m}/{d} meds",
+    "doneCount": "{checked}/{total} done"
   },
   "expenses": {
     "category": { "medical": "Medical", "food": "Food", "snack": "Treats", "insurance": "Insurance", "supplies": "Supplies & toys", "grooming": "Grooming", "other": "Other" },
@@ -699,6 +702,64 @@
     "title": "Care for your pet's health, with nothing missed",
     "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
     "viewPlans": "View plans"
+  },
+  "trialBanner": {
+    "title": "Plus free trial active",
+    "body": "Try all Plus features for free!<br></br>Ends 2026. 05. 13 ({days} days left)",
+    "cta": "Learn more"
+  },
+  "notifDenied": {
+    "samsungTitle": "Notifications may not arrive",
+    "deniedTitle": "Notification permission is off",
+    "samsungBody": "Due to <b>some Samsung Internet settings</b>, notifications may not arrive reliably.<br></br>To avoid missing important alerts, please use <b>Chrome</b>.",
+    "switchChrome": "Switch to Chrome",
+    "later": "Maybe later",
+    "deniedBody": "🔒 Notifications are blocked in your browser settings, so we can't reach you.<br></br>Set notifications to <b>[Allow]</b> and relaunch the app!"
+  },
+  "samsungHint": {
+    "bannerTitle": "Does the screen look dark?",
+    "bannerBody": "Samsung Internet's <b>auto dark mode</b> may display some screens differently.<br></br><b>Opening in Chrome</b> shows them more naturally, and if you want a dark theme, turn on <b>dark mode in App settings</b>.",
+    "openChrome": "Open in Chrome",
+    "justUse": "Use as is",
+    "explainTitle": "Switch to Chrome",
+    "explainBody": "In settings, choose <b>[Browser app] → Chrome</b>, then <b>relaunch the PawDex app</b>.",
+    "openSettings": "Open settings"
+  },
+  "install": {
+    "androidTitle": "Install the PawDex app for a faster experience!",
+    "subTitle": "Add it to your home screen for easier daily care",
+    "install": "Install",
+    "iosBannerTitle": "Use PawDex like an app",
+    "howToInstall": "How to install",
+    "iosModalTitle": "Add to Home Screen",
+    "iosModalDesc": "Open PawDex like an app and even get notifications",
+    "iosStep1": "Tap Safari's <chip>Share</chip> button",
+    "iosStep2": "Choose <chip>Add to Home Screen</chip> from the menu",
+    "iosStep3": "Tap <b>Add</b> in the top right and you're done!",
+    "iosTip": "💡 To get notifications, add to your home screen on iOS 16.4 or later"
+  },
+  "browserHint": {
+    "safariTitle": "Please open in Safari",
+    "chromeTitle": "Please open in Chrome",
+    "androidBannerSub": "Open in Chrome to use install and notifications",
+    "openChrome": "Open in Chrome",
+    "copiedSafari": "Copied! Open Safari and paste",
+    "copiedChrome": "Copied! Open Chrome and paste",
+    "copyUrl": "Copy address",
+    "directOpen": "💡 To open it yourself",
+    "kakaoGuide": "KakaoTalk: top-right ⋮ → Open in another browser",
+    "instaNaverGuide": "Instagram/Naver: open external browser from the menu",
+    "naverGuide": "Naver: bottom ⋯ → Open in another app",
+    "instaFbGuide": "Instagram/Facebook: top-right ⋮ → Open in external browser"
+  },
+  "network": {
+    "offline": "You're offline. Some features are limited.",
+    "recovered": "Network restored!"
+  },
+  "update": {
+    "ready": "A new version is ready",
+    "applying": "Applying...",
+    "apply": "Apply now"
   },
   "subscription": {
     "title": "Subscription & billing",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Share, Plus, X, Smartphone } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
@@ -24,6 +25,7 @@ const DISMISS_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h
  * `window.dispatchEvent(new Event('show-ios-install'))` 이벤트 지원.
  */
 export function IosInstallPrompt() {
+  const t = useTranslations();
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
@@ -84,19 +86,19 @@ export function IosInstallPrompt() {
               <Smartphone size={18} className="text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900">PawDex를 앱처럼 사용해 보세요</p>
-              <p className="text-[11px] text-gray-500">홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요</p>
+              <p className="text-xs font-semibold text-gray-900">{t('install.iosBannerTitle')}</p>
+              <p className="text-[11px] text-gray-500">{t('install.subTitle')}</p>
             </div>
             <button
               onClick={() => setShowModal(true)}
               className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
             >
-              설치 방법
+              {t('install.howToInstall')}
             </button>
             <button
               onClick={dismissBanner}
               className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-              aria-label="닫기"
+              aria-label={t('common.close')}
             >
               <X size={16} />
             </button>
@@ -118,19 +120,19 @@ export function IosInstallPrompt() {
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                   <Smartphone size={20} className="text-blue-600" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900">홈 화면에 추가</h3>
+                <h3 className="text-base font-bold text-gray-900">{t('install.iosModalTitle')}</h3>
               </div>
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1 text-gray-400 hover:text-gray-600"
-                aria-label="닫기"
+                aria-label={t('common.close')}
               >
                 <X size={18} />
               </button>
             </div>
 
             <p className="text-xs text-gray-500 mb-5 leading-relaxed">
-              PawDex 를 앱처럼 빠르게 열고 알림까지 받아보세요
+              {t('install.iosModalDesc')}
             </p>
 
             <ol className="space-y-4 mb-5">
@@ -140,7 +142,7 @@ export function IosInstallPrompt() {
                 </span>
                 <div className="flex-1">
                   <p className="text-xs text-gray-700 leading-relaxed">
-                    Safari 의 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-800 font-medium"><Share size={11} /> 공유</span> 버튼을 탭하세요
+                    {t.rich('install.iosStep1', { chip: (c) => <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-800 font-medium"><Share size={11} /> {c}</span> })}
                   </p>
                 </div>
               </li>
@@ -150,7 +152,7 @@ export function IosInstallPrompt() {
                 </span>
                 <div className="flex-1">
                   <p className="text-xs text-gray-700 leading-relaxed">
-                    메뉴에서 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-800 font-medium"><Plus size={11} /> 홈 화면에 추가</span> 를 선택하세요
+                    {t.rich('install.iosStep2', { chip: (c) => <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-800 font-medium"><Plus size={11} /> {c}</span> })}
                   </p>
                 </div>
               </li>
@@ -160,7 +162,7 @@ export function IosInstallPrompt() {
                 </span>
                 <div className="flex-1">
                   <p className="text-xs text-gray-700 leading-relaxed">
-                    우측 상단 <span className="font-medium text-gray-900">추가</span> 버튼을 탭하면 완료!
+                    {t.rich('install.iosStep3', { b: (c) => <span className="font-medium text-gray-900">{c}</span> })}
                   </p>
                 </div>
               </li>
@@ -168,7 +170,7 @@ export function IosInstallPrompt() {
 
             <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 mb-5">
               <p className="text-[11px] text-blue-700 leading-relaxed">
-                💡 알림을 받으려면 iOS 16.4 이상에서 홈 화면에 추가해야 해요
+                {t('install.iosTip')}
               </p>
             </div>
 
@@ -179,7 +181,7 @@ export function IosInstallPrompt() {
               }}
               className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
             >
-              확인
+              {t('common.confirm')}
             </button>
           </div>
         </div>

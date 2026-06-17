@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Smartphone, Copy, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
@@ -28,6 +29,7 @@ const INTENT_TIMEOUT_MS = 2000;
  * 뜨는 UI 이므로 같은 Intent 재시도 버튼은 제거.
  */
 export function AndroidInAppBrowserHint() {
+  const t = useTranslations();
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -155,19 +157,19 @@ export function AndroidInAppBrowserHint() {
               <Smartphone size={18} className="text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-gray-900 break-keep break-words">PawDex를 앱처럼 사용해 보세요</p>
-              <p className="text-[11px] text-gray-500 break-keep break-words">Chrome으로 열면 설치와 알림 기능을 사용할 수 있어요</p>
+              <p className="text-xs font-semibold text-gray-900 break-keep break-words">{t('install.iosBannerTitle')}</p>
+              <p className="text-[11px] text-gray-500 break-keep break-words">{t('browserHint.androidBannerSub')}</p>
             </div>
             <button
               onClick={handleOpenChrome}
               className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-full transition-colors flex-shrink-0"
             >
-              Chrome으로 열기
+              {t('browserHint.openChrome')}
             </button>
             <button
               onClick={dismissBanner}
               className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-              aria-label="닫기"
+              aria-label={t('common.close')}
             >
               <X size={16} />
             </button>
@@ -189,12 +191,12 @@ export function AndroidInAppBrowserHint() {
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                   <Smartphone size={20} className="text-blue-600" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900">Chrome에서 열어주세요</h3>
+                <h3 className="text-base font-bold text-gray-900">{t('browserHint.chromeTitle')}</h3>
               </div>
               <button
                 onClick={dismissAll}
                 className="p-1 text-gray-400 hover:text-gray-600"
-                aria-label="닫기"
+                aria-label={t('common.close')}
               >
                 <X size={18} />
               </button>
@@ -206,23 +208,23 @@ export function AndroidInAppBrowserHint() {
             >
               {copied ? (
                 <>
-                  <Check size={16} /> 복사됨! Chrome을 열어 붙여넣어 주세요
+                  <Check size={16} /> {t('browserHint.copiedChrome')}
                 </>
               ) : (
                 <>
-                  <Copy size={16} /> 주소 복사하기
+                  <Copy size={16} /> {t('browserHint.copyUrl')}
                 </>
               )}
             </button>
 
             <div className="rounded-lg bg-gray-50 px-3 py-2.5">
               <p className="text-[11px] font-semibold text-gray-700 mb-1.5">
-                💡 직접 열고 싶다면
+                {t('browserHint.directOpen')}
               </p>
               <ul className="text-[11px] text-gray-500 leading-relaxed space-y-0.5">
-                <li>• 카카오톡: 우측 상단 <span className="font-medium">⋮</span> → 다른 브라우저로 열기</li>
-                <li>• 네이버: 하단 <span className="font-medium">⋯</span> → 다른 앱으로 열기</li>
-                <li>• 인스타/페이스북: 우측 상단 <span className="font-medium">⋮</span> → 외부 브라우저에서 열기</li>
+                <li>• {t('browserHint.kakaoGuide')}</li>
+                <li>• {t('browserHint.naverGuide')}</li>
+                <li>• {t('browserHint.instaFbGuide')}</li>
               </ul>
             </div>
           </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Bell, X } from 'lucide-react';
 import { openDefaultAppsSettings } from '@/lib/androidIntents';
 
@@ -20,6 +21,7 @@ interface Props {
  * 그 외: 브라우저 설정에서 차단 해제 안내
  */
 export function NotificationPermissionDenied({ open, onClose }: Props) {
+  const t = useTranslations();
   if (!open) return null;
 
   const isSamsung = typeof navigator !== 'undefined' && /SamsungBrowser/i.test(navigator.userAgent);
@@ -36,7 +38,7 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
         <button
           onClick={onClose}
           className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>
@@ -46,17 +48,14 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
             <Bell size={16} className="text-orange-500" />
           </div>
           <p className="text-sm font-bold text-gray-800">
-            {isSamsung ? '알림 수신이 어려워요' : '알림 권한이 꺼져있어요'}
+            {isSamsung ? t('notifDenied.samsungTitle') : t('notifDenied.deniedTitle')}
           </p>
         </div>
 
         {isSamsung ? (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              현재 <span className="font-bold text-gray-700">삼성 브라우저의 일부 설정</span>으로 인해
-              알림 수신이 원활하지 않을 수 있어요
-              <br /><br />
-              중요한 알림을 놓치지 않으려면 <span className="font-bold text-gray-700">크롬(Chrome) 브라우저</span>를 이용해 주세요
+              {t.rich('notifDenied.samsungBody', { b: (c) => <span className="font-bold text-gray-700">{c}</span>, br: () => <br /> })}
             </p>
 
             <div className="flex flex-col gap-2">
@@ -64,29 +63,27 @@ export function NotificationPermissionDenied({ open, onClose }: Props) {
                 onClick={() => { openDefaultAppsSettings(); onClose(); }}
                 className="w-full py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
               >
-                Chrome 으로 전환
+                {t('notifDenied.switchChrome')}
               </button>
               <button
                 onClick={onClose}
                 className="w-full py-2 text-gray-400 text-xs font-bold"
               >
-                나중에 하기
+                {t('notifDenied.later')}
               </button>
             </div>
           </>
         ) : (
           <>
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              🔒 브라우저 설정에서 알림이 차단되어 소식을 전해드릴 수 없어요
-              <br />
-              알림을 <span className="font-bold text-gray-700">[허용]</span>으로 변경한 뒤 앱을 다시 실행해 주세요!
+              {t.rich('notifDenied.deniedBody', { b: (c) => <span className="font-bold text-gray-700">{c}</span>, br: () => <br /> })}
             </p>
 
             <button
               onClick={onClose}
               className="w-full py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
             >
-              확인
+              {t('common.confirm')}
             </button>
           </>
         )}

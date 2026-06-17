@@ -25,7 +25,8 @@
     "am": "오전",
     "pm": "오후",
     "selectDate": "날짜 선택",
-    "required": "(필수)"
+    "required": "(필수)",
+    "loading": "로딩 중"
   },
   "nav": {
     "home": "홈",
@@ -446,7 +447,9 @@
     "actionMsgLinked": "이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요",
     "actionMsgDelete": "삭제하면 복용 기록·알림도 함께 사라져요",
     "endToday": "오늘까지 복용 종료 <preserve>(기록 보존)</preserve>",
-    "deleteFully": "완전 삭제"
+    "deleteFully": "완전 삭제",
+    "datedTitle": "{m}/{d} 약",
+    "doneCount": "{checked}/{total} 완료"
   },
   "expenses": {
     "category": { "medical": "병원·의료", "food": "사료", "snack": "간식", "insurance": "펫보험", "supplies": "용품·장난감", "grooming": "미용", "other": "기타" },
@@ -699,6 +702,64 @@
     "title": "우리 아이 건강, 빈틈없이 케어하기",
     "features": "AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관",
     "viewPlans": "요금제 보기"
+  },
+  "trialBanner": {
+    "title": "Plus 기능 무료 체험 중",
+    "body": "모든 Plus 기능을 무료로 써보세요!<br></br>2026. 05. 13 에 종료돼요 ({days}일 남음)",
+    "cta": "자세히 보기"
+  },
+  "notifDenied": {
+    "samsungTitle": "알림 수신이 어려워요",
+    "deniedTitle": "알림 권한이 꺼져있어요",
+    "samsungBody": "현재 <b>삼성 브라우저의 일부 설정</b>으로 인해 알림 수신이 원활하지 않을 수 있어요<br></br>중요한 알림을 놓치지 않으려면 <b>크롬(Chrome) 브라우저</b>를 이용해 주세요",
+    "switchChrome": "Chrome 으로 전환",
+    "later": "나중에 하기",
+    "deniedBody": "🔒 브라우저 설정에서 알림이 차단되어 소식을 전해드릴 수 없어요<br></br>알림을 <b>[허용]</b>으로 변경한 뒤 앱을 다시 실행해 주세요!"
+  },
+  "samsungHint": {
+    "bannerTitle": "혹시 화면이 어둡게 보이나요?",
+    "bannerBody": "삼성 인터넷의 <b>자동 다크 모드</b>로 일부 화면이 다르게 표시될 수 있어요.<br></br><b>Chrome 에서 열면</b> 화면을 더 자연스럽게 볼 수 있고, 어두운 테마를 원하시면 <b>앱 설정에서 다크 모드</b>를 켜 주세요.",
+    "openChrome": "Chrome 으로 열기",
+    "justUse": "그냥 쓸게요",
+    "explainTitle": "Chrome 으로 전환",
+    "explainBody": "설정에서 <b>[브라우저 앱] → Chrome</b> 선택 후 <b>PawDex 앱을 재실행</b>해주세요.",
+    "openSettings": "설정 열기"
+  },
+  "install": {
+    "androidTitle": "PawDex 앱 설치하고 더 빠르게!",
+    "subTitle": "홈 화면에 추가하면 매일 더 편하게 관리할 수 있어요",
+    "install": "설치",
+    "iosBannerTitle": "PawDex를 앱처럼 사용해 보세요",
+    "howToInstall": "설치 방법",
+    "iosModalTitle": "홈 화면에 추가",
+    "iosModalDesc": "PawDex 를 앱처럼 빠르게 열고 알림까지 받아보세요",
+    "iosStep1": "Safari 의 <chip>공유</chip> 버튼을 탭하세요",
+    "iosStep2": "메뉴에서 <chip>홈 화면에 추가</chip> 를 선택하세요",
+    "iosStep3": "우측 상단 <b>추가</b> 버튼을 탭하면 완료!",
+    "iosTip": "💡 알림을 받으려면 iOS 16.4 이상에서 홈 화면에 추가해야 해요"
+  },
+  "browserHint": {
+    "safariTitle": "Safari 에서 열어주세요",
+    "chromeTitle": "Chrome에서 열어주세요",
+    "androidBannerSub": "Chrome으로 열면 설치와 알림 기능을 사용할 수 있어요",
+    "openChrome": "Chrome으로 열기",
+    "copiedSafari": "복사됨! Safari 를 열어 붙여넣어 주세요",
+    "copiedChrome": "복사됨! Chrome을 열어 붙여넣어 주세요",
+    "copyUrl": "주소 복사하기",
+    "directOpen": "💡 직접 열고 싶다면",
+    "kakaoGuide": "카카오톡: 우측 상단 ⋮ → 다른 브라우저로 열기",
+    "instaNaverGuide": "인스타/네이버: 메뉴에서 외부 브라우저 열기",
+    "naverGuide": "네이버: 하단 ⋯ → 다른 앱으로 열기",
+    "instaFbGuide": "인스타/페이스북: 우측 상단 ⋮ → 외부 브라우저에서 열기"
+  },
+  "network": {
+    "offline": "오프라인 상태입니다. 일부 기능이 제한됩니다.",
+    "recovered": "네트워크가 복구되었습니다!"
+  },
+  "update": {
+    "ready": "새 버전이 준비됐어요",
+    "applying": "적용 중...",
+    "apply": "지금 적용"
   },
   "subscription": {
     "title": "구독/결제 관리",

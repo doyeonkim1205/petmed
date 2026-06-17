@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 
 /**
@@ -19,6 +20,7 @@ export function OnboardHint({
   text: string;
   pointer?: 'left' | 'right' | 'center' | 'none';
 }) {
+  const tr = useTranslations();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function OnboardHint({
         <span className={`absolute -top-1 ${tail} w-2.5 h-2.5 rotate-45 bg-white border-l border-t border-blue-300`} />
       )}
       <p className="flex-1 leading-snug break-keep break-words whitespace-pre-line">{text}</p>
-      <button onClick={dismiss} aria-label="닫기" className="-mt-0.5 flex-shrink-0 text-blue-400 transition hover:text-blue-600 active:scale-90">
+      <button onClick={dismiss} aria-label={tr('common.close')} className="-mt-0.5 flex-shrink-0 text-blue-400 transition hover:text-blue-600 active:scale-90">
         <X size={13} />
       </button>
     </div>

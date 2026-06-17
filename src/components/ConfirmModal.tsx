@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface Props {
@@ -24,8 +25,8 @@ export function ConfirmModal({
   open,
   title,
   message,
-  confirmLabel = '확인',
-  cancelLabel = '취소',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   hideCancel = false,
   icon,
@@ -33,6 +34,9 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const t = useTranslations();
+  const confirmText = confirmLabel ?? t('common.confirm');
+  const cancelText = cancelLabel ?? t('common.cancel');
   if (!open) return null;
 
   const confirmClass =
@@ -56,7 +60,7 @@ export function ConfirmModal({
         <button
           onClick={onCancel}
           className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>
@@ -86,14 +90,14 @@ export function ConfirmModal({
               onClick={onCancel}
               className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
             >
-              {cancelLabel}
+              {cancelText}
             </button>
           )}
           <button
             onClick={onConfirm}
             className={`flex-1 py-2.5 text-xs font-bold rounded-full ${confirmClass}`}
           >
-            {confirmLabel}
+            {confirmText}
           </button>
         </div>
       </div>
