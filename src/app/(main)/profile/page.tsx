@@ -20,6 +20,7 @@ import { NotificationPermissionDenied } from '@/components/NotificationPermissio
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { LOCALE_COOKIE } from '@/i18n/config';
 import { TextField } from '@/components/TextField';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import {
@@ -1159,6 +1160,9 @@ export default function ProfilePage() {
     } catch {}
     // Clear session storage (검색 결과 캐시)
     try { sessionStorage.clear(); } catch {}
+    // 언어 쿠키 초기화 — 언어는 계정 종속. 안 지우면 다음 로그인 계정에 이전 언어 누수.
+    // (다음 로그인 시 그 계정의 preferred_language, 없으면 기본 ko 가 적용됨)
+    try { document.cookie = `${LOCALE_COOKIE}=; path=/; max-age=0; SameSite=Lax`; } catch {}
     // Full page reload — AuthContext.init() will find no session → show login
     window.location.href = '/';
   };
