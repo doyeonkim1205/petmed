@@ -70,8 +70,6 @@ export default function AuthCallbackPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white px-6 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-512x512.png" alt="PawDex" className="w-16 h-16 rounded-[22%] mb-4 opacity-80" />
         <p className="text-red-500 mb-2 text-sm">{error}</p>
         <p className="text-xs text-gray-400">{t('redirectingToLogin')}</p>
       </div>
