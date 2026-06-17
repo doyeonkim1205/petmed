@@ -660,6 +660,28 @@
       "network": "A network error occurred. Please try again."
     }
   },
+  "map": {
+    "errKeyMissing": "The Kakao Maps API key is not configured.",
+    "errTimeout": "The map is taking too long to load. Please check your network.",
+    "errInit": "Couldn't load the map. Please try again shortly.",
+    "errSdk": "Failed to load the map SDK. Please check your network.",
+    "errInitFailed": "Failed to initialize the map.",
+    "errTitle": "Couldn't load the map",
+    "loading": "Loading map...",
+    "loadingSdk": "Preparing the Kakao Maps SDK",
+    "loadingSlow": "This is taking longer than usual",
+    "loadingNetwork": "📶 It may take up to 15 seconds depending on your network",
+    "loadingLocation": "📍 Allowing location access loads it faster",
+    "searchPlaceholder": "Search by clinic name or area",
+    "filter24h": "24h clinics",
+    "filterNormal": "Regular clinics",
+    "locationDenied": "Location access is blocked. In your browser/app settings, set location to <b>\"Allow while using\"</b> and refresh.",
+    "searchArea": "Search this area",
+    "badge24h": "24h",
+    "call": "Call",
+    "directions": "Directions",
+    "details": "Details"
+  },
   "saved": {
     "loadingAria": "Loading",
     "empty": "Your library is empty.",
