@@ -703,6 +703,15 @@
     "features": "AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관",
     "viewPlans": "요금제 보기"
   },
+  "legal": {
+    "policiesTitle": "약관 및 정책",
+    "termsTitle": "이용약관",
+    "privacyTitle": "개인정보처리방침",
+    "refundTitle": "환불 정책",
+    "locationTitle": "위치기반서비스 이용약관",
+    "businessTitle": "사업자 정보",
+    "refNotice": "본 영문본은 참고용 번역이며, 내용에 차이가 있을 경우 한국어 원문이 우선합니다."
+  },
   "trialBanner": {
     "title": "Plus 기능 무료 체험 중",
     "body": "모든 Plus 기능을 무료로 써보세요!<br></br>2026. 05. 13 에 종료돼요 ({days}일 남음)",

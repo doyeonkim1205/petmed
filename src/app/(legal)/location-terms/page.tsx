@@ -1,10 +1,23 @@
-import { LegalPage } from '../_components/LegalHeader';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { LegalPage, LegalRefNotice } from '../_components/LegalHeader';
 
-export default function LocationTermsPage() {
+export default async function LocationTermsPage() {
+  const locale = await getLocale();
+  const t = await getTranslations('legal');
+  const en = locale === 'en';
+
   return (
-    <LegalPage title="위치기반서비스 이용약관">
+    <LegalPage title={t('locationTitle')}>
     <article className="prose prose-sm dark:prose-invert max-w-none" style={{ fontSize: '13px' }}>
+      {en ? <LocationTermsEn refNotice={t('refNotice')} /> : <LocationTermsKo />}
+    </article>
+    </LegalPage>
+  );
+}
 
+function LocationTermsKo() {
+  return (
+    <>
       <Section title="제1조 (목적)">
         <p>
           본 약관은 디와이랩스(DYLabs)(이하 &quot;회사&quot;)가 제공하는 PawDex 서비스(이하 &quot;서비스&quot;)의
@@ -73,8 +86,84 @@ export default function LocationTermsPage() {
       </Section>
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 2월 24일</p>
-    </article>
-    </LegalPage>
+    </>
+  );
+}
+
+function LocationTermsEn({ refNotice }: { refNotice: string }) {
+  return (
+    <>
+      <LegalRefNotice text={refNotice} />
+
+      <Section title="Article 1 (Purpose)">
+        <p>
+          These terms govern the use of location-based services within the PawDex service (the &quot;Service&quot;)
+          provided by DYLabs (the &quot;Company&quot;).
+        </p>
+      </Section>
+
+      <Section title="Article 2 (Purpose of Collecting Location Information)">
+        <p>The Service collects your location information for the following purposes:</p>
+        <ul>
+          <li>Searching for nearby animal hospitals and providing map-based services</li>
+          <li>Showing animal hospital information closest to your location</li>
+        </ul>
+      </Section>
+
+      <Section title="Article 3 (Storage and Retention of Location Information)">
+        <ul>
+          <li>The Service does not store your location information on its servers.</li>
+          <li>Location information is used only in real time and is discarded immediately after the hospital search results are displayed.</li>
+          <li>Location information is processed only on your device (browser) and is not transmitted to our servers.</li>
+        </ul>
+      </Section>
+
+      <Section title="Article 4 (Provision to Third Parties)">
+        <p>The Service uses the following third-party service to provide the animal-hospital finder feature.</p>
+        <table className="w-full text-[13px] border-collapse mt-2">
+          <thead>
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left py-2 font-medium">Recipient</th>
+              <th className="text-left py-2 font-medium">Items provided</th>
+              <th className="text-left py-2 font-medium">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Kakao Corp. (Kakao Maps API)</td>
+              <td className="py-2">Location coordinates (latitude/longitude)</td>
+              <td className="py-2">Map display and nearby animal hospital search</td>
+            </tr>
+          </tbody>
+        </table>
+      </Section>
+
+      <Section title="Article 5 (Withdrawing Location Permission)">
+        <p>You may withdraw your consent to location collection at any time.</p>
+        <ul>
+          <li><strong>Browser settings:</strong> You can block PawDex&apos;s location permission under Browser settings &gt; Site settings &gt; Location.</li>
+          <li><strong>Mobile device:</strong> You can revoke the browser&apos;s location permission under Settings &gt; App permissions &gt; Location.</li>
+          <li>Even after withdrawing location permission, all services other than the animal-hospital finder remain fully usable.</li>
+        </ul>
+      </Section>
+
+      <Section title="Article 6 (Legal Basis)">
+        <p>These terms are operated based on the following Korean laws:</p>
+        <ul>
+          <li>Act on the Protection and Use of Location Information</li>
+          <li>Personal Information Protection Act</li>
+          <li>Act on Promotion of Information and Communications Network Utilization and Information Protection</li>
+        </ul>
+      </Section>
+
+      <Section title="Article 7 (Contact)">
+        <ul>
+          <li>Location information inquiries: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
+        </ul>
+      </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: February 24, 2026</p>
+    </>
   );
 }
 

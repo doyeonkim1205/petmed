@@ -1,10 +1,23 @@
-import { LegalPage } from '../_components/LegalHeader';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { LegalPage, LegalRefNotice } from '../_components/LegalHeader';
 
-export default function RefundPage() {
+export default async function RefundPage() {
+  const locale = await getLocale();
+  const t = await getTranslations('legal');
+  const en = locale === 'en';
+
   return (
-    <LegalPage title="환불 정책">
+    <LegalPage title={t('refundTitle')}>
     <article className="prose prose-sm dark:prose-invert max-w-none" style={{ fontSize: '13px' }}>
+      {en ? <RefundEn refNotice={t('refNotice')} /> : <RefundKo />}
+    </article>
+    </LegalPage>
+  );
+}
 
+function RefundKo() {
+  return (
+    <>
       <Section title="1. 환불 정책 개요">
         <p>PawDex(이하 &quot;서비스&quot;)는 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 다음과 같은 환불 정책을 운영합니다.</p>
       </Section>
@@ -81,8 +94,92 @@ export default function RefundPage() {
       </Section>
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
-    </article>
-    </LegalPage>
+    </>
+  );
+}
+
+function RefundEn({ refNotice }: { refNotice: string }) {
+  return (
+    <>
+      <LegalRefNotice text={refNotice} />
+
+      <Section title="1. Overview of the Refund Policy">
+        <p>PawDex (the &quot;Service&quot;) operates the following refund policy in accordance with the Act on the Consumer Protection in Electronic Commerce of the Republic of Korea.</p>
+      </Section>
+
+      <Section title="2. Monthly Subscription Refunds">
+        <ul>
+          <li>A <strong>full refund</strong> is available if requested <strong>within 24 hours</strong> of payment and the paid service has not been used.</li>
+          <li>No refund is available once 24 hours have passed or the paid service has been used.</li>
+          <li>The same standard applies to charges made through automatic renewal: a full refund is available if you request it within 24 hours of the auto-payment date and have not used the paid service in that billing cycle.</li>
+        </ul>
+      </Section>
+
+      <Section title="2-1. About Automatic Renewal (Recurring Payment)">
+        <ul>
+          <li>Once you enable auto-renewal, payment is made automatically each month on the same day with the same card.</li>
+          <li>You can stop automatic payment at any time by <strong>cancelling your subscription</strong> on the Subscription &amp; Billing page.</li>
+          <li>Even after cancelling, you can keep using paid features until the end of the current billing cycle.</li>
+          <li>If automatic payment fails, we retry up to 3 times at intervals of 1 day → 3 days → 7 days; if all fail, your plan is automatically switched to Free.</li>
+          <li>If payment is declined due to a lost, stolen, or expired card or incorrect card details, your plan is switched to Free immediately and you are notified by push notification.</li>
+        </ul>
+      </Section>
+
+      <Section title="3. Annual Subscription Refunds">
+        <ul>
+          <li>A <strong>full refund</strong> is available if requested <strong>within 24 hours</strong> of payment and the paid service has not been used.</li>
+          <li>No refund is available once 24 hours have passed or the paid service has been used.</li>
+          <li>The same refund standard as monthly subscriptions applies.</li>
+        </ul>
+      </Section>
+
+      <Section title="4. Criteria for &quot;Using&quot; the Paid Service">
+        <p>Using any one of the following is considered use of the paid service.</p>
+        <ul>
+          <li>AI paper analysis</li>
+          <li>Symptom analysis</li>
+          <li>Creating a health record</li>
+          <li>Saving papers</li>
+          <li>Enabling push notifications</li>
+        </ul>
+      </Section>
+
+      <Section title="5. How to Request a Refund">
+        <ul>
+          <li>Refund requests can be made in the app under Profile &gt; Subscription &amp; Billing.</li>
+          <li>If the refund conditions are met, it is processed automatically and immediately.</li>
+          <li>Refunds are processed to the original payment method (card payment → card cancellation).</li>
+          <li>Depending on your card issuer, it may take additional time for the cancellation to be reflected.</li>
+        </ul>
+      </Section>
+
+      <Section title="6. Reasons a Refund May Not Be Available">
+        <ul>
+          <li>More than 24 hours have passed since payment</li>
+          <li>The paid service has been used</li>
+          <li>The subscription period has expired</li>
+          <li>The service was restricted due to a violation of the Terms of Service</li>
+        </ul>
+      </Section>
+
+      <Section title="7. Cancellation / Turning Off Auto-Renewal">
+        <p>Cancellation-related actions are distinguished as follows.</p>
+        <ul>
+          <li><strong>Cancel subscription</strong>: You keep paid features until the end of the current billing cycle, after which your plan switches to Free. Auto-renewal users will no longer be charged automatically.</li>
+          <li><strong>Turn off auto-renewal</strong>: Your registered card information is deleted immediately so that no automatic payment occurs on the next billing date. You can keep using paid features until the end of the current billing cycle.</li>
+          <li>Both cancelling and turning off auto-renewal can be done in 1–2 clicks on the Subscription &amp; Billing page.</li>
+          <li>Cancellation/turning off is a different process from a refund. If you want a refund, please submit a separate refund request.</li>
+        </ul>
+      </Section>
+
+      <Section title="8. Contact">
+        <ul>
+          <li>Refund inquiries: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
+        </ul>
+      </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: April 13, 2026 (revised)</p>
+    </>
   );
 }
 

@@ -36,3 +36,15 @@ export function LegalPage({ title, children }: { title: string; children: React.
     </>
   );
 }
+
+/**
+ * 영문(참고용 번역) 페이지 상단에 노출하는 고지 배너.
+ * 한국어 원문 우선 — 법적 고지본은 한국어가 정본임을 명시.
+ */
+export function LegalRefNotice({ text }: { text: string }) {
+  return (
+    <p className="not-prose text-[11px] text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 mb-6 leading-relaxed">
+      {text}
+    </p>
+  );
+}

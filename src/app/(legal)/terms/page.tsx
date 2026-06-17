@@ -1,10 +1,23 @@
-import { LegalPage } from '../_components/LegalHeader';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { LegalPage, LegalRefNotice } from '../_components/LegalHeader';
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const locale = await getLocale();
+  const t = await getTranslations('legal');
+  const en = locale === 'en';
+
   return (
-    <LegalPage title="이용약관">
+    <LegalPage title={t('termsTitle')}>
     <article className="prose prose-sm dark:prose-invert max-w-none" style={{ fontSize: '13px' }}>
+      {en ? <TermsEn refNotice={t('refNotice')} /> : <TermsKo />}
+    </article>
+    </LegalPage>
+  );
+}
 
+function TermsKo() {
+  return (
+    <>
       <Section title="제1조 (목적)">
         <p>
           본 약관은 PawDex(이하 &quot;서비스&quot;)가 제공하는 반려동물 건강 정보 플랫폼의 이용과 관련하여
@@ -173,8 +186,184 @@ export default function TermsPage() {
       </Section>
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / AI 사진 증상 분석 명시)</p>
-    </article>
-    </LegalPage>
+    </>
+  );
+}
+
+function TermsEn({ refNotice }: { refNotice: string }) {
+  return (
+    <>
+      <LegalRefNotice text={refNotice} />
+
+      <Section title="Article 1 (Purpose)">
+        <p>
+          These terms set out the rights, obligations, and responsibilities between the Service and users, and other
+          necessary matters, in connection with the use of the pet health information platform provided by PawDex (the &quot;Service&quot;).
+        </p>
+      </Section>
+
+      <Section title="Article 2 (Definitions)">
+        <ol>
+          <li>&quot;Service&quot; means all services provided by PawDex, including pet health information search, health record management, and the animal-hospital finder.</li>
+          <li>&quot;Member&quot; means a person who has signed up for the Service and entered into a usage agreement.</li>
+          <li>&quot;Content&quot; means all information created by a Member within the Service, including health records (symptom, visit, hospitalization, daily records, etc.), pet information, and uploaded photos/files.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 3 (Effect and Amendment of Terms)">
+        <ol>
+          <li>These terms take effect when posted on the Service screen or otherwise announced to users.</li>
+          <li>Where there is a reasonable cause, the Service may amend these terms within the scope permitted by applicable law, and the amended terms are announced within the Service from 7 days before their effective date.</li>
+          <li>If a Member does not agree to the amended terms, they may stop using the Service and withdraw their membership.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 4 (Provision of the Service)">
+        <p>The Service provides the following features.</p>
+        <ul>
+          <li>Pet disease/health information search and paper-based analysis</li>
+          <li>AI-based symptom analysis (text input) and photo symptom analysis (optional feature)</li>
+          <li>Pet health record management (symptom, visit, hospitalization, daily records, medication records)</li>
+          <li>Daily records (notes on routine such as walks, meals, hydration, elimination, mood)</li>
+          <li>Weight trend and medical expense statistics</li>
+          <li>Medication reminders and appointment management</li>
+          <li>Animal-hospital finder (map-based location search)</li>
+          <li>Pet profile management</li>
+          <li>Other services additionally developed or provided through partnerships by the Service</li>
+        </ul>
+      </Section>
+
+      <Section title="Article 5 (Changes and Suspension of the Service)">
+        <ol>
+          <li>The Service may change all or part of the Service as required for operational or technical reasons.</li>
+          <li>The Service may temporarily suspend the Service in the event of force majeure such as a natural disaster, system failure, or other unavoidable cause.</li>
+          <li>When the Service is changed or suspended, users are notified through an announcement within the Service.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 6 (Membership Registration)">
+        <ol>
+          <li>A user applies for membership by entering member information in the form prescribed by the Service and agreeing to these terms.</li>
+          <li>The Service accepts the membership application unless one of the following applies:
+            <ul>
+              <li>The applicant has previously lost membership under these terms</li>
+              <li>The applicant entered false information</li>
+              <li>The application does not meet other requirements set by the Service</li>
+            </ul>
+          </li>
+        </ol>
+      </Section>
+
+      <Section title="Article 7 (Withdrawal and Loss of Membership)">
+        <ol>
+          <li>A Member may request withdrawal from the Service at any time, and the Service processes the withdrawal immediately.</li>
+          <li>The Service may restrict or revoke membership if a Member falls under any of the following:
+            <ul>
+              <li>Registering false information when applying</li>
+              <li>Threatening order by interfering with other users&apos; use of the Service or misappropriating information</li>
+              <li>Using the Service to engage in acts prohibited by law or these terms</li>
+            </ul>
+          </li>
+        </ol>
+      </Section>
+
+      <Section title="Article 8 (Member Obligations)">
+        <ol>
+          <li>Members must comply with applicable laws, these terms, and usage guidance.</li>
+          <li>Members must not engage in any of the following:
+            <ul>
+              <li>Misappropriating another person&apos;s personal information</li>
+              <li>Unauthorized modification of information posted on the Service</li>
+              <li>Transmitting or posting information not permitted by the Service (such as computer programs)</li>
+              <li>Infringing the intellectual property rights, including copyrights, of the Service or third parties</li>
+              <li>Damaging the reputation of, or interfering with the business of, the Service or third parties</li>
+              <li>Publishing or posting obscene, violent, or otherwise contrary-to-public-order information on the Service</li>
+              <li>Abnormally calling the Service&apos;s API or generating excessive requests using automated means (bots, scrapers, etc.)</li>
+              <li>Misusing the Service&apos;s AI analysis features for purposes other than their intended use</li>
+            </ul>
+          </li>
+        </ol>
+      </Section>
+
+      <Section title="Article 9 (Obligations of the Service Provider)">
+        <ol>
+          <li>The Service strives to provide the Service continuously and stably as set out in applicable laws and these terms.</li>
+          <li>The Service establishes and complies with a Privacy Policy to protect users&apos; personal information.</li>
+          <li>The Service strives to maintain a security system so that users can use the Service safely.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 10 (AI Analysis Service)">
+        <ol>
+          <li>The Service provides features such as paper analysis and health information summaries using OpenAI&apos;s AI technology.</li>
+          <li>AI analysis features are provided only to logged-in Members and are processed only for authenticated requests.</li>
+          <li>AI analysis results are provided for reference only and do not replace the judgment of a professional veterinarian.</li>
+          <li>The Service does not transmit users&apos; personal information to the AI provider during analysis, and processes only disease/symptom-related text.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 11 (Disclaimer)">
+        <ol>
+          <li>The health information provided by the Service is for reference and does not replace diagnosis and treatment by a professional veterinarian.</li>
+          <li>The Service does not guarantee the accuracy of paper search and AI analysis results and is not responsible for medical decisions based on them.</li>
+          <li>The Service is exempt from liability where it cannot provide the Service due to force majeure such as a natural disaster.</li>
+          <li>The Service is not responsible for service disruptions caused by the user&apos;s fault.</li>
+          <li>The Service is not responsible for the reliability or accuracy of content posted by users.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 12 (Paid Services and Payment)">
+        <ol>
+          <li>The Service offers a two-tier plan structure, Free and Plus; the usage scope and price of each plan are posted on the plans page within the Service.</li>
+          <li>The Plus plan consists of monthly (automatic monthly renewal or one-time payment) and annual (one-time payment) options depending on the billing cycle.</li>
+          <li>Payment for paid services is processed through the payment system provided by Toss Payments Co., Ltd.</li>
+          <li>The payment amount, payment date, and usage period are clearly shown at the time of payment.</li>
+          <li>The Service may change plan prices and contents; changes are announced within the Service 30 days in advance.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 12-2 (Automatic Payment)">
+        <ol>
+          <li>For a monthly subscription with auto-renewal selected, payment is made automatically on the same date as the payment date using the registered payment method.</li>
+          <li>When registering automatic payment, the Member must separately consent to automatic payment on the payment page.</li>
+          <li>A Member may turn off auto-renewal at any time on the Subscription &amp; Billing page; when turned off, the registered payment method information is discarded immediately.</li>
+          <li>Even after turning off auto-renewal, paid features remain usable until the end of the current billing cycle.</li>
+          <li>If automatic payment fails, the Service retries up to 3 times at set intervals; if all fail, the plan is automatically switched to Free. Where an immediate retry is meaningless (e.g. a lost, stolen, or expired card), the plan switches to Free immediately.</li>
+          <li>A push notification is sent 3 days before the scheduled automatic payment date to inform the Member of the upcoming charge.</li>
+          <li>Refund standards related to automatic payment follow the Refund Policy.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 13 (Withdrawal of Subscription and Refund)">
+        <ol>
+          <li>A Member may withdraw their offer within 7 days of the payment date, and a full refund is available if the paid service has not been used.</li>
+          <li>If a refund is requested after using the paid service, the remaining amount is refunded on a pro-rata basis according to the usage period.</li>
+          <li>Refunds are processed through the original payment method and take 3–10 business days.</li>
+          <li>Detailed refund terms can be found on the Refund Policy page within the Service.</li>
+          <li>This article follows the Act on the Consumer Protection in Electronic Commerce of the Republic of Korea.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 14 (Cancelling a Subscription)">
+        <ol>
+          <li>A Member may cancel their subscription at any time on the Subscription &amp; Billing page within the Service.</li>
+          <li>Upon cancellation, paid features remain usable until the end of the current billing cycle.</li>
+          <li>After the billing cycle ends, the plan is automatically switched to Free.</li>
+          <li>When switching to Free, data exceeding the Free plan limits is not deleted, but further use of those features is restricted.</li>
+          <li>Cancelling a subscription and turning off auto-renewal are separate processes; if you want to keep the current cycle while only turning off auto-renewal, you can use the turn-off auto-renewal feature.</li>
+        </ol>
+      </Section>
+
+      <Section title="Article 15 (Dispute Resolution)">
+        <ol>
+          <li>Lawsuits regarding disputes between the Service and users are governed by the laws of the Republic of Korea.</li>
+          <li>If a dispute arises between the Service and a user, both parties shall consult in good faith to resolve it.</li>
+          <li>If the dispute is not resolved despite consultation, a lawsuit may be filed with the competent court.</li>
+        </ol>
+      </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 3, 2026 (revised — daily records / AI photo symptom analysis specified)</p>
+    </>
   );
 }
 

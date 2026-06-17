@@ -703,6 +703,15 @@
     "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
     "viewPlans": "View plans"
   },
+  "legal": {
+    "policiesTitle": "Terms & Policies",
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "refundTitle": "Refund Policy",
+    "locationTitle": "Location-Based Services Terms",
+    "businessTitle": "Business Information",
+    "refNotice": "This English version is a reference translation. In case of any discrepancy, the Korean original prevails."
+  },
   "trialBanner": {
     "title": "Plus free trial active",
     "body": "Try all Plus features for free!<br></br>Ends 2026. 05. 13 ({days} days left)",

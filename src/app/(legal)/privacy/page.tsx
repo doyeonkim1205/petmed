@@ -1,10 +1,23 @@
-import { LegalPage } from '../_components/LegalHeader';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { LegalPage, LegalRefNotice } from '../_components/LegalHeader';
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const locale = await getLocale();
+  const t = await getTranslations('legal');
+  const en = locale === 'en';
+
   return (
-    <LegalPage title="개인정보처리방침">
+    <LegalPage title={t('privacyTitle')}>
     <article className="prose prose-sm dark:prose-invert max-w-none" style={{ fontSize: '13px' }}>
+      {en ? <PrivacyEn refNotice={t('refNotice')} /> : <PrivacyKo />}
+    </article>
+    </LegalPage>
+  );
+}
 
+function PrivacyKo() {
+  return (
+    <>
       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
         PawDex(이하 &quot;서비스&quot;)는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.
         본 개인정보처리방침은 서비스가 수집하는 개인정보의 항목, 수집 및 이용 목적, 보유 기간 등을 안내합니다.
@@ -265,8 +278,275 @@ export default function PrivacyPage() {
       </Section>
 
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / 펫 상세 정보 항목 추가)</p>
-    </article>
-    </LegalPage>
+    </>
+  );
+}
+
+function PrivacyEn({ refNotice }: { refNotice: string }) {
+  return (
+    <>
+      <LegalRefNotice text={refNotice} />
+
+      <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+        PawDex (the &quot;Service&quot;) values your personal information and complies with the Personal Information Protection Act
+        and related laws of the Republic of Korea. This Privacy Policy explains the items of personal information the Service
+        collects, the purposes of collection and use, and the retention period.
+      </p>
+
+      <Section title="1. Purposes of Processing Personal Information">
+        <p>The Service processes personal information for the following purposes:</p>
+        <ul>
+          <li>Membership registration and identity verification</li>
+          <li>Managing pet health records</li>
+          <li>Storing and analyzing disease search results</li>
+          <li>Providing the animal-hospital finder service</li>
+          <li>Providing disease information search and paper analysis results</li>
+          <li>Service improvement and error handling</li>
+        </ul>
+      </Section>
+
+      <Section title="2. Items of Personal Information Collected">
+        <p><strong>Required:</strong> Email address, password (hashed), nickname</p>
+        <p><strong>Optional:</strong> Profile photo, pet information (name, species, breed, date of birth, sex, neuter status, weight, chronic conditions), health records (symptoms, visit details, hospitalization, daily records (walks, meals, hydration, elimination, mood, etc.), medication information, weight records)</p>
+        <p><strong>Photo symptom analysis (optional):</strong> Pet symptom photos that the user uploads for analysis. They are processed temporarily upon an analysis request and are not stored on our servers. See Section 7 below for details.</p>
+        <p><strong>Payment information:</strong> Card issuer information and approval number (the card number itself is not stored directly and is processed through Toss Payments). For automatic payments, an encrypted billing key issued by Toss Payments is stored.</p>
+        <p><strong>Push notifications:</strong> With your consent to receive notifications, subscription information for device identification (endpoint, encryption keys) is collected. It is collected only on paid plans and is deleted immediately upon cancellation or withdrawal.</p>
+        <p><strong>Automatically collected:</strong> Service usage records, access logs, device information</p>
+        <p><strong>For social login:</strong> Email address of the Google or Kakao account, profile photo (optional)</p>
+      </Section>
+
+      <Section title="3. Retention and Use Period of Personal Information">
+        <ul>
+          <li>Retained until membership withdrawal, and destroyed without delay after a withdrawal request.</li>
+          <li>Where retention is required by applicable law, it is kept for the relevant period.</li>
+          <li>Records of contracts and withdrawal of offers under the Electronic Commerce Act: 5 years</li>
+          <li>Access logs under the Protection of Communications Secrets Act: 3 months</li>
+          <li>
+            <strong>De-identified activity records for service improvement and statistical analysis:</strong>
+            Upon withdrawal, profile and personally identifying information is deleted immediately, while activity records
+            (behavior history, search history, etc.) may be separated and de-identified from personally identifiable
+            information and retained for service improvement, error tracking, and statistical analysis. De-identified
+            records are not re-identified to an individual through reverse tracking.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="4. Provision of Personal Information to Third Parties">
+        <p>As a rule, the Service does not provide users&apos; personal information to third parties. The following are exceptions:</p>
+        <ul>
+          <li>When the user has consented in advance</li>
+          <li>When required by law, or when an investigative agency requests it for investigative purposes in accordance with the procedures and methods prescribed by law</li>
+        </ul>
+      </Section>
+
+      <Section title="5. Entrustment of Personal Information Processing">
+        <p>The Service entrusts personal information processing tasks as follows for smooth service provision.</p>
+        <table className="w-full text-[13px] border-collapse mt-2">
+          <thead>
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left py-2 font-medium">Processor</th>
+              <th className="text-left py-2 font-medium">Entrusted task</th>
+              <th className="text-left py-2 font-medium">Server location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Supabase Inc.</td>
+              <td className="py-2">Database hosting, authentication</td>
+              <td className="py-2">Tokyo, Japan (Northeast Asia)</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Vercel Inc.</td>
+              <td className="py-2">Web application hosting</td>
+              <td className="py-2">Global CDN</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">OpenAI, Inc.</td>
+              <td className="py-2">AI-based paper analysis, health information summaries, symptom photo analysis</td>
+              <td className="py-2">United States</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Toss Payments Co., Ltd.</td>
+              <td className="py-2">Payment processing and settlement</td>
+              <td className="py-2">Republic of Korea</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Kakao Corp.</td>
+              <td className="py-2">Map display and nearby animal hospital search</td>
+              <td className="py-2">Republic of Korea</td>
+            </tr>
+          </tbody>
+        </table>
+      </Section>
+
+      <Section title="6. Google User Data Handling">
+        <p>
+          PawDex provides login via Google OAuth 2.0 and complies with the
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-blue-500" target="_blank" rel="noopener noreferrer"> Google API Services User Data Policy</a>
+          {' '}(including the Limited Use requirements).
+        </p>
+
+        <p className="mt-3"><strong>6.1 Google User Data Accessed</strong></p>
+        <ul>
+          <li><strong>Email address</strong> (Google OAuth scope: <code>email</code>) — used as the account identifier</li>
+          <li><strong>Profile name</strong> (scope: <code>profile</code>) — default nickname in the app</li>
+          <li><strong>Profile photo URL</strong> (scope: <code>profile</code>, optional) — profile image in the app</li>
+        </ul>
+        <p>
+          We do not access any other Google user data. We <strong>do not request or access sensitive scopes</strong> such as
+          Gmail, Google Drive, Google Calendar, Contacts, or Photos.
+        </p>
+
+        <p className="mt-3"><strong>6.2 Data Usage / Purpose</strong></p>
+        <ul>
+          <li>Creating and uniquely identifying member accounts</li>
+          <li>Login authentication (verifying identity via Google each session)</li>
+          <li>Displaying the in-app profile (nickname, profile photo)</li>
+        </ul>
+        <p>
+          We do not use Google user data for any purpose other than the three above.
+        </p>
+
+        <p className="mt-3"><strong>6.3 Data Processing and Storage</strong></p>
+        <ul>
+          <li>HTTPS / TLS 1.2+ encryption across the entire transmission path</li>
+          <li>Stored in the Supabase Auth database (server location: Tokyo, Japan)</li>
+          <li>Email is used only as a user identifier and is not exposed externally</li>
+          <li>The profile photo only references the URL provided by Google and is not copied to or stored on our servers</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.4 Data Sharing</strong></p>
+        <ul>
+          <li>We <strong>do not share or sell Google user data with third parties</strong></li>
+          <li>We do not use it for advertising purposes</li>
+          <li>We do not use it to train AI / machine-learning models (it is not included in data sent to OpenAI)</li>
+          <li>We do not broker or resell data</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.5 Limited Use Compliance Statement</strong></p>
+        <p>
+          PawDex&apos;s use of Google user data fully complies with the Limited Use requirements of the
+          Google API Services User Data Policy:
+        </p>
+        <ul>
+          <li>Used only to provide features directly visible to app users</li>
+          <li>Not used to train or improve AI/ML models</li>
+          <li>Not used for advertising or marketing purposes</li>
+          <li>Not transmitted/sold/shared to third parties (except where required by law)</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.6 Data Retention and Deletion</strong></p>
+        <ul>
+          <li>We retain Google user data while the member uses the Service</li>
+          <li>We <strong>delete it immediately</strong> upon a withdrawal request (in-app Settings → Delete account menu)</li>
+          <li>Upon withdrawal, the Google OAuth connection in Supabase Auth is also automatically disconnected on the server side</li>
+          <li>You can revoke PawDex&apos;s access at any time in your Google account settings (<a href="https://myaccount.google.com/permissions" className="text-blue-500" target="_blank" rel="noopener noreferrer">myaccount.google.com/permissions</a>)</li>
+        </ul>
+
+        <p className="mt-3"><strong>6.7 Inquiries</strong></p>
+        <p>
+          For inquiries about Google user data, please contact the Privacy Officer (<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>).
+        </p>
+      </Section>
+
+      <Section title="7. Photo Symptom Analysis Data Handling">
+        <p>
+          PawDex operates a &quot;photo symptom analysis&quot; feature in which, when a guardian uploads a photo of their pet&apos;s
+          symptoms, AI analyzes visual cues to suggest candidate diagnoses.
+        </p>
+
+        <p className="mt-3"><strong>7.1 Collection and Permissions</strong></p>
+        <ul>
+          <li>Collected only when the user directly attaches a photo in the photo analysis menu.</li>
+          <li>Camera or gallery access on the device is used with the user&apos;s consent; if declined, only the photo analysis feature is disabled and other services are unaffected.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.2 Processing and Storage</strong></p>
+        <ul>
+          <li>Photos are compressed on the device and sent over HTTPS to the OpenAI Vision API.</li>
+          <li>After AI analysis, the photo is discarded immediately and is not stored on PawDex servers.</li>
+          <li>Only when the user explicitly saves it, a photo thumbnail is stored in the user&apos;s own device IndexedDB and is not shared with other devices or servers.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.3 No AI Training and Deletion</strong></p>
+        <ul>
+          <li>Per OpenAI API policy, transmitted data is not used to train models and is deleted by OpenAI within 30 days. (See <a href="https://openai.com/enterprise-privacy" className="text-blue-500" target="_blank" rel="noopener noreferrer">openai.com/enterprise-privacy</a>)</li>
+          <li>We do not use it for PawDex&apos;s own ML training and do not share or sell it to third parties.</li>
+          <li>Analysis result metadata is deleted immediately upon membership withdrawal.</li>
+        </ul>
+
+        <p className="mt-3"><strong>7.4 Limitations</strong></p>
+        <p>
+          Photo analysis is <strong>for reference only</strong> and cannot replace a veterinary consultation.
+          You must obtain an accurate diagnosis and treatment from an animal hospital.
+        </p>
+      </Section>
+
+      <Section title="8. Procedures and Methods for Destroying Personal Information">
+        <ul>
+          <li><strong>Destruction procedure:</strong> Destroyed immediately upon a withdrawal request; information that must be retained by law is stored separately and destroyed when the period expires.</li>
+          <li><strong>Destruction method:</strong> Electronic files are deleted in an unrecoverable manner, and paper documents are shredded or incinerated.</li>
+          <li><strong>Disconnecting social login:</strong> Upon withdrawal, the Google or Kakao social login connection is automatically disconnected on the server side so that re-registration requires a new consent process.</li>
+          <li>
+            <strong>Retention of de-identified activity records:</strong>
+            Upon withdrawal, the profile (name, email, nickname, contact, etc.) is deleted immediately, while activity
+            records are retained in a de-identified state that keeps only an internal identifier. De-identified records are
+            processed so that an individual cannot be re-identified even when combined with other information, and are used
+            only for service error tracking, quality improvement, and statistical purposes.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="9. Rights and Obligations of the Data Subject and How to Exercise Them">
+        <p>You may exercise the following rights at any time.</p>
+        <ul>
+          <li>Request to access personal information</li>
+          <li>Request to correct errors</li>
+          <li>Request deletion</li>
+          <li>Request to suspend processing</li>
+        </ul>
+        <p>You can exercise these rights through in-app Profile settings or by email (<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a>).</p>
+      </Section>
+
+      <Section title="10. Response to Personal Information Breaches">
+        <p>In the event of a personal information breach, the Service responds as follows.</p>
+        <ul>
+          <li><strong>Within 24 hours:</strong> Detect the breach and take blocking measures</li>
+          <li><strong>Within 72 hours:</strong> Notify the affected user of the breach, the leaked items, and the response measures</li>
+          <li>Report without delay to the Personal Information Protection Commission and the Korea Internet &amp; Security Agency (KISA)</li>
+          <li>Recommend password changes and implement additional security measures to minimize harm</li>
+        </ul>
+      </Section>
+
+      <Section title="11. Privacy Officer">
+        <ul>
+          <li>Officer: Kim Doyeon (Representative of DYLabs)</li>
+          <li>Email: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-500">dylabs.pawdex@gmail.com</a></li>
+        </ul>
+        <p>You may report or consult about privacy violations to the following Korean agencies.</p>
+        <ul>
+          <li>Privacy Infringement Report Center (privacy.kisa.or.kr / 118)</li>
+          <li>Personal Information Dispute Mediation Committee (kopico.go.kr / 1833-6972)</li>
+        </ul>
+      </Section>
+
+      <Section title="12. Measures to Ensure the Safety of Personal Information">
+        <p>The Service takes the following measures to ensure the safety of personal information.</p>
+        <ul>
+          <li>HTTPS (TLS) encryption applied to all data transmission</li>
+          <li>Passwords stored hashed (plaintext storage prohibited)</li>
+          <li>Authentication token–based access control for API access</li>
+          <li>Server-side security headers applied (XSS, clickjacking prevention)</li>
+          <li>Server-side-only management of sensitive API keys (prevents client exposure)</li>
+        </ul>
+      </Section>
+
+      <Section title="13. Changes to the Privacy Policy">
+        <p>This policy applies from its effective date, and any changes are announced through a notice within the Service.</p>
+      </Section>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 3, 2026 (revised — daily records / pet detail items added)</p>
+    </>
   );
 }
 
