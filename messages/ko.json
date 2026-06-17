@@ -24,7 +24,8 @@
     "time": "시간",
     "am": "오전",
     "pm": "오후",
-    "selectDate": "날짜 선택"
+    "selectDate": "날짜 선택",
+    "required": "(필수)"
   },
   "nav": {
     "home": "홈",
@@ -492,6 +493,47 @@
   },
   "pets": {
     "type": { "dog": "강아지", "cat": "고양이" }
+  },
+  "photo": {
+    "title": "사진 분석",
+    "quotaExhaustedTitle": "사진 분석 무료 체험을 모두 사용했어요.",
+    "quotaExhaustedDesc": "Plus로 업그레이드하면 계속 사용할 수 있어요.",
+    "noPetTitle": "먼저 반려동물을 등록해 주세요",
+    "noPetDesc": "아이의 특성에 맞춘 정밀한 체크를 위해 정보 등록이 필요합니다<br></br>마이페이지에서 등록 후 다시 시도해주세요",
+    "registerPet": "반려동물 등록하러 가기",
+    "selectPet": "분석할 반려동물",
+    "bodyPart": "증상 부위",
+    "category": { "skin": "피부", "eye": "눈", "wound": "외상", "dental": "입·치아", "ear": "귀", "excretion": "대소변·구토" },
+    "photoTip": "💡 밝은 곳에서 가까이 찍을수록 분석 결과가 정확해져요",
+    "attachPhoto": "증상 사진 첨부",
+    "freeTrialLabel": "Free 체험",
+    "plusOnly": "Plus 전용",
+    "uploadedAlt": "업로드한 사진",
+    "removePhoto": "사진 제거",
+    "takePhoto": "직접 촬영하기",
+    "fromGallery": "갤러리에서 불러오기",
+    "symptomDetail": "증상 상세 내용",
+    "detailPlaceholder": "예: 3일 전부터 가려워해요. 오른쪽 귀 안쪽이에요.",
+    "detailHint": "언제부터·어디가·어떤지 알려주세요 (최소 5자)",
+    "disclaimerShort": "AI 분석 결과는 참고용입니다! 정확한 진단은 동물병원을 방문해 주세요",
+    "analyzing": "AI가 분석 중이에요...",
+    "analyzeCta": "사진 분석하기",
+    "concern": { "low": "지금은 괜찮아 보여요", "medium": "지켜봐 주세요", "high": "빠른 진료가 필요해요" },
+    "analyzedAlt": "분석한 사진",
+    "usedPhoto": "분석에 사용한 사진",
+    "privacyAria": "개인정보 보호 안내",
+    "privacyTooltip": "사진은 분석에만 쓰이고 <b>서버에 저장되지 않아요</b>",
+    "retakeTitle": "사진을 다시 찍어주세요",
+    "invalidDefault": "사진이 분석에 적합하지 않아요",
+    "observed": "사진에서 관찰된 내용",
+    "resultDisclaimerTitle": "⚠️ 분석 결과는 참고용이에요",
+    "resultDisclaimerBody": "AI 분석은 사진 한 장의 시각 정보만으로 추정한 가능성이며 확진이 아니에요 증상이 지속되거나 악화되면 반드시 동물병원에서 진료를 받아주세요",
+    "analyzeAnother": "다른 사진으로 분석하기",
+    "error": {
+      "imageRead": "이미지를 읽지 못했어요.",
+      "analyze": "분석 중 오류가 발생했어요.",
+      "network": "네트워크 오류가 발생했어요. 다시 시도해 주세요."
+    }
   },
   "upsell": {
     "title": "우리 아이 건강, 빈틈없이 케어하기",

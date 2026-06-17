@@ -24,7 +24,8 @@
     "time": "Time",
     "am": "AM",
     "pm": "PM",
-    "selectDate": "Select date"
+    "selectDate": "Select date",
+    "required": "(required)"
   },
   "nav": {
     "home": "Home",
@@ -492,6 +493,47 @@
   },
   "pets": {
     "type": { "dog": "Dog", "cat": "Cat" }
+  },
+  "photo": {
+    "title": "Photo analysis",
+    "quotaExhaustedTitle": "You've used all your free photo analyses.",
+    "quotaExhaustedDesc": "Upgrade to Plus to keep using it.",
+    "noPetTitle": "Please register a pet first",
+    "noPetDesc": "We need your pet's info for a check tailored to them.<br></br>Register in My page and try again.",
+    "registerPet": "Go register a pet",
+    "selectPet": "Pet to analyze",
+    "bodyPart": "Affected area",
+    "category": { "skin": "Skin", "eye": "Eye", "wound": "Wound", "dental": "Mouth & teeth", "ear": "Ear", "excretion": "Stool/urine & vomit" },
+    "photoTip": "💡 The closer and brighter the photo, the more accurate the analysis",
+    "attachPhoto": "Attach a photo",
+    "freeTrialLabel": "Free trial",
+    "plusOnly": "Plus only",
+    "uploadedAlt": "Uploaded photo",
+    "removePhoto": "Remove photo",
+    "takePhoto": "Take a photo",
+    "fromGallery": "Choose from gallery",
+    "symptomDetail": "Symptom details",
+    "detailPlaceholder": "e.g. Itchy for 3 days, inside the right ear.",
+    "detailHint": "Tell us when it started, where, and how (at least 5 characters)",
+    "disclaimerShort": "AI analysis is for reference only! Visit a vet for an accurate diagnosis",
+    "analyzing": "AI is analyzing...",
+    "analyzeCta": "Analyze photo",
+    "concern": { "low": "Looks okay for now", "medium": "Keep an eye on it", "high": "Needs prompt veterinary care" },
+    "analyzedAlt": "Analyzed photo",
+    "usedPhoto": "Photo used for analysis",
+    "privacyAria": "Privacy notice",
+    "privacyTooltip": "Photos are used only for analysis and <b>are not stored on our servers</b>",
+    "retakeTitle": "Please retake the photo",
+    "invalidDefault": "This photo isn't suitable for analysis",
+    "observed": "What we observed in the photo",
+    "resultDisclaimerTitle": "⚠️ Results are for reference only",
+    "resultDisclaimerBody": "AI analysis estimates possibilities from a single photo's visual information and is not a diagnosis. If symptoms persist or worsen, be sure to see a vet.",
+    "analyzeAnother": "Analyze another photo",
+    "error": {
+      "imageRead": "Couldn't read the image.",
+      "analyze": "An error occurred during analysis.",
+      "network": "A network error occurred. Please try again."
+    }
   },
   "upsell": {
     "title": "Care for your pet's health, with nothing missed",
