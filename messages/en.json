@@ -489,5 +489,93 @@
     "history": "History",
     "tapToDelete": "Tap a record to delete",
     "recordGeneric": "Record"
+  },
+  "pets": {
+    "type": { "dog": "Dog", "cat": "Cat" }
+  },
+  "upsell": {
+    "title": "Care for your pet's health, with nothing missed",
+    "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
+    "viewPlans": "View plans"
+  },
+  "search": {
+    "mode": { "symptom": "Symptom check", "disease": "Paper search" },
+    "placeholderSymptom": "Search symptoms",
+    "placeholderDisease": "Search a disease or keyword",
+    "photoAnalyzeAria": "Analyze with a photo",
+    "searchAria": "Search",
+    "photoHint": "📷 Analyze with a photo!",
+    "charCount": "{count}/{max}",
+    "recentSearches": "Recent searches",
+    "noHistory": "No search history",
+    "emptySymptom": "Enter symptoms and AI will predict possible conditions",
+    "emptyDisease": "Find related papers by disease or keyword",
+    "emptyDiseaseSub": "AI analyzes and summarizes veterinary papers for you",
+    "stepValidating": "Checking your query...",
+    "stepSearching": "Searching papers...",
+    "stepFetching": "Fetching paper details...",
+    "stepAnalyzing": "AI is analyzing the papers...",
+    "aiFailedTitle": "Couldn't load the AI analysis.",
+    "aiFailedDesc": "Your search wasn't counted, so please try again.",
+    "retrySearch": "Search again",
+    "precautions": "Precautions & what to do",
+    "ingredients": "Helpful ingredients",
+    "analyzingPapers": "AI is analyzing the papers...",
+    "analyzingIngredients": "Analyzing ingredients...",
+    "paperBasedSummary": "AI summary based on papers",
+    "analyzingResults": "Analyzing search results...",
+    "analyzingShort": "Analyzing...",
+    "searchingPapers": "Searching related papers...",
+    "saveDone": "Saved",
+    "saving": "Saving...",
+    "saveSelected": "Save selected papers ({count})",
+    "saveThis": "Save this analysis",
+    "saveConfirmTitle": "Confirm save",
+    "saveConfirmWithPapers": "Saving {count} selected papers and the analysis.",
+    "saveConfirmNoPapers": "Saving the analysis.",
+    "saveConfirmHint": "You can find saved items in My page > My library.",
+    "saveCta": "Save",
+    "paperSummaryTitle": "Paper summaries",
+    "summaryUnavailable": "Couldn't load the AI summary.",
+    "viewOriginal": "View original paper",
+    "pubmedFailed": "Failed to connect to PubMed.",
+    "offlineData": "Offline data",
+    "error": { "saveFailed": "Failed to save.", "network": "A network error occurred." }
+  },
+  "analysis": {
+    "loading": "AI is analyzing the symptoms...",
+    "contextUsed": "This analysis reflects <b>{name}</b>'s information",
+    "refSuspected": "─── Possible conditions for reference ───",
+    "likelihoodBadge": "Likelihood: {level}",
+    "matchingSymptoms": "Matching symptoms",
+    "additionalSymptoms": "Additional symptoms to watch",
+    "watchHeader": "🩺 Consider seeing a vet if",
+    "severity": { "urgent": "Urgent", "caution": "Caution", "watch": "Watch" },
+    "likelihood": { "high": "High", "medium": "Medium", "low": "Low" },
+    "emergencyTier": { "immediate": "Now", "within24h": "Within 24h", "monitor": "Monitor" },
+    "emergencyTitle": {
+      "immediate": "See a vet immediately if you notice",
+      "within24h": "See a vet within 24 hours if you notice",
+      "monitor": "Monitor closely if you notice"
+    },
+    "followup": {
+      "header": "Answer a few more questions for better accuracy",
+      "refineBadge": "Re-analysis {used}/{limit}",
+      "yes": "Yes",
+      "no": "No",
+      "dontKnow": "Not sure",
+      "answerPlaceholder": "Type your answer",
+      "skipNote": "{count} unanswered questions will be excluded from the analysis",
+      "refining": "Re-analyzing...",
+      "refineExhausted": "You've used all of today's re-analyses",
+      "refineCta": "Re-analyze with answers",
+      "answeredCount": "{answered}/{total} answered"
+    },
+    "disclaimer": "AI predictions are for reference only; consult a vet for an accurate diagnosis.",
+    "error": {
+      "refineLimit": "You've exceeded the re-analysis limit.",
+      "searchLimit": "You've exceeded the symptom analysis limit.",
+      "failed": "Symptom analysis failed.\nPlease check your network connection."
+    }
   }
 }

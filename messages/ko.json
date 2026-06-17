@@ -489,5 +489,93 @@
     "history": "기록 내역",
     "tapToDelete": "기록을 눌러 삭제",
     "recordGeneric": "기록"
+  },
+  "pets": {
+    "type": { "dog": "강아지", "cat": "고양이" }
+  },
+  "upsell": {
+    "title": "우리 아이 건강, 빈틈없이 케어하기",
+    "features": "AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관",
+    "viewPlans": "요금제 보기"
+  },
+  "search": {
+    "mode": { "symptom": "증상 분석", "disease": "논문 검색" },
+    "placeholderSymptom": "증상을 검색하세요",
+    "placeholderDisease": "질병·키워드를 검색하세요",
+    "photoAnalyzeAria": "사진으로 분석하기",
+    "searchAria": "검색",
+    "photoHint": "📷 사진으로 분석하기!",
+    "charCount": "{count}/{max}자",
+    "recentSearches": "최근 검색어",
+    "noHistory": "검색기록이 없습니다",
+    "emptySymptom": "증상을 입력하면 AI가 가능한 질병을 예측합니다",
+    "emptyDisease": "질병이나 키워드로 관련 논문을 찾아보세요",
+    "emptyDiseaseSub": "AI가 수의학 논문을 분석하여 요약해드립니다",
+    "stepValidating": "검색어 확인 중...",
+    "stepSearching": "논문 검색 중...",
+    "stepFetching": "논문 정보 가져오는 중...",
+    "stepAnalyzing": "AI가 논문을 분석하고 있습니다...",
+    "aiFailedTitle": "AI 분석을 불러오지 못했어요.",
+    "aiFailedDesc": "검색 횟수는 차감되지 않았으니 재검색해주세요.",
+    "retrySearch": "다시 검색하기",
+    "precautions": "주의사항 & 대처방법",
+    "ingredients": "도움되는 성분",
+    "analyzingPapers": "AI가 논문을 분석하고 있습니다...",
+    "analyzingIngredients": "성분 분석 중...",
+    "paperBasedSummary": "논문 기반 AI 요약",
+    "analyzingResults": "검색 결과를 분석 중입니다...",
+    "analyzingShort": "분석 중...",
+    "searchingPapers": "관련 논문을 검색 중입니다...",
+    "saveDone": "보관 완료",
+    "saving": "보관 중...",
+    "saveSelected": "선택한 논문 보관하기 ({count}편)",
+    "saveThis": "이 분석 보관하기",
+    "saveConfirmTitle": "보관 확인",
+    "saveConfirmWithPapers": "선택한 논문 {count}편과 분석 결과를 보관합니다.",
+    "saveConfirmNoPapers": "분석 결과를 보관합니다.",
+    "saveConfirmHint": "보관한 내용은 마이페이지 > 내 보관함에서 확인할 수 있습니다.",
+    "saveCta": "보관하기",
+    "paperSummaryTitle": "논문 요약",
+    "summaryUnavailable": "AI 요약을 불러올 수 없습니다.",
+    "viewOriginal": "원본 논문 보기",
+    "pubmedFailed": "PubMed 연결에 실패했습니다.",
+    "offlineData": "오프라인 데이터",
+    "error": { "saveFailed": "저장에 실패했어요.", "network": "네트워크 오류가 발생했어요." }
+  },
+  "analysis": {
+    "loading": "AI가 증상을 분석하고 있습니다...",
+    "contextUsed": "<b>{name}</b>의 정보를 반영한 분석이에요",
+    "refSuspected": "─── 참고로 가능성 있는 질환 ───",
+    "likelihoodBadge": "가능성 {level}",
+    "matchingSymptoms": "일치하는 증상",
+    "additionalSymptoms": "추가로 관찰할 증상",
+    "watchHeader": "🩺 이런 경우엔 진료를 고려하세요",
+    "severity": { "urgent": "긴급", "caution": "주의", "watch": "관찰" },
+    "likelihood": { "high": "높음", "medium": "중간", "low": "낮음" },
+    "emergencyTier": { "immediate": "즉시", "within24h": "24시간내", "monitor": "경과관찰" },
+    "emergencyTitle": {
+      "immediate": "이런 증상이면 즉시 병원으로",
+      "within24h": "이런 증상이면 24시간 내 병원으로",
+      "monitor": "이런 증상이면 경과를 주의 깊게"
+    },
+    "followup": {
+      "header": "추가 질문에 답하면 더 정확해져요",
+      "refineBadge": "재분석 {used}/{limit}",
+      "yes": "예",
+      "no": "아니오",
+      "dontKnow": "모르겠어요",
+      "answerPlaceholder": "답변을 입력하세요",
+      "skipNote": "답변하지 않은 {count}개 질문은 분석에서 제외돼요",
+      "refining": "재분석 중...",
+      "refineExhausted": "오늘 재분석을 모두 사용했어요",
+      "refineCta": "답변 반영하여 재분석",
+      "answeredCount": "{answered}/{total} 답변"
+    },
+    "disclaimer": "AI 예측은 참고용이며, 정확한 진단은 수의사와 상담하세요.",
+    "error": {
+      "refineLimit": "재분석 횟수를 초과했습니다.",
+      "searchLimit": "증상 분석 횟수를 초과했습니다.",
+      "failed": "증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요."
+    }
   }
 }

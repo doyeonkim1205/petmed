@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat, Camera } from 'lucide-react';
@@ -74,12 +75,13 @@ function normalizeEmergencySigns(
   });
 }
 
+// 값 = messages 키 (idle/done 은 표시 없음). 렌더 시 t() 로 변환.
 const stepMessages: Record<SearchStep, string> = {
   idle: '',
-  validating: '검색어 확인 중...',
-  searching: '논문 검색 중...',
-  fetching: '논문 정보 가져오는 중...',
-  analyzing: 'AI가 논문을 분석하고 있습니다...',
+  validating: 'search.stepValidating',
+  searching: 'search.stepSearching',
+  fetching: 'search.stepFetching',
+  analyzing: 'search.stepAnalyzing',
   done: '',
 };
 
@@ -96,8 +98,16 @@ const likelihoodConfig = {
 };
 
 function SearchContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
+  // 모델이 돌려주는 한국어 enum → messages 키 (표시 라벨용; 스타일 lookup 은 한국어 키 유지).
+  const SEVERITY_KEY: Record<string, string> = { '긴급': 'urgent', '주의': 'caution', '관찰': 'watch' };
+  const LIKELIHOOD_KEY: Record<string, string> = { '높음': 'high', '중간': 'medium', '낮음': 'low' };
+  const EMG_KEY: Record<string, string> = { '즉시': 'immediate', '24시간내': 'within24h', '경과관찰': 'monitor' };
+  const sevLabel = (s: string) => t(`analysis.severity.${SEVERITY_KEY[s] || 'watch'}`);
+  const likLabel = (s: string) => t(`analysis.likelihood.${LIKELIHOOD_KEY[s] || 'low'}`);
+  const emgLabel = (s: string) => t(`analysis.emergencyTier.${EMG_KEY[s] || 'monitor'}`);
   // 사진 분석 onboarding 툴팁 — 첫 진입 1회만 노출. 사용자가 명시적으로
   // 닫거나 카메라 아이콘 누르면 localStorage 에 플래그 저장.
   const [showPhotoHint, setShowPhotoHint] = useState(false);
@@ -470,14 +480,14 @@ function SearchContent() {
         const errData = await res.json().catch(() => ({}));
         if (res.status === 429 && errData.limitReached) {
           if (isRefine) {
-            setRefineLimit(errData.error || '재분석 횟수를 초과했습니다.');
+            setRefineLimit(errData.error || t('analysis.error.refineLimit'));
           } else {
-            setSymptomError(errData.error || '증상 분석 횟수를 초과했습니다.');
+            setSymptomError(errData.error || t('analysis.error.searchLimit'));
             setSymptomLimitReached(true);  // 한도 초과 → 자물쇠 아이콘
           }
         } else if (!isRefine) {
-          // 네트워크/서버 에러: 2줄 한글 메시지로 정규화.
-          setSymptomError('증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요.');
+          // 네트워크/서버 에러: 2줄 메시지로 정규화.
+          setSymptomError(t('analysis.error.failed'));
         }
         return;
       }
@@ -523,7 +533,7 @@ function SearchContent() {
         tags: { feature: 'symptom', action: 'analyze' },
         extra: { isRefine },
       });
-      if (!isRefine) setSymptomError('증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요.');
+      if (!isRefine) setSymptomError(t('analysis.error.failed'));
     } finally {
       setSymptomLoading(false);
       setIsRefining(false);
@@ -656,13 +666,13 @@ function SearchContent() {
         } catch {}
       } else {
         // 403 (논문 분석 cap 도달, plus 가 500편 채운 케이스) — 빨강.
-        setSaveError(result?.error || '저장에 실패했어요.');
+        setSaveError(result?.error || t('search.error.saveFailed'));
       }
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'search', action: 'save-analysis' },
       });
-      setSaveError('네트워크 오류가 발생했어요.');
+      setSaveError(t('search.error.network'));
     } finally {
       setSaving(false);
     }
@@ -703,7 +713,7 @@ function SearchContent() {
               }`}
             >
               <Stethoscope size={12} className="inline mr-1 -mt-0.5" />
-              증상 분석
+              {t('search.mode.symptom')}
             </button>
             <button
               type="button"
@@ -716,7 +726,7 @@ function SearchContent() {
               }`}
             >
               <SearchIcon size={12} className="inline mr-1 -mt-0.5" />
-              논문 검색
+              {t('search.mode.disease')}
             </button>
           </div>
         </div>
@@ -735,7 +745,7 @@ function SearchContent() {
                   : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
               }`}
             >
-              전체
+              {t('common.all')}
             </button>
             {pets.map(pet => {
               const active = selectedPetId === pet.id;
@@ -780,7 +790,7 @@ function SearchContent() {
                   searchMode === 'symptom' ? 'bg-blue-50 text-blue-600' : 'bg-violet-50 text-violet-600'
                 }`}
               >
-                {petType === 'dog' ? '강아지' : '고양이'} ⇄
+                {petType === 'dog' ? t('pets.type.dog') : t('pets.type.cat')} ⇄
               </button>
             )}
             {/* input 과 돋보기 버튼을 한 묶음으로. min-w-0 가 input intrinsic min-width
@@ -798,7 +808,7 @@ function SearchContent() {
                   }
                 }}
                 maxLength={searchMode === 'symptom' ? maxSymptomLen : 100}
-                placeholder={searchMode === 'symptom' ? '증상을 검색하세요' : '질병·키워드를 검색하세요'}
+                placeholder={searchMode === 'symptom' ? t('search.placeholderSymptom') : t('search.placeholderDisease')}
                 autoComplete="off"
                 enterKeyHint="search"
                 className={`w-full h-9 pl-3 bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 appearance-none [&::-webkit-search-cancel-button]:hidden ${
@@ -809,7 +819,7 @@ function SearchContent() {
               {searchMode === 'symptom' && (
                 <button
                   type="button"
-                  aria-label="사진으로 분석하기"
+                  aria-label={t('search.photoAnalyzeAria')}
                   onClick={() => {
                     try { localStorage.setItem('photo-analysis-onboarded-v1', '1'); } catch {}
                     setShowPhotoHint(false);
@@ -823,7 +833,7 @@ function SearchContent() {
                       className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-white border border-blue-300 text-blue-600 text-[11px] font-medium px-2.5 py-1.5 shadow-md z-20"
                       role="tooltip"
                     >
-                      📷 사진으로 분석하기!
+                      {t('search.photoHint')}
                       {/* 아래 방향 꼬리 — 카메라 아이콘 가리키게. border 색과 동일 톤. */}
                       <span className="absolute -bottom-1 right-3 w-2 h-2 bg-white border-r border-b border-blue-300 rotate-45" />
                     </span>
@@ -832,7 +842,7 @@ function SearchContent() {
               )}
               <button
                 type="submit"
-                aria-label="검색"
+                aria-label={t('search.searchAria')}
                 className={`absolute right-0.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                   searchMode === 'symptom' ? 'text-gray-400 hover:text-blue-600' : 'text-gray-400 hover:text-violet-600'
                 }`}
@@ -878,7 +888,7 @@ function SearchContent() {
             )}
             {symptomInput.length > 0 && (
               <span className={`absolute right-1 text-[10px] ${symptomInput.length >= maxSymptomLen ? 'text-red-400' : 'text-gray-400'}`}>
-                {symptomInput.length}/{maxSymptomLen}자
+                {t('search.charCount', { count: symptomInput.length, max: maxSymptomLen })}
               </span>
             )}
           </div>
@@ -893,7 +903,7 @@ function SearchContent() {
             {symptomLoading && (
               <div className="flex items-center gap-2.5 p-4 rounded-xl bg-blue-50">
                 <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-gray-600">AI가 증상을 분석하고 있습니다...</p>
+                <p className="text-xs text-gray-600">{t('analysis.loading')}</p>
               </div>
             )}
 
@@ -923,14 +933,14 @@ function SearchContent() {
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
-                      <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
+                      <p className="text-sm font-bold text-gray-700">{t('upsell.title')}</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관</p>
+                    <p className="text-xs text-gray-500 mb-3">{t('upsell.features')}</p>
                     <button
                       onClick={() => window.location.href = '/profile/subscription'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
                     >
-                      요금제 보기
+                      {t('upsell.viewPlans')}
                     </button>
                   </div>
                 )}
@@ -945,8 +955,10 @@ function SearchContent() {
                   <div className="flex items-center gap-1.5 px-1">
                     <Sparkles size={13} className="text-blue-500 flex-shrink-0" />
                     <p className="text-xs text-gray-500">
-                      <span className="font-semibold text-gray-600">{symptomResult.pet_name}</span>
-                      의 정보를 반영한 분석이에요
+                      {t.rich('analysis.contextUsed', {
+                        name: symptomResult.pet_name,
+                        b: (c) => <span className="font-semibold text-gray-600">{c}</span>,
+                      })}
                     </p>
                   </div>
                 )}
@@ -976,7 +988,7 @@ function SearchContent() {
                         <p className={`text-[11px] font-semibold mb-1.5 ${
                           symptomResult.concern_level === 'low' ? 'text-green-700' : 'text-blue-700'
                         }`}>
-                          🩺 이런 경우엔 진료를 고려하세요
+                          {t('analysis.watchHeader')}
                         </p>
                         <ul className="space-y-1">
                           {symptomResult.watch_signs.map((sign, i) => (
@@ -997,7 +1009,7 @@ function SearchContent() {
                    분석 결과는 그대로 보여주되 "확정 진단 X, 참고용" 임을 명시. */}
                 {symptomResult.concern_level === 'low' && symptomResult.diseases.length > 0 && (
                   <p className="text-[11px] text-gray-400 -mb-1">
-                    ─── 참고로 가능성 있는 질환 ───
+                    {t('analysis.refSuspected')}
                   </p>
                 )}
 
@@ -1017,10 +1029,10 @@ function SearchContent() {
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.badge}`}>
-                            {disease.severity || '관찰'}
+                            {sevLabel(disease.severity || '관찰')}
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${lik}`}>
-                            가능성 {disease.likelihood || '낮음'}
+                            {t('analysis.likelihoodBadge', { level: likLabel(disease.likelihood || '낮음') })}
                           </span>
                         </div>
                       </div>
@@ -1031,7 +1043,7 @@ function SearchContent() {
                       {/* Matching symptoms */}
                       {disease.matching_symptoms.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-500 mb-1">일치하는 증상</p>
+                          <p className="text-[10px] font-semibold text-gray-500 mb-1">{t('analysis.matchingSymptoms')}</p>
                           <div className="flex flex-wrap gap-1">
                             {disease.matching_symptoms.map((s, i) => (
                               <span key={i} className="px-2 py-0.5 bg-white/80 text-gray-700 rounded-full text-[11px] font-medium border border-gray-200">
@@ -1045,7 +1057,7 @@ function SearchContent() {
                       {/* Additional symptoms to watch */}
                       {disease.additional_symptoms.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-500 mb-1">추가로 관찰할 증상</p>
+                          <p className="text-[10px] font-semibold text-gray-500 mb-1">{t('analysis.additionalSymptoms')}</p>
                           <div className="flex flex-wrap gap-1">
                             {disease.additional_symptoms.map((s, i) => (
                               <span key={i} className="px-2 py-0.5 bg-white/50 text-gray-500 rounded-full text-[11px] border border-dashed border-gray-300">
@@ -1080,9 +1092,9 @@ function SearchContent() {
                     '경과관찰',
                   );
                   const headerByTop: Record<EmergencySign['severity'], { bg: string; border: string; text: string; title: string }> = {
-                    '즉시': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', title: '이런 증상이면 즉시 병원으로' },
-                    '24시간내': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', title: '이런 증상이면 24시간 내 병원으로' },
-                    '경과관찰': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', title: '이런 증상이면 경과를 주의 깊게' },
+                    '즉시': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', title: t('analysis.emergencyTitle.immediate') },
+                    '24시간내': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', title: t('analysis.emergencyTitle.within24h') },
+                    '경과관찰': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', title: t('analysis.emergencyTitle.monitor') },
                   };
                   const itemColorByTier: Record<EmergencySign['severity'], string> = {
                     '즉시': 'text-red-700',
@@ -1111,7 +1123,7 @@ function SearchContent() {
                                     다른 등급(예: 즉시 카드 안의 24시간내)만 뱃지로 구분. */}
                                 {item.severity !== topSeverity && (
                                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${itemBadgeByTier[item.severity]}`}>
-                                    {item.severity}
+                                    {emgLabel(item.severity)}
                                   </span>
                                 )}
                                 <span className="font-medium">{item.sign}</span>
@@ -1139,10 +1151,10 @@ function SearchContent() {
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                     <h4 className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                       <HelpCircle size={14} />
-                      추가 질문에 답하면 더 정확해져요
+                      {t('analysis.followup.header')}
                       {symptomUsageInfo && (
                         <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">
-                          재분석 {symptomUsageInfo.refine.used}/{symptomUsageInfo.refine.limit}
+                          {t('analysis.followup.refineBadge', { used: symptomUsageInfo.refine.used, limit: symptomUsageInfo.refine.limit })}
                         </span>
                       )}
                     </h4>
@@ -1156,7 +1168,7 @@ function SearchContent() {
                             <p className="text-xs text-gray-700 font-medium">{i + 1}. {qText}</p>
                             {qType === 'yes_no' && (
                               <div className="flex gap-1.5">
-                                {['예', '아니오', '모르겠어요'].map((option) => (
+                                {[t('analysis.followup.yes'), t('analysis.followup.no'), t('analysis.followup.dontKnow')].map((option) => (
                                   <button
                                     key={option}
                                     type="button"
@@ -1194,7 +1206,7 @@ function SearchContent() {
                               <TextField
                                 value={followupAnswers[i] || ''}
                                 onChange={(e) => setFollowupAnswers(prev => ({ ...prev, [i]: e.target.value }))}
-                                placeholder="답변을 입력하세요"
+                                placeholder={t('analysis.followup.answerPlaceholder')}
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 bg-white"
                               />
                             )}
@@ -1208,7 +1220,7 @@ function SearchContent() {
                            스킵한 건지 확인할 기회. 빈 답변은 payload 에서 자동 제외됨. */}
                         {answeredCount < totalQ && (
                           <p className="text-[10px] text-gray-500 text-center">
-                            답변하지 않은 {totalQ - answeredCount}개 질문은 분석에서 제외돼요
+                            {t('analysis.followup.skipNote', { count: totalQ - answeredCount })}
                           </p>
                         )}
                         <button
@@ -1217,15 +1229,15 @@ function SearchContent() {
                           className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 disabled:cursor-not-allowed"
                         >
                           {isRefining ? (
-                            <><Loader2 size={14} className="animate-spin" /> 재분석 중...</>
+                            <><Loader2 size={14} className="animate-spin" /> {t('analysis.followup.refining')}</>
                           ) : refineExhausted ? (
-                            <><Lock size={14} /> 오늘 재분석을 모두 사용했어요</>
+                            <><Lock size={14} /> {t('analysis.followup.refineExhausted')}</>
                           ) : (
-                            <><Stethoscope size={14} /> 답변 반영하여 재분석</>
+                            <><Stethoscope size={14} /> {t('analysis.followup.refineCta')}</>
                           )}
                         </button>
                         <p className="text-[10px] text-gray-400 text-center">
-                          {answeredCount}/{totalQ} 답변
+                          {t('analysis.followup.answeredCount', { answered: answeredCount, total: totalQ })}
                         </p>
                       </div>
                     )}
@@ -1239,26 +1251,26 @@ function SearchContent() {
                   <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
+                      <p className="text-xs font-bold text-gray-600">{t('upsell.title')}</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관
+                      {t('upsell.features')}
                     </p>
                   </div>
                 )}
 
                 {/* Disclaimer */}
                 <p className="text-[10px] text-gray-400 text-center px-4 leading-relaxed">
-                  AI 예측은 참고용이며, 정확한 진단은 수의사와 상담하세요.
+                  {t('analysis.disclaimer')}
                 </p>
               </>
             )}
           </div>
         ) : !hasSearched ? (
           <div className="max-w-sm mx-auto mt-6">
-            <h3 className="text-xs font-semibold text-gray-400 mb-3">최근 검색어</h3>
+            <h3 className="text-xs font-semibold text-gray-400 mb-3">{t('search.recentSearches')}</h3>
             {recentSearches.length === 0 ? (
-              <p className="text-xs text-gray-400">검색기록이 없습니다</p>
+              <p className="text-xs text-gray-400">{t('search.noHistory')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {recentSearches.map((term, idx) => (
@@ -1274,8 +1286,8 @@ function SearchContent() {
               </div>
             )}
             <div className="mt-10 text-center text-gray-300">
-              <p className="text-sm">{searchMode === 'symptom' ? '증상을 입력하면 AI가 가능한 질병을 예측합니다' : '질병이나 키워드로 관련 논문을 찾아보세요'}</p>
-              <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : 'AI가 수의학 논문을 분석하여 요약해드립니다'}</p>
+              <p className="text-sm">{searchMode === 'symptom' ? t('search.emptySymptom') : t('search.emptyDisease')}</p>
+              <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : t('search.emptyDiseaseSub')}</p>
             </div>
           </div>
         ) : searchMode === 'disease' ? (
@@ -1283,7 +1295,7 @@ function SearchContent() {
             {displayPubmed.step !== 'idle' && displayPubmed.step !== 'done' && (
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50">
                 <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
-                <p className="text-xs text-gray-500">{stepMessages[displayPubmed.step]}</p>
+                <p className="text-xs text-gray-500">{stepMessages[displayPubmed.step] ? t(stepMessages[displayPubmed.step]) : ''}</p>
               </div>
             )}
 
@@ -1338,14 +1350,14 @@ function SearchContent() {
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                     <div className="flex items-center justify-center gap-1.5 mb-2">
                       <Crown size={16} className="text-purple-500" />
-                      <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
+                      <p className="text-sm font-bold text-gray-700">{t('upsell.title')}</p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관</p>
+                    <p className="text-xs text-gray-500 mb-3">{t('upsell.features')}</p>
                     <button
                       onClick={() => window.location.href = '/profile/subscription'}
                       className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
                     >
-                      요금제 보기
+                      {t('upsell.viewPlans')}
                     </button>
                   </div>
                 )}
@@ -1371,10 +1383,10 @@ function SearchContent() {
                   <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl cursor-pointer" onClick={() => window.location.href = '/profile/subscription'}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Crown size={13} className="text-purple-500" />
-                      <p className="text-xs font-bold text-gray-600">우리 아이 건강, 빈틈없이 케어하기</p>
+                      <p className="text-xs font-bold text-gray-600">{t('upsell.title')}</p>
                     </div>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
-                      AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관
+                      {t('upsell.features')}
                     </p>
                   </div>
                 )}
@@ -1384,15 +1396,15 @@ function SearchContent() {
                     <div className="flex items-start gap-2">
                       <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
                       <div className="text-xs leading-relaxed flex-1">
-                        <p className="font-medium text-amber-700">AI 분석을 불러오지 못했어요.</p>
-                        <p className="text-amber-600 mt-0.5">검색 횟수는 차감되지 않았으니 재검색해주세요.</p>
+                        <p className="font-medium text-amber-700">{t('search.aiFailedTitle')}</p>
+                        <p className="text-amber-600 mt-0.5">{t('search.aiFailedDesc')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => displayPubmed.retry()}
                       className="mt-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition-colors"
                     >
-                      다시 검색하기
+                      {t('search.retrySearch')}
                     </button>
                   </div>
                 )}
@@ -1400,7 +1412,7 @@ function SearchContent() {
                 <PaperSection
                   pubmed={displayPubmed}
                   diseaseName={searchTerm || ''}
-                  diseaseSummary={mockResult?.summary || '관련 논문을 검색 중입니다...'}
+                  diseaseSummary={mockResult?.summary || t('search.searchingPapers')}
                   bookmarkedPapers={bookmarkedPapers}
                   onToggleBookmark={toggleBookmark}
                   showBookmarks={isPaid && !saved && !aiFailed}
@@ -1412,19 +1424,19 @@ function SearchContent() {
                   <section>
                     <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
                       <AlertTriangle size={14} className="text-orange-400" />
-                      주의사항 & 대처방법
+                      {t('search.precautions')}
                     </h3>
                     <div className="bg-white rounded-xl border border-gray-100 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />
-                          AI가 논문을 분석하고 있습니다...
+                          {t('search.analyzingPapers')}
                         </div>
                       ) : (
                         <ul className="space-y-2">
                           {(displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0
                             ? displayPubmed.analysis.precautions
-                            : mockResult?.precautions || ['검색 결과를 분석 중입니다...']
+                            : mockResult?.precautions || [t('search.analyzingResults')]
                           ).map((item, idx) => (
                             <li key={idx} className="flex gap-2 text-sm text-gray-600 items-start">
                               <span className="text-orange-300 mt-0.5 text-xs">●</span>
@@ -1435,7 +1447,7 @@ function SearchContent() {
                       )}
                       {displayPubmed.analysis?.precautions && displayPubmed.analysis.precautions.length > 0 && (
                         <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          논문 기반 AI 요약
+                          {t('search.paperBasedSummary')}
                         </span>
                       )}
                     </div>
@@ -1444,19 +1456,19 @@ function SearchContent() {
                   <section className="mt-5">
                     <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
                       <Pill size={14} className="text-purple-400" />
-                      도움되는 성분
+                      {t('search.ingredients')}
                     </h3>
                     <div className="bg-white rounded-xl border border-gray-100 p-4">
                       {displayPubmed.analysisLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
                           <Loader2 size={14} className="animate-spin" />
-                          성분 분석 중...
+                          {t('search.analyzingIngredients')}
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {(displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0
                             ? displayPubmed.analysis.ingredients
-                            : mockResult?.ingredients || ['분석 중...']
+                            : mockResult?.ingredients || [t('search.analyzingShort')]
                           ).map((item, idx) => (
                             <span key={idx} className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium">
                               {item}
@@ -1466,7 +1478,7 @@ function SearchContent() {
                       )}
                       {displayPubmed.analysis?.ingredients && displayPubmed.analysis.ingredients.length > 0 && (
                         <span className="inline-block text-[10px] bg-green-50 text-green-500 px-2 py-0.5 rounded-full mt-3">
-                          논문 기반 AI 요약
+                          {t('search.paperBasedSummary')}
                         </span>
                       )}
                     </div>
@@ -1498,7 +1510,7 @@ function SearchContent() {
             }`}
           >
             <Bookmark size={16} />
-            {saved ? '보관 완료' : saving ? `보관 중...` : bookmarkedPapers.size > 0 ? `선택한 논문 보관하기 (${bookmarkedPapers.size}편)` : '이 분석 보관하기'}
+            {saved ? t('search.saveDone') : saving ? t('search.saving') : bookmarkedPapers.size > 0 ? t('search.saveSelected', { count: bookmarkedPapers.size }) : t('search.saveThis')}
           </button>
         </div>
       )}
@@ -1507,25 +1519,25 @@ function SearchContent() {
       {showSaveConfirm && (
         <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
-            <h3 className="text-sm font-bold text-gray-800 mb-2">보관 확인</h3>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">{t('search.saveConfirmTitle')}</h3>
             <p className="text-sm text-gray-600 mb-1">
               {bookmarkedPapers.size > 0
-                ? `선택한 논문 ${bookmarkedPapers.size}편과 분석 결과를 보관합니다.`
-                : '분석 결과를 보관합니다.'}
+                ? t('search.saveConfirmWithPapers', { count: bookmarkedPapers.size })
+                : t('search.saveConfirmNoPapers')}
             </p>
-            <p className="text-xs text-gray-400 mb-4">보관한 내용은 마이페이지 &gt; 내 보관함에서 확인할 수 있습니다.</p>
+            <p className="text-xs text-gray-400 mb-4">{t('search.saveConfirmHint')}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowSaveConfirm(false)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
               >
-                취소
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => { setShowSaveConfirm(false); handleSaveAnalysis(); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               >
-                보관하기
+                {t('search.saveCta')}
               </button>
             </div>
           </div>
