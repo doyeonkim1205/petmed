@@ -102,7 +102,8 @@
       "symptom": "Symptom record",
       "daily": "Daily record",
       "visit": "Visit record",
-      "hospitalization": "Hospitalization"
+      "hospitalization": "Hospitalization",
+      "manual": "Manual entry"
     },
     "typeShort": {
       "symptom": "Symptom",
@@ -147,6 +148,44 @@
       "confirmTitle": "Delete {count, plural, one {# record} other {# records}}?",
       "confirmMessage": "Deleted records can't be recovered.",
       "failTitle": "Delete failed"
+    },
+    "section": {
+      "basicInfo": "Basic info",
+      "visitInfo": "Visit info",
+      "medicationInfo": "Medication info"
+    },
+    "field": {
+      "weight": "Weight",
+      "symptomTime": "Symptom onset time",
+      "hospital": "Hospital",
+      "cost": "Cost",
+      "dischargeDate": "Discharge date",
+      "nextAppointment": "Next appointment"
+    },
+    "daily": {
+      "kind": {
+        "meal": "Meal",
+        "hydration": "Hydration",
+        "walk": "Walk",
+        "poop": "Bowel",
+        "mood": "Mood",
+        "other": "Other"
+      }
+    },
+    "money": "₩{value}",
+    "detail": {
+      "notFound": "Record not found.",
+      "title": "Record details",
+      "dailyTitle": "{name}'s daily record",
+      "admitted": "Admitted",
+      "aiSummary": "AI summary",
+      "alarm": "Reminder",
+      "alarmOff": "(off)",
+      "dailyPhoto": "A moment from today",
+      "attachments": "Attachments",
+      "download": "Download",
+      "deleteTitle": "Delete this record?",
+      "noPreview": "Preview not supported"
     }
   }
 }
