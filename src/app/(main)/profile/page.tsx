@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import type { Locale } from '@/i18n/config';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
@@ -684,6 +685,10 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 // ─── App Settings Modal (Full Featured) ─────────────────────
 function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
   const t = useTranslations();
+  const currentLocale = useLocale() as Locale;
+  // 언어는 "확인" 누르기 전엔 적용 안 함 — 선택만 보류했다가 확인 시 쿠키·계정 저장 후 새로고침.
+  const [pendingLocale, setPendingLocale] = useState<Locale>(currentLocale);
+  const [applyingLocale, setApplyingLocale] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [autoLogin, setAutoLogin] = useState(true);
@@ -695,6 +700,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
 
   useEffect(() => {
     if (open) {
+      setPendingLocale(currentLocale); // 열 때마다 현재 언어로 초기화
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
@@ -723,7 +729,21 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         }
       })();
     }
-  }, [open, userId]);
+  }, [open, userId, currentLocale]);
+
+  // "확인" 시: 언어가 바뀌었으면 쿠키 저장 + (로그인 시) 계정 동기화 후 새로고침. 아니면 그냥 닫기.
+  const handleConfirm = () => {
+    if (pendingLocale === currentLocale) { onClose(); return; }
+    setApplyingLocale(true);
+    // path=/ (전 경로), max-age 1년, SameSite=Lax. Secure 생략(로컬 http 개발 환경 대응).
+    document.cookie = `${LOCALE_COOKIE}=${pendingLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    (async () => {
+      try {
+        await supabase.from('profiles').update({ preferred_language: pendingLocale }).eq('id', userId);
+      } catch { /* 계정 동기화 실패해도 쿠키 기반 전환은 진행 */ }
+      window.location.reload();
+    })();
+  };
 
   if (!open) return null;
 
@@ -867,10 +887,10 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             </div>
           </div>
 
-          {/* 5. 언어 — next-intl(쿠키 기반). 전환 시 새로고침(reload-on-switch). */}
+          {/* 5. 언어 — 선택만 보류하고 "확인" 시 적용(쿠키 저장 후 새로고침). */}
           <div>
             <SectionHeader icon={Globe} iconColor="text-gray-400" label={t('profile.settings.language')} />
-            <LanguageToggle />
+            <LanguageToggle value={pendingLocale} onChange={setPendingLocale} disabled={applyingLocale} />
           </div>
 
           {/* 6. 저장 공간 — 첨부 파일 사용량. 제목은 즉시 + 데이터 로딩 중엔 스피너. */}
@@ -916,7 +936,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         </div>
 
         <div className="p-5 pt-3">
-          <button onClick={onClose} className="w-full h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">{t('common.confirm')}</button>
+          <button onClick={handleConfirm} disabled={applyingLocale} className="w-full h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors disabled:opacity-60">{t('common.confirm')}</button>
         </div>
       </div>
     </div>

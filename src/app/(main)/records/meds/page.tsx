@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X, AlertTriangle, Clock } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMedications } from '@/hooks/useMedications';
@@ -322,6 +322,13 @@ export default function MedsPage() {
             {m.dosage && `${m.dosage} · `}{freqDisplay(m.frequency)}
             {m.start_date && ` · ${fmtDate(m.start_date)}${m.end_date ? `~${fmtDate(m.end_date)}` : '~'}`}
           </p>
+          {/* 복약 시각 — 알림 ON 일 때만(사용자가 직접 설정한 값). 알림 OFF 는 기본값이라 표시 안 함. */}
+          {m.alarm_enabled && m.alarm_times && m.alarm_times.length > 0 && (
+            <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
+              <Clock size={11} className="flex-shrink-0 text-gray-300" />
+              {[...m.alarm_times].sort().join(', ')}
+            </p>
+          )}
         </div>
       </button>
     );
