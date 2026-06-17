@@ -703,6 +703,15 @@
     "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
     "viewPlans": "View plans"
   },
+  "errors": {
+    "illustAlt": "Error illustration",
+    "title": "Oops, something went wrong!",
+    "body": "This may be a temporary error.<br></br>Please try again shortly.<br></br>If it keeps happening, please relaunch the app.",
+    "titleApp": "Oops, a temporary problem occurred.",
+    "bodyApp": "An error occurred while loading data.<br></br>Please try again shortly.",
+    "goHome": "Go home",
+    "retry": "Try again"
+  },
   "legal": {
     "policiesTitle": "Terms & Policies",
     "termsTitle": "Terms of Service",
