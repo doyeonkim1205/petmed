@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   MessageCircle, Camera, FileSearch, Bookmark,
   ClipboardList, History, Activity, Wallet,
@@ -60,6 +61,7 @@ function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }
 }
 
 export default function HomePage() {
+  const t = useTranslations('home.section');
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-3rem)] pb-6">
       <TrialBanner />
@@ -86,12 +88,12 @@ export default function HomePage() {
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 (건강 기록 → AI 케어 순) */}
       <div className="px-4 pt-2.5 space-y-2.5">
         <section className="bg-white rounded-2xl p-4 border border-gray-100">
-          <SectionTitle icon={ClipboardList} title="건강 기록" />
+          <SectionTitle icon={ClipboardList} title={t('healthRecord')} />
           <MenuGrid items={HEALTH} />
         </section>
 
         <section className="bg-white rounded-2xl p-4 border border-gray-100">
-          <SectionTitle icon={Stethoscope} title="AI 케어" />
+          <SectionTitle icon={Stethoscope} title={t('aiCare')} />
           <MenuGrid items={AI_CARE} />
         </section>
       </div>

@@ -59,5 +59,41 @@
     "subtitle1": "반려동물 건강 케어,",
     "subtitle2": "더 똑똑하게",
     "agreement": "로그인 시 <terms>이용약관</terms> 및 <privacy>개인정보처리방침</privacy>에 동의하게 됩니다."
+  },
+  "home": {
+    "section": {
+      "healthRecord": "건강 기록",
+      "aiCare": "AI 케어"
+    },
+    "welcome": {
+      "title": "소중한 가족을 등록해주세요",
+      "subtitle": "PawDex 와 함께해요"
+    },
+    "firstRecord": "첫 기록을 남겨볼까요?",
+    "noAppointment": "예약 없음",
+    "noRecordsYet": "아직 기록 없음",
+    "recordedToday": "오늘 기록 완료",
+    "birthday": "{name}의 소중한 생일을 축하해요",
+    "noRecordSince": "{count}일째 기록이 없어요 — 오늘 {name}는 어땠나요?",
+    "lastRecordAgo": "마지막 기록 <b>{count}일 전</b>",
+    "appointmentSoon": "예약 {dLabel} · {date}",
+    "nextAppointment": "다음 예약 <b>{date}</b>",
+    "age": {
+      "years": "{count}살",
+      "months": "{count}개월",
+      "days": "{count}일"
+    },
+    "banner": {
+      "plus": {
+        "badge": "PawDex Plus",
+        "title": "오늘의 기록이,\n내일의 건강 힌트가 되도록",
+        "subtitle": "진료·증상·일상을 한 곳에"
+      },
+      "ai": {
+        "badge": "AI 케어",
+        "title": "AI가 기록을 함께 읽어드려요",
+        "subtitle": "우리 아이 건강 기록을 바탕으로 증상을 분석해요"
+      }
+    }
   }
 }

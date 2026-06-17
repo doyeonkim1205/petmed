@@ -59,5 +59,41 @@
     "subtitle1": "Pet health care,",
     "subtitle2": "made smarter",
     "agreement": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
+  },
+  "home": {
+    "section": {
+      "healthRecord": "Health records",
+      "aiCare": "AI care"
+    },
+    "welcome": {
+      "title": "Register your beloved companion",
+      "subtitle": "Let's get started with PawDex"
+    },
+    "firstRecord": "Add your first record",
+    "noAppointment": "No appointments",
+    "noRecordsYet": "No records yet",
+    "recordedToday": "Recorded today",
+    "birthday": "Happy birthday, {name}!",
+    "noRecordSince": "No records for {count, plural, one {# day} other {# days}} — how is {name} today?",
+    "lastRecordAgo": "Last record <b>{count, plural, one {# day} other {# days}} ago</b>",
+    "appointmentSoon": "Appt {dLabel} · {date}",
+    "nextAppointment": "Next appt <b>{date}</b>",
+    "age": {
+      "years": "{count, plural, one {# year} other {# years}}",
+      "months": "{count, plural, one {# month} other {# months}}",
+      "days": "{count, plural, one {# day} other {# days}}"
+    },
+    "banner": {
+      "plus": {
+        "badge": "PawDex Plus",
+        "title": "Today's records become\ntomorrow's health hints",
+        "subtitle": "Visits, symptoms, and daily life in one place"
+      },
+      "ai": {
+        "badge": "AI Care",
+        "title": "AI reads your records with you",
+        "subtitle": "We analyze symptoms from your pet's health records"
+      }
+    }
   }
 }
