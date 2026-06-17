@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { BrandLoading } from '@/components/BrandLoading';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -78,12 +78,6 @@ export default function AuthCallbackPage() {
     );
   }
 
-  // 로딩 화면 — 언어 무관하게 로고 + 스피너만 (텍스트 없음).
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icons/icon-512x512.png" alt="PawDex" className="w-20 h-20 rounded-[22%] mb-5" />
-      <Loader2 className="animate-spin text-blue-500" size={26} />
-    </div>
-  );
+  // 로딩 화면 — (main) 가드와 동일한 BrandLoading 으로 통일(로그인 시 깜박임 제거).
+  return <BrandLoading />;
 }
