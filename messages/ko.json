@@ -12,7 +12,8 @@
     "signIn": "로그인",
     "all": "전체",
     "optional": "(선택)",
-    "pet": "반려동물"
+    "pet": "반려동물",
+    "back": "뒤로"
   },
   "nav": {
     "home": "홈",
@@ -266,6 +267,33 @@
         "editFailed": "수정에 실패했습니다."
       },
       "draftMessage2Edit": "약·첨부 파일은 저장된 그대로 유지돼요"
+    }
+  },
+  "timeline": {
+    "title": "타임라인",
+    "today": "오늘",
+    "yesterday": "어제",
+    "caution": "주의",
+    "noPets": "먼저 반려동물을 등록해주세요",
+    "empty": "이 기간에 기록이 없어요",
+    "emptyHint": "기간을 늘리거나 기록을 추가해보세요",
+    "period": { "week": "1주", "month": "1개월", "3month": "3개월" },
+    "label": {
+      "hospitalization": "입퇴원", "symptom": "증상", "visit": "진료", "daily": "일상",
+      "preventive": "예방", "med": "약", "poop": "대변", "pee": "소변",
+      "food": "식사", "water": "음수", "fluid": "수액", "weight": "체중", "cost": "지출"
+    },
+    "medDose": "{name} 복용",
+    "medFallbackName": "약",
+    "chip": {
+      "med": "약 {count}회",
+      "poop": "대변 {count}",
+      "pee": "소변 {count}",
+      "foodPct": "식사 {pct}%",
+      "foodAmount": "식사 {amount}{unit}",
+      "water": "음수 {amount}{unit}",
+      "fluid": "수액 {amount}{unit}",
+      "daily": "일상 {count}"
     }
   }
 }

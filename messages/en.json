@@ -12,7 +12,8 @@
     "signIn": "Sign in",
     "all": "All",
     "optional": "(optional)",
-    "pet": "Pet"
+    "pet": "Pet",
+    "back": "Back"
   },
   "nav": {
     "home": "Home",
@@ -266,6 +267,33 @@
         "editFailed": "Failed to update the record."
       },
       "draftMessage2Edit": "Medications and attachments stay as saved"
+    }
+  },
+  "timeline": {
+    "title": "Timeline",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "caution": "Caution",
+    "noPets": "Please register a pet first",
+    "empty": "No records in this period",
+    "emptyHint": "Try a longer period or add a record",
+    "period": { "week": "1 week", "month": "1 month", "3month": "3 months" },
+    "label": {
+      "hospitalization": "Hospital", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
+      "preventive": "Preventive", "med": "Med", "poop": "Stool", "pee": "Urine",
+      "food": "Food", "water": "Water", "fluid": "Fluid", "weight": "Weight", "cost": "Cost"
+    },
+    "medDose": "{name} dose",
+    "medFallbackName": "Med",
+    "chip": {
+      "med": "{count} doses",
+      "poop": "Stool {count}",
+      "pee": "Urine {count}",
+      "foodPct": "Food {pct}%",
+      "foodAmount": "Food {amount}{unit}",
+      "water": "Water {amount}{unit}",
+      "fluid": "Fluid {amount}{unit}",
+      "daily": "Daily {count}"
     }
   }
 }
