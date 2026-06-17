@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Camera, X, ArrowLeft, ArrowRight, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -550,6 +550,9 @@ function ResultPanel({
   onReset: () => void;
 }) {
   const t = useTranslations();
+  const isEn = useLocale() === 'en';
+  // 영어 모드 질병명 — 모델이 name_ko 엔 한국어를 넣으므로 EN 에선 영어 학명(name_en)을 메인으로.
+  const dxName = (name_ko?: string, name_en?: string) => isEn ? (name_en || name_ko || '') : (name_ko || '');
   // 모델 한국어 enum → 표시 라벨 (스타일 lookup 은 한국어 키 유지).
   const sevLabel = (s?: string) => t(`analysis.severity.${({ '긴급': 'urgent', '주의': 'caution', '관찰': 'watch' } as Record<string, string>)[s || '관찰'] || 'watch'}`);
   const likLabel = (s?: string) => t(`analysis.likelihood.${({ '높음': 'high', '중간': 'medium', '낮음': 'low' } as Record<string, string>)[s || '낮음'] || 'low'}`);
@@ -669,8 +672,8 @@ function ResultPanel({
               'bg-green-50 border-green-200'
             }`}>
               <div className="flex items-baseline gap-2 mb-2">
-                <h4 className="font-bold text-sm">{d.name_ko}</h4>
-                {d.name_en && <span className="text-[11px] text-gray-400">({d.name_en})</span>}
+                <h4 className="font-bold text-sm">{dxName(d.name_ko, d.name_en)}</h4>
+                {!isEn && d.name_en && <span className="text-[11px] text-gray-400">({d.name_en})</span>}
               </div>
               {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음.
                   likelihood 색상도 텍스트 분석과 동일 (높음=red, 중간=yellow, 낮음=gray). */}

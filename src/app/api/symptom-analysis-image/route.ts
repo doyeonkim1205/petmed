@@ -8,6 +8,10 @@ import { startOfDayKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
+import { localeFromRequest } from '@/lib/aiLocale';
+import { normalizeSeverity, normalizeLikelihood, normalizeEmergencySeverity } from '@/lib/enumNormalize';
+import { BLOOD_RE, MELENA_RE } from '@/lib/bloodPatterns';
+import { buildPhotoSystemPromptEn } from '@/lib/prompts/photoPrompt';
 
 /**
  * 사진 증상 분석 API — gpt-4o-mini Vision.
@@ -37,10 +41,12 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+    const locale = localeFromRequest(request);
+    const en = locale === 'en';
 
     if (!checkRateLimit(`${userId}:symptom-photo`, 5, 60_000)) {
       return NextResponse.json(
-        { error: '요청이 너무 많습니다 잠시 후 다시 시도해주세요' },
+        { error: en ? 'Too many requests. Please try again shortly.' : '요청이 너무 많습니다 잠시 후 다시 시도해주세요' },
         { status: 429 },
       );
     }
@@ -53,18 +59,18 @@ export async function POST(request: NextRequest) {
 
     // 1) 입력 검증
     if (typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
-      return NextResponse.json({ error: '이미지 파일이 올바르지 않아요' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'The image file is invalid.' : '이미지 파일이 올바르지 않아요' }, { status: 400 });
     }
     // 2MB 가드 — 클라이언트 압축을 우회한 직접 호출 차단
     const base64Body = imageDataUrl.split(',')[1] || '';
     const approxBytes = Math.floor((base64Body.length * 3) / 4);
     if (approxBytes > MAX_IMAGE_BYTES) {
       return NextResponse.json({
-        error: '이미지가 너무 커요 더 작은 사진을 사용해 주세요',
+        error: en ? 'The image is too large. Please use a smaller photo.' : '이미지가 너무 커요 더 작은 사진을 사용해 주세요',
       }, { status: 413 });
     }
     if (petType !== 'dog' && petType !== 'cat') {
-      return NextResponse.json({ error: 'petType 이 올바르지 않아요' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'petType is invalid.' : 'petType 이 올바르지 않아요' }, { status: 400 });
     }
     // excretion = 대소변·구토 (사용자 사용 빈도 ↑ 카테고리). '기타' 제거.
     type Category = 'skin' | 'eye' | 'wound' | 'dental' | 'ear' | 'excretion';
@@ -76,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 2) 펫 컨텍스트 (텍스트 분석과 동일하게 user_id 검증 포함)
     const petContext = petId ? await fetchPetContext(supabaseAdmin, userId, petId) : null;
     // 맞춤 분석은 Plus 전용 — plan 확정 후 무료(체험 포함)면 컨텍스트를 비운다(아래). species 는 유지.
-    let petContextText = buildPetContextPrompt(petContext);
+    let petContextText = buildPetContextPrompt(petContext, locale);
     const effectivePetType = petContext?.pet.type ?? petType;
     let effectivePetName = petContext?.pet.name;
 
@@ -100,7 +106,7 @@ export async function POST(request: NextRequest) {
     if (plan === 'free') {
       if (config.photoAnalysisLifetimeFree === 0) {
         return NextResponse.json({
-          error: '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요',
+          error: en ? 'Photo symptom analysis is available only on the Plus plan.' : '사진 증상 분석은 Plus 플랜에서만 사용할 수 있어요',
           upgradeRequired: true,
         }, { status: 403 });
       }
@@ -111,7 +117,9 @@ export async function POST(request: NextRequest) {
         .eq('kind', 'symptom_photo');
       if ((count || 0) >= config.photoAnalysisLifetimeFree) {
         return NextResponse.json({
-          error: '무료 체험(1회)을 모두 사용했어요 Plus 로 업그레이드하면 매일 3회 분석할 수 있어요',
+          error: en
+            ? "You've used your free trial (1 analysis). Upgrade to Plus to analyze 3 times a day."
+            : '무료 체험(1회)을 모두 사용했어요 Plus 로 업그레이드하면 매일 3회 분석할 수 있어요',
           limitReached: true,
           upgradeRequired: true,
         }, { status: 429 });
@@ -126,15 +134,19 @@ export async function POST(request: NextRequest) {
         .gte('created_at', startOfDay.toISOString());
       if ((count || 0) >= config.photoAnalysisPerDay) {
         return NextResponse.json({
-          error: `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다\n밤 12시(자정)에 초기화됩니다`,
+          error: en
+            ? `You've used all of today's photo analyses (${config.photoAnalysisPerDay}).\nIt resets at midnight (12 AM).`
+            : `오늘의 사진 분석 횟수(${config.photoAnalysisPerDay}회)를 모두 사용했습니다\n밤 12시(자정)에 초기화됩니다`,
           limitReached: true,
         }, { status: 429 });
       }
     }
 
     const petLabel = effectivePetType === 'cat' ? '고양이' : '강아지';
-    const patientLabel = effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`;
-    const categoryLabel = (
+    const patientLabel = en
+      ? (effectivePetName ? `our ${effectivePetName}` : `our ${effectivePetType === 'cat' ? 'cat' : 'dog'}`)
+      : (effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`);
+    const categoryLabelKo = (
       safeCategory === 'skin'      ? '피부'        :
       safeCategory === 'eye'       ? '눈'          :
       safeCategory === 'wound'     ? '외상'        :
@@ -143,14 +155,28 @@ export async function POST(request: NextRequest) {
       safeCategory === 'excretion' ? '대소변·구토' :
                                      '피부'
     );
+    const categoryLabelEn = (
+      safeCategory === 'skin'      ? 'skin'                  :
+      safeCategory === 'eye'       ? 'eye'                   :
+      safeCategory === 'wound'     ? 'wound'                 :
+      safeCategory === 'dental'    ? 'mouth/teeth'           :
+      safeCategory === 'ear'       ? 'ear'                   :
+      safeCategory === 'excretion' ? 'stool/urine/vomit'     :
+                                     'skin'
+    );
+    const categoryLabel = en ? categoryLabelEn : categoryLabelKo;
 
     const petContextBlock = petContextText
-      ? `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘.`
+      ? (en
+          ? `\n\n${petContextText}\n\nReflect the patient information above in your analysis.`
+          : `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘.`)
       : '';
 
     // 4) 시스템 프롬프트 — 비례 원칙 + few-shot 예시 + 분비물 풀.
     //    중복 가이드 통합으로 Lost in the Middle 효과 ↓.
-    const systemPrompt = `당신은 한국 수의학 임상 경험 15년 이상의 보드 인증 수의사입니다.
+    const systemPrompt = en
+      ? buildPhotoSystemPromptEn({ petLabel: effectivePetType, categoryLabel: categoryLabelEn, patientLabel, safeHint })
+      : `당신은 한국 수의학 임상 경험 15년 이상의 보드 인증 수의사입니다.
 ${patientLabel}의 ${categoryLabel} 사진을 시각 단서 기반으로 객관적으로 분석하세요.
 
 [핵심 원칙 — 시각 단서 → 진단의 비례]
@@ -360,9 +386,9 @@ ${safeHint
     > = [
       {
         type: 'text',
-        text: `${categoryLabel} 사진을 분석해주세요.${
-          safeHint ? `\n보호자 보조 설명: ${safeHint}` : ''
-        }${petContextBlock}`,
+        text: en
+          ? `Please analyze this ${categoryLabel} photo.${safeHint ? `\nGuardian's note: ${safeHint}` : ''}${petContextBlock}`
+          : `${categoryLabel} 사진을 분석해주세요.${safeHint ? `\n보호자 보조 설명: ${safeHint}` : ''}${petContextBlock}`,
       },
       {
         type: 'image_url',
@@ -401,7 +427,7 @@ ${safeHint
       console.error('OpenAI vision error:', res.status, errText);
       Sentry.captureMessage(`vision-api-${res.status}`, { level: 'error' });
       return NextResponse.json(
-        { error: 'AI 분석 중 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
+        { error: en ? 'An error occurred during AI analysis. Please try again shortly.' : 'AI 분석 중 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
         { status: 502 },
       );
     }
@@ -414,18 +440,29 @@ ${safeHint
     } catch {
       Sentry.captureMessage('vision-json-parse-fail', { level: 'error' });
       return NextResponse.json(
-        { error: 'AI 응답 처리에 실패했어요 다시 시도해 주세요' },
+        { error: en ? 'Failed to process the AI response. Please try again.' : 'AI 응답 처리에 실패했어요 다시 시도해 주세요' },
         { status: 502 },
       );
     }
 
-    // 6) name_ko 후처리 — 텍스트 분석과 동일하게 VET_TERM_MAP 적용
+    // 6) name_ko 후처리 + enum 정규화.
+    //    - vetTerms KO 보정은 한국어 출력일 때만 (EN 은 모델 영어 name_ko 유지, 기준 8)
+    //    - severity/likelihood 는 EN/KO 어느 enum 이든 KO canonical 로 흡수 (UI 매핑 일관)
     if (Array.isArray(parsed.diseases)) {
       for (const d of parsed.diseases) {
-        if (d?.name_en && typeof d.name_en === 'string') {
+        if (!d) continue;
+        if (!en && d?.name_en && typeof d.name_en === 'string') {
           const standardKo = lookupVetTerm(d.name_en);
           if (standardKo) d.name_ko = standardKo;
         }
+        d.severity = normalizeSeverity(d.severity);
+        d.likelihood = normalizeLikelihood(d.likelihood);
+      }
+    }
+    // 응급 신호 severity 정규화 (Now/Within 24h → 즉시/24시간내)
+    if (Array.isArray(parsed.emergency_signs)) {
+      for (const s of parsed.emergency_signs) {
+        if (s && typeof s === 'object' && 'severity' in s) s.severity = normalizeEmergencySeverity(s.severity);
       }
     }
 
@@ -443,24 +480,22 @@ ${safeHint
     if (parsed.concern_level === 'low' || parsed.concern_level === 'medium') {
       if (!parsed.reassurance) {
         parsed.reassurance = parsed.is_valid_photo === false
-          ? '사진을 다시 찍어서 분석해 보세요'
-          : '지금 당장 위급한 상황으로 보이진 않아요 변화가 있는지 잘 지켜봐 주세요';
+          ? (en ? 'Please retake the photo and try analyzing again.' : '사진을 다시 찍어서 분석해 보세요')
+          : (en ? "It doesn't look like an emergency right now, but keep an eye out for any changes." : '지금 당장 위급한 상황으로 보이진 않아요 변화가 있는지 잘 지켜봐 주세요');
       }
       if (!Array.isArray(parsed.watch_signs) || parsed.watch_signs.length === 0) {
-        parsed.watch_signs = [
-          '증상이 빠르게 나빠지거나 새 부위로 번질 때',
-          '식욕·기력이 함께 떨어질 때',
-        ];
+        parsed.watch_signs = en
+          ? ['If symptoms worsen quickly or spread to a new area', 'If appetite or energy drops as well']
+          : ['증상이 빠르게 나빠지거나 새 부위로 번질 때', '식욕·기력이 함께 떨어질 때'];
       }
     }
 
     // 출혈(피) 안전 가드 — 이미지 색 판단은 프롬프트가 담당하되, hint 텍스트에
     // 출혈 언급이 있으면 백업으로 격상(절대 low 금지, 검은·타르=high). 텍스트 분석과 동일 기준.
-    const bloodRe = /혈변|혈뇨|토혈|혈토|객혈|각혈|하혈|잠혈|출혈|코피|혈담|선홍|피똥|피\s*똥|핏덩|핏물|피설사|피\s*설사|피를?\s*토|피를?\s*흘|피가?\s*나|피가?\s*섞|피\s*섞|피가?\s*묻|피\s*묻|붉은\s*피|빨간\s*피/;
-    const melenaRe = /흑변|흑색변|검은\s*변|검은색\s*변|타르|짜장|커피\s*찌꺼기|커피색/;
-    if (melenaRe.test(safeHint)) {
+    // 공유 패턴(bloodPatterns)으로 KO+EN 동시 감지 — 영어 보조설명도 안전망 동작.
+    if (MELENA_RE.test(safeHint)) {
       parsed.concern_level = 'high';
-    } else if (bloodRe.test(safeHint) && parsed.concern_level === 'low') {
+    } else if (BLOOD_RE.test(safeHint) && parsed.concern_level === 'low') {
       parsed.concern_level = 'medium';
     }
 
@@ -535,8 +570,9 @@ ${safeHint
   } catch (err) {
     console.error('symptom-analysis-image error:', err);
     Sentry.captureException(err);
+    const isEn = localeFromRequest(request) === 'en';
     return NextResponse.json(
-      { error: '서버 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
+      { error: isEn ? 'A server error occurred. Please try again shortly.' : '서버 오류가 발생했어요 잠시 후 다시 시도해 주세요' },
       { status: 500 },
     );
   }
