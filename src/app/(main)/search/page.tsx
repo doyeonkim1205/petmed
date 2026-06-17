@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { Search as SearchIcon, AlertTriangle, Pill, Loader2, X, Lock, Bookmark, Crown, Sparkles, Info, Stethoscope, ArrowRight, CircleAlert, HelpCircle, ShieldAlert, Dog, Cat, Camera } from 'lucide-react';
@@ -99,6 +99,12 @@ const likelihoodConfig = {
 
 function SearchContent() {
   const t = useTranslations();
+  const locale = useLocale();
+  const isEn = locale === 'en';
+  // 영어 모드 질병명 표시 — 모델이 name_ko 엔 한국어를 넣으므로(필드명 영향),
+  // EN 에선 영어 학명(name_en)을 메인으로. 한국어 괄호는 EN 사용자에게 무의미해 생략.
+  const dxName = (name_ko?: string, name_en?: string) =>
+    isEn ? (name_en || name_ko || '') : (name_ko || '');
   const searchParams = useSearchParams();
   const router = useRouter();
   // 모델이 돌려주는 한국어 enum → messages 키 (표시 라벨용; 스타일 lookup 은 한국어 키 유지).
@@ -1023,8 +1029,8 @@ function SearchContent() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="text-sm font-bold text-gray-800">
-                            {disease.name_ko}
-                            {disease.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({disease.name_en})</span>}
+                            {dxName(disease.name_ko, disease.name_en)}
+                            {!isEn && disease.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({disease.name_en})</span>}
                           </h3>
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
@@ -1306,8 +1312,8 @@ function SearchContent() {
                   <Info size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <h3 className="text-sm font-bold text-gray-800">
-                      {desc.name_ko}
-                      {desc.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({desc.name_en})</span>}
+                      {dxName(desc.name_ko, desc.name_en)}
+                      {!isEn && desc.name_en && <span className="text-xs text-gray-400 font-normal ml-1.5">({desc.name_en})</span>}
                     </h3>
                     <p className="text-xs text-gray-600 mt-1 leading-relaxed">{desc.description}</p>
                   </div>
