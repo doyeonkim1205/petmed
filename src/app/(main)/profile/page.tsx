@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { TextField } from '@/components/TextField';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import {
@@ -682,7 +683,6 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
-  const [language, setLanguage] = useState('ko');
   const [autoLogin, setAutoLogin] = useState(true);
   const [highContrast, setHighContrast] = useState(true);
   const [defaultPetId, setDefaultPetId] = useState<string>('');
@@ -694,7 +694,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     if (open) {
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
-      setLanguage(localStorage.getItem('language') || 'ko');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(localStorage.getItem('highContrast') !== 'false');
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
@@ -779,7 +778,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   // 고대비: 토글만 숨김 — 기본 ON 으로 동작 중 (layout.tsx 가 hc !== 'false' 면 자동 ON).
   //         현재 모든 사용자가 고대비 ON 상태로 PawDex 외형 인식. 토글 노출 안 함.
   const SHOW_DARK_MODE = false;
-  const SHOW_LANGUAGE = false;
   const SHOW_HIGH_CONTRAST = false;
 
   return (
@@ -866,33 +864,11 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             </div>
           </div>
 
-          {/* 5. 언어 (현재 숨김 — 한국에서만 서비스) */}
-          {SHOW_LANGUAGE && (
-            <div>
-              <SectionHeader icon={Globe} iconColor="text-gray-400" label="언어" />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
-                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                    language === 'ko' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  한국어
-                </button>
-                <button
-                  onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
-                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                    language === 'en' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  English
-                </button>
-              </div>
-              {language === 'en' && (
-                <p className="text-[11px] text-orange-500 mt-2">영어 지원은 준비 중입니다.</p>
-              )}
-            </div>
-          )}
+          {/* 5. 언어 — next-intl(쿠키 기반). 전환 시 새로고침(reload-on-switch). */}
+          <div>
+            <SectionHeader icon={Globe} iconColor="text-gray-400" label="언어 / Language" />
+            <LanguageToggle />
+          </div>
 
           {/* 6. 저장 공간 — 첨부 파일 사용량. 제목은 즉시 + 데이터 로딩 중엔 스피너. */}
           <div>

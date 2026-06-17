@@ -1,0 +1,22 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "confirm": "확인",
+    "close": "닫기",
+    "retry": "다시 시도"
+  },
+  "nav": {
+    "home": "홈",
+    "search": "검색",
+    "records": "기록장",
+    "hospitals": "병원 찾기",
+    "profile": "마이페이지"
+  },
+  "settings": {
+    "language": "언어",
+    "korean": "한국어",
+    "english": "English"
+  }
+}

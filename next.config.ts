@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// next-intl (라우팅 없음) — 쿠키 기반 locale. request 설정 경로 지정.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   compiler: {
@@ -66,7 +70,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withNextIntl(nextConfig), {
   org: 'dylabs',
   project: 'javascript-nextjs',
   silent: !process.env.CI,

@@ -1,0 +1,22 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "records": "Records",
+    "hospitals": "Find a vet",
+    "profile": "My page"
+  },
+  "settings": {
+    "language": "Language",
+    "korean": "한국어",
+    "english": "English"
+  }
+}
