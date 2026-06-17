@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FileText, ClipboardList, Home, MapPin, User } from 'lucide-react';
 
 type NavItem = {
   icon: React.ComponentType<{ size?: number }>;
-  label: string;
+  labelKey: 'search' | 'records' | 'home' | 'hospitals' | 'profile';
   path: string;
   color: string;
   activeColor: string;
@@ -14,14 +15,15 @@ type NavItem = {
 
 export function Footer() {
   const pathname = usePathname();
+  const t = useTranslations('nav');
 
   // 홈은 가운데(기록장↔병원찾기 사이). 다른 탭과 동일하게 선택 시에만 강조.
   const navItems: NavItem[] = [
-    { icon: FileText, label: '검색', path: '/search', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
-    { icon: ClipboardList, label: '기록장', path: '/records', color: 'bg-emerald-100 text-emerald-600', activeColor: 'bg-emerald-600 text-white' },
-    { icon: Home, label: '홈', path: '/', color: 'bg-indigo-100 text-indigo-600', activeColor: 'bg-indigo-600 text-white' },
-    { icon: MapPin, label: '병원 찾기', path: '/map', color: 'bg-rose-100 text-rose-600', activeColor: 'bg-rose-600 text-white' },
-    { icon: User, label: '마이페이지', path: '/profile', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-600 text-white' },
+    { icon: FileText, labelKey: 'search', path: '/search', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
+    { icon: ClipboardList, labelKey: 'records', path: '/records', color: 'bg-emerald-100 text-emerald-600', activeColor: 'bg-emerald-600 text-white' },
+    { icon: Home, labelKey: 'home', path: '/', color: 'bg-indigo-100 text-indigo-600', activeColor: 'bg-indigo-600 text-white' },
+    { icon: MapPin, labelKey: 'hospitals', path: '/map', color: 'bg-rose-100 text-rose-600', activeColor: 'bg-rose-600 text-white' },
+    { icon: User, labelKey: 'profile', path: '/profile', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-600 text-white' },
   ];
 
   return (
@@ -44,7 +46,7 @@ export function Footer() {
             </div>
             <span className={`text-[10px] ${
               isActive ? 'font-bold text-gray-900' : 'font-medium text-gray-500'
-            }`}>{item.label}</span>
+            }`}>{t(item.labelKey)}</span>
           </Link>
         );
       })}

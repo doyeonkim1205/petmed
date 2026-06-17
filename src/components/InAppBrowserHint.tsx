@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Smartphone, Copy, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
@@ -20,6 +21,7 @@ const DISMISS_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — 더 짧게 (Safari 전�
  * 실제로 유저가 의존하는 건 URL 복사 + 메뉴 가이드.
  */
 export function InAppBrowserHint() {
+  const t = useTranslations();
   const [show, setShow] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -91,12 +93,12 @@ export function InAppBrowserHint() {
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
               <Smartphone size={20} className="text-blue-600" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">Safari 에서 열어주세요</h3>
+            <h3 className="text-base font-bold text-gray-900">{t('browserHint.safariTitle')}</h3>
           </div>
           <button
             onClick={dismiss}
             className="p-1 text-gray-400 hover:text-gray-600"
-            aria-label="닫기"
+            aria-label={t('common.close')}
           >
             <X size={18} />
           </button>
@@ -108,22 +110,22 @@ export function InAppBrowserHint() {
         >
           {copied ? (
             <>
-              <Check size={16} /> 복사됨! Safari 를 열어 붙여넣어 주세요
+              <Check size={16} /> {t('browserHint.copiedSafari')}
             </>
           ) : (
             <>
-              <Copy size={16} /> 주소 복사하기
+              <Copy size={16} /> {t('browserHint.copyUrl')}
             </>
           )}
         </button>
 
         <div className="rounded-lg bg-gray-50 px-3 py-2.5">
           <p className="text-[11px] font-semibold text-gray-700 mb-1.5">
-            💡 직접 열고 싶다면
+            {t('browserHint.directOpen')}
           </p>
           <ul className="text-[11px] text-gray-500 leading-relaxed space-y-0.5">
-            <li>• 카카오톡: 우측 상단 <span className="font-medium">⋮</span> → 다른 브라우저로 열기</li>
-            <li>• 인스타/네이버: 메뉴에서 외부 브라우저 열기</li>
+            <li>• {t('browserHint.kakaoGuide')}</li>
+            <li>• {t('browserHint.instaNaverGuide')}</li>
           </ul>
         </div>
       </div>

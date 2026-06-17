@@ -1,6 +1,6 @@
 import { localDateKey } from '@/lib/date';
-import { conditionMeta, isAbnormalCondition } from '@/lib/excretion';
-import { categoryMeta } from '@/lib/preventiveCare';
+import { conditionLabel, isAbnormalCondition } from '@/lib/excretion';
+import { categoryMeta, categoryLabel } from '@/lib/preventiveCare';
 import type { ExcretionKind, PreventiveCategory } from '@/lib/supabase';
 
 // 타임라인 이벤트 종류
@@ -9,12 +9,7 @@ export type TLKind =
   | 'preventive' | 'med' | 'poop' | 'pee'
   | 'food' | 'water' | 'fluid' | 'weight' | 'cost';
 
-// 아이콘은 페이지에서 lucide 컴포넌트로 매핑 (앱 톤 통일). 여기선 라벨/텍스트만.
-export const TL_LABEL: Record<TLKind, string> = {
-  hospitalization: '입퇴원', symptom: '증상', visit: '진료', daily: '일상',
-  preventive: '예방', med: '약', poop: '대변', pee: '소변',
-  food: '식사', water: '음수', fluid: '수액', weight: '체중', cost: '지출',
-};
+// 라벨은 messages(timeline.label.*)로 분리 — buildTimeline 이 t 로 조합.
 
 // 접힘 상태에서 '제목'으로 보여줄 중요 이벤트 + 우선순위(작을수록 먼저)
 const TITLED_PRIORITY: Partial<Record<TLKind, number>> = {
@@ -47,10 +42,13 @@ export interface TLDay {
   events: TLEvent[];   // 그날 전부 (시각 오름차순) — 펼침 상세
 }
 
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+// next-intl 의 t 를 느슨한 함수 타입으로 받아 lib 에서 ICU 조합 (어순/복수형은 messages 가 처리).
+type TFn = (key: string, values?: Record<string, string | number>) => string;
 
 // 각 소스 raw 배열을 받아 날짜별 TLDay[] 로 집계 (날짜 내림차순)
-export function buildTimeline(input: {
+export function buildTimeline(t: TFn, input: {
   records: Array<{ id: string; record_type: string; title: string; visit_date: string }>;
   medMeta: Map<string, { name: string; alarm_times: string[] | null }>;
   checks: Array<{ id: string; medication_id: string; check_date: string; checked: boolean; checked_at?: string; dose_number?: number }>;
@@ -91,7 +89,7 @@ export function buildTimeline(input: {
     const a = get(dk);
     const kind = (['symptom', 'visit', 'hospitalization', 'daily'].includes(r.record_type) ? r.record_type : 'visit') as TLKind;
     if (kind === 'daily') a.daily += 1;
-    a.events.push({ id: `rec-${r.id}`, kind, timeMs: startOfDayMs(dk), time: '', text: r.title || TL_LABEL[kind], href: `/records/${r.id}` });
+    a.events.push({ id: `rec-${r.id}`, kind, timeMs: startOfDayMs(dk), time: '', text: r.title || t(`timeline.label.${kind}`), href: `/records/${r.id}` });
   }
 
   // 2) 예방 (마지막 시행일)
@@ -100,7 +98,9 @@ export function buildTimeline(input: {
     const dk = localDateKey(p.last_done_date);
     const a = get(dk);
     const meta = categoryMeta(p.category as PreventiveCategory);
-    const text = p.name && p.name !== meta.label ? `${meta.label} (${p.name})` : meta.label;
+    // 표시는 locale-aware, 비교는 저장 데이터(meta.label=한국어) 기준 — 사용자 커스텀명 여부 판별.
+    const label = categoryLabel(p.category as PreventiveCategory, t);
+    const text = p.name && p.name !== meta.label ? `${label} (${p.name})` : label;
     a.events.push({ id: `prev-${p.id}`, kind: 'preventive', timeMs: startOfDayMs(dk), time: '', text, href: '/records/preventive' });
   }
 
@@ -112,7 +112,7 @@ export function buildTimeline(input: {
     const a = get(dk);
     a.med += 1;
     const med = input.medMeta.get(c.medication_id);
-    const name = med?.name || '약';
+    const name = med?.name || t('timeline.medFallbackName');
     const scheduled = med?.alarm_times && med.alarm_times[c.dose_number ?? 0]; // "HH:MM"
     let timeMs: number;
     let time: string;
@@ -124,7 +124,7 @@ export function buildTimeline(input: {
       time = '';
       timeMs = startOfDayMs(dk);
     }
-    a.events.push({ id: `chk-${c.id}`, kind: 'med', timeMs, time, text: `${name} 복용`, href: '/records/meds' });
+    a.events.push({ id: `chk-${c.id}`, kind: 'med', timeMs, time, text: t('timeline.medDose', { name }), href: '/records/meds' });
   }
 
   // 4) 대소변
@@ -132,11 +132,10 @@ export function buildTimeline(input: {
     const dk = localDateKey(e.measured_at);
     const a = get(dk);
     const k = (e.kind === 'pee' ? 'pee' : 'poop') as TLKind;
-    const cm = conditionMeta(e.kind as ExcretionKind, e.condition);
     const abn = isAbnormalCondition(e.kind as ExcretionKind, e.condition);
     if (k === 'poop') { a.poop.n += 1; a.poop.abn = a.poop.abn || abn; }
     else { a.pee.n += 1; a.pee.abn = a.pee.abn || abn; }
-    a.events.push({ id: `exc-${e.id}`, kind: k, timeMs: new Date(e.measured_at).getTime(), time: hhmm(e.measured_at), text: cm.label, abnormal: abn, href: '/records/stats?tab=excretion' });
+    a.events.push({ id: `exc-${e.id}`, kind: k, timeMs: new Date(e.measured_at).getTime(), time: hhmm(e.measured_at), text: conditionLabel(e.kind as ExcretionKind, e.condition, t), abnormal: abn, href: '/records/stats?tab=excretion' });
   }
 
   // 5) 지표 (음수/식사/수액)
@@ -164,7 +163,7 @@ export function buildTimeline(input: {
     const dk = localDateKey(x.spent_at);
     const a = get(dk);
     a.cost += Number(x.amount);
-    a.events.push({ id: `exp-${x.id}`, kind: 'cost', timeMs: startOfDayMs(dk), time: '', text: `${Number(x.amount).toLocaleString()}원${x.reason ? ` · ${x.reason}` : ''}`, href: '/records/expenses' });
+    a.events.push({ id: `exp-${x.id}`, kind: 'cost', timeMs: startOfDayMs(dk), time: '', text: t('record.money', { value: Number(x.amount).toLocaleString() }) + (x.reason ? ` · ${x.reason}` : ''), href: '/records/expenses' });
   }
 
   // TLDay[] 빌드
@@ -175,18 +174,18 @@ export function buildTimeline(input: {
       .sort((x, y) => (TITLED_PRIORITY[x.kind]! - TITLED_PRIORITY[y.kind]!) || x.timeMs - y.timeMs);
 
     const chips: TLChip[] = [];
-    if (a.med > 0) chips.push({ key: 'med', label: `약 ${a.med}회` });
-    if (a.poop.n > 0) chips.push({ key: 'poop', label: `대변 ${a.poop.n}`, abnormal: a.poop.abn });
-    if (a.pee.n > 0) chips.push({ key: 'pee', label: `소변 ${a.pee.n}`, abnormal: a.pee.abn });
+    if (a.med > 0) chips.push({ key: 'med', label: t('timeline.chip.med', { count: a.med }) });
+    if (a.poop.n > 0) chips.push({ key: 'poop', label: t('timeline.chip.poop', { count: a.poop.n }), abnormal: a.poop.abn });
+    if (a.pee.n > 0) chips.push({ key: 'pee', label: t('timeline.chip.pee', { count: a.pee.n }), abnormal: a.pee.abn });
     if (a.food.sum > 0 || a.food.pcts.length > 0) {
       const avg = a.food.pcts.length ? Math.round(a.food.pcts.reduce((s, v) => s + v, 0) / a.food.pcts.length) : null;
-      chips.push({ key: 'food', label: avg != null ? `식사 ${avg}%` : `식사 ${Math.round(a.food.sum)}${a.food.unit}` });
+      chips.push({ key: 'food', label: avg != null ? t('timeline.chip.foodPct', { pct: avg }) : t('timeline.chip.foodAmount', { amount: Math.round(a.food.sum), unit: a.food.unit }) });
     }
-    if (a.water.sum > 0) chips.push({ key: 'water', label: `음수 ${Math.round(a.water.sum)}${a.water.unit}` });
-    if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: `수액 ${Math.round(a.fluid.sum)}${a.fluid.unit}` });
+    if (a.water.sum > 0) chips.push({ key: 'water', label: t('timeline.chip.water', { amount: Math.round(a.water.sum), unit: a.water.unit }) });
+    if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: t('timeline.chip.fluid', { amount: Math.round(a.fluid.sum), unit: a.fluid.unit }) });
     if (a.weight != null) chips.push({ key: 'weight', label: `${a.weight}kg` });
-    if (a.daily > 0) chips.push({ key: 'daily', label: `일상 ${a.daily}` });
-    if (a.cost > 0) chips.push({ key: 'cost', label: `${a.cost.toLocaleString()}원` });
+    if (a.daily > 0) chips.push({ key: 'daily', label: t('timeline.chip.daily', { count: a.daily }) });
+    if (a.cost > 0) chips.push({ key: 'cost', label: t('record.money', { value: a.cost.toLocaleString() }) });
 
     // 시각 오름차순 → 같은 시각(무시각 00:00)은 중요도순(DETAIL_RANK)
     const events = [...a.events].sort((x, y) => (x.timeMs - y.timeMs) || (DETAIL_RANK[x.kind] - DETAIL_RANK[y.kind]));

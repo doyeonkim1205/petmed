@@ -2,10 +2,19 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
-import { formatAge } from '@/lib/healthBriefing';
+
+// 나이 표시용 — formatAge(lib)는 AI 프롬프트(petContext)에서도 쓰여 한국어 고정이므로,
+// UI 는 locale-aware 로 별도 포맷. {unit, count} 만 뽑아 컴포넌트에서 t('home.age.*') 적용.
+function ageParts(age: { years: number; months: number; days: number } | null) {
+  if (!age) return null;
+  if (age.years >= 1) return { unit: 'years' as const, count: age.years };
+  if (age.months >= 1) return { unit: 'months' as const, count: age.months };
+  return { unit: 'days' as const, count: Math.max(age.days, 0) };
+}
 
 /**
  * 홈 "건강 브리핑" 카드 — 기존 HealthTip 자리.
@@ -46,6 +55,7 @@ export function HealthBriefing() {
 // 카드 전체 클릭 → /profile (펫 등록). 우측 chevron 으로 affordance.
 // ────────────────────────────────────────────────
 function WelcomeCard() {
+  const t = useTranslations('home');
   return (
     <Link
       href="/profile"
@@ -56,8 +66,8 @@ function WelcomeCard() {
           <PawPrint size={18} className="text-blue-600" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800 mb-0.5">소중한 가족을 등록해주세요</p>
-          <p className="text-[11px] font-normal text-gray-500 leading-snug">PawDex 와 함께해요</p>
+          <p className="text-sm font-bold text-gray-800 mb-0.5">{t('welcome.title')}</p>
+          <p className="text-[11px] font-normal text-gray-500 leading-snug">{t('welcome.subtitle')}</p>
         </div>
         <ChevronRight size={16} className="text-gray-400 flex-shrink-0" />
       </div>
@@ -71,8 +81,10 @@ function WelcomeCard() {
 // → 슬라이드 시 다른 펫 카드와 높이 동일. 시각적 일관성.
 // ────────────────────────────────────────────────
 function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
+  const t = useTranslations('home');
   const first = briefings[0];
-  const ageLabel = formatAge(first.age);
+  const ap = ageParts(first.age);
+  const ageLabel = ap ? t(`age.${ap.unit}`, { count: ap.count }) : '';
   const meta = [ageLabel, first.latestWeight ? `${first.latestWeight}kg` : null]
     .filter(Boolean)
     .join(' · ');
@@ -97,11 +109,11 @@ function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
       <div className="pl-9 pr-4 pb-3.5 pt-1 space-y-1.5">
         <div className="flex items-center gap-2 text-[12px] text-gray-700">
           <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
-          <span className="font-bold">첫 기록을 남겨볼까요?</span>
+          <span className="font-bold">{t('firstRecord')}</span>
         </div>
         <div className="flex items-center gap-2 text-[12px] text-gray-400 font-normal">
           <Calendar size={13} className="flex-shrink-0" />
-          <span>예약 없음</span>
+          <span>{t('noAppointment')}</span>
         </div>
       </div>
     </Link>
@@ -175,7 +187,9 @@ function BriefingCard({
   showIndicator: boolean;
   indicator: React.ReactNode;
 }) {
-  const ageLabel = formatAge(briefing.age);
+  const t = useTranslations('home');
+  const ap = ageParts(briefing.age);
+  const ageLabel = ap ? t(`age.${ap.unit}`, { count: ap.count }) : '';
   const meta = [ageLabel, briefing.latestWeight ? `${briefing.latestWeight}kg` : null]
     .filter(Boolean)
     .join(' · ');
@@ -193,7 +207,7 @@ function BriefingCard({
             <p className="text-sm font-bold text-gray-800 flex items-center gap-1 min-w-0">
               <Cake size={14} className="text-rose-500 flex-shrink-0" />
               <span className="truncate">
-                {briefing.pet.name}의 소중한 생일을 축하해요
+                {t('birthday', { name: briefing.pet.name })}
               </span>
               <Heart size={14} className="text-rose-500 fill-rose-500 flex-shrink-0" />
             </p>
@@ -226,13 +240,14 @@ function BriefingCard({
 //   - 7일+ (포함): gray normal + 말풍선 + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
 //   - 기록 없음: gray + "아직 기록 없음"
 function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
+  const t = useTranslations('home');
   const { daysSinceLastRecord, pet } = briefing;
   if (daysSinceLastRecord !== null && daysSinceLastRecord >= 7) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-gray-700">
         <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
         <span>
-          {daysSinceLastRecord}일째 기록이 없어요 — 오늘 {pet.name}는 어땠나요?
+          {t('noRecordSince', { count: daysSinceLastRecord, name: pet.name })}
         </span>
       </div>
     );
@@ -241,7 +256,7 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-gray-700 font-bold">
         <Check size={13} className="text-gray-500 flex-shrink-0" />
-        <span>오늘 기록 완료</span>
+        <span>{t('recordedToday')}</span>
       </div>
     );
   }
@@ -250,10 +265,13 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
       <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />
       {daysSinceLastRecord !== null ? (
         <span>
-          마지막 기록 <span className="font-bold">{daysSinceLastRecord}일 전</span>
+          {t.rich('lastRecordAgo', {
+            count: daysSinceLastRecord,
+            b: (chunks) => <span className="font-bold">{chunks}</span>,
+          })}
         </span>
       ) : (
-        <span className="text-gray-400">아직 기록 없음</span>
+        <span className="text-gray-400">{t('noRecordsYet')}</span>
       )}
     </div>
   );
@@ -264,19 +282,20 @@ function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
 //   - D-4 이상: gray + "다음 예약 M/D"
 //   - 없음: gray + "예약 없음"
 function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
+  const t = useTranslations('home');
   const { nextAppointmentDate, daysUntilAppointment } = briefing;
   if (
     daysUntilAppointment !== null &&
     daysUntilAppointment <= 3 &&
     nextAppointmentDate
   ) {
-    // D-0 (당일) → "D-Day" 로 강조. D-1, D-2, D-3 은 그대로.
+    // D-0 (당일) → "D-Day" 로 강조. D-1, D-2, D-3 은 그대로. (D-표기는 언어 중립)
     const dLabel = daysUntilAppointment === 0 ? 'D-Day' : `D-${daysUntilAppointment}`;
     return (
       <div className="flex items-center gap-2 text-[12px] text-orange-600 font-bold">
         <Calendar size={13} className="text-orange-500 flex-shrink-0" />
         <span>
-          예약 {dLabel} · {formatShortDate(nextAppointmentDate)}
+          {t('appointmentSoon', { dLabel, date: formatShortDate(nextAppointmentDate) })}
         </span>
       </div>
     );
@@ -286,10 +305,13 @@ function NextAppointmentRow({ briefing }: { briefing: PetBriefing }) {
       <Calendar size={13} className="text-gray-400 flex-shrink-0" />
       {nextAppointmentDate ? (
         <span>
-          다음 예약 <span className="font-bold">{formatShortDate(nextAppointmentDate)}</span>
+          {t.rich('nextAppointment', {
+            date: formatShortDate(nextAppointmentDate),
+            b: (chunks) => <span className="font-bold">{chunks}</span>,
+          })}
         </span>
       ) : (
-        <span className="text-gray-400">예약 없음</span>
+        <span className="text-gray-400">{t('noAppointment')}</span>
       )}
     </div>
   );

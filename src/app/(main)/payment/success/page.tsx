@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
 function SuccessContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { refreshProfile } = useAuth();
@@ -20,7 +22,7 @@ function SuccessContent() {
 
       if (!paymentKey || !orderId || !amount) {
         setStatus('error');
-        setMessage('결제 정보가 올바르지 않습니다.');
+        setMessage(t('payment.invalidInfo'));
         return;
       }
 
@@ -40,16 +42,16 @@ function SuccessContent() {
 
         if (res.ok) {
           setStatus('success');
-          setMessage(`Plus 구독이 시작되었습니다!`);
+          setMessage(t('payment.subStarted'));
           // Refresh profile to get updated plan
           await refreshProfile();
         } else {
           setStatus('error');
-          setMessage(data.error || '결제 승인에 실패했습니다.');
+          setMessage(data.error || t('payment.confirmFail'));
         }
       } catch {
         setStatus('error');
-        setMessage('결제 처리 중 오류가 발생했습니다.');
+        setMessage(t('payment.processError'));
       }
     };
 
@@ -61,8 +63,8 @@ function SuccessContent() {
       {status === 'loading' && (
         <>
           <Loader2 className="animate-spin text-blue-500 mx-auto mb-4" size={48} />
-          <h2 className="text-lg font-bold text-gray-800 mb-2">결제 승인 중...</h2>
-          <p className="text-sm text-gray-400">잠시만 기다려주세요.</p>
+          <h2 className="text-lg font-bold text-gray-800 mb-2">{t('payment.approving')}</h2>
+          <p className="text-sm text-gray-400">{t('payment.pleaseWait')}</p>
         </>
       )}
 
@@ -71,13 +73,13 @@ function SuccessContent() {
           <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-green-500" />
           </div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">결제 완료!</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-2">{t('payment.complete')}</h2>
           <p className="text-sm text-gray-500 mb-8">{message}</p>
           <button
             onClick={() => router.push('/profile')}
             className="px-8 py-3 bg-blue-600 text-white rounded-full text-sm font-medium"
           >
-            프로필로 이동
+            {t('payment.toProfile')}
           </button>
         </>
       )}
@@ -85,14 +87,14 @@ function SuccessContent() {
       {status === 'error' && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/Robotics-pana.svg" alt="결제 실패" width={180} height={180} className="mx-auto mb-4" />
-          <h2 className="text-base font-bold text-gray-900 mb-2">결제를 완료하지 못했어요</h2>
+          <img src="/icons/Robotics-pana.svg" alt={t('payment.failAlt')} width={180} height={180} className="mx-auto mb-4" />
+          <h2 className="text-base font-bold text-gray-900 mb-2">{t('payment.failTitle')}</h2>
           <p className="text-xs text-gray-500 mb-6">{message}</p>
           <button
             onClick={() => router.push('/profile/subscription')}
             className="px-8 py-3 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
           >
-            다시 시도
+            {t('common.retry')}
           </button>
         </>
       )}

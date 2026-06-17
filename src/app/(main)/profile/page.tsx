@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,8 @@ import Link from 'next/link';
 import { NotificationPermissionDenied } from '@/components/NotificationPermissionDenied';
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { LOCALE_COOKIE } from '@/i18n/config';
 import { TextField } from '@/components/TextField';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import {
@@ -34,6 +37,7 @@ function NicknameModal({
   onClose: () => void;
   onSave: (nickname: string) => Promise<{ error: Error | null }>;
 }) {
+  const t = useTranslations();
   const [nickname, setNickname] = useState(currentNickname);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,7 +53,7 @@ function NicknameModal({
   const handleSave = async () => {
     const clean = sanitize(nickname).trim();
     if (clean.length < 1) {
-      setErrorMsg('닉네임을 입력해주세요');
+      setErrorMsg(t('profile.nickname.empty'));
       return;
     }
     setSaving(true);
@@ -57,7 +61,7 @@ function NicknameModal({
     const result = await onSave(clean);
     setSaving(false);
     if (result.error) {
-      setErrorMsg(result.error.message || '저장에 실패했습니다');
+      setErrorMsg(result.error.message || t('profile.nickname.saveFailed'));
     } else {
       onClose();
     }
@@ -67,13 +71,13 @@ function NicknameModal({
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-gray-700">닉네임 변경</h3>
+          <h3 className="text-sm font-bold text-gray-700">{t('profile.nickname.title')}</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
         <TextField
           value={nickname}
           onChange={e => setNickname(sanitize(e.target.value))}
-          placeholder="한글·영문·숫자 (1~10자)"
+          placeholder={t('profile.nickname.placeholder')}
           autoComplete="nickname"
           maxLength={10}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm mb-2"
@@ -82,13 +86,13 @@ function NicknameModal({
           <p className="text-red-500 text-xs mb-2">{errorMsg}</p>
         )}
         <div className="flex gap-2 mt-3">
-          <button onClick={onClose} className="flex-1 h-10 border border-gray-200 rounded-full text-sm text-gray-500 hover:bg-gray-50 transition-colors">취소</button>
+          <button onClick={onClose} className="flex-1 h-10 border border-gray-200 rounded-full text-sm text-gray-500 hover:bg-gray-50 transition-colors">{t('common.cancel')}</button>
           <button
             onClick={handleSave}
             disabled={saving || nickname.trim().length < 1}
             className="flex-1 h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            {saving ? '저장 중...' : '저장'}
+            {saving ? t('record.form.saving') : t('common.save')}
           </button>
         </div>
       </div>
@@ -112,6 +116,7 @@ function PetModal({
   userId: string;
   onClose: () => void;
 }) {
+  const t = useTranslations();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -202,7 +207,7 @@ function PetModal({
           .eq('user_id', userId);
         if (error) {
           Sentry.captureException(error, { tags: { feature: 'pets', action: 'update' } });
-          setFormError('저장에 실패했습니다. 다시 시도해주세요.');
+          setFormError(t('profile.pet.saveFailed'));
           return;
         }
         logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
@@ -224,11 +229,9 @@ function PetModal({
       const config = getPlanConfig(effectivePlan);
       if (config.maxPets > 0 && pets.length >= config.maxPets) {
         setLimitMsg(
-          effectivePlan !== 'free' ? (
-            <>반려동물 등록 한도({config.maxPets}마리)에 도달했습니다.<br />추가 용량이 필요하시면 문의해 주세요.</>
-          ) : (
-            <>반려동물은 {config.maxPets}마리까지 등록할 수 있어요<br />Plus로 업그레이드하여 더 많은 반려동물을 등록하세요</>
-          ),
+          effectivePlan !== 'free'
+            ? t.rich('profile.pet.limitPaid', { max: config.maxPets, br: () => <br /> })
+            : t.rich('profile.pet.limitFree', { max: config.maxPets, br: () => <br /> }),
         );
         return;
       }
@@ -240,7 +243,7 @@ function PetModal({
         .single();
       if (error) {
         Sentry.captureException(error, { tags: { feature: 'pets', action: 'create' } });
-        setFormError('등록에 실패했습니다. 다시 시도해주세요.');
+        setFormError(t('profile.pet.createFailed'));
         return;
       }
       if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
@@ -271,15 +274,15 @@ function PetModal({
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs max-h-[85vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between p-5 pb-3">
-          <h3 className="text-sm font-bold text-gray-700">나의 반려동물</h3>
+          <h3 className="text-sm font-bold text-gray-700">{t('profile.pet.title')}</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5">
           {loading ? (
-            <p className="text-gray-400 text-center py-8 text-sm">로딩 중...</p>
+            <p className="text-gray-400 text-center py-8 text-sm">{t('profile.pet.loading')}</p>
           ) : pets.length === 0 && !showForm ? (
-            <p className="text-gray-400 text-center py-8 text-sm">등록된 반려동물이 없습니다.</p>
+            <p className="text-gray-400 text-center py-8 text-sm">{t('profile.pet.empty')}</p>
           ) : (
             <div className="space-y-2">
               {pets.map(pet => (
@@ -292,14 +295,14 @@ function PetModal({
                   </div>
                   <button
                     onClick={() => openEditForm(pet)}
-                    aria-label="수정"
+                    aria-label={t('profile.pet.editAria')}
                     className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
                   >
                     <Edit2 size={14} />
                   </button>
                   <button
                     onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })}
-                    aria-label="삭제"
+                    aria-label={t('profile.pet.deleteAria')}
                     className="p-1 text-gray-300 hover:text-red-400 transition-colors"
                   >
                     <Trash2 size={14} />
@@ -312,7 +315,7 @@ function PetModal({
           {showForm && (
             <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
               <p className="text-xs font-semibold text-gray-500 mb-1">
-                {editingPetId ? '반려동물 정보 수정' : '반려동물 추가'}
+                {editingPetId ? t('profile.pet.editTitle') : t('profile.pet.addTitle')}
               </p>
 
               <PetFormFields form={form} setForm={setForm} />
@@ -326,14 +329,14 @@ function PetModal({
                   onClick={closeForm}
                   className="flex-1 h-9 border border-gray-200 rounded-full text-xs text-gray-500 hover:bg-gray-50 transition-colors"
                 >
-                  취소
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving || !form.name.trim()}
                   className="flex-1 h-9 bg-blue-600 text-[#fff] rounded-full text-xs font-medium disabled:opacity-50 transition-colors"
                 >
-                  {saving ? (editingPetId ? '저장 중...' : '등록 중...') : (editingPetId ? '저장' : '등록')}
+                  {saving ? (editingPetId ? t('record.form.saving') : t('profile.pet.savingNew')) : (editingPetId ? t('common.save') : t('profile.pet.register'))}
                 </button>
               </div>
             </div>
@@ -346,17 +349,17 @@ function PetModal({
               onClick={openAddForm}
               className="w-full h-9 flex items-center justify-center gap-1.5 border border-dashed border-gray-200 rounded-full text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
             >
-              <Plus size={14} /> 반려동물 추가
+              <Plus size={14} /> {t('profile.pet.addTitle')}
             </button>
           )}
         </div>
       </div>
       <ConfirmModal
         open={deleteTarget !== null}
-        title="반려동물을 삭제할까요?"
-        message={<>{deleteTarget?.name ?? ''}의 건강기록도 함께 삭제돼요.<br />되돌릴 수 없어요.</>}
+        title={t('profile.pet.deleteTitle')}
+        message={t.rich('profile.pet.deleteMsg', { name: deleteTarget?.name ?? '', br: () => <br /> })}
         variant="danger"
-        confirmLabel="삭제"
+        confirmLabel={t('common.delete')}
         onConfirm={() => {
           if (deleteTarget) handleDelete(deleteTarget.id);
           setDeleteTarget(null);
@@ -365,9 +368,9 @@ function PetModal({
       />
       <ConfirmModal
         open={limitMsg !== null}
-        title="등록 한도에 도달했어요"
+        title={t('profile.pet.limitTitle')}
         message={limitMsg}
-        confirmLabel="확인"
+        confirmLabel={t('common.confirm')}
         hideCancel
         onConfirm={() => setLimitMsg(null)}
         onCancel={() => setLimitMsg(null)}
@@ -378,6 +381,7 @@ function PetModal({
 
 // ─── Notification Settings Modal ───────────────────────────
 function NotificationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTranslations();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
@@ -611,28 +615,27 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-bold text-gray-700">알림 설정</h3>
+          <h3 className="text-sm font-bold text-gray-700">{t('profile.notif.title')}</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
         <div className="space-y-4">
           {pushSupported ? (
             <>
               <ToggleRow
-                label="푸시 알림"
-                desc={pushLoading ? '설정 중...' : pushEnabled ? '투약, 예약일, 퇴원일 알림을 받습니다' : '알림이 꺼져 있습니다'}
+                label={t('profile.notif.push')}
+                desc={pushLoading ? t('profile.notif.settingUp') : pushEnabled ? t('profile.notif.descOn') : t('profile.notif.descOff')}
                 checked={pushEnabled}
                 onChange={handleTogglePush}
               />
               {!pushEnabled && !pushLoading && (
                 <p className="text-[11px] text-gray-400 -mt-2 pl-1">
-                  알림을 켜면 투약 시간, 예약일, 퇴원일에 푸시 알림을 받을 수 있습니다.
+                  {t('profile.notif.hint')}
                 </p>
               )}
             </>
           ) : (
             <p className="text-xs text-gray-400 text-center py-4">
-              이 브라우저에서는 푸시 알림을 지원하지 않습니다.<br />
-              PWA를 설치하면 알림을 받을 수 있습니다.
+              {t.rich('profile.notif.unsupported', { br: () => <br /> })}
             </p>
           )}
         </div>
@@ -643,22 +646,22 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
             ))}
           </div>
         )}
-        <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
+        <button onClick={onClose} className="w-full h-10 mt-5 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">{t('common.confirm')}</button>
       </div>
       <NotificationPermissionDenied open={deniedModalOpen} onClose={() => setDeniedModalOpen(false)} />
       {iosInstallHintOpen && (
         <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setIosInstallHintOpen(false)}>
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-gray-800 mb-2">알림을 받으려면 앱을 설치해야 해요</h3>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">{t('profile.notif.iosTitle')}</h3>
             <p className="text-xs text-gray-500 leading-relaxed mb-5 break-keep break-words">
-              iOS 에서는 홈 화면에 추가한 뒤에만 푸시 알림을 받을 수 있어요.
+              {t('profile.notif.iosDesc')}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setIosInstallHintOpen(false)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium"
               >
-                닫기
+                {t('common.close')}
               </button>
               <button
                 onClick={() => {
@@ -668,7 +671,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium"
               >
-                설치 방법 보기
+                {t('profile.notif.iosInstallGuide')}
               </button>
             </div>
           </div>
@@ -680,9 +683,9 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
 
 // ─── App Settings Modal (Full Featured) ─────────────────────
 function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
+  const t = useTranslations();
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
-  const [language, setLanguage] = useState('ko');
   const [autoLogin, setAutoLogin] = useState(true);
   const [highContrast, setHighContrast] = useState(true);
   const [defaultPetId, setDefaultPetId] = useState<string>('');
@@ -694,7 +697,6 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
     if (open) {
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
-      setLanguage(localStorage.getItem('language') || 'ko');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
       setHighContrast(localStorage.getItem('highContrast') !== 'false');
       setDefaultPetId(localStorage.getItem('defaultPetId') || '');
@@ -768,9 +770,9 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   };
 
   const fontSizes = [
-    { value: '14', label: '작게' },
-    { value: '16', label: '보통' },
-    { value: '18', label: '크게' },
+    { value: '14', label: t('profile.settings.fontSmall') },
+    { value: '16', label: t('profile.settings.fontNormal') },
+    { value: '18', label: t('profile.settings.fontLarge') },
   ];
 
   // ─── 임시 숨김 플래그 ─────────────────────────────────────
@@ -779,14 +781,13 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   // 고대비: 토글만 숨김 — 기본 ON 으로 동작 중 (layout.tsx 가 hc !== 'false' 면 자동 ON).
   //         현재 모든 사용자가 고대비 ON 상태로 PawDex 외형 인식. 토글 노출 안 함.
   const SHOW_DARK_MODE = false;
-  const SHOW_LANGUAGE = false;
   const SHOW_HIGH_CONTRAST = false;
 
   return (
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs max-h-[85vh] flex flex-col shadow-lg">
         <div className="flex items-center justify-between p-5 pb-3">
-          <h3 className="text-sm font-bold text-gray-700">앱 설정</h3>
+          <h3 className="text-sm font-bold text-gray-700">{t('profile.settings.title')}</h3>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
 
@@ -794,16 +795,16 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           {/* Dark Mode (현재 숨김) */}
           {SHOW_DARK_MODE && (
             <div>
-              <SectionHeader icon={darkMode ? Moon : Sun} iconColor={darkMode ? 'text-blue-500' : 'text-orange-400'} label="화면 모드" />
-              <ToggleRow label="다크 모드" desc="어두운 배경으로 눈의 피로를 줄입니다" checked={darkMode} onChange={handleDarkToggle} />
+              <SectionHeader icon={darkMode ? Moon : Sun} iconColor={darkMode ? 'text-blue-500' : 'text-orange-400'} label={t('profile.settings.displayMode')} />
+              <ToggleRow label={t('profile.settings.darkMode')} desc={t('profile.settings.darkModeDesc')} checked={darkMode} onChange={handleDarkToggle} />
             </div>
           )}
 
           {/* 1. 기본 반려동물 */}
           {pets.length > 0 && (
             <div>
-              <SectionHeader icon={Dog} iconColor="text-gray-400" label="기본 반려동물" />
-              <p className="text-[11px] text-gray-400 mb-2">모든 화면에서 우선 표시됩니다</p>
+              <SectionHeader icon={Dog} iconColor="text-gray-400" label={t('profile.settings.defaultPet')} />
+              <p className="text-[11px] text-gray-400 mb-2">{t('profile.settings.defaultPetDesc')}</p>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => handleDefaultPet('')}
@@ -811,7 +812,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                     defaultPetId === '' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
                   }`}
                 >
-                  전체
+                  {t('common.all')}
                 </button>
                 {pets.map((pet) => {
                   const Icon = pet.type === 'cat' ? Cat : Dog;
@@ -834,21 +835,21 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
 
           {/* 2. 보안 */}
           <div>
-            <SectionHeader icon={Shield} iconColor="text-gray-400" label="보안" />
-            <ToggleRow label="자동 로그인" desc="앱 재시작 시 자동으로 로그인합니다" checked={autoLogin} onChange={handleAutoLogin} />
+            <SectionHeader icon={Shield} iconColor="text-gray-400" label={t('profile.settings.security')} />
+            <ToggleRow label={t('profile.settings.autoLogin')} desc={t('profile.settings.autoLoginDesc')} checked={autoLogin} onChange={handleAutoLogin} />
           </div>
 
           {/* 3. 접근성 (현재 숨김 — 기본 ON 으로 자동 적용) */}
           {SHOW_HIGH_CONTRAST && (
             <div>
-              <SectionHeader icon={Eye} iconColor="text-gray-400" label="접근성" />
-              <ToggleRow label="고대비 모드" desc="텍스트와 버튼의 대비를 높입니다" checked={highContrast} onChange={handleHighContrastToggle} />
+              <SectionHeader icon={Eye} iconColor="text-gray-400" label={t('profile.settings.accessibility')} />
+              <ToggleRow label={t('profile.settings.highContrast')} desc={t('profile.settings.highContrastDesc')} checked={highContrast} onChange={handleHighContrastToggle} />
             </div>
           )}
 
           {/* 4. 글자 크기 */}
           <div>
-            <SectionHeader icon={Type} iconColor="text-gray-400" label="글자 크기" />
+            <SectionHeader icon={Type} iconColor="text-gray-400" label={t('profile.settings.fontSize')} />
             <div className="flex gap-2">
               {fontSizes.map((fs) => (
                 <button
@@ -866,37 +867,15 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
             </div>
           </div>
 
-          {/* 5. 언어 (현재 숨김 — 한국에서만 서비스) */}
-          {SHOW_LANGUAGE && (
-            <div>
-              <SectionHeader icon={Globe} iconColor="text-gray-400" label="언어" />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setLanguage('ko'); localStorage.setItem('language', 'ko'); }}
-                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                    language === 'ko' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  한국어
-                </button>
-                <button
-                  onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en'); }}
-                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
-                    language === 'en' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  English
-                </button>
-              </div>
-              {language === 'en' && (
-                <p className="text-[11px] text-orange-500 mt-2">영어 지원은 준비 중입니다.</p>
-              )}
-            </div>
-          )}
+          {/* 5. 언어 — next-intl(쿠키 기반). 전환 시 새로고침(reload-on-switch). */}
+          <div>
+            <SectionHeader icon={Globe} iconColor="text-gray-400" label={t('profile.settings.language')} />
+            <LanguageToggle />
+          </div>
 
           {/* 6. 저장 공간 — 첨부 파일 사용량. 제목은 즉시 + 데이터 로딩 중엔 스피너. */}
           <div>
-            <SectionHeader icon={HardDrive} iconColor="text-gray-400" label="저장 공간" />
+            <SectionHeader icon={HardDrive} iconColor="text-gray-400" label={t('profile.settings.storage')} />
             {storage === null ? (
               // 로딩 중 — 그래프 자리에 작은 스피너
               <div className="flex items-center justify-center py-2.5">
@@ -910,7 +889,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
               return (
                 <div className="space-y-1.5">
                   <div className="flex items-baseline justify-between">
-                    <span className={`text-xs ${labelColor}`}>첨부 파일</span>
+                    <span className={`text-xs ${labelColor}`}>{t('profile.settings.attachments')}</span>
                     <span className="text-xs">
                       <span className="font-semibold text-gray-700">{formatMB(storage.usedMB)}</span>
                       <span className="text-gray-400"> / {formatMB(storage.limitMB)}</span>
@@ -923,21 +902,21 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
                 </div>
               );
             })() : (
-              <p className="text-[11px] text-gray-400 text-center py-2">사용량을 불러오지 못했어요</p>
+              <p className="text-[11px] text-gray-400 text-center py-2">{t('profile.settings.storageFailed')}</p>
             )}
           </div>
 
           {/* 7. 앱 정보 */}
           <div>
-            <SectionHeader icon={Info} iconColor="text-gray-400" label="앱 정보" />
+            <SectionHeader icon={Info} iconColor="text-gray-400" label={t('profile.settings.appInfo')} />
             <div className="space-y-1.5 text-xs text-gray-400">
-              <div className="flex justify-between"><span>버전</span><span className="text-gray-600">{APP_VERSION}</span></div>
+              <div className="flex justify-between"><span>{t('profile.settings.version')}</span><span className="text-gray-600">{APP_VERSION}</span></div>
             </div>
           </div>
         </div>
 
         <div className="p-5 pt-3">
-          <button onClick={onClose} className="w-full h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">확인</button>
+          <button onClick={onClose} className="w-full h-10 bg-blue-600 text-[#fff] rounded-full text-sm font-medium transition-colors">{t('common.confirm')}</button>
         </div>
       </div>
     </div>
@@ -978,16 +957,18 @@ function ToggleRow({ label, desc, checked, onChange }: {
 }
 
 // ─── Delete Account Modal ─────────────────────────────────
-const REASON_OPTIONS: { value: string; label: string }[] = [
-  { value: 'expectation_gap', label: '서비스가 기대와 달라요' },
-  { value: 'price', label: '가격이 부담돼요' },
-  { value: 'low_usage', label: '사용 빈도가 낮아요' },
-  { value: 'switching', label: '다른 앱으로 전환해요' },
-  { value: 'privacy', label: '개인정보가 걱정돼요' },
-  { value: 'other', label: '기타' },
+const REASON_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'expectation_gap', labelKey: 'profile.delete.reasonExpectationGap' },
+  { value: 'price', labelKey: 'profile.delete.reasonPrice' },
+  { value: 'low_usage', labelKey: 'profile.delete.reasonLowUsage' },
+  { value: 'switching', labelKey: 'profile.delete.reasonSwitching' },
+  { value: 'privacy', labelKey: 'profile.delete.reasonPrivacy' },
+  { value: 'other', labelKey: 'profile.delete.reasonOther' },
 ];
 
 function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTranslations();
+  const confirmWord = t('profile.delete.confirmWord');
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -1010,7 +991,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
     setErrorMsg('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('세션이 만료되었습니다.');
+      if (!session?.access_token) throw new Error(t('profile.delete.sessionExpired'));
 
       const res = await fetch('/api/delete-account', {
         method: 'POST',
@@ -1024,7 +1005,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || '삭제 실패');
+      if (!res.ok) throw new Error(body.error || t('profile.delete.deleteFailed'));
 
       // Clear all local state and redirect
       try {
@@ -1037,7 +1018,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       Sentry.captureException(err, {
         tags: { feature: 'account', action: 'delete' },
       });
-      setErrorMsg(err instanceof Error ? err.message : '오류가 발생했습니다.');
+      setErrorMsg(err instanceof Error ? err.message : t('profile.delete.error'));
       setDeleting(false);
     }
   };
@@ -1049,14 +1030,14 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
             <AlertTriangle size={22} className="text-red-400" />
           </div>
-          <h3 className="text-sm font-bold text-gray-800 mb-1">정말 탈퇴하시겠어요?</h3>
+          <h3 className="text-sm font-bold text-gray-800 mb-1">{t('profile.delete.title')}</h3>
           <p className="text-xs text-gray-400 text-center leading-relaxed">
-            모든 데이터가 <span className="text-red-400 font-medium">영구 삭제</span>되며<br />복구할 수 없습니다.
+            {t.rich('profile.delete.warning', { b: (c) => <span className="text-red-400 font-medium">{c}</span>, br: () => <br /> })}
           </p>
         </div>
 
         <div className="mb-3">
-          <p className="text-[11px] text-gray-500 mb-1.5">탈퇴 이유 <span className="text-gray-300">(선택)</span></p>
+          <p className="text-[11px] text-gray-500 mb-1.5">{t('profile.delete.reasonLabel')} <span className="text-gray-300">{t('profile.delete.reasonOptional')}</span></p>
           <div className="flex flex-wrap gap-1.5">
             {REASON_OPTIONS.map((opt) => (
               <button
@@ -1069,7 +1050,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
                     : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -1077,18 +1058,18 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
             <TextField
               value={reasonDetail}
               onChange={(e) => setReasonDetail(e.target.value.slice(0, 100))}
-              placeholder="자세한 사유를 입력해주세요 (선택)"
+              placeholder={t('profile.delete.detailPlaceholder')}
               className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-red-500 outline-none"
             />
           )}
         </div>
 
         <div className="mb-4">
-          <p className="text-[11px] text-gray-400 mb-1.5">확인을 위해 <span className="font-bold text-gray-600">&quot;탈퇴합니다&quot;</span>를 입력해주세요.</p>
+          <p className="text-[11px] text-gray-400 mb-1.5">{t.rich('profile.delete.confirmPrompt', { word: confirmWord, b: (c) => <span className="font-bold text-gray-600">{c}</span> })}</p>
           <TextField
             value={confirmText}
             onChange={e => setConfirmText(e.target.value)}
-            placeholder="탈퇴합니다"
+            placeholder={confirmWord}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none text-sm"
           />
         </div>
@@ -1097,14 +1078,14 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 h-10 border border-gray-200 rounded-full text-sm text-gray-500 hover:bg-gray-50 transition-colors">
-            취소
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleDelete}
-            disabled={deleting || confirmText !== '탈퇴합니다'}
+            disabled={deleting || confirmText !== confirmWord}
             className="flex-1 h-10 bg-red-500 text-[#fff] rounded-full text-sm font-medium disabled:opacity-40 transition-colors"
           >
-            {deleting ? '처리 중...' : '탈퇴하기'}
+            {deleting ? t('profile.delete.deleting') : t('profile.delete.deleteCta')}
           </button>
         </div>
       </div>
@@ -1114,6 +1095,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
 
 // ─── Main Profile Page ─────────────────────────────────────
 export default function ProfilePage() {
+  const t = useTranslations();
   const { user, profile, loading, signOut, updateProfile } = useAuth();
   const router = useRouter();
 
@@ -1183,6 +1165,9 @@ export default function ProfilePage() {
     } catch {}
     // Clear session storage (검색 결과 캐시)
     try { sessionStorage.clear(); } catch {}
+    // 언어 쿠키 초기화 — 언어는 계정 종속. 안 지우면 다음 로그인 계정에 이전 언어 누수.
+    // (다음 로그인 시 그 계정의 preferred_language, 없으면 기본 ko 가 적용됨)
+    try { document.cookie = `${LOCALE_COOKIE}=; path=/; max-age=0; SameSite=Lax`; } catch {}
     // Full page reload — AuthContext.init() will find no session → show login
     window.location.href = '/';
   };
@@ -1216,7 +1201,7 @@ export default function ProfilePage() {
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
-                alt="프로필"
+                alt={t('profile.avatarAlt')}
                 className="w-full h-full rounded-full object-cover"
                 referrerPolicy="no-referrer"
 
@@ -1227,7 +1212,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-gray-800">
-              {profile?.nickname || '사용자'}
+              {profile?.nickname || t('profile.fallbackName')}
             </h2>
             <button
               onClick={() => setShowNicknameModal(true)}
@@ -1258,7 +1243,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Heart size={18} className="text-pink-400" />
-            <span className="text-sm">나의 반려동물</span>
+            <span className="text-sm">{t('profile.menu.pets')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </button>
@@ -1270,7 +1255,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Bookmark size={18} className="text-blue-400" />
-            <span className="text-sm">내 보관함</span>
+            <span className="text-sm">{t('profile.menu.saved')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
@@ -1282,7 +1267,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Bell size={18} className="text-gray-400" />
-            <span className="text-sm">알림 설정</span>
+            <span className="text-sm">{t('profile.menu.notifications')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </button>
@@ -1293,7 +1278,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <Settings size={18} className="text-gray-400" />
-            <span className="text-sm">앱 설정</span>
+            <span className="text-sm">{t('profile.menu.appSettings')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </button>
@@ -1307,7 +1292,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <CreditCard size={18} className="text-blue-400" />
-            <span className="text-sm">구독/결제 관리</span>
+            <span className="text-sm">{t('subscription.title')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
@@ -1322,7 +1307,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-600">
             <FileText size={18} className="text-gray-400" />
-            <span className="text-sm">약관 및 정책</span>
+            <span className="text-sm">{t('profile.menu.policies')}</span>
           </div>
           <ChevronRight size={14} className="text-gray-300" />
         </Link>
@@ -1336,7 +1321,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-red-400">
             <LogOut size={18} />
-            <span className="text-sm">로그아웃</span>
+            <span className="text-sm">{t('profile.menu.logout')}</span>
           </div>
         </button>
 
@@ -1346,18 +1331,18 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3 text-gray-300">
             <UserX size={18} />
-            <span className="text-sm">회원 탈퇴</span>
+            <span className="text-sm">{t('profile.menu.deleteAccount')}</span>
           </div>
         </button>
       </div>
 
       <div className="py-8 px-6 text-center">
         <div className="text-[10px] text-gray-300 leading-relaxed">
-          <p>디와이랩스(DYLabs) | 대표: 김도연</p>
-          <p>사업자등록번호: 769-77-00552</p>
-          <p>통신판매업신고번호: 2026-화성동탄-1654</p>
-          <p>경기도 화성시 동탄순환대로 26길 81</p>
-          <p>010-8306-9687 | dylabs.pawdex@gmail.com</p>
+          <p>{t('profile.business.line1')}</p>
+          <p>{t('profile.business.regNo')}</p>
+          <p>{t('profile.business.ecommerceNo')}</p>
+          <p>{t('profile.business.address')}</p>
+          <p>{t('profile.business.contact')}</p>
         </div>
       </div>
 
@@ -1398,15 +1383,15 @@ export default function ProfilePage() {
         let buttonAction = () => { setShowAlarmUpgrade(false); };
 
         if (needApp && needPlus) {
-          message = '앱을 설치하고 Plus로 업그레이드하면 알림을 사용할 수 있어요.';
-          buttonLabel = '구독/결제 관리';
+          message = t('profile.alarm.needAppPlus');
+          buttonLabel = t('subscription.title');
           buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
         } else if (needApp && !needPlus) {
-          message = '앱을 설치하면 알림을 사용할 수 있어요. 홈 화면에 추가해주세요.';
-          buttonLabel = '확인';
+          message = t('profile.alarm.needApp');
+          buttonLabel = t('common.confirm');
         } else if (!needApp && needPlus) {
-          message = 'Plus로 업그레이드하면 알림을 사용할 수 있어요.';
-          buttonLabel = '구독/결제 관리';
+          message = t('profile.alarm.needPlus');
+          buttonLabel = t('subscription.title');
           buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
         }
 
@@ -1415,14 +1400,14 @@ export default function ProfilePage() {
             <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
               <div className="flex items-center gap-2 mb-3">
                 <Bell size={18} className="text-blue-500" />
-                <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+                <h3 className="text-sm font-bold text-gray-800">{t('profile.alarm.title')}</h3>
               </div>
               <p className="text-sm text-gray-600 mb-1 break-keep break-words">{message}</p>
-              <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 푸시 알림을 보내드려요.</p>
+              <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('profile.alarm.subDesc')}</p>
               <div className="flex gap-2">
                 <button onClick={() => setShowAlarmUpgrade(false)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
-                  닫기
+                  {t('common.close')}
                 </button>
                 <button onClick={buttonAction}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">

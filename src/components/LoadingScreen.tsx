@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -10,6 +13,7 @@ import { Loader2 } from 'lucide-react';
  * motion-reduce 접근성 설정이 켜진 기기에선 스피너 회전 멈춤.
  */
 export function LoadingScreen({ inMain = false }: { inMain?: boolean }) {
+  const t = useTranslations();
   return (
     <div
       className="flex items-center justify-center bg-white"
@@ -18,7 +22,7 @@ export function LoadingScreen({ inMain = false }: { inMain?: boolean }) {
       <Loader2
         size={28}
         className="text-blue-400 animate-spin motion-reduce:animate-none"
-        aria-label="로딩 중"
+        aria-label={t('common.loading')}
       />
     </div>
   );

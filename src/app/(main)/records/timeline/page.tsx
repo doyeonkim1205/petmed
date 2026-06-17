@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   ArrowLeft, ChevronDown, History,
   Building2, AlertTriangle, Stethoscope, PawPrint, ShieldCheck, Pill,
@@ -13,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
-import { buildTimeline, TL_LABEL, type TLDay, type TLKind } from '@/lib/timeline';
+import { buildTimeline, type TLDay, type TLKind } from '@/lib/timeline';
 
 // 이벤트 종류 → lucide 아이콘 (앱 톤 통일). 음수=GlassWater·소변=Droplet, 예방=ShieldCheck·수액=Syringe 로 겹침 정리.
 const TL_ICON: Record<TLKind, LucideIcon> = {
@@ -29,10 +30,11 @@ const TL_COLOR: Record<TLKind, string> = {
   food: 'text-orange-400', water: 'text-cyan-500', fluid: 'text-indigo-500', weight: 'text-slate-500', cost: 'text-teal-600',
 };
 
-const PERIODS: { id: string; label: string; days: number }[] = [
-  { id: 'week', label: '1주', days: 7 },
-  { id: 'month', label: '1개월', days: 30 },
-  { id: '3month', label: '3개월', days: 90 },
+// label 은 messages(timeline.period.*)로 분리 — id 로 참조.
+const PERIODS: { id: string; days: number }[] = [
+  { id: 'week', days: 7 },
+  { id: 'month', days: 30 },
+  { id: '3month', days: 90 },
 ];
 
 function daysAgoISO(n: number): string {
@@ -41,14 +43,18 @@ function daysAgoISO(n: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function fmtDateHeader(dateK: string, todayStr: string, yesterdayStr: string): string {
-  if (dateK === todayStr) return '오늘';
-  if (dateK === yesterdayStr) return '어제';
-  return new Date(`${dateK}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+function fmtDateHeader(dateK: string, todayStr: string, yesterdayStr: string, t: (k: string) => string, locale: string): string {
+  if (dateK === todayStr) return t('timeline.today');
+  if (dateK === yesterdayStr) return t('timeline.yesterday');
+  return new Date(`${dateK}T00:00:00`).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
 }
 
 export default function TimelinePage() {
   const router = useRouter();
+  const t = useTranslations();
+  const locale = useLocale();
+  // buildTimeline(lib)용 느슨한 t 래퍼 — next-intl 의 좁은 키 타입 우회.
+  const tl = (key: string, values?: Record<string, string | number>) => t(key as never, values as never);
   const { user, loading: authLoading } = useAuth();
 
   const [pets, setPets] = useState<Pet[]>([]);
@@ -109,7 +115,7 @@ export default function TimelinePage() {
         checks = (ck || []).filter((c: { medication_id: string }) => medIds.has(c.medication_id));
       }
 
-      setDays(buildTimeline({
+      setDays(buildTimeline(tl, {
         records: recs.data || [],
         medMeta,
         checks,
@@ -159,10 +165,10 @@ export default function TimelinePage() {
       {/* 헤더 — 복약/예방과 동일 */}
       <div className="sticky top-0 z-30 bg-white">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
-          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">타임라인</h1>
+          <h1 className="text-sm font-semibold text-gray-700">{t('timeline.title')}</h1>
         </header>
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
@@ -179,7 +185,7 @@ export default function TimelinePage() {
           {PERIODS.map((p) => (
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-              {p.label}
+              {t(`timeline.period.${p.id}`)}
             </button>
           ))}
         </div>
@@ -189,7 +195,7 @@ export default function TimelinePage() {
         {noPets ? (
           <div className="text-center py-16">
             <History size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
+            <p className="text-gray-400 text-sm">{t('timeline.noPets')}</p>
           </div>
         ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
@@ -198,8 +204,8 @@ export default function TimelinePage() {
         ) : days.length === 0 ? (
           <div className="text-center py-16">
             <History size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">이 기간에 기록이 없어요</p>
-            <p className="text-gray-300 text-xs mt-1">기간을 늘리거나 기록을 추가해보세요</p>
+            <p className="text-gray-400 text-sm">{t('timeline.empty')}</p>
+            <p className="text-gray-300 text-xs mt-1">{t('timeline.emptyHint')}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -208,7 +214,7 @@ export default function TimelinePage() {
               return (
                 <div key={d.date} className="border border-gray-100 rounded-2xl p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
                   <button onClick={() => toggle(d.date)} className="w-full flex items-center justify-between">
-                    <span className="text-[13px] font-bold text-gray-900">{fmtDateHeader(d.date, todayStr, yesterdayStr)}</span>
+                    <span className="text-[13px] font-bold text-gray-900">{fmtDateHeader(d.date, todayStr, yesterdayStr, t, locale)}</span>
                     <ChevronDown size={16} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -220,7 +226,7 @@ export default function TimelinePage() {
                         className="w-full flex items-center gap-1.5 text-left mt-1.5 active:opacity-60">
                         <Icon size={14} className={`flex-shrink-0 ${TL_COLOR[e.kind]}`} />
                         <span className="text-[13px] font-semibold text-gray-800 truncate">{e.text}</span>
-                        <span className="text-[11px] text-gray-400 flex-shrink-0">{TL_LABEL[e.kind]}</span>
+                        <span className="text-[11px] text-gray-400 flex-shrink-0">{t(`timeline.label.${e.kind}`)}</span>
                       </button>
                     );
                   })}
@@ -232,7 +238,7 @@ export default function TimelinePage() {
                         const Icon = TL_ICON[c.key as TLKind];
                         return (
                           <span key={c.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md ${c.abnormal ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
-                            {Icon && <Icon size={12} className={`flex-shrink-0 ${TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ' · 주의' : ''}
+                            {Icon && <Icon size={12} className={`flex-shrink-0 ${TL_COLOR[c.key as TLKind]}`} />}{c.label}{c.abnormal ? ` · ${t('timeline.caution')}` : ''}
                           </span>
                         );
                       })}
@@ -249,7 +255,7 @@ export default function TimelinePage() {
                             className="w-full flex items-center gap-2 py-1.5 text-left rounded-lg active:bg-gray-50">
                             <span className="text-[11px] text-gray-400 tabular-nums w-9 flex-shrink-0">{e.time || ''}</span>
                             <Icon size={13} className={`flex-shrink-0 ${TL_COLOR[e.kind]}`} />
-                            <span className="text-[13px] text-gray-700 flex-shrink-0">{TL_LABEL[e.kind]}</span>
+                            <span className="text-[13px] text-gray-700 flex-shrink-0">{t(`timeline.label.${e.kind}`)}</span>
                             <span className={`text-[13px] truncate ${e.abnormal ? 'text-red-600 font-medium' : 'text-gray-500'}`}>· {e.text}</span>
                           </button>
                         );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sparkles, X, Loader2 } from 'lucide-react';
 
 /**
@@ -19,6 +20,7 @@ import { Sparkles, X, Loader2 } from 'lucide-react';
  * 첫 SW 설치 (기존 controller 없음) 에는 토스트 안 보임.
  */
 export function UpdateToast() {
+  const t = useTranslations();
   const [show, setShow] = useState(false);
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
   const [applying, setApplying] = useState(false);
@@ -166,14 +168,14 @@ export function UpdateToast() {
     <div className="fixed bottom-20 left-3 right-3 z-[80] max-w-md mx-auto">
       <div className="bg-blue-600/90 backdrop-blur-md text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
         <Sparkles size={18} className="flex-shrink-0" />
-        <span className="text-xs font-medium flex-1">새 버전이 준비됐어요</span>
+        <span className="text-xs font-medium flex-1">{t('update.ready')}</span>
         <button
           onClick={applyUpdate}
           disabled={applying}
           className="text-xs font-bold bg-white/20 hover:bg-white/30 disabled:opacity-70 disabled:cursor-not-allowed px-3 py-1.5 rounded-full transition-colors flex-shrink-0 flex items-center gap-1.5"
         >
           {applying && <Loader2 size={12} className="animate-spin" />}
-          {applying ? '적용 중...' : '지금 적용'}
+          {applying ? t('update.applying') : t('update.apply')}
         </button>
         <button
           onClick={() => {
@@ -183,7 +185,7 @@ export function UpdateToast() {
           }}
           disabled={applying}
           className="text-white/70 hover:text-white disabled:opacity-50 flex-shrink-0"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>

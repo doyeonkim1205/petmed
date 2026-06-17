@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, CreditCard, ShieldCheck } from 'lucide-react';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function PaymentClient({ product }: Props) {
+  const t = useTranslations();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
@@ -41,7 +43,7 @@ export default function PaymentClient({ product }: Props) {
           tags: { feature: 'payment', action: 'widget-init' },
           extra: { userId: user?.id, productId: product?.id },
         });
-        setError(`결제 위젯 초기화 실패: ${err instanceof Error ? err.message : String(err)}`);
+        setError(t('payment.widgetInitFail', { msg: err instanceof Error ? err.message : String(err) }));
       }
     }
     init();
@@ -61,7 +63,7 @@ export default function PaymentClient({ product }: Props) {
           tags: { feature: 'payment', action: 'widget-render' },
           extra: { productId: product?.id },
         });
-        setError(`결제 위젯 렌더링 실패: ${err instanceof Error ? err.message : String(err)}`);
+        setError(t('payment.widgetRenderFail', { msg: err instanceof Error ? err.message : String(err) }));
       }
     }
     render();
@@ -72,7 +74,7 @@ export default function PaymentClient({ product }: Props) {
     if (!processing) return;
     window.history.pushState({ paymentLock: true }, '');
     const handlePopState = () => {
-      if (window.confirm('결제가 진행 중입니다. 정말로 페이지를 떠나시겠습니까?')) {
+      if (window.confirm(t('payment.leaveConfirm'))) {
         setProcessing(false);
         router.push('/profile/subscription');
       } else {
@@ -87,7 +89,7 @@ export default function PaymentClient({ product }: Props) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin text-gray-400" size={24} /></div>;
   }
 
-  const periodLabel = product.period === 'year' ? '/년' : '/월';
+  const periodLabel = product.period === 'year' ? t('payment.perYear') : t('payment.perMonth');
 
   const handlePayment = async () => {
     if (!widgets || !user || processing) return;
@@ -116,7 +118,7 @@ export default function PaymentClient({ product }: Props) {
       <div className="bg-gray-50 rounded-2xl p-5 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <CreditCard size={18} className="text-blue-500" />
-          <h2 className="text-base font-bold text-gray-800">결제 정보</h2>
+          <h2 className="text-base font-bold text-gray-800">{t('payment.info')}</h2>
         </div>
         <div className="flex justify-between text-sm text-gray-600">
           <span>{product.name}</span>
@@ -132,7 +134,7 @@ export default function PaymentClient({ product }: Props) {
           <p className="text-sm text-red-500 mb-4">{error}</p>
           <button onClick={() => router.push('/profile/subscription')}
             className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium">
-            돌아가기
+            {t('payment.goBack')}
           </button>
         </div>
       ) : (
@@ -140,7 +142,7 @@ export default function PaymentClient({ product }: Props) {
           {!ready && (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="animate-spin text-blue-500 mr-2" size={20} />
-              <span className="text-sm text-gray-500">결제 위젯 로딩 중...</span>
+              <span className="text-sm text-gray-500">{t('payment.widgetLoading')}</span>
             </div>
           )}
 
@@ -151,9 +153,9 @@ export default function PaymentClient({ product }: Props) {
             <button disabled={!ready || processing} onClick={handlePayment}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
               {processing ? (
-                <><Loader2 size={16} className="animate-spin" /> 결제 진행 중...</>
+                <><Loader2 size={16} className="animate-spin" /> {t('payment.processing')}</>
               ) : (
-                `₩${product.price.toLocaleString()} 결제하기`
+                t('payment.payCta', { amount: product.price.toLocaleString() })
               )}
             </button>
           )}
@@ -167,13 +169,13 @@ export default function PaymentClient({ product }: Props) {
             <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
               <ShieldCheck className="text-blue-500" size={24} />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">결제 진행 중</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-1">{t('payment.processingTitle')}</h3>
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-              결제가 완료될 때까지 페이지를 이동하거나<br />새로고침하지 마세요.
+              {t.rich('payment.processingBody', { br: () => <br /> })}
             </p>
             <div className="flex items-center justify-center gap-2 text-xs text-blue-500">
               <Loader2 size={14} className="animate-spin" />
-              <span>토스 결제창을 확인해 주세요</span>
+              <span>{t('payment.tossHint')}</span>
             </div>
           </div>
         </div>

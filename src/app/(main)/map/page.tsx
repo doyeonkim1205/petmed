@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
 import { TextField } from '@/components/TextField';
@@ -32,6 +33,7 @@ const DEFAULT_LAT = 37.5665;
 const DEFAULT_LNG = 126.978;
 
 export default function MapPage() {
+  const t = useTranslations();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -100,7 +102,7 @@ export default function MapPage() {
   // 1. Load Kakao Maps SDK
   useEffect(() => {
     if (!KAKAO_KEY) {
-      setError('카카오맵 API 키가 설정되지 않았습니다.');
+      setError(t('map.errKeyMissing'));
       setLoading(false);
       return;
     }
@@ -112,7 +114,7 @@ export default function MapPage() {
           level: 'warning',
           tags: { feature: 'map', action: 'sdk-timeout' },
         });
-        setError('지도 로딩이 너무 오래 걸립니다. 네트워크를 확인해 주세요.');
+        setError(t('map.errTimeout'));
         setLoading(false);
       }
     }, 10000);
@@ -127,7 +129,7 @@ export default function MapPage() {
         Sentry.captureException(err, {
           tags: { feature: 'map', action: 'sdk-init' },
         });
-        setError('지도를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+        setError(t('map.errInit'));
         setLoading(false);
       }
     };
@@ -160,7 +162,7 @@ export default function MapPage() {
         level: 'error',
         tags: { feature: 'map', action: 'sdk-load-failed' },
       });
-      setError('지도 SDK 로드에 실패했습니다. 네트워크를 확인해 주세요.');
+      setError(t('map.errSdk'));
       setLoading(false);
     };
     document.head.appendChild(script);
@@ -223,7 +225,7 @@ export default function MapPage() {
           tags: { feature: 'map', action: 'init' },
         });
         console.error('Map init error:', err);
-        setError('지도 초기화에 실패했습니다.');
+        setError(t('map.errInitFailed'));
         setLoading(false);
       }
     };
@@ -377,7 +379,7 @@ export default function MapPage() {
         white-space: nowrap;
         transform: translateY(-8px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      ">${place.is24h ? '24시' : 'H'}</div>`;
+      ">${place.is24h ? t('map.badge24h') : 'H'}</div>`;
 
       const overlay = new window.kakao.maps.CustomOverlay({
         content,
@@ -434,9 +436,9 @@ export default function MapPage() {
   };
 
   const filters = [
-    { id: 'all' as Filter, label: '전체' },
-    { id: '24h' as Filter, label: '24시 병원' },
-    { id: 'normal' as Filter, label: '일반 병원' },
+    { id: 'all' as Filter, label: t('common.all') },
+    { id: '24h' as Filter, label: t('map.filter24h') },
+    { id: 'normal' as Filter, label: t('map.filterNormal') },
   ];
 
   return (
@@ -456,7 +458,7 @@ export default function MapPage() {
             <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
               <MapPinOff size={28} className="text-gray-400" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">지도를 불러오지 못했어요</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">{t('map.errTitle')}</h2>
             <p className="text-xs text-gray-500 leading-relaxed mb-6">
               {error}
             </p>
@@ -465,7 +467,7 @@ export default function MapPage() {
               className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
             >
               <RefreshCw size={14} />
-              다시 시도
+              {t('common.retry')}
             </button>
           </div>
         </div>
@@ -475,15 +477,15 @@ export default function MapPage() {
         <div className="absolute inset-0 bg-white flex items-center justify-center z-20 px-6">
           <div className="flex flex-col items-center gap-2 max-w-xs text-center">
             <Loader2 size={32} className="animate-spin text-blue-400" />
-            <p className="text-sm text-gray-600 font-medium">지도 로딩 중...</p>
+            <p className="text-sm text-gray-600 font-medium">{t('map.loading')}</p>
             {loadingPhase >= 1 && (
-              <p className="text-xs text-gray-400">카카오맵 SDK를 준비하고 있어요</p>
+              <p className="text-xs text-gray-400">{t('map.loadingSdk')}</p>
             )}
             {loadingPhase >= 2 && (
               <div className="mt-4 space-y-1.5 text-[11px] text-gray-500 leading-relaxed">
-                <p className="font-medium text-gray-700">평소보다 시간이 걸리네요</p>
-                <p>📶 네트워크 상태에 따라 최대 15초 정도 걸릴 수 있어요</p>
-                <p>📍 위치 권한을 허용하면 더 빠르게 불러올 수 있어요</p>
+                <p className="font-medium text-gray-700">{t('map.loadingSlow')}</p>
+                <p>{t('map.loadingNetwork')}</p>
+                <p>{t('map.loadingLocation')}</p>
               </div>
             )}
           </div>
@@ -496,7 +498,7 @@ export default function MapPage() {
           <div className="flex-1 bg-white rounded-lg shadow-md flex items-center px-3 py-2.5">
             <Search size={18} className="text-gray-400 mr-2 flex-shrink-0" />
             <TextField
-              placeholder="병원명 또는 지역 검색"
+              placeholder={t('map.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               enterKeyHint="search"
@@ -549,7 +551,7 @@ export default function MapPage() {
           <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-start gap-2">
             <span className="text-orange-500 text-xs mt-0.5">📍</span>
             <p className="text-xs text-orange-600 flex-1 leading-snug">
-              위치 권한이 차단돼 있어요. 브라우저/앱 설정에서 위치를 <b>"앱 사용 중 허용"</b> 으로 바꾼 뒤 새로고침해주세요.
+              {t.rich('map.locationDenied', { b: (c) => <b>{c}</b> })}
             </p>
             <button
               onClick={() => setLocationFailed(false)}
@@ -569,7 +571,7 @@ export default function MapPage() {
             className="flex items-center gap-1.5 bg-white text-blue-600 px-4 py-2 rounded-full shadow-lg text-sm font-medium border border-blue-100 hover:bg-blue-50 active:scale-95 transition-all"
           >
             <RefreshCw size={14} />
-            이 지역 검색
+            {t('map.searchArea')}
           </button>
         </div>
       )}
@@ -589,7 +591,7 @@ export default function MapPage() {
               {selectedPlace.place_name}
               {selectedPlace.is24h && (
                 <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5">
-                  <Clock size={10} /> 24시
+                  <Clock size={10} /> {t('map.badge24h')}
                 </span>
               )}
             </h3>
@@ -610,7 +612,7 @@ export default function MapPage() {
                 href={`tel:${selectedPlace.phone}`}
                 className="flex-1 py-2.5 bg-blue-600 text-[#fff] rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
               >
-                <Phone size={16} /> 전화하기
+                <Phone size={16} /> {t('map.call')}
               </a>
             )}
             <a
@@ -619,7 +621,7 @@ export default function MapPage() {
               rel="noopener noreferrer"
               className="flex-1 py-2.5 bg-yellow-400 text-gray-900 rounded-lg text-sm font-medium hover:bg-yellow-500 flex items-center justify-center gap-2"
             >
-              <Navigation size={16} /> 길찾기
+              <Navigation size={16} /> {t('map.directions')}
             </a>
             <a
               href={selectedPlace.place_url}
@@ -627,7 +629,7 @@ export default function MapPage() {
               rel="noopener noreferrer"
               className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center justify-center gap-2"
             >
-              <Search size={16} /> 상세
+              <Search size={16} /> {t('map.details')}
             </a>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, Check } from 'lucide-react';
 import type { Pet } from '@/lib/supabase';
 
@@ -24,9 +25,11 @@ export function PetSelectDropdown({
   pets,
   value,
   onChange,
-  placeholder = '선택해주세요',
+  placeholder,
   className = '',
 }: Props) {
+  const t = useTranslations();
+  const ph = placeholder ?? t('common.selectPet');
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -67,7 +70,7 @@ export function PetSelectDropdown({
         {selected ? (
           <span className="text-gray-800">{selected.name}</span>
         ) : (
-          <span className="text-gray-400">{placeholder}</span>
+          <span className="text-gray-400">{ph}</span>
         )}
         <ChevronDown
           size={16}

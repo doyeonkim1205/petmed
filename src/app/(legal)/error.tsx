@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import * as Sentry from '@sentry/nextjs';
@@ -12,6 +13,7 @@ export default function LegalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('errors');
   useEffect(() => {
     Sentry.captureException(error);
     console.error('Legal page error:', error);
@@ -22,23 +24,21 @@ export default function LegalError({
       <div className="text-center max-w-xs">
         <Image
           src="/icons/error-illustration.svg"
-          alt="에러 일러스트"
+          alt={t('illustAlt')}
           width={200}
           height={200}
           className="mx-auto mb-4"
         />
-        <h2 className="text-base font-bold text-gray-900 mb-2">앗, 문제가 발생했어요!</h2>
+        <h2 className="text-base font-bold text-gray-900 mb-2">{t('title')}</h2>
         <p className="text-xs text-gray-500 leading-relaxed mb-6">
-          일시적인 오류일 수 있어요.<br />
-          잠시 후 다시 시도해주세요.<br />
-          문제가 계속되면 앱을 재실행해주세요.
+          {t.rich('body', { br: () => <br /> })}
         </p>
         <button
           onClick={reset}
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-full text-xs font-medium"
         >
           <RefreshCw size={14} />
-          다시 시도
+          {t('retry')}
         </button>
       </div>
     </div>

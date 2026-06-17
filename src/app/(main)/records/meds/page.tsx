@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, Plus, Pill, Bell, BellOff, Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,10 +18,11 @@ import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import { todayLocalISO } from '@/lib/date';
 
+// value 는 DB 저장값(한국어 고정). 표시는 record.dose.* labelKey 로 분리.
 const frequencyOptions = [
-  { value: '1일 1회', times: 1 },
-  { value: '1일 2회', times: 2 },
-  { value: '1일 3회', times: 3 },
+  { value: '1일 1회', times: 1, labelKey: 'onceDaily' },
+  { value: '1일 2회', times: 2, labelKey: 'twiceDaily' },
+  { value: '1일 3회', times: 3, labelKey: 'thriceDaily' },
 ];
 
 const defaultAlarmTimes: Record<number, string[]> = {
@@ -29,10 +31,11 @@ const defaultAlarmTimes: Record<number, string[]> = {
   3: ['08:00', '14:00', '21:00'],
 };
 
-const kindOptions: { value: MedicationKind; label: string; badge: string }[] = [
-  { value: 'prescription', label: '처방약', badge: 'bg-blue-50 text-blue-600' },
-  { value: 'supplement',   label: '영양제', badge: 'bg-green-50 text-green-600' },
-  { value: 'other',        label: '기타',   badge: 'bg-gray-100 text-gray-500' },
+// label 은 meds.type.* messages 로 분리 — value(id) 로 참조.
+const kindOptions: { value: MedicationKind; badge: string }[] = [
+  { value: 'prescription', badge: 'bg-blue-50 text-blue-600' },
+  { value: 'supplement',   badge: 'bg-green-50 text-green-600' },
+  { value: 'other',        badge: 'bg-gray-100 text-gray-500' },
 ];
 
 const kindMeta = (k?: MedicationKind) => kindOptions.find((o) => o.value === (k || 'prescription')) || kindOptions[0];
@@ -73,6 +76,7 @@ function fromMed(m: Medication): MedForm {
 }
 
 export default function MedsPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
   const { getMedicationsByPet, addMedication, updateMedication, deleteMedication } = useMedications();
@@ -219,9 +223,9 @@ export default function MedsPage() {
   };
 
   const saveMed = async () => {
-    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요'); return; }
-    if (!form.name.trim()) { setFormError('약 이름을 입력해주세요'); return; }
-    if (form.end_date && form.end_date < form.start_date) { setFormError('종료일이 시작일보다 빠를 수 없어요'); return; }
+    if (!selectedPetId) { setFormError(t('preventive.selectPet')); return; }
+    if (!form.name.trim()) { setFormError(t('record.form.error.medNameRequired')); return; }
+    if (form.end_date && form.end_date < form.start_date) { setFormError(t('meds.endBeforeStart')); return; }
     setFormError(null);
     setSaving(true);
     try {
@@ -260,7 +264,7 @@ export default function MedsPage() {
       await load();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'medications', action: form.id ? 'edit' : 'add' }, extra: { userId: user?.id } });
-      setFormError('저장 중 오류가 발생했어요! 다시 시도해주세요');
+      setFormError(t('preventive.saveError'));
     } finally {
       setSaving(false);
     }
@@ -294,6 +298,12 @@ export default function MedsPage() {
 
   const fmtDate = (d?: string | null) => (d ? `${parseInt(d.split('-')[1])}.${parseInt(d.split('-')[2])}` : '');
 
+  // 저장된 빈도(한국어 value)를 알려진 값이면 locale 라벨로, 아니면(legacy 자유입력) 원본 표시.
+  const freqDisplay = (f: string) => {
+    const opt = frequencyOptions.find((o) => o.value === f);
+    return opt ? t(`record.dose.${opt.labelKey}`) : f;
+  };
+
   const MedCard = ({ m, dim }: { m: Medication; dim?: boolean }) => {
     const km = kindMeta(m.kind);
     return (
@@ -305,11 +315,11 @@ export default function MedsPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-semibold text-gray-900 truncate">{m.name}</span>
-            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${km.badge}`}>{km.label}</span>
+            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${km.badge}`}>{t(`meds.type.${m.kind || 'prescription'}`)}</span>
             {m.alarm_enabled && <Bell size={12} className="flex-shrink-0 text-blue-500" />}
           </div>
           <p className="text-xs text-gray-400 mt-0.5 truncate">
-            {m.dosage && `${m.dosage} · `}{m.frequency}
+            {m.dosage && `${m.dosage} · `}{freqDisplay(m.frequency)}
             {m.start_date && ` · ${fmtDate(m.start_date)}${m.end_date ? `~${fmtDate(m.end_date)}` : '~'}`}
           </p>
         </div>
@@ -334,10 +344,10 @@ export default function MedsPage() {
       {/* 헤더 — 건강 통계와 동일: 중앙 정렬 타이틀 + 좌측 뒤로가기 + 펫 칩 */}
       <div className="sticky top-0 z-30 bg-white relative">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
-          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">복약 관리</h1>
+          <h1 className="text-sm font-semibold text-gray-700">{t('record.module.meds')}</h1>
         </header>
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
@@ -355,7 +365,7 @@ export default function MedsPage() {
         {noPets ? (
           <div className="text-center py-16">
             <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
+            <p className="text-gray-400 text-sm">{t('common.registerPetFirst')}</p>
           </div>
         ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
@@ -364,26 +374,26 @@ export default function MedsPage() {
         ) : (
           <>
             <p className="text-xs text-gray-400 leading-snug">
-              진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요! 복용 체크는 홈·캘린더에서 할 수 있어요
+              {t('meds.intro')}
             </p>
 
             {meds.length === 0 ? (
               <div className="text-center py-12">
                 <Pill size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">등록된 약·영양제가 없어요</p>
-                <p className="text-gray-300 text-xs mt-1">+ 버튼으로 추가해보세요</p>
+                <p className="text-gray-400 text-sm">{t('meds.empty')}</p>
+                <p className="text-gray-300 text-xs mt-1">{t('preventive.emptyHint')}</p>
               </div>
             ) : (
               <>
                 {active.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="text-[13px] font-bold text-gray-700">복용 중 {active.length}</h2>
+                    <h2 className="text-[13px] font-bold text-gray-700">{t('meds.activeCount', { count: active.length })}</h2>
                     {active.map((m) => <MedCard key={m.id} m={m} />)}
                   </div>
                 )}
                 {ended.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="text-[13px] font-bold text-gray-400">종료 {ended.length}</h2>
+                    <h2 className="text-[13px] font-bold text-gray-400">{t('meds.endedCount', { count: ended.length })}</h2>
                     {ended.map((m) => <MedCard key={m.id} m={m} dim />)}
                   </div>
                 )}
@@ -412,14 +422,14 @@ export default function MedsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">{form.id ? '약 수정' : '약 추가'}</h2>
+              <h2 className="text-base font-bold text-gray-900">{form.id ? t('meds.editTitle') : t('meds.addTitle')}</h2>
               <button onClick={closeEditor} className="p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
             </div>
 
             <div className="p-4 space-y-3">
               {/* 종류 */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">종류</label>
+                <label className="text-xs text-gray-400 mb-1 block">{t('meds.typeLabel')}</label>
                 <div className="flex gap-1.5">
                   {kindOptions.map((opt) => (
                     <button
@@ -430,7 +440,7 @@ export default function MedsPage() {
                         form.kind === opt.value ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'
                       }`}
                     >
-                      {opt.label}
+                      {t(`meds.type.${opt.value}`)}
                     </button>
                   ))}
                 </div>
@@ -438,7 +448,7 @@ export default function MedsPage() {
 
               <input
                 type="search"
-                placeholder="약·영양제 이름"
+                placeholder={t('meds.namePlaceholder')}
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 maxLength={20}
@@ -447,7 +457,7 @@ export default function MedsPage() {
               />
               <input
                 type="search"
-                placeholder="용량 (예: 1정)"
+                placeholder={t('record.form.dosagePlaceholder')}
                 value={form.dosage}
                 onChange={(e) => setForm((f) => ({ ...f, dosage: e.target.value }))}
                 maxLength={20}
@@ -456,7 +466,7 @@ export default function MedsPage() {
               />
 
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">투약 빈도</label>
+                <label className="text-xs text-gray-400 mb-1 block">{t('record.form.frequency')}</label>
                 <div className="flex gap-1.5">
                   {frequencyOptions.map((opt) => (
                     <button
@@ -467,7 +477,7 @@ export default function MedsPage() {
                         form.frequency === opt.value ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'
                       }`}
                     >
-                      {opt.value}
+                      {t(`record.dose.${opt.labelKey}`)}
                     </button>
                   ))}
                 </div>
@@ -475,7 +485,7 @@ export default function MedsPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-gray-400">시작일</label>
+                  <label className="text-xs text-gray-400">{t('record.form.startDate')}</label>
                   <DatePicker
                     value={form.start_date}
                     onChange={(v) => setForm((f) => ({ ...f, start_date: v }))}
@@ -483,7 +493,7 @@ export default function MedsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400">종료일 (선택)</label>
+                  <label className="text-xs text-gray-400">{t('record.form.endDate')} {t('common.optional')}</label>
                   <DatePicker
                     value={form.end_date}
                     onChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
@@ -493,7 +503,7 @@ export default function MedsPage() {
                 </div>
               </div>
 
-              <ColorPicker label="캘린더 색상" value={form.color} onChange={(c) => setForm((f) => ({ ...f, color: c }))} />
+              <ColorPicker label={t('record.form.medCalendarColor')} value={form.color} onChange={(c) => setForm((f) => ({ ...f, color: c }))} />
 
               {/* 투약 알림 */}
               <div className="border-t border-gray-100 pt-2">
@@ -506,19 +516,19 @@ export default function MedsPage() {
                   }`}
                 >
                   {subscribing ? <Loader2 size={14} className="animate-spin" /> : form.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                  {subscribing ? '알림 켜는 중...' : `투약 알림 ${form.alarm_enabled ? 'ON' : 'OFF'}`}
+                  {subscribing ? t('record.form.alarmTurningOn') : t('record.form.medAlarm', { state: form.alarm_enabled ? 'ON' : 'OFF' })}
                 </button>
                 {canUseAlarm && form.alarm_enabled && notifPermission === 'denied' && !isNativeApp() && (
                   <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
                     <BellOff size={11} className="flex-shrink-0 mt-0.5" />
-                    <p>브라우저 알림이 차단되어 있어요! 앱 설정에서 알림 허용으로 변경 후 다시 시도해주세요</p>
+                    <p>{t('record.form.notifBlocked')}</p>
                   </div>
                 )}
                 {canUseAlarm && form.alarm_enabled && (
                   <div className="space-y-1.5 mt-1">
                     {form.alarm_times.map((time, ti) => (
                       <div key={ti} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 w-12">{ti + 1}회차</span>
+                        <span className="text-xs text-gray-400 w-12">{t('record.form.doseNth', { n: ti + 1 })}</span>
                         <TimePicker value={time} onChange={(v) => setAlarmTime(ti, v)} minuteStep={15} />
                       </div>
                     ))}
@@ -533,7 +543,7 @@ export default function MedsPage() {
                 disabled={saving || !form.name.trim()}
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors"
               >
-                {saving ? '저장 중...' : form.id ? '수정' : '추가'}
+                {saving ? t('record.form.saving') : form.id ? t('common.edit') : t('common.add')}
               </button>
 
               {form.id && (
@@ -544,7 +554,7 @@ export default function MedsPage() {
                   }}
                   className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
                 >
-                  <Trash2 size={13} /> 삭제
+                  <Trash2 size={13} /> {t('common.delete')}
                 </button>
               )}
             </div>
@@ -555,10 +565,10 @@ export default function MedsPage() {
       {/* 알림 권한 soft-prompt */}
       <ConfirmModal
         open={showPushPrompt}
-        title="투약 알림을 받을까요?"
-        message="설정한 시간에 투약 알림을 보내드려요! 알림을 허용하면 바로 적용돼요"
-        confirmLabel="받을게요"
-        cancelLabel="나중에"
+        title={t('meds.softPromptTitle')}
+        message={t('meds.softPromptMsg')}
+        confirmLabel={t('record.form.allow')}
+        cancelLabel={t('record.form.later')}
         onConfirm={handlePushAllow}
         onCancel={() => setShowPushPrompt(false)}
       />
@@ -569,26 +579,24 @@ export default function MedsPage() {
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
             <div className="flex items-center gap-2 mb-3">
               <Bell size={18} className="text-blue-500" />
-              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+              <h3 className="text-sm font-bold text-gray-800">{t('record.form.alarmFeatureTitle')}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
-              {!isPWA
-                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'
-                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'}
+              {!isPWA ? t('record.form.alarmUpsellApp') : t('record.form.alarmUpsellWeb')}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('record.form.alarmUpsellDesc')}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAlarmUpgrade(false)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
               >
-                닫기
+                {t('common.close')}
               </button>
               <button
                 onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               >
-                요금제 보기
+                {t('record.form.viewPlans')}
               </button>
             </div>
           </div>
@@ -605,7 +613,7 @@ export default function MedsPage() {
               <button
                 onClick={() => setActionTarget(null)}
                 className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
-                aria-label="닫기"
+                aria-label={t('common.close')}
               >
                 <X size={16} />
               </button>
@@ -615,14 +623,12 @@ export default function MedsPage() {
                   <AlertTriangle size={16} className="text-red-500" />
                 </div>
                 <p className="text-sm font-bold text-gray-800">
-                  {linked ? `'${actionTarget.name}' 어떻게 할까요?` : `'${actionTarget.name}' 삭제할까요?`}
+                  {linked ? t('meds.actionTitleLinked', { name: actionTarget.name }) : t('meds.actionTitleDelete', { name: actionTarget.name })}
                 </p>
               </div>
 
               <p className="text-xs text-gray-500 leading-relaxed mb-4 break-keep break-words">
-                {linked
-                  ? '이 약은 진료 기록에도 등록돼 있어요! 완전 삭제하면 진료 기록에서도 사라져요'
-                  : '삭제하면 복용 기록·알림도 함께 사라져요'}
+                {linked ? t('meds.actionMsgLinked') : t('meds.actionMsgDelete')}
               </p>
 
               <div className="flex flex-col gap-2">
@@ -631,20 +637,20 @@ export default function MedsPage() {
                     onClick={endMed}
                     className="w-full py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                   >
-                    오늘까지 복용 종료 <span className="text-blue-200">(기록 보존)</span>
+                    {t.rich('meds.endToday', { preserve: (c) => <span className="text-blue-200">{c}</span> })}
                   </button>
                 )}
                 <button
                   onClick={deleteMed}
                   className="w-full py-2.5 rounded-full text-xs font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
                 >
-                  {linked ? '완전 삭제' : '삭제'}
+                  {linked ? t('meds.deleteFully') : t('common.delete')}
                 </button>
                 <button
                   onClick={() => setActionTarget(null)}
                   className="w-full py-2.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
                 >
-                  취소
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

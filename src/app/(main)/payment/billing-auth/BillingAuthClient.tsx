@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function BillingAuthClient({ product, mode = 'register' }: Props) {
+  const t = useTranslations();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function BillingAuthClient({ product, mode = 'register' }: Props)
       });
       console.error(err);
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`카드 등록창 호출에 실패했습니다: ${msg}`);
+      setError(t('payment.authFail', { msg }));
       setProcessing(false);
     }
   };
@@ -74,36 +76,36 @@ export default function BillingAuthClient({ product, mode = 'register' }: Props)
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
           <ShieldCheck className="text-blue-500" size={28} />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-1">자동 갱신 등록</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">{t('payment.authTitle')}</h1>
         <p className="text-sm text-gray-500">
-          카드 정보를 등록하면 매월 자동으로 결제됩니다
+          {t('payment.authSubtitle')}
         </p>
       </div>
 
       <div className="bg-gray-50 rounded-2xl p-5 mb-6 text-sm">
         <div className="flex justify-between mb-2">
-          <span className="text-gray-500">상품</span>
+          <span className="text-gray-500">{t('payment.product')}</span>
           <span className="font-semibold text-gray-900">{product.name}</span>
         </div>
         <div className="flex justify-between mb-2">
-          <span className="text-gray-500">결제 금액</span>
+          <span className="text-gray-500">{t('payment.amount')}</span>
           <span className="font-bold text-gray-900">
-            ₩{product.price.toLocaleString()} / 월
+            {t('payment.pricePerMonth', { price: product.price.toLocaleString() })}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">첫 결제</span>
-          <span className="text-gray-700">즉시</span>
+          <span className="text-gray-500">{t('payment.firstCharge')}</span>
+          <span className="text-gray-700">{t('payment.immediately')}</span>
         </div>
       </div>
 
       <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 mb-6 text-xs text-gray-600 leading-relaxed">
-        <p className="font-semibold text-blue-700 mb-1">자동 결제 안내</p>
+        <p className="font-semibold text-blue-700 mb-1">{t('payment.autoInfoTitle')}</p>
         <ul className="list-disc pl-4 space-y-1">
-          <li>오늘 ₩{product.price.toLocaleString()}이 즉시 결제됩니다.</li>
-          <li>이후 매월 같은 날 자동으로 ₩{product.price.toLocaleString()}이 결제됩니다.</li>
-          <li>요금제 페이지에서 언제든지 자동 갱신을 끌 수 있습니다.</li>
-          <li>해지 시에도 결제 주기 만료일까지 이용 가능합니다.</li>
+          <li>{t('payment.autoInfo1', { price: product.price.toLocaleString() })}</li>
+          <li>{t('payment.autoInfo2', { price: product.price.toLocaleString() })}</li>
+          <li>{t('payment.autoInfo3')}</li>
+          <li>{t('payment.autoInfo4')}</li>
         </ul>
       </div>
 
@@ -122,16 +124,18 @@ export default function BillingAuthClient({ product, mode = 'register' }: Props)
         {processing ? (
           <>
             <Loader2 size={16} className="animate-spin" />
-            카드 등록창 여는 중...
+            {t('payment.authOpening')}
           </>
         ) : (
-          '카드 등록하고 시작하기'
+          t('payment.authCta')
         )}
       </button>
 
       <p className="text-[11px] text-gray-400 mt-4 text-center leading-relaxed">
-        카드 등록을 진행하면 <a href="/terms" className="underline">이용약관</a> 및{' '}
-        <a href="/refund" className="underline">환불 정책</a>에 동의하는 것으로 간주됩니다.
+        {t.rich('payment.agreement', {
+          terms: (c) => <a href="/terms" className="underline">{c}</a>,
+          refund: (c) => <a href="/refund" className="underline">{c}</a>,
+        })}
       </p>
     </div>
   );

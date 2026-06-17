@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Pill, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
+
+type TFn = ReturnType<typeof useTranslations>;
 
 interface MedicationCheckListProps {
   petId?: string;
@@ -12,12 +15,12 @@ interface MedicationCheckListProps {
   card?: boolean;   // 홈에서 흰 카드로 감싸 노출 (복약 있을 때만 — 빈 경우 null 반환이라 카드도 안 뜸)
 }
 
-function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }): string[] {
+function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }, t: TFn): string[] {
   const count = parseDoseCount(med.frequency);
   const times = med.alarm_times;
   if (times && times.length === count) return times;
-  if (count === 1) return ['복용'];
-  return Array.from({ length: count }, (_, i) => `${i + 1}회차`);
+  if (count === 1) return [t('home.medWidget.dose')];
+  return Array.from({ length: count }, (_, i) => t('record.form.doseNth', { n: i + 1 }));
 }
 
 function parseDoseCount(frequency: string): number {
@@ -27,6 +30,7 @@ function parseDoseCount(frequency: string): number {
 }
 
 export function MedicationCheckList({ petId, date, card }: MedicationCheckListProps) {
+  const t = useTranslations();
   const [medications, setMedications] = useState<any[]>([]);
   const [checks, setChecks] = useState<MedicationCheck[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,19 +107,21 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
             {(() => {
               const d = new Date();
               const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              return today === localToday ? '오늘의 약' : `${parseInt(today.split('-')[1])}/${parseInt(today.split('-')[2])} 약`;
+              return today === localToday
+                ? t('home.medWidget.title')
+                : t('meds.datedTitle', { m: parseInt(today.split('-')[1]), d: parseInt(today.split('-')[2]) });
             })()}
           </h4>
         </div>
         <span className="text-xs text-gray-400">
-          {checkedCount}/{totalDoses} 완료
+          {t('meds.doneCount', { checked: checkedCount, total: totalDoses })}
         </span>
       </div>
 
       <div className="space-y-2">
         {medications.map((med) => {
           const doseCount = parseDoseCount(med.frequency);
-          const labels = getDoseLabels(med);
+          const labels = getDoseLabels(med, t);
           const petName = med.pets?.name;
 
           return (

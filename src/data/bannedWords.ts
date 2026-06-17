@@ -22,6 +22,10 @@ const bannedPatterns: string[] = [
   // 스팸/무의미
   'ㅋㅋㅋ', 'ㅎㅎㅎ', 'asdf', 'qwer', 'test', '테스트',
   'ㅁㄴㅇㄹ', 'zxcv',
+  // English profanity/slurs/sexual — 수의 검색어와 겹치지 않는 명백한 토큰만.
+  //   ⚠️ 'anal'(항문선), 'bitch'(암컷), 'dick', 'cum'(circumstance) 등은 정상 용어/오탐이라 제외.
+  'fuck', 'motherf', 'shit', 'asshole', 'cunt', 'blowjob', 'handjob',
+  'faggot', 'nigger', 'whore', 'slut', 'masturbat', 'dickhead', 'wanker',
 ];
 
 /**

@@ -36,6 +36,9 @@ export interface Profile {
   // true = 마이페이지에서 ON, false = 마이페이지에서 명시적 OFF.
   // auto-resubscribe 로직이 false 면 스킵해서 사용자 의사 존중.
   is_push_enabled?: boolean | null;
+  // 선호 언어 (계정 동기화). null = 미설정 → 쿠키/navigator.language 로 추정.
+  // 'ko' | 'en' (i18n locales 와 일치). 로그인 시 이 값으로 NEXT_LOCALE 쿠키 seed.
+  preferred_language?: 'ko' | 'en' | null;
 }
 
 export type SearchLogKind = 'symptom' | 'symptom_refine' | 'symptom_photo' | 'disease';

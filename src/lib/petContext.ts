@@ -69,18 +69,24 @@ export interface PetContext {
   excretion?: { poop?: ExcretionKindSummary; pee?: ExcretionKindSummary };
 }
 
-/** 생년월일 → "12살" 자연어 변환. NULL/잘못된 형식이면 빈 문자열. */
-export function formatAge(birthDate: string | null | undefined): string {
-  if (!birthDate) return '';
+/** 생년월일 → 만 나이(년). NULL/잘못된 형식/음수면 null. */
+export function ageYears(birthDate: string | null | undefined): number | null {
+  if (!birthDate) return null;
   const birth = new Date(birthDate);
-  if (isNaN(birth.getTime())) return '';
+  if (isNaN(birth.getTime())) return null;
   const now = new Date();
   let years = now.getFullYear() - birth.getFullYear();
   const monthDiff = now.getMonth() - birth.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
     years -= 1;
   }
-  return years < 0 ? '' : `${years}살`;
+  return years < 0 ? null : years;
+}
+
+/** 생년월일 → "12살" 자연어 변환. NULL/잘못된 형식이면 빈 문자열. */
+export function formatAge(birthDate: string | null | undefined): string {
+  const y = ageYears(birthDate);
+  return y == null ? '' : `${y}살`;
 }
 
 /**
@@ -206,8 +212,12 @@ export async function fetchPetContext(
  * NULL/빈 필드는 자동 생략 — "성별: 미입력" 같은 placeholder 안 넣음.
  * 펫 자체 없으면 빈 문자열 (호출 측에서 그대로 합칠 수 있음).
  */
-export function buildPetContextPrompt(ctx: PetContext | null): string {
+export function buildPetContextPrompt(ctx: PetContext | null, locale: 'ko' | 'en' = 'ko'): string {
   if (!ctx) return '';
+  return locale === 'en' ? buildPetContextPromptEn(ctx) : buildPetContextPromptKo(ctx);
+}
+
+function buildPetContextPromptKo(ctx: PetContext): string {
   const { pet, recentRecords } = ctx;
 
   const lines: string[] = ['[환자 정보]'];
@@ -296,6 +306,97 @@ export function buildPetContextPrompt(ctx: PetContext | null): string {
   // 공통 지침 — 미제공 항목을 증상으로 추정하지 않도록.
   lines.push('');
   lines.push('※ 제공되지 않은 기록은 입력되지 않았거나 충분하지 않은 정보일 수 있으므로, 제공되지 않은 항목을 증상으로 추정하지 마세요.');
+
+  return lines.join('\n');
+}
+
+// 영어판 — KO 구조를 그대로 옮기되 라벨만 영어. (excretion abnormal 라벨은 저장된 한국어
+// 조건명이 그대로 들어갈 수 있음 — 컨텍스트 데이터라 영향 작음, 추후 보완 대상)
+function buildPetContextPromptEn(ctx: PetContext): string {
+  const { pet, recentRecords } = ctx;
+
+  const lines: string[] = ['[Patient information]'];
+
+  lines.push(`- Name: ${pet.name}`);
+
+  const speciesLabel = pet.type === 'dog' ? 'Dog' : 'Cat';
+  const speciesAndBreed = pet.breed ? `${speciesLabel} (${pet.breed})` : speciesLabel;
+  lines.push(`- Species/breed: ${speciesAndBreed}`);
+
+  const y = ageYears(pet.birth_date);
+  if (y != null) lines.push(`- Age: ${y} ${y === 1 ? 'year' : 'years'} old (born ${pet.birth_date})`);
+
+  if (pet.sex || pet.neutered != null) {
+    const sexLabel = pet.sex === 'male' ? 'Male' : pet.sex === 'female' ? 'Female' : '';
+    const neuterLabel =
+      pet.neutered === true ? 'neutered'
+      : pet.neutered === false ? 'not neutered'
+      : '';
+    const combined = [sexLabel, neuterLabel].filter(Boolean).join(' · ');
+    if (combined) lines.push(`- Sex: ${combined}`);
+  }
+
+  if (pet.weight != null) lines.push(`- Weight: ${pet.weight}kg`);
+
+  if (pet.chronic_conditions && pet.chronic_conditions.length > 0) {
+    lines.push(`- Chronic conditions: ${pet.chronic_conditions.join(', ')}`);
+  }
+
+  if (recentRecords.length > 0) {
+    lines.push('');
+    lines.push('[Visits in the last 3 months]');
+    for (const r of recentRecords) {
+      const body = r.description ? ` — ${r.description}` : '';
+      lines.push(`- ${r.visit_date}: ${r.title}${body}`);
+    }
+  }
+
+  const intake = ctx.intake;
+  if (intake && (intake.water || intake.food || intake.fluid)) {
+    lines.push('');
+    lines.push(intake.fluid ? '[Recent water/food/fluid reference]' : '[Recent water/food reference]');
+    if (intake.water) {
+      const w = intake.water;
+      let line = `- Water: logged on ${w.daysLogged} of the last 14 days, average ${w.avg}ml/day on logged days`;
+      if (pet.weight != null && pet.weight > 0) {
+        const r = waterTargetRange(pet.type, pet.weight);
+        if (r) line += `, weight-based reference range ~${r.low}-${r.high}ml/day`;
+      }
+      line += `, last logged ${w.lastDate}`;
+      lines.push(line);
+    }
+    if (intake.fluid) {
+      const fl = intake.fluid;
+      let line = `- Fluids: logged ${fl.count} times in the last 14 days`;
+      if (fl.total != null) line += `, total ${fl.total}ml`;
+      line += `, last logged ${fl.lastDate}`;
+      lines.push(line);
+    }
+    if (intake.food) {
+      const f = intake.food;
+      lines.push(`- Food: logged on ${f.daysLogged} of the last 14 days, average ${f.avg}g/day on logged days, last logged ${f.lastDate}`);
+    }
+    if (intake.fluid) {
+      lines.push('- Note: fluids are supplemental hydration for reference and are not included in the voluntary water-intake average.');
+    }
+  }
+
+  const exc = ctx.excretion;
+  if (exc && (exc.poop || exc.pee)) {
+    lines.push('');
+    lines.push('[Stool/urine reference, last 14 days]');
+    if (exc.poop) {
+      const a = exc.poop.abnormal.length ? ` (${exc.poop.abnormal.map((x) => `${x.label} x${x.n}`).join(' · ')})` : ' (all normal)';
+      lines.push(`- Stool: ${exc.poop.total} times in 14 days${a}, last ${exc.poop.lastDate}`);
+    }
+    if (exc.pee) {
+      const a = exc.pee.abnormal.length ? ` (${exc.pee.abnormal.map((x) => `${x.label} x${x.n}`).join(' · ')})` : ' (all normal)';
+      lines.push(`- Urine: ${exc.pee.total} times in 14 days${a}, last ${exc.pee.lastDate}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('※ Records not shown may be missing or insufficient; do not infer unshown items as symptoms.');
 
   return lines.join('\n');
 }

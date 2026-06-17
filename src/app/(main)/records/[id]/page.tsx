@@ -2,11 +2,12 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, Utensils, Footprints, CircleDot, Droplet, Smile, MoreHorizontal, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
-import { HealthRecord, Medication, RecordFile, supabase, DailySubKind } from '@/lib/supabase';
+import { HealthRecord, Medication, RecordFile, supabase } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { SafeImage } from '@/components/ui/SafeImage';
@@ -34,26 +35,18 @@ async function triggerDownload(filePath: string, fileName: string) {
   document.body.removeChild(a);
 }
 
+// 라벨은 messages 로 분리 — 타입 라벨은 t('record.type.*'|'record.typeShort.daily'), 색/아이콘만 여기.
 const typeConfig = {
-  symptom: { icon: AlertCircle, label: '증상 기록', color: 'bg-orange-100 text-orange-600' },
-  visit: { icon: Stethoscope, label: '진료 기록', color: 'bg-blue-100 text-blue-600' },
-  hospitalization: { icon: Building2, label: '입퇴원 기록', color: 'bg-emerald-100 text-emerald-600' },
-  manual: { icon: FileEdit, label: '직접 입력', color: 'bg-green-100 text-green-600' },
-  daily: { icon: PawPrint, label: '일상', color: 'bg-purple-100 text-purple-600' },
-};
-
-// 일상 세부 종류 → 라벨/아이콘 매핑 (상세 페이지 섹션 헤더).
-const DAILY_SUB_META: Record<DailySubKind, { label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
-  meal:      { label: '식사', icon: Utensils },
-  hydration: { label: '수분', icon: Droplet },
-  walk:      { label: '산책', icon: Footprints },
-  poop:      { label: '배변', icon: CircleDot },
-  mood:      { label: '기분', icon: Smile },
-  other:     { label: '기타', icon: MoreHorizontal },
+  symptom: { icon: AlertCircle, color: 'bg-orange-100 text-orange-600' },
+  visit: { icon: Stethoscope, color: 'bg-blue-100 text-blue-600' },
+  hospitalization: { icon: Building2, color: 'bg-emerald-100 text-emerald-600' },
+  manual: { icon: FileEdit, color: 'bg-green-100 text-green-600' },
+  daily: { icon: PawPrint, color: 'bg-purple-100 text-purple-600' },
 };
 
 export default function RecordDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations();
   const router = useRouter();
   const { user } = useAuth();
   const { getRecord, deleteRecord } = useHealthRecords();
@@ -156,7 +149,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const formatCost = (cost: number) => {
-    return new Intl.NumberFormat('ko-KR').format(cost) + '원';
+    // 금액은 KRW(토스) 고정 — 숫자만 포맷하고 통화 표기는 locale 메시지(record.money)로.
+    return t('record.money', { value: new Intl.NumberFormat('en-US').format(cost) });
   };
 
   if (loading) {
@@ -166,7 +160,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   if (!record) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-500">기록을 찾을 수 없습니다.</p>
+        <p className="text-gray-500">{t('record.detail.notFound')}</p>
       </div>
     );
   }
@@ -181,7 +175,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">기록 상세</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t('record.detail.title')}</h1>
       </header>
 
       <div className="p-4 max-w-sm mx-auto w-full">
@@ -192,7 +186,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded text-xs font-bold ${config.color}`}>
-                {config.label}
+                {record.record_type === 'daily' ? t('record.typeShort.daily') : t(`record.type.${record.record_type in typeConfig ? record.record_type : 'manual'}`)}
               </span>
               {record.pets && (
                 <span className="flex items-center gap-1 text-xs text-gray-400">
@@ -214,7 +208,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
         <h2 className={`text-base font-bold text-gray-900 ${record.record_type === 'daily' ? 'mb-1' : 'mb-3'}`}>
           {record.record_type === 'daily'
-            ? `${record.pets?.name ?? ''}의 일상 기록`
+            ? t('record.detail.dailyTitle', { name: record.pets?.name ?? '' })
             : record.title}
         </h2>
 
@@ -229,7 +223,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             {record.sub_entries && record.sub_entries.length > 0 && (
               <p className="text-xs text-gray-400 mb-3">
                 {Array.from(new Set(record.sub_entries.map((e) => e.sub_kind)))
-                  .map((kind) => DAILY_SUB_META[kind]?.label)
+                  .map((kind) => t(`record.daily.kind.${kind}`))
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -250,44 +244,44 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <div className="space-y-2">
           {record.weight != null && Number(record.weight) > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">체중</span>
+              <span className="text-sm text-gray-500">{t('record.field.weight')}</span>
               <span className="text-sm font-medium">{record.weight}kg</span>
             </div>
           )}
           {record.symptom_time && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">증상 발생 시간</span>
+              <span className="text-sm text-gray-500">{t('record.field.symptomTime')}</span>
               <span className="text-sm font-medium">{record.symptom_time}</span>
             </div>
           )}
           {record.hospital_name && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">병원</span>
+              <span className="text-sm text-gray-500">{t('record.field.hospital')}</span>
               <span className="text-sm font-medium">{record.hospital_name}</span>
             </div>
           )}
           {record.cost != null && record.cost > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">비용</span>
+              <span className="text-sm text-gray-500">{t('record.field.cost')}</span>
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
             </div>
           )}
           {record.discharge_date && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">퇴원일</span>
+              <span className="text-sm text-gray-500">{t('record.field.dischargeDate')}</span>
               <span className="text-sm font-medium text-emerald-600">{formatDate(record.discharge_date)}</span>
             </div>
           )}
           {!record.discharge_date && record.record_type === 'hospitalization' && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
-              <span className="text-sm text-gray-500">퇴원일</span>
-              <span className="text-sm font-medium text-orange-500">입원 중</span>
+              <span className="text-sm text-gray-500">{t('record.field.dischargeDate')}</span>
+              <span className="text-sm font-medium text-orange-500">{t('record.detail.admitted')}</span>
             </div>
           )}
           {record.next_appointment_date && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500 flex items-center gap-1">
-                <Calendar size={14} /> 다음 예약일
+                <Calendar size={14} /> {t('record.field.nextAppointment')}
               </span>
               <span className="text-sm font-medium text-purple-600">{formatDate(record.next_appointment_date)}</span>
             </div>
@@ -296,7 +290,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
         {record.ai_summary && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-600 font-medium mb-1">AI 요약</p>
+            <p className="text-xs text-blue-600 font-medium mb-1">{t('record.detail.aiSummary')}</p>
             <p className="text-sm text-gray-700">{record.ai_summary}</p>
           </div>
         )}
@@ -307,7 +301,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <div className="p-4 max-w-sm mx-auto w-full">
           <h3 className="flex items-center gap-2 font-semibold text-sm text-gray-700 mb-3">
             <Pill size={16} className="text-blue-500" />
-            투약 정보
+            {t('record.section.medicationInfo')}
           </h3>
           <div className="space-y-2">
             {record.medications.map((med) => (
@@ -328,9 +322,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </div>
                 {med.alarm_times && med.alarm_times.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    <span className="text-[10px] text-gray-400">알림</span>
+                    <span className="text-[10px] text-gray-400">{t('record.detail.alarm')}</span>
                     {med.alarm_enabled === false && (
-                      <span className="text-[10px] text-gray-400">(꺼짐)</span>
+                      <span className="text-[10px] text-gray-400">{t('record.detail.alarmOff')}</span>
                     )}
                     {med.alarm_times.map((t: string, i: number) => (
                       <span
@@ -357,7 +351,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <div className="p-4 max-w-sm mx-auto w-full">
           <h3 className="flex items-center gap-2 font-semibold text-sm text-gray-700 mb-3">
             <Paperclip size={16} className="text-blue-500" />
-            {record.record_type === 'daily' ? '오늘을 담은 한 컷' : '첨부 파일'}
+            {record.record_type === 'daily' ? t('record.detail.dailyPhoto') : t('record.detail.attachments')}
           </h3>
           <div className="space-y-2">
             {record.record_files.map((file) => {
@@ -382,7 +376,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                       type="button"
                       onClick={(e) => { e.stopPropagation(); triggerDownload(file.file_path, file.file_name); }}
                       className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition-colors"
-                      title="다운로드"
+                      title={t('record.detail.download')}
                     >
                       <Download size={16} />
                     </button>
@@ -405,7 +399,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                       type="button"
                       onClick={() => triggerDownload(file.file_path, file.file_name)}
                       className="p-1 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
-                      title="다운로드"
+                      title={t('record.detail.download')}
                     >
                       <Download size={14} />
                     </button>
@@ -419,10 +413,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
       <ConfirmModal
         open={showDeleteConfirm}
-        title="이 기록을 삭제할까요?"
-        message="삭제된 기록은 복구할 수 없어요."
-        confirmLabel="삭제"
-        cancelLabel="취소"
+        title={t('record.detail.deleteTitle')}
+        message={t('record.delete.confirmMessage')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -437,7 +431,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             type="button"
             onClick={(e) => { e.stopPropagation(); closePreview(); }}
             className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white"
-            aria-label="닫기"
+            aria-label={t('common.close')}
           >
             <X size={24} />
           </button>
@@ -476,7 +470,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             >
               <FileText size={48} className="text-blue-500 mx-auto mb-2" />
               <p className="text-sm text-gray-700 break-all">{previewFile.name}</p>
-              <p className="text-xs text-gray-400 mt-1">미리보기는 지원하지 않습니다</p>
+              <p className="text-xs text-gray-400 mt-1">{t('record.detail.noPreview')}</p>
             </div>
           )}
         </div>

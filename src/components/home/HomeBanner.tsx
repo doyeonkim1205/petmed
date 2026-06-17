@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 /**
  * 홈 상단 배너 캐러셀.
@@ -10,38 +11,22 @@ import { useRouter } from 'next/navigation';
  * 탭 시 이동. 좌우 화살표는 텍스트 가림 문제로 제거 — 모바일은 swipe + 자동 슬라이드
  * + 점 tap 으로 충분.
  */
+// 텍스트(badge/title/subtitle)는 messages(home.banner.<id>.*)로 분리 — id 로 참조.
 type Banner = {
-  id: string;
-  /** \n 포함 시 whitespace-pre-line 으로 줄바꿈 렌더 */
-  title: string;
-  subtitle: string;
-  badge: string;
+  id: 'plus' | 'ai';
   gradient: string;  // tailwind gradient classes
   href: string;
 };
 
 const BANNERS: Banner[] = [
-  {
-    id: 'plus',
-    badge: 'PawDex Plus',
-    title: '오늘의 기록이,\n내일의 건강 힌트가 되도록',
-    subtitle: '진료·증상·일상을 한 곳에',
-    gradient: 'from-amber-500 to-orange-600',
-    href: '/profile/subscription',
-  },
-  {
-    id: 'ai',
-    badge: 'AI 케어',
-    title: 'AI가 기록을 함께 읽어드려요',
-    subtitle: '우리 아이 건강 기록을 바탕으로 증상을 분석해요',
-    gradient: 'from-sky-500 to-indigo-600',
-    href: '/search?mode=symptom',
-  },
+  { id: 'plus', gradient: 'from-amber-500 to-orange-600', href: '/profile/subscription' },
+  { id: 'ai', gradient: 'from-sky-500 to-indigo-600', href: '/search?mode=symptom' },
 ];
 
 const AUTO_MS = 4500;
 
 export function HomeBanner() {
+  const t = useTranslations('home.banner');
   const [idx, setIdx] = useState(0);
   const router = useRouter();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -68,11 +53,11 @@ export function HomeBanner() {
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
         <span className="pointer-events-none absolute -right-12 bottom-0 w-28 h-28 rounded-full bg-white/10" />
 
-        <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{banner.badge}</span>
+        <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{t(`${banner.id}.badge`)}</span>
         <p className="relative text-[19px] font-bold leading-snug whitespace-pre-line">
-          {banner.title}
+          {t(`${banner.id}.title`)}
         </p>
-        <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{banner.subtitle}</p>
+        <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{t(`${banner.id}.subtitle`)}</p>
 
         {/* 인디케이터 — 하단 좌측, 활성 칩은 길게 (현대적) */}
         <div className="absolute bottom-4 left-5 flex gap-1.5">

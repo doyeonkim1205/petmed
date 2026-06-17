@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Delete, X } from 'lucide-react';
 
 interface NumberPadProps {
@@ -39,6 +40,7 @@ export function NumberPad({
   suffix,
   onClose,
 }: NumberPadProps) {
+  const t = useTranslations();
   // 패드가 떠 있는 동안 배경 스크롤 잠금 (배경이 움직이지 않게)
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -74,7 +76,7 @@ export function NumberPad({
         <button
           type="button"
           onClick={onClose}
-          aria-label="닫기"
+          aria-label={t('common.close')}
           className="absolute top-2.5 right-2.5 p-1 text-gray-300 hover:text-gray-500 active:scale-90 transition"
         >
           <X size={18} />
@@ -113,7 +115,7 @@ export function NumberPad({
           onClick={onClose}
           className="mt-3 w-full h-12 rounded-xl bg-blue-600 text-white text-sm font-bold active:bg-blue-700 transition-colors"
         >
-          확인
+          {t('common.confirm')}
         </button>
       </div>
     </div>

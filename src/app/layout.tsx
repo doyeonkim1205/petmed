@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
@@ -55,13 +57,15 @@ export const viewport: Viewport = {
   themeColor: "#2563eb",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 쿠키 기반 locale (next-intl request 설정에서 결정) — <html lang> 동기화.
+  const locale = await getLocale();
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Prevent flash of wrong theme */}
         <script dangerouslySetInnerHTML={{ __html: `
@@ -76,13 +80,17 @@ export default function RootLayout({
         ` }} />
       </head>
       <body className={`${geist.variable} antialiased bg-gray-50`}>
-        <NetworkStatusBanner />
-        <Providers>
-          {children}
-        </Providers>
-        <ServiceWorkerRegister />
-        <UpdateToast />
-        <KeyboardScrollFix />
+        <NextIntlClientProvider>
+          <NetworkStatusBanner />
+          <Providers>
+            {children}
+          </Providers>
+          {/* UpdateToast 는 useTranslations 사용 → 반드시 Provider 안에 둬야 함.
+              (ServiceWorkerRegister/KeyboardScrollFix 는 intl 미사용이나 함께 안에 둠) */}
+          <ServiceWorkerRegister />
+          <UpdateToast />
+          <KeyboardScrollFix />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

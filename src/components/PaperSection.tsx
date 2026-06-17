@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { FileText, ExternalLink, RefreshCw, AlertCircle, ChevronDown, Bookmark } from 'lucide-react';
 import { getPubMedUrl } from '@/services/pubmed';
 import { UsePubMedSearchResult } from '@/hooks/usePubMedSearch';
@@ -37,6 +38,7 @@ function AccordionItem({ article, index, analysis, analysisLoading, isBookmarked
   onToggleBookmark?: () => void;
   showBookmark?: boolean;
 }) {
+  const t = useTranslations();
   const [isOpen, setIsOpen] = React.useState(index === 0);
 
   return (
@@ -91,7 +93,7 @@ function AccordionItem({ article, index, analysis, analysisLoading, isBookmarked
             </div>
           ) : (
             <p className="text-xs text-gray-300 mt-1 italic">
-              AI 요약을 불러올 수 없습니다.
+              {t('search.summaryUnavailable')}
             </p>
           )}
           <a
@@ -101,7 +103,7 @@ function AccordionItem({ article, index, analysis, analysisLoading, isBookmarked
             className="inline-flex items-center gap-1 mt-2.5 text-xs text-blue-500 hover:text-blue-600 transition-colors"
           >
             <ExternalLink size={11} />
-            원본 논문 보기
+            {t('search.viewOriginal')}
           </a>
         </div>
       )}
@@ -118,6 +120,7 @@ export function PaperSection({
   onToggleBookmark,
   showBookmarks,
 }: PaperSectionProps) {
+  const t = useTranslations();
   const { articles, loading, error, retry, analysis, analysisLoading } = pubmed;
 
   const showFallback = !loading && (error !== null || articles.length === 0);
@@ -127,7 +130,7 @@ export function PaperSection({
       <div className="flex items-center justify-between mb-2">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-400">
           <FileText size={14} className="text-blue-500" />
-          논문 요약
+          {t('search.paperSummaryTitle')}
         </h3>
         {headerAction}
       </div>
@@ -141,13 +144,13 @@ export function PaperSection({
       {error && (
         <div className="flex items-center gap-2 mb-3 p-2.5 bg-red-50 rounded-lg text-xs text-red-500">
           <AlertCircle size={14} />
-          <span className="flex-1">PubMed 연결에 실패했습니다.</span>
+          <span className="flex-1">{t('search.pubmedFailed')}</span>
           <button
             onClick={retry}
             className="flex items-center gap-1 text-xs hover:text-red-700 transition-colors"
           >
             <RefreshCw size={11} />
-            재시도
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -176,7 +179,7 @@ export function PaperSection({
             {diseaseSummary}
           </p>
           <span className="inline-block text-xs bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full mt-1">
-            오프라인 데이터
+            {t('search.offlineData')}
           </span>
         </div>
       )}

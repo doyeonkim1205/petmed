@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isTrialActive, trialDaysLeft } from '@/lib/plans';
@@ -16,6 +17,7 @@ const LAST_SEEN_KEY = 'trial_banner_last_seen';
  * - 카드 본체 탭하면 구독 관리 페이지로 이동
  */
 export function TrialBanner() {
+  const t = useTranslations();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
 
@@ -43,25 +45,24 @@ export function TrialBanner() {
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
             <span>🎉</span>
           </div>
-          <h3 className="text-sm font-bold text-gray-900">Plus 기능 무료 체험 중</h3>
+          <h3 className="text-sm font-bold text-gray-900">{t('trialBanner.title')}</h3>
         </div>
         <button
           onClick={() => setVisible(false)}
           className="text-gray-400 hover:text-gray-600 flex-shrink-0 p-0.5"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>
       </div>
       <p className="text-xs text-gray-600 leading-relaxed mb-3 pl-10">
-        모든 Plus 기능을 무료로 써보세요!<br />
-        2026. 05. 13 에 종료돼요 ({days}일 남음)
+        {t.rich('trialBanner.body', { days, br: () => <br /> })}
       </p>
       <button
         onClick={() => router.push('/profile/subscription')}
         className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-full transition-colors"
       >
-        자세히 보기
+        {t('trialBanner.cta')}
       </button>
     </div>
   );

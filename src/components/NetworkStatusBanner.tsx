@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { WifiOff } from 'lucide-react';
 
 /**
@@ -13,6 +14,7 @@ import { WifiOff } from 'lucide-react';
  * online/offline 이벤트도 병행해서 빠른 감지 + 확실한 감지 둘 다.
  */
 export function NetworkStatusBanner() {
+  const t = useTranslations();
   const [offline, setOffline] = useState(false);
   const [recovered, setRecovered] = useState(false);
   const wasOfflineRef = useRef(false);
@@ -89,10 +91,10 @@ export function NetworkStatusBanner() {
       {offline ? (
         <>
           <WifiOff size={14} />
-          오프라인 상태입니다. 일부 기능이 제한됩니다.
+          {t('network.offline')}
         </>
       ) : (
-        '네트워크가 복구되었습니다!'
+        t('network.recovered')
       )}
     </div>
   );

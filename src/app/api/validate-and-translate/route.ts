@@ -5,13 +5,14 @@ import { checkBannedWords } from '@/data/bannedWords';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { localeFromRequest } from '@/lib/aiLocale';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const REJECT = {
-  valid: false,
-  reason: '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.',
-};
+const rejectReason = (en: boolean) =>
+  en ? 'Please enter a search term related to a pet disease or symptom.'
+     : '반려동물 질병이나 증상과 관련된 검색어를 입력해주세요.';
+const rejectBody = (en: boolean) => ({ valid: false, reason: rejectReason(en) });
 
 /**
  * 검색어 검증 + 영문 번역을 하나의 OpenAI 호출로 처리
@@ -28,18 +29,19 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+    const en = localeFromRequest(request) === 'en';
 
     // 분 단위 burst 방어 (line 67 아래 기존 30/hour DB 체크는 유지 — 두 단계 방어)
     if (!checkRateLimit(`${userId}:validate-and-translate`, 10, 60_000)) {
       return NextResponse.json(
-        { valid: false, reason: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { valid: false, reason: en ? 'Too many requests. Please try again shortly.' : '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
         { status: 429 },
       );
     }
 
     const { query, petType } = await request.json();
     if (!query || query.trim().length < 1 || query.length > 200) {
-      return NextResponse.json(REJECT);
+      return NextResponse.json(rejectBody(en));
     }
 
     const trimmed = query.trim();
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 0) 금지어 체크 (OpenAI 호출 전, 비용 0원)
     if (checkBannedWords(trimmed)) {
-      return NextResponse.json(REJECT);
+      return NextResponse.json(rejectBody(en));
     }
 
     // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환
@@ -81,12 +83,12 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .gte('created_at', oneHourAgo);
     if ((recentCalls || 0) >= 30) {
-      return NextResponse.json({ valid: false, reason: '잠시 후 다시 시도해주세요. (요청 한도 초과)' });
+      return NextResponse.json({ valid: false, reason: en ? 'Please try again later. (rate limit exceeded)' : '잠시 후 다시 시도해주세요. (요청 한도 초과)' });
     }
 
     // 4) OpenAI로 검증 + 번역을 한 번에 처리 (동물 종 포함)
     if (!OPENAI_API_KEY) {
-      return NextResponse.json(REJECT);
+      return NextResponse.json(rejectBody(en));
     }
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -149,12 +151,12 @@ englishQuery 번역 규칙:
     });
 
     if (!res.ok) {
-      return NextResponse.json(REJECT);
+      return NextResponse.json(rejectBody(en));
     }
 
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) return NextResponse.json(REJECT);
+    if (!content) return NextResponse.json(rejectBody(en));
 
     const parsed = JSON.parse(content);
 
@@ -165,8 +167,8 @@ englishQuery 번역 규칙:
       });
     }
 
-    return NextResponse.json(REJECT);
+    return NextResponse.json(rejectBody(en));
   } catch {
-    return NextResponse.json(REJECT);
+    return NextResponse.json(rejectBody(localeFromRequest(request) === 'en'));
   }
 }

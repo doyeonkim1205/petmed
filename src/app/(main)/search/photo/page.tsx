@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Camera, X, ArrowLeft, ArrowRight, Sparkles, AlertCircle, Cat, Dog, Info, Image as ImageIcon, PawPrint, Loader2, Crown, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,14 +42,8 @@ interface AnalysisResult {
   watch_signs?: string[];
 }
 
-const CATEGORIES: Array<{ value: Category; label: string }> = [
-  { value: 'skin',      label: '피부' },
-  { value: 'eye',       label: '눈' },
-  { value: 'wound',     label: '외상' },
-  { value: 'dental',    label: '입·치아' },
-  { value: 'ear',       label: '귀' },
-  { value: 'excretion', label: '대소변·구토' },
-];
+// 라벨은 messages(photo.category.*)로 — value 가 곧 키.
+const CATEGORIES: Category[] = ['skin', 'eye', 'wound', 'dental', 'ear', 'excretion'];
 
 interface UsageInfo {
   used: number;
@@ -82,6 +77,7 @@ function clearCache(userId: string) {
 }
 
 export default function PhotoAnalysisPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
@@ -177,7 +173,7 @@ export default function PhotoAnalysisPage() {
       const { dataUrl } = await compressImage(file);
       setImageDataUrl(dataUrl);
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : '이미지를 읽지 못했어요.');
+      setImageError(err instanceof Error ? err.message : t('photo.error.imageRead'));
     }
   };
 
@@ -201,7 +197,7 @@ export default function PhotoAnalysisPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setServerError(data.error || '분석 중 오류가 발생했어요.');
+        setServerError(data.error || t('photo.error.analyze'));
         return;
       }
       setResult(data as AnalysisResult);
@@ -218,7 +214,7 @@ export default function PhotoAnalysisPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 50);
     } catch {
-      setServerError('네트워크 오류가 발생했어요. 다시 시도해 주세요.');
+      setServerError(t('photo.error.network'));
     } finally {
       setAnalyzing(false);
     }
@@ -288,11 +284,11 @@ export default function PhotoAnalysisPage() {
             else router.back();
           }}
           className="absolute left-2 p-2 text-gray-500"
-          aria-label="뒤로 가기"
+          aria-label={t('common.back')}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">사진 분석</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t('photo.title')}</h1>
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-1 space-y-4">
@@ -305,20 +301,20 @@ export default function PhotoAnalysisPage() {
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Lock size={24} className="text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-600 font-medium break-keep break-words">사진 분석 무료 체험을 모두 사용했어요.</p>
-                <p className="text-[11px] text-gray-400 mt-1 break-keep break-words">Plus로 업그레이드하면 계속 사용할 수 있어요.</p>
+                <p className="text-sm text-gray-600 font-medium break-keep break-words">{t('photo.quotaExhaustedTitle')}</p>
+                <p className="text-[11px] text-gray-400 mt-1 break-keep break-words">{t('photo.quotaExhaustedDesc')}</p>
                 <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                   <div className="flex items-center justify-center gap-1.5 mb-2">
                     <Crown size={16} className="text-purple-500" />
-                    <p className="text-sm font-bold text-gray-700">우리 아이 건강, 빈틈없이 케어하기</p>
+                    <p className="text-sm font-bold text-gray-700">{t('upsell.title')}</p>
                   </div>
-                  <p className="text-xs text-gray-500 mb-3">AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관</p>
+                  <p className="text-xs text-gray-500 mb-3">{t('upsell.features')}</p>
                   <button
                     type="button"
                     onClick={() => router.push('/profile/subscription')}
                     className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
                   >
-                    요금제 보기
+                    {t('upsell.viewPlans')}
                   </button>
                 </div>
               </div>
@@ -335,17 +331,16 @@ export default function PhotoAnalysisPage() {
             {!petsLoading && !hasPets && (
               <section className="bg-white rounded-lg p-5 text-center border border-gray-200">
                 <PawPrint size={32} className="mx-auto mb-2 text-blue-300" />
-                <h2 className="text-sm font-bold text-gray-800 mb-1">먼저 반려동물을 등록해 주세요</h2>
+                <h2 className="text-sm font-bold text-gray-800 mb-1">{t('photo.noPetTitle')}</h2>
                 <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                  아이의 특성에 맞춘 정밀한 체크를 위해 정보 등록이 필요합니다<br />
-                  마이페이지에서 등록 후 다시 시도해주세요
+                  {t.rich('photo.noPetDesc', { br: () => <br /> })}
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push('/profile')}
                   className="px-4 py-2 rounded-full bg-white border border-blue-300 text-blue-600 text-xs font-semibold hover:bg-blue-50"
                 >
-                  반려동물 등록하러 가기
+                  {t('photo.registerPet')}
                 </button>
               </section>
             )}
@@ -353,7 +348,7 @@ export default function PhotoAnalysisPage() {
             {/* 펫 선택 */}
             {!petsLoading && hasPets && (
               <section className="bg-white rounded-lg p-4 border border-gray-200">
-                <h2 className="text-xs font-semibold text-gray-500 mb-2">분석할 반려동물</h2>
+                <h2 className="text-xs font-semibold text-gray-500 mb-2">{t('photo.selectPet')}</h2>
                 <div className="flex gap-1.5 overflow-x-auto">
                   {pets.map(pet => {
                     const active = selectedPetId === pet.id;
@@ -379,30 +374,30 @@ export default function PhotoAnalysisPage() {
             {/* 증상 부위 (카테고리) — 6개라 3열 grid 로 정렬. 필수. */}
             <section className="bg-white rounded-lg p-4 border border-gray-200">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 부위 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
+                {t('photo.bodyPart')} <span className="text-[10px] text-gray-700 font-normal">{t('common.required')}</span>
               </h2>
               <div className="grid grid-cols-3 gap-1.5">
                 {CATEGORIES.map(c => (
                   <button
-                    key={c.value}
+                    key={c}
                     type="button"
-                    onClick={() => setCategory(c.value)}
+                    onClick={() => setCategory(c)}
                     className={`py-2 rounded-full text-xs font-medium ${
-                      category === c.value ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'
+                      category === c ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500'
                     }`}
                   >
-                    {c.label}
+                    {t(`photo.category.${c}`)}
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">💡 밝은 곳에서 가까이 찍을수록 분석 결과가 정확해져요</p>
+              <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">{t('photo.photoTip')}</p>
             </section>
 
             {/* 증상 사진 첨부 — 헤더 우측에 사용량 칩 (Plus/Free 통일 톤) */}
             <section className="bg-white rounded-lg p-4 border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold text-gray-500">
-                  증상 사진 첨부 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
+                  {t('photo.attachPhoto')} <span className="text-[10px] text-gray-700 font-normal">{t('common.required')}</span>
                 </h2>
                 {usage && (
                   <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
@@ -411,9 +406,9 @@ export default function PhotoAnalysisPage() {
                     {usage.plan === 'plus' ? (
                       <><Sparkles size={10} /> Plus {usage.used}/{usage.limit}</>
                     ) : usage.limit > 0 ? (
-                      <>Free 체험 {usage.used}/{usage.limit}</>
+                      <>{t('photo.freeTrialLabel')} {usage.used}/{usage.limit}</>
                     ) : (
-                      <>Plus 전용</>
+                      <>{t('photo.plusOnly')}</>
                     )}
                   </span>
                 )}
@@ -423,14 +418,14 @@ export default function PhotoAnalysisPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageDataUrl}
-                    alt="업로드한 사진"
+                    alt={t('photo.uploadedAlt')}
                     className="w-full rounded-lg border border-gray-200"
                   />
                   <button
                     type="button"
                     onClick={() => setImageDataUrl(null)}
                     className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
-                    aria-label="사진 제거"
+                    aria-label={t('photo.removePhoto')}
                   >
                     <X size={16} />
                   </button>
@@ -445,7 +440,7 @@ export default function PhotoAnalysisPage() {
                     className="flex flex-col items-center gap-1.5 px-3 hover:text-blue-600"
                   >
                     <Camera size={26} />
-                    <span className="text-xs font-medium">직접 촬영하기</span>
+                    <span className="text-xs font-medium">{t('photo.takePhoto')}</span>
                   </button>
                   <span className="text-gray-300 text-xl leading-none">·</span>
                   <button
@@ -454,7 +449,7 @@ export default function PhotoAnalysisPage() {
                     className="flex flex-col items-center gap-1.5 px-3 hover:text-blue-600"
                   >
                     <ImageIcon size={26} />
-                    <span className="text-xs font-medium">갤러리에서 불러오기</span>
+                    <span className="text-xs font-medium">{t('photo.fromGallery')}</span>
                   </button>
                 </div>
               )}
@@ -485,24 +480,24 @@ export default function PhotoAnalysisPage() {
             {/* 증상 상세 내용 (필수) — 정확도가 텍스트 정보에 크게 좌우됨 */}
             <section className="bg-white rounded-lg p-4 border border-gray-200">
               <h2 className="text-xs font-semibold text-gray-500 mb-2">
-                증상 상세 내용 <span className="text-[10px] text-gray-700 font-normal">(필수)</span>
+                {t('photo.symptomDetail')} <span className="text-[10px] text-gray-700 font-normal">{t('common.required')}</span>
               </h2>
               <textarea
                 value={hint}
                 onChange={(e) => setHint(e.target.value.slice(0, 500))}
-                placeholder="예: 3일 전부터 가려워해요. 오른쪽 귀 안쪽이에요."
+                placeholder={t('photo.detailPlaceholder')}
                 rows={3}
                 className="w-full border border-gray-200 rounded-md p-2 text-sm resize-none focus:outline-none focus:border-blue-400"
               />
               <div className="flex items-center justify-between mt-1">
-                <p className="text-[10px] text-gray-400">언제부터·어디가·어떤지 알려주세요 (최소 5자)</p>
+                <p className="text-[10px] text-gray-400">{t('photo.detailHint')}</p>
                 <p className="text-[11px] text-gray-400">{hint.length}/500</p>
               </div>
             </section>
 
             {/* 책임 제한 — 분석 버튼 바로 위. 상세 정보는 결과 화면 사진 옆 ⓘ. */}
             <div className="text-[11px] text-gray-500 leading-relaxed px-1">
-              AI 분석 결과는 참고용입니다! 정확한 진단은 동물병원을 방문해 주세요
+              {t('photo.disclaimerShort')}
             </div>
 
             {/* isQuotaExhausted 도 가드 — Plus 한도 (3회/일) 소진 시도 차단.
@@ -520,7 +515,7 @@ export default function PhotoAnalysisPage() {
               }
               className="w-full py-3 rounded-full bg-blue-600 text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {analyzing ? 'AI가 분석 중이에요...' : '사진 분석하기'}
+              {analyzing ? t('photo.analyzing') : t('photo.analyzeCta')}
             </button>
 
             {serverError && (
@@ -554,14 +549,22 @@ function ResultPanel({
   imageDataUrl: string | null;
   onReset: () => void;
 }) {
+  const t = useTranslations();
+  const isEn = useLocale() === 'en';
+  // 영어 모드 질병명 — 모델이 name_ko 엔 한국어를 넣으므로 EN 에선 영어 학명(name_en)을 메인으로.
+  const dxName = (name_ko?: string, name_en?: string) => isEn ? (name_en || name_ko || '') : (name_ko || '');
+  // 모델 한국어 enum → 표시 라벨 (스타일 lookup 은 한국어 키 유지).
+  const sevLabel = (s?: string) => t(`analysis.severity.${({ '긴급': 'urgent', '주의': 'caution', '관찰': 'watch' } as Record<string, string>)[s || '관찰'] || 'watch'}`);
+  const likLabel = (s?: string) => t(`analysis.likelihood.${({ '높음': 'high', '중간': 'medium', '낮음': 'low' } as Record<string, string>)[s || '낮음'] || 'low'}`);
+  const emgLabel = (s?: string) => t(`analysis.emergencyTier.${({ '즉시': 'immediate', '24시간내': 'within24h' } as Record<string, string>)[s || '즉시'] || 'immediate'}`);
   const [showPrivacyTooltip, setShowPrivacyTooltip] = useState(false);
   // 텍스트 증상 분석 페이지와 톤 통일 — low=초록(😊), medium=파랑(ℹ️), high=빨강(🚨).
   // AI reassurance 대신 short label 로 concern_level 시그널 표현.
   // high 일 땐 AI 가 watch_signs 를 안 생성 (emergency_signs 가 그 역할) — 헤더만 표시됨.
   const concernConfig = {
-    low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: '지금은 괜찮아 보여요' },
-    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: '🔍', textColor: 'text-blue-800',    label: '지켜봐 주세요' },
-    high:   { border: 'border-red-200',     bg: 'bg-red-50',     icon: '🚨', textColor: 'text-red-800',     label: '빠른 진료가 필요해요' },
+    low:    { border: 'border-emerald-200', bg: 'bg-emerald-50', icon: '😊', textColor: 'text-emerald-800', label: t('photo.concern.low') },
+    medium: { border: 'border-blue-200',    bg: 'bg-blue-50',    icon: '🔍', textColor: 'text-blue-800',    label: t('photo.concern.medium') },
+    high:   { border: 'border-red-200',     bg: 'bg-red-50',     icon: '🚨', textColor: 'text-red-800',     label: t('photo.concern.high') },
   } as const;
   const concernKey =
     result.concern_level === 'low' ? 'low' :
@@ -578,20 +581,20 @@ function ResultPanel({
         <div className="bg-white rounded-lg p-3 border border-gray-200">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageDataUrl} alt="분석한 사진" className="w-16 h-16 rounded-md object-cover border border-gray-200" />
+            <img src={imageDataUrl} alt={t('photo.analyzedAlt')} className="w-16 h-16 rounded-md object-cover border border-gray-200" />
             <div className="flex-1 flex items-center gap-1.5">
-              <p className="text-sm font-medium text-gray-700">분석에 사용한 사진</p>
+              <p className="text-sm font-medium text-gray-700">{t('photo.usedPhoto')}</p>
               <button
                 type="button"
                 onClick={() => setShowPrivacyTooltip(v => !v)}
                 onBlur={() => setShowPrivacyTooltip(false)}
                 className="relative text-gray-400 hover:text-gray-600"
-                aria-label="개인정보 보호 안내"
+                aria-label={t('photo.privacyAria')}
               >
                 <Info size={14} />
                 {showPrivacyTooltip && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-64 bg-gray-900 text-white text-[11px] rounded-md p-2 leading-relaxed shadow-lg z-10 text-left">
-                    사진은 분석에만 쓰이고 <strong>서버에 저장되지 않아요</strong>
+                    {t.rich('photo.privacyTooltip', { b: (c) => <strong>{c}</strong> })}
                   </div>
                 )}
               </button>
@@ -605,15 +608,15 @@ function ResultPanel({
           박스는 안내 (다시 찍어주세요 + 이유) 만 담당해서 시각 잡음 ↓ */}
       {result.is_valid_photo === false && (
         <div className="bg-white rounded-lg p-4 border border-amber-200">
-          <p className="text-sm font-semibold text-amber-900 mb-1">사진을 다시 찍어주세요</p>
-          <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || '사진이 분석에 적합하지 않아요'}</p>
+          <p className="text-sm font-semibold text-amber-900 mb-1">{t('photo.retakeTitle')}</p>
+          <p className="text-xs text-gray-700 leading-relaxed">{result.invalid_reason || t('photo.invalidDefault')}</p>
         </div>
       )}
 
       {/* 관찰 사항 — 본문 폰트를 다른 섹션과 동일하게 text-xs 로 통일 */}
       {result.observations && result.observations.length > 0 && (
         <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-500 mb-2">사진에서 관찰된 내용</h3>
+          <h3 className="text-xs font-semibold text-gray-500 mb-2">{t('photo.observed')}</h3>
           <ul className="text-xs text-gray-700 space-y-1 list-disc pl-4">
             {result.observations.map((o, i) => <li key={i}>{o}</li>)}
           </ul>
@@ -640,7 +643,7 @@ function ResultPanel({
                     <span className={`mt-0.5 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${
                       s.severity === '즉시' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                     }`}>
-                      {s.severity}
+                      {emgLabel(s.severity)}
                     </span>
                     <span>{s.sign}{s.reason ? ` — ${s.reason}` : ''}</span>
                   </li>
@@ -650,7 +653,7 @@ function ResultPanel({
           )}
           {hasWatchSigns && (
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-1">🩺 이런 경우엔 진료를 고려하세요</p>
+              <p className="text-xs font-semibold text-gray-600 mb-1">{t('analysis.watchHeader')}</p>
               <ul className="text-xs text-gray-700 space-y-0.5 list-disc pl-4">
                 {result.watch_signs!.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -669,8 +672,8 @@ function ResultPanel({
               'bg-green-50 border-green-200'
             }`}>
               <div className="flex items-baseline gap-2 mb-2">
-                <h4 className="font-bold text-sm">{d.name_ko}</h4>
-                {d.name_en && <span className="text-[11px] text-gray-400">({d.name_en})</span>}
+                <h4 className="font-bold text-sm">{dxName(d.name_ko, d.name_en)}</h4>
+                {!isEn && d.name_en && <span className="text-[11px] text-gray-400">({d.name_en})</span>}
               </div>
               {/* 뱃지 순서 — 텍스트 분석과 통일: severity (긴급/주의/관찰) 먼저, 가능성 다음.
                   likelihood 색상도 텍스트 분석과 동일 (높음=red, 중간=yellow, 낮음=gray). */}
@@ -682,14 +685,14 @@ function ResultPanel({
                   d.severity === '주의' ? 'bg-orange-100 text-orange-700' :
                   'bg-green-100 text-green-700'
                 }`}>
-                  {d.severity || '관찰'}
+                  {sevLabel(d.severity)}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full ${
                   d.likelihood === '높음' ? 'bg-red-100 text-red-600' :
                   d.likelihood === '중간' ? 'bg-yellow-100 text-yellow-700' :
                   'bg-gray-100 text-gray-500'
                 }`}>
-                  가능성 {d.likelihood || '낮음'}
+                  {t('analysis.likelihoodBadge', { level: likLabel(d.likelihood) })}
                 </span>
               </div>
               {d.description && (
@@ -715,9 +718,8 @@ function ResultPanel({
       {/* 책임 제한 박스 — 마침표 제거 (일관 정책) */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <p className="text-[11px] text-gray-600 leading-relaxed">
-          <strong className="text-gray-800">⚠️ 분석 결과는 참고용이에요</strong><br />
-          AI 분석은 사진 한 장의 시각 정보만으로 추정한 가능성이며 확진이 아니에요
-          증상이 지속되거나 악화되면 반드시 동물병원에서 진료를 받아주세요
+          <strong className="text-gray-800">{t('photo.resultDisclaimerTitle')}</strong><br />
+          {t('photo.resultDisclaimerBody')}
         </p>
       </div>
 
@@ -726,7 +728,7 @@ function ResultPanel({
         onClick={onReset}
         className="w-full py-2.5 rounded-full bg-white border border-gray-300 text-gray-700 text-sm font-medium"
       >
-        다른 사진으로 분석하기
+        {t('photo.analyzeAnother')}
       </button>
     </section>
   );

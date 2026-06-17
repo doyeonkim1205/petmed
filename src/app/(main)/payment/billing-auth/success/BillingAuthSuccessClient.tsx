@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
@@ -34,6 +35,8 @@ interface SuccessData {
  *   잠시 후 이동합니다...  (2.5s)
  */
 export default function BillingAuthSuccessClient({ authKey, customerKey, productId, mode }: Props) {
+  const t = useTranslations();
+  const en = useLocale() === 'en';
   const router = useRouter();
   const calledRef = useRef(false);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -46,7 +49,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
 
     if (!authKey || !customerKey) {
       setStatus('error');
-      setError('필수 정보가 누락되었습니다');
+      setError(t('payment.missingInfo'));
       return;
     }
 
@@ -55,7 +58,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           setStatus('error');
-          setError('세션이 만료되었습니다. 다시 로그인해주세요');
+          setError(t('payment.sessionExpired'));
           return;
         }
 
@@ -72,7 +75,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
           body: JSON.stringify({ authKey, customerKey, productId }),
         });
         const body = await res.json();
-        if (!res.ok) throw new Error(body.error || '처리에 실패했습니다');
+        if (!res.ok) throw new Error(body.error || t('payment.processFailed'));
 
         setData({
           mode: body.mode || mode,
@@ -91,7 +94,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
           extra: { customerKey, productId, mode },
         });
         setStatus('error');
-        setError(err instanceof Error ? err.message : '처리 중 오류가 발생했습니다');
+        setError(err instanceof Error ? err.message : t('payment.processError2'));
       }
     })();
   }, [authKey, customerKey, productId, mode, router]);
@@ -100,8 +103,8 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
     return (
       <div className="max-w-sm mx-auto px-4 py-16 text-center">
         <Loader2 className="animate-spin text-blue-500 mx-auto mb-4" size={36} />
-        <h1 className="text-base font-bold text-gray-900 mb-1">처리 중...</h1>
-        <p className="text-sm text-gray-500">잠시만 기다려 주세요</p>
+        <h1 className="text-base font-bold text-gray-900 mb-1">{t('payment.processingShort')}</h1>
+        <p className="text-sm text-gray-500">{t('payment.pleaseWait2')}</p>
       </div>
     );
   }
@@ -112,31 +115,32 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
           <AlertCircle className="text-red-500" size={32} />
         </div>
-        <h1 className="text-base font-bold text-gray-900 mb-1">처리에 실패했습니다</h1>
+        <h1 className="text-base font-bold text-gray-900 mb-1">{t('payment.processFailed')}</h1>
         <p className="text-sm text-red-500 mb-6">{error}</p>
         <button
           onClick={() => router.push('/profile/subscription')}
           className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium"
         >
-          돌아가기
+          {t('payment.goBack')}
         </button>
       </div>
     );
   }
 
   // success
-  const title = data?.mode === 'enable'
-    ? '🎉 자동 갱신이 설정되었어요'
-    : '🎉 결제가 성공적으로 완료되었어요';
+  const productLabel = en
+    ? (data?.period === 'year' ? t('payment.labelAnnual') : t('payment.labelMonthly'))
+    : displayProductLabel(data);
+  const title = data?.mode === 'enable' ? t('payment.titleEnable') : t('payment.titleRegister');
   const subtitle = data?.mode === 'enable'
-    ? `${displayProductLabel(data)} 자동 갱신 등록 완료!`
-    : `${displayProductLabel(data)} 구독이 시작됐어요!`;
+    ? t('payment.subtitleEnable', { label: productLabel })
+    : t('payment.subtitleRegister', { label: productLabel });
 
   const nextBillingLabel = data?.nextBillingAt
-    ? formatKoreanDate(data.nextBillingAt)
+    ? formatDate(data.nextBillingAt, en)
     : '-';
   const amountLabel = data?.amount
-    ? `${data.amount.toLocaleString()}원`
+    ? t('payment.amountWon', { amount: data.amount.toLocaleString() })
     : null;
 
   return (
@@ -155,7 +159,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
           {subtitle}
         </p>
         <div className="bg-white/70 rounded-xl px-4 py-3 text-left">
-          <p className="text-[11px] text-gray-500 mb-0.5">다음 결제일</p>
+          <p className="text-[11px] text-gray-500 mb-0.5">{t('payment.nextBilling')}</p>
           <p className="text-sm font-bold text-gray-800">
             {nextBillingLabel}
             {amountLabel && <span className="text-gray-600 font-medium"> · {amountLabel}</span>}
@@ -164,7 +168,7 @@ export default function BillingAuthSuccessClient({ authKey, customerKey, product
       </div>
 
       {/* 하단 힌트 */}
-      <p className="text-xs text-gray-400">잠시 후 구독 관리로 이동합니다...</p>
+      <p className="text-xs text-gray-400">{t('payment.redirecting')}</p>
     </div>
   );
 }
@@ -178,11 +182,12 @@ function displayProductLabel(data: SuccessData | null): string {
 }
 
 /**
- * ISO → "2026. 05. 21" 한국식 날짜 포맷.
+ * ISO → locale 날짜. KO "2026. 05. 21" / EN "May 21, 2026".
  */
-function formatKoreanDate(iso: string): string {
+function formatDate(iso: string, en: boolean): string {
   try {
     const d = new Date(iso);
+    if (en) return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

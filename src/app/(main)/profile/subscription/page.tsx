@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Crown, RefreshCw, Calendar, CreditCard, Shield,
@@ -49,51 +50,46 @@ interface FeatureItem {
   unavailable?: (plan: PlanType) => boolean;
 }
 
-const featureGroups: { title: string; features: FeatureItem[] }[] = [
-  {
-    title: 'AI 케어',
-    features: [
-      // 순서: 논문 검색 → 증상 분석 → 증상 재분석 → 사진 분석.
-      // 논문 검색·증상 분석: limitWindow 에 따라 단위 표기 (무료=회/월, Plus=회/일). 재분석은 항상 회/일.
-      { label: '논문 검색', key: 'search', format: (p) => `${PLANS[p].searchPerDay}회/${PLANS[p].limitWindow === 'month' ? '월' : '일'}` },
-      { label: '증상 분석', key: 'symptom', format: (p) => `${PLANS[p].symptomSearchPerDay}회/${PLANS[p].limitWindow === 'month' ? '월' : '일'}` },
-      { label: '증상 재분석', key: 'refine', format: (p) => `${PLANS[p].symptomRefinePerDay}회/일` },
-      {
-        label: '사진 분석',
-        key: 'photo',
-        // Free 는 평생 1회 체험 (일일 X), Plus 는 일일 3회.
-        format: (p) => p === 'free'
-          ? (PLANS[p].photoAnalysisLifetimeFree > 0 ? `${PLANS[p].photoAnalysisLifetimeFree}회 체험` : '-')
-          : `${PLANS[p].photoAnalysisPerDay}회/일`,
-      },
-      // 맞춤 분석 — Plus 핵심 차별점. 반려동물 의료정보(나이·체중·품종·만성질환)를 반영한
-      // AI 분석이라 AI 케어 그룹에 배치. 무료 ✗ / Plus ✓.
-      { label: '맞춤 분석', sublabel: '(반려동물 정보 반영)', key: 'petContext', format: () => '✓', unavailable: (p) => !PLANS[p].petContextAnalysis },
-    ],
-  },
-  {
-    // 'AI 케어' 외 항목은 한 그룹으로 통합 — 항목이 적어 한도/기능 2분할은 과하고,
-    // 숫자류·✗✓류가 섞여 분류가 모호했음. 순서는 사용 빈도·체감 가치 순으로 배치.
-    title: '기록 · 관리',
-    features: [
-      { label: '건강 기록', key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? '무제한' : `최대 ${PLANS[p].maxRecords}개` },
-      // 첨부파일 (1 vs 5) — 병원 검사지·처방전·사진 여러 장 첨부는 실사용 니즈가 커서 Plus 가치가 구체적.
-      { label: '첨부파일', sublabel: '(기록당)', key: 'attachments', format: (p) => `${PLANS[p].attachmentsPerRecord}개` },
-      { label: '건강 통계', key: 'cost', format: (p) => p === 'free' ? `최근 ${PLANS[p].costStatsMonths}개월` : '전체' },
-      {
-        label: '푸시 알림',
-        sublabel: '(투약·예약·퇴원)',
-        key: 'push',
-        format: () => '✓',
-        unavailable: (p) => p === 'free',
-      },
-      // 보관함 — Free 는 maxSavedAnalyses=0 이라 저장 불가(✗), Plus 는 저장 가능(✓).
-      // 숫자(500) 대신 ✗/✓ 로 표기 → "500 cap 이 이상해 보임"·"무제한 거짓말" 둘 다 회피.
-      { label: '보관함', sublabel: '(논문 검색 결과)', key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
-      { label: '로그인 기기', sublabel: '(가족과 함께)', key: 'devices', format: (p) => `${PLANS[p].maxDevices}대` },
-    ],
-  },
-];
+type TFn = ReturnType<typeof useTranslations>;
+
+// 라벨/값 모두 messages 로 — t 를 받아 그룹 배열을 조립.
+function buildFeatureGroups(t: TFn): { title: string; features: FeatureItem[] }[] {
+  // 한도 단위 — limitWindow=month 면 회/월, 아니면 회/일.
+  const perWindow = (p: PlanType, n: number) =>
+    PLANS[p].limitWindow === 'month' ? t('subscription.val.perMonth', { n }) : t('subscription.val.perDay', { n });
+  return [
+    {
+      title: t('home.section.aiCare'),
+      features: [
+        { label: t('subscription.feature.search'), key: 'search', format: (p) => perWindow(p, PLANS[p].searchPerDay) },
+        { label: t('subscription.feature.symptom'), key: 'symptom', format: (p) => perWindow(p, PLANS[p].symptomSearchPerDay) },
+        { label: t('subscription.feature.refine'), key: 'refine', format: (p) => t('subscription.val.perDay', { n: PLANS[p].symptomRefinePerDay }) },
+        {
+          label: t('subscription.feature.photo'),
+          key: 'photo',
+          // Free 는 평생 1회 체험 (일일 X), Plus 는 일일 3회.
+          format: (p) => p === 'free'
+            ? (PLANS[p].photoAnalysisLifetimeFree > 0 ? t('subscription.val.photoTrial', { n: PLANS[p].photoAnalysisLifetimeFree }) : '-')
+            : t('subscription.val.perDay', { n: PLANS[p].photoAnalysisPerDay }),
+        },
+        { label: t('subscription.feature.petContext'), sublabel: t('subscription.feature.petContextSub'), key: 'petContext', format: () => '✓', unavailable: (p) => !PLANS[p].petContextAnalysis },
+      ],
+    },
+    {
+      title: t('subscription.groupRecordManage'),
+      features: [
+        { label: t('subscription.feature.pets'), key: 'pets', format: (p) => PLANS[p].maxPets === 0 ? t('subscription.val.unlimited') : t('subscription.val.petsCount', { n: PLANS[p].maxPets }) },
+        { label: t('subscription.feature.records'), key: 'records', format: (p) => PLANS[p].maxRecords === 0 ? t('subscription.val.unlimited') : t('subscription.val.maxCount', { n: PLANS[p].maxRecords }) },
+        { label: t('subscription.feature.attachments'), sublabel: t('subscription.feature.attachmentsSub'), key: 'attachments', format: (p) => t('subscription.val.count', { n: PLANS[p].attachmentsPerRecord }) },
+        { label: t('subscription.feature.healthStats'), key: 'healthStats', format: (p) => p === 'free' ? t('subscription.val.recentMonths', { n: PLANS[p].costStatsMonths }) : t('subscription.val.allTime') },
+        { label: t('subscription.feature.expenseStats'), key: 'expenseStats', format: (p) => p === 'free' ? t('subscription.val.recentMonths', { n: PLANS[p].costStatsMonths }) : t('subscription.val.allTime') },
+        { label: t('subscription.feature.push'), sublabel: t('subscription.feature.pushSub'), key: 'push', format: () => '✓', unavailable: (p) => p === 'free' },
+        { label: t('subscription.feature.savedAnalyses'), sublabel: t('subscription.feature.savedAnalysesSub'), key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
+        { label: t('subscription.feature.devices'), sublabel: t('subscription.feature.devicesSub'), key: 'devices', format: (p) => t('subscription.val.devicesCount', { n: PLANS[p].maxDevices }) },
+      ],
+    },
+  ];
+}
 
 const MONTHLY_ONETIME = 3900;  // 1회 결제 (기준가)
 const MONTHLY_AUTO = 3500;     // 자동 결제 (10.3% 할인)
@@ -105,6 +101,11 @@ const YEARLY_DISCOUNT_PCT = Math.round((1 - YEARLY_PRICE / (MONTHLY_ONETIME * 12
 // ── Page ──
 
 export default function SubscriptionPage() {
+  const t = useTranslations();
+  const uiLocale = useLocale();
+  const dateLocale = uiLocale === 'en' ? 'en-US' : 'ko-KR';
+  const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString(dateLocale);
+  const featureGroups = buildFeatureGroups(t);
   const router = useRouter();
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
@@ -155,21 +156,21 @@ export default function SubscriptionPage() {
     setActionMessage('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('세션이 만료되었습니다.');
+      if (!session) throw new Error(t('subscription.error.sessionExpired'));
       const res = await fetch('/api/payments/billing/retry', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '결제에 실패했어요.');
-      setActionMessage('결제가 완료되었어요. 다음 결제일이 갱신되었습니다.');
+      if (!res.ok) throw new Error(data.error || t('subscription.error.paymentFailed'));
+      setActionMessage(t('subscription.error.retrySuccess'));
       await fetchData();
     } catch (err) {
       Sentry.captureException(err, {
         tags: { feature: 'subscription', action: 'retry' },
         extra: { userId: user?.id },
       });
-      setActionMessage(err instanceof Error ? err.message : '재결제에 실패했어요.');
+      setActionMessage(err instanceof Error ? err.message : t('subscription.error.retryFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -181,7 +182,7 @@ export default function SubscriptionPage() {
     setCancelError('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('세션이 만료되었습니다.');
+      if (!session) throw new Error(t('subscription.error.sessionExpired'));
       const withRefund = refundCheck?.refundable === true;
       const res = await fetch('/api/payments/cancel', {
         method: 'POST',
@@ -200,7 +201,7 @@ export default function SubscriptionPage() {
         tags: { feature: 'subscription', action: 'cancel' },
         extra: { userId: user?.id, withRefund: refundCheck?.refundable === true, reason: cancelReason },
       });
-      setCancelError(err instanceof Error ? err.message : '처리에 실패했습니다.');
+      setCancelError(err instanceof Error ? err.message : t('subscription.error.processFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -233,7 +234,7 @@ export default function SubscriptionPage() {
     const last4 = subscription.card_number.replace(/[^0-9]/g, '').slice(-4);
     const raw = subscription.card_company || '';
     const company = CARD_ISSUERS[raw] || raw;
-    return `${company}카드 •••• ${last4}`.trim();
+    return t('subscription.cardFormat', { company, last4 }).trim();
   };
 
   if (authLoading || loading) {
@@ -246,7 +247,7 @@ export default function SubscriptionPage() {
         <button onClick={() => router.push('/profile')} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-sm font-semibold text-gray-700">구독/결제 관리</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t('subscription.title')}</h1>
       </header>
 
       <div className="px-4 pt-2">
@@ -254,16 +255,16 @@ export default function SubscriptionPage() {
         {isTrialActive() && (
           <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5 mb-5 text-center">
             <div className="text-3xl mb-2">🎉</div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">3주 무료 체험 중이에요</h3>
-            <p className="text-xs text-gray-600 mb-4">모든 Plus 기능을 자유롭게 이용하세요</p>
+            <h3 className="text-base font-bold text-gray-900 mb-1">{t('subscription.trialTitle')}</h3>
+            <p className="text-xs text-gray-600 mb-4">{t('subscription.trialDesc')}</p>
             <div className="bg-white/70 rounded-xl px-4 py-3">
-              <p className="text-[11px] text-gray-500 mb-0.5">무료 체험 종료</p>
+              <p className="text-[11px] text-gray-500 mb-0.5">{t('subscription.trialEndLabel')}</p>
               <p className="text-sm font-bold text-gray-800">
-                2026. 05. 13 · {trialDaysLeft()}일 남음
+                {t('subscription.trialEndValue', { date: '2026. 05. 13', days: trialDaysLeft() })}
               </p>
             </div>
             <p className="text-[10px] text-gray-400 mt-3">
-              종료 후 유료 플랜 선택이 활성화됩니다
+              {t('subscription.trialAfterNote')}
             </p>
           </div>
         )}
@@ -275,17 +276,17 @@ export default function SubscriptionPage() {
               <div className="flex items-center gap-2 mb-0.5">
                 {isPaid || isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
                 <span className={`text-lg font-bold ${isPaid || isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
-                  {isPaid ? 'Plus' : isTrialActive() ? 'Plus (무료 체험)' : 'Free'}
+                  {isPaid ? 'Plus' : isTrialActive() ? t('subscription.planPlusTrial') : 'Free'}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
-                {isPaid ? '맞춤 관리, 더 꼼꼼하게' : isTrialActive() ? '3주 무료 체험 기간 적용 중' : '무료로 건강기록 시작'}
+                {isPaid ? t('subscription.planDescPaid') : isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
               </p>
             </div>
             {hasSub && (
               <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
-                {isActive ? '현재 이용 중' : '해지 예약'}
+                {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
               </span>
             )}
           </div>
@@ -295,19 +296,19 @@ export default function SubscriptionPage() {
         {!isPaid && !hasSub && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
             <div className="space-y-2.5">
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
-                sub="한번만 결제하고 30일 동안 이용" />
+                title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
+                sub={t('subscription.monthlyOnetimeSub')} />
               <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
-                title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
+                title={t('subscription.monthlyAutoTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+                sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
-                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
-                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
+                title={t('subscription.yearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+                priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
+                sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
+                badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
           </div>
@@ -319,16 +320,19 @@ export default function SubscriptionPage() {
             <div className="flex items-start gap-2">
               <AlertTriangle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-bold text-amber-900 mb-1">자동 결제가 보류 중이에요</p>
+                <p className="text-sm font-bold text-amber-900 mb-1">{t('subscription.retryHoldTitle')}</p>
                 <p className="text-xs text-amber-800 leading-relaxed mb-2">
-                  카드 거절 등의 사유로 결제가 완료되지 않았어요. 다음 자동 재시도 전까지 Plus 기능은 계속 사용하실 수 있고,
+                  {t('subscription.retryHoldDesc')}
                   {subscription.next_billing_at && (
-                    <> <span className="font-medium">{new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')}</span>에 자동 재시도됩니다.</>
+                    t.rich('subscription.retryNextDate', {
+                      date: fmtDate(subscription.next_billing_at),
+                      b: (c) => <span className="font-medium">{c}</span>,
+                    })
                   )}
                 </p>
                 {subscription.last_billing_failure_reason && (
                   <p className="text-[11px] text-amber-700 bg-amber-100 rounded px-2 py-1 mb-2 inline-block">
-                    실패 사유: {subscription.last_billing_failure_reason}
+                    {t('subscription.failureReason', { reason: subscription.last_billing_failure_reason })}
                   </p>
                 )}
                 <div className="flex gap-2 mt-2">
@@ -339,15 +343,15 @@ export default function SubscriptionPage() {
                     className="flex-1 py-2 rounded-full bg-amber-600 text-white text-xs font-semibold disabled:opacity-50"
                   >
                     {actionLoading === 'retry' ? (
-                      <span className="inline-flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> 결제 중...</span>
-                    ) : '지금 다시 결제'}
+                      <span className="inline-flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> {t('subscription.paying')}</span>
+                    ) : t('subscription.payNow')}
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push('/payment/billing-auth?productId=plus_monthly')}
                     className="flex-1 py-2 rounded-full border border-amber-400 bg-white text-amber-700 text-xs font-medium"
                   >
-                    새 카드로 등록
+                    {t('subscription.newCard')}
                   </button>
                 </div>
               </div>
@@ -359,23 +363,23 @@ export default function SubscriptionPage() {
         {hasSub && subscription && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
             <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100">
-              <span className="text-xs font-semibold text-gray-400">구독 정보</span>
+              <span className="text-xs font-semibold text-gray-400">{t('subscription.subInfo')}</span>
             </div>
             <div className="divide-y divide-gray-50">
               <DetailRow icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
-                label="결제 방식" value={isRecurring ? '월간 구독' : isYearly ? '연간 이용권' : '30일 이용권'} accent={isRecurring} />
+                label={t('subscription.billingMethod')} value={isRecurring ? t('subscription.billingMonthly') : isYearly ? t('subscription.billingYearly') : t('subscription.billing30day')} accent={isRecurring} />
               {isRecurring ? (
                 subscription.next_billing_at && (
                   <DetailRow icon={<Calendar size={14} className="text-blue-500" />}
-                    label="다음 결제일" value={new Date(subscription.next_billing_at).toLocaleDateString('ko-KR')} accent />
+                    label={t('subscription.nextBilling')} value={fmtDate(subscription.next_billing_at)} accent />
                 )
               ) : (
                 <DetailRow icon={<Calendar size={14} className="text-gray-400" />}
-                  label="만료일" value={new Date(subscription.period_end).toLocaleDateString('ko-KR')} />
+                  label={t('subscription.expiry')} value={fmtDate(subscription.period_end)} />
               )}
               {isRecurring && subscription.card_number && (
                 <DetailRow icon={<Shield size={14} className="text-gray-400" />}
-                  label="결제 카드" value={formatCard()} />
+                  label={t('subscription.paymentCard')} value={formatCard()} />
               )}
             </div>
           </div>
@@ -385,19 +389,19 @@ export default function SubscriptionPage() {
         {isCanceled && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">결제 옵션</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
             <div className="space-y-2.5">
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="월간 단건 결제" price={`월 ${MONTHLY_ONETIME.toLocaleString()}원`}
-                sub="한번만 결제하고 30일 동안 이용" />
+                title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
+                sub={t('subscription.monthlyOnetimeSub')} />
               <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
-                title="월간 정기 결제" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
+                title={t('subscription.monthlyAutoTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+                sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 결제" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
-                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
-                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
+                title={t('subscription.yearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+                priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
+                sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
+                badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
             </div>
             </div>
           </div>
@@ -412,29 +416,29 @@ export default function SubscriptionPage() {
         {isActive && (
           <div className="space-y-2 mb-6">
             <p className="text-[10px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mb-2 text-center">
-              플랜 변경 시 현재 이용 기간 종료 후 적용됩니다.
+              {t('subscription.planChangeNote')}
             </p>
 
             {/* 1회(월간) → 정기 결제 전환 */}
             {!isRecurring && !isYearly && (
               <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget(`/payment/billing-auth?productId=plus_monthly&mode=enable`) : router.push(`/payment/billing-auth?productId=plus_monthly&mode=enable`)}
-                title="월간 구독으로 전환" price={`월 ${MONTHLY_AUTO.toLocaleString()}원`}
-                sub="월간 단건 대비 10.3% 할인" badge="추천" badgeColor="bg-blue-100 text-blue-600" />
+                title={t('subscription.convertMonthlyTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+                sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
             )}
 
             {/* 연간 아닌 경우 → 연간 전환 */}
             {!isYearly && (
               <PlanBtn onClick={() => setShowComingSoon(true)}
-                title="연간 이용권으로 변경" price={`월 ${YEARLY_MONTHLY_EQUIV.toLocaleString()}원`}
-                priceSub={`연 ${YEARLY_PRICE.toLocaleString()}원 일시 결제`}
-                sub={`월간 단건 대비 ${YEARLY_DISCOUNT_PCT}% 할인`}
-                badge="장기 케어" badgeColor="bg-green-100 text-green-600" />
+                title={t('subscription.convertYearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+                priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
+                sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
+                badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
             )}
 
             {/* 자동 갱신 → 카드 변경 */}
             {isRecurring && (
               <ActionBtn onClick={() => router.push(`/payment/billing-auth?productId=${subscription?.product_id || 'plus_monthly'}`)}>
-                결제 카드 변경
+                {t('subscription.changeCard')}
               </ActionBtn>
             )}
           </div>
@@ -442,7 +446,7 @@ export default function SubscriptionPage() {
 
         {/* ── 5. Feature Comparison ── */}
         <div className="border-t border-gray-100 pt-6 mb-6">
-          <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">주요 기능 비교</h2>
+          <h2 className="text-sm font-bold text-gray-800 mb-4 text-center">{t('subscription.compareTitle')}</h2>
 
           <div className="rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-xs">
@@ -492,7 +496,7 @@ export default function SubscriptionPage() {
           <div className="mb-6">
             {!showCancelConfirm && (
               <ActionBtn onClick={() => setShowCancelConfirm(true)} variant="muted">
-                구독 해지
+                {t('subscription.cancel')}
               </ActionBtn>
             )}
 
@@ -500,14 +504,14 @@ export default function SubscriptionPage() {
               <div className="rounded-2xl border border-orange-500 bg-white p-4 space-y-3">
                 <div className="flex items-center gap-2.5">
                   <AlertTriangle size={14} className="text-orange-400 flex-shrink-0" />
-                  <p className="text-xs font-semibold text-orange-700">구독을 해지하시겠습니까?</p>
+                  <p className="text-xs font-semibold text-orange-700">{t('subscription.cancelConfirm')}</p>
                 </div>
                 <p className="text-[11px] text-orange-500/80 leading-relaxed">
                   {refundCheck?.refundable
-                    ? '지금 해지하시면 즉시 Free 플랜으로 전환되며, 결제 금액이 전액 환불됩니다.'
+                    ? t('subscription.cancelRefundable')
                     : <>
-                        {new Date(subscription!.period_end).toLocaleDateString('ko-KR')}까지 이용 가능하며, 이후 무료 플랜으로 전환됩니다.
-                        {isRecurring && ' 자동 결제도 중지됩니다.'}
+                        {t('subscription.cancelNonRefundable', { date: fmtDate(subscription!.period_end) })}
+                        {isRecurring && t('subscription.cancelAutoStop')}
                       </>
                   }
                 </p>
@@ -515,29 +519,29 @@ export default function SubscriptionPage() {
                 {refundCheck?.refundable && (
                   <div className="bg-white rounded-xl border border-green-200 p-3">
                     <p className="text-xs text-green-700">
-                      예상 환불 금액 : <span className="font-bold">{refundCheck.amount?.toLocaleString()}원</span>
+                      {t('subscription.refundAmount')}<span className="font-bold">{t('subscription.amountWon', { amount: refundCheck.amount?.toLocaleString() ?? '' })}</span>
                     </p>
                     <p className="text-[10px] text-green-600/70 mt-0.5 leading-relaxed">
                       {refundCheck.reason && <span>{refundCheck.reason}. </span>}
-                      카드사에 따라 반영에 3~10영업일 소요됩니다.
+                      {t('subscription.refundDelay')}
                     </p>
-                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">환불 정책 보기</a>
+                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">{t('subscription.refundPolicy')}</a>
                   </div>
                 )}
                 {refundCheck && !refundCheck.refundable && refundCheck.reason !== '결제 내역이 없습니다.' && (
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-[11px] text-gray-500 leading-relaxed">
-                      {refundCheck.reason || '환불 조건을 충족하지 않습니다.'}{refundCheck.reason && refundCheck.reason.endsWith('.') ? '' : '.'} 환불이 불가합니다.{' '}
-                      남은 이용 기간 동안 Plus 혜택은 그대로 유지되며{isRecurring ? ', 다음 결제일에 자동 갱신되지 않습니다.' : '.'}
+                      {refundCheck.reason || t('subscription.refundReasonFallback')}{refundCheck.reason && refundCheck.reason.endsWith('.') ? '' : '.'}
+                      {t('subscription.refundNotAvailable', { recurring: isRecurring ? t('subscription.refundRecurringTail') : t('subscription.refundOnetimeTail') })}
                     </p>
-                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">환불 정책 보기</a>
+                    <a href="/refund" target="_blank" className="text-[10px] text-blue-500 underline mt-1 inline-block">{t('subscription.refundPolicy')}</a>
                   </div>
                 )}
 
                 <div>
-                  <p className="text-[10px] text-orange-600/70 mb-2">해지 사유 (선택)</p>
+                  <p className="text-[10px] text-orange-600/70 mb-2">{t('subscription.cancelReasonLabel')}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {['가격이 부담돼요', '사용 빈도가 낮아요', '필요한 기능이 없어요', '다른 서비스를 이용해요'].map((r) => (
+                    {[t('subscription.cancelReason1'), t('subscription.cancelReason2'), t('subscription.cancelReason3'), t('subscription.cancelReason4')].map((r) => (
                       <button key={r} onClick={() => setCancelReason(cancelReason === r ? '' : r)}
                         className={`px-2.5 py-1 rounded-full text-[10px] transition-colors ${cancelReason === r ? 'bg-orange-500 text-white' : 'bg-white border border-orange-200 text-orange-600'}`}>{r}</button>
                     ))}
@@ -546,21 +550,21 @@ export default function SubscriptionPage() {
                 {cancelError && (
                   <div className="p-2.5 bg-red-50 rounded-lg text-[11px] text-red-600">
                     {cancelError}
-                    <p className="mt-1 text-[10px] text-red-400">다시 시도하거나 고객센터에 문의해주세요.</p>
+                    <p className="mt-1 text-[10px] text-red-400">{t('subscription.cancelRetryHint')}</p>
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => { setShowCancelConfirm(false); setCancelReason(''); setCancelError(''); }}
-                    className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">취소</button>
+                    className="flex-1 py-2.5 rounded-xl text-xs border border-gray-200 text-gray-500">{t('common.cancel')}</button>
                   <button onClick={handleCancel} disabled={actionLoading === 'cancel'}
                     className="flex-1 py-2.5 rounded-xl text-xs bg-orange-500 text-white font-medium disabled:opacity-50">
                     {actionLoading === 'cancel'
-                      ? '처리 중...'
+                      ? t('subscription.processing')
                       : refundCheck?.refundable
-                        ? '환불 및 해지'
+                        ? t('subscription.refundAndCancel')
                         : isRecurring
-                          ? '자동 결제 해지'
-                          : '구독 해지'
+                          ? t('subscription.stopAutoBilling')
+                          : t('subscription.cancel')
                     }
                   </button>
                 </div>
@@ -570,7 +574,7 @@ export default function SubscriptionPage() {
         )}
 
         <div className="mt-6 text-center pb-4">
-          <p className="text-[11px] text-gray-300">결제 문의: <a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a></p>
+          <p className="text-[11px] text-gray-300">{t('subscription.contactLabel')}<a href="mailto:dylabs.pawdex@gmail.com" className="text-blue-400">dylabs.pawdex@gmail.com</a></p>
         </div>
       </div>
 
@@ -583,7 +587,7 @@ export default function SubscriptionPage() {
                 <Calendar size={20} className="text-blue-500" />
               </div>
               <h3 className="text-sm font-bold text-gray-800 mb-1.5">
-                서비스 준비 중입니다
+                {t('subscription.comingSoonTitle')}
                 {/* 토스 심사 전용 비밀 아이콘 — 클릭 시 단기 결제 페이지로 이동.
                     일반 사용자는 줄 끝 마침표로 인식. 심사 통과 후 제거. */}
                 <button
@@ -597,11 +601,10 @@ export default function SubscriptionPage() {
                 </button>
               </h3>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                단건·연간 결제는 현재 준비 중이에요.<br />
-                정기 결제로 먼저 이용해보세요.
+                {t.rich('subscription.comingSoonBody', { br: () => <br /> })}
               </p>
               <button onClick={() => setShowComingSoon(false)} className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-xs font-medium">
-                확인
+                {t('common.confirm')}
               </button>
             </div>
           </div>
@@ -622,19 +625,17 @@ export default function SubscriptionPage() {
             <div className="text-center">
               <div className="text-3xl mb-2">🎁</div>
               <h3 className="text-sm font-bold text-gray-800 mb-1.5">
-                지금은 Plus 기능을 무료로 이용하실 수 있어요
+                {t('subscription.trialConfirmTitle')}
               </h3>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                2026. 05. 13 까지 모든 기능이 무료에요.<br />
-                체험 기간에 결제하시면 Plus 혜택이<br />
-                이어서 적용됩니다.
+                {t.rich('subscription.trialConfirmBody', { date: '2026. 05. 13', br: () => <br /> })}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setTrialConfirmTarget(null)}
                   className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-50"
                 >
-                  나중에 진행
+                  {t('subscription.later')}
                 </button>
                 <button
                   onClick={() => {
@@ -644,7 +645,7 @@ export default function SubscriptionPage() {
                   }}
                   className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
                 >
-                  이어서 진행
+                  {t('subscription.continue')}
                 </button>
               </div>
             </div>

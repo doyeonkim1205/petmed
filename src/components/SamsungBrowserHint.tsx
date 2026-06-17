@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Moon, X, Info } from 'lucide-react';
 import { openDefaultAppsSettings } from '@/lib/androidIntents';
 
@@ -9,6 +10,7 @@ const HINT_KEY = 'samsungHintShown';
 type Step = 'banner' | 'explain';
 
 export function SamsungBrowserHint() {
+  const t = useTranslations();
   const [show, setShow] = useState(false);
   const [step, setStep] = useState<Step>('banner');
 
@@ -49,7 +51,7 @@ export function SamsungBrowserHint() {
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500"
-          aria-label="닫기"
+          aria-label={t('common.close')}
         >
           <X size={16} />
         </button>
@@ -60,14 +62,11 @@ export function SamsungBrowserHint() {
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
                 <Moon size={16} className="text-blue-500" />
               </div>
-              <p className="text-sm font-bold text-gray-800">혹시 화면이 어둡게 보이나요?</p>
+              <p className="text-sm font-bold text-gray-800">{t('samsungHint.bannerTitle')}</p>
             </div>
 
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              삼성 인터넷의 <span className="font-bold text-gray-700">자동 다크 모드</span>로 일부 화면이 다르게 표시될 수 있어요.
-              <br /><br />
-              <span className="font-bold text-gray-700">Chrome 에서 열면</span> 화면을 더 자연스럽게 볼 수 있고,
-              어두운 테마를 원하시면 <span className="font-bold text-gray-700">앱 설정에서 다크 모드</span>를 켜 주세요.
+              {t.rich('samsungHint.bannerBody', { b: (c) => <span className="font-bold text-gray-700">{c}</span>, br: () => <br /> })}
             </p>
 
             <div className="flex gap-2">
@@ -75,13 +74,13 @@ export function SamsungBrowserHint() {
                 onClick={() => setStep('explain')}
                 className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
               >
-                Chrome 으로 열기
+                {t('samsungHint.openChrome')}
               </button>
               <button
                 onClick={handleDismiss}
                 className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
               >
-                그냥 쓸게요
+                {t('samsungHint.justUse')}
               </button>
             </div>
           </>
@@ -91,12 +90,11 @@ export function SamsungBrowserHint() {
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
                 <Info size={16} className="text-blue-500" />
               </div>
-              <p className="text-sm font-bold text-gray-800">Chrome 으로 전환</p>
+              <p className="text-sm font-bold text-gray-800">{t('samsungHint.explainTitle')}</p>
             </div>
 
             <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              설정에서 <span className="font-bold text-gray-700">[브라우저 앱] → Chrome</span> 선택 후
-              <span className="font-bold text-gray-700"> PawDex 앱을 재실행</span>해주세요.
+              {t.rich('samsungHint.explainBody', { b: (c) => <span className="font-bold text-gray-700">{c}</span> })}
             </p>
 
             <div className="flex gap-2">
@@ -104,13 +102,13 @@ export function SamsungBrowserHint() {
                 onClick={() => { openDefaultAppsSettings(); handleDismiss(); }}
                 className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-full"
               >
-                설정 열기
+                {t('samsungHint.openSettings')}
               </button>
               <button
                 onClick={handleDismiss}
                 className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-xs font-bold rounded-full"
               >
-                그냥 쓸게요
+                {t('samsungHint.justUse')}
               </button>
             </div>
           </>
