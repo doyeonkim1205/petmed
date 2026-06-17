@@ -13,7 +13,10 @@
     "all": "All",
     "optional": "(optional)",
     "pet": "Pet",
-    "back": "Back"
+    "back": "Back",
+    "edit": "Edit",
+    "add": "Add",
+    "registerPetFirst": "Please register a pet first"
   },
   "nav": {
     "home": "Home",
@@ -98,7 +101,8 @@
         "title": "AI reads your records with you",
         "subtitle": "We analyze symptoms from your pet's health records"
       }
-    }
+    },
+    "preventiveWidget": { "summaryMore": "{label} +{count} more upcoming" }
   },
   "record": {
     "type": {
@@ -302,7 +306,34 @@
       "vaccine": "Vaccine", "rabies": "Rabies", "health_check": "Health checkup", "other": "Other"
     },
     "interval": { "monthly": "Monthly", "yearly": "Yearly", "everyMonths": "Every {value} months", "everyYears": "Every {value} years" },
-    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days} days overdue", "overdueMax": "30+ days overdue" }
+    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days} days overdue", "overdueMax": "30+ days overdue" },
+    "status": { "overdue": "Overdue", "soon": "Soon", "ok": "OK" },
+    "selectPet": "Please select a pet first",
+    "saveError": "Something went wrong while saving. Please try again.",
+    "toastUpdated": "Next due date updated to {date}",
+    "nextPrefix": "Next",
+    "done": "Done",
+    "intro": "Manage recurring preventive care like vaccines, heartworm, and deworming in one place! We'll remind you as the due date approaches.",
+    "empty": "No preventive items yet",
+    "emptyHint": "Tap + to add one",
+    "addTitle": "Add preventive item",
+    "editTitle": "Edit preventive item",
+    "categoryLabel": "Category",
+    "product": "Product",
+    "productPlaceholder": "Enter product/item name (e.g. Heartgard)",
+    "cycleLabel": "Interval",
+    "lastDone": "Last done date",
+    "nextDueCalc": "→ Next due <b>{date}</b> (auto-calculated)",
+    "nextDueShort": "→ Next due <b>{date}</b>",
+    "alarm": "Preventive reminder {state}",
+    "alarmHint": "We'll notify you 3 days before and on the due date",
+    "softPromptTitle": "Turn on preventive reminders?",
+    "softPromptMsg": "We'll send reminders on the due date! Allow notifications to apply right away.",
+    "doneTitle": "Mark '{name}' as done",
+    "doneDesc": "The next due date auto-updates to <b>{interval}</b> after the done date",
+    "doneDate": "Done date",
+    "deleteTitle": "Delete '{name}'?",
+    "deleteMessage": "Deleting also removes the due date and reminders"
   },
   "excretion": {
     "condition": {

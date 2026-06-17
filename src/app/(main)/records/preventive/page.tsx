@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, Plus, Syringe, Bell, BellOff, Loader2, Trash2, X, AlertTriangle, Check } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,16 +15,16 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { ensurePushSubscribed } from '@/lib/pushSubscribe';
 import { isInstalledApp, isNativeApp } from '@/lib/platform';
 import {
-  PREVENTIVE_CATEGORIES, categoryMeta, intervalLabel,
+  PREVENTIVE_CATEGORIES, categoryMeta, categoryLabel, intervalLabel,
   addInterval, careStatus, ddayLabel, todayISO, type CareStatus,
 } from '@/lib/preventiveCare';
 
-// 주기 프리셋 — 월1/3개월/6개월/연1 로 사실상 모든 예방 케어 커버 (커스텀 입력 생략으로 단순화).
-const INTERVAL_PRESETS: { label: string; unit: 'month' | 'year'; value: number }[] = [
-  { label: '월 1회', unit: 'month', value: 1 },
-  { label: '3개월',  unit: 'month', value: 3 },
-  { label: '6개월',  unit: 'month', value: 6 },
-  { label: '연 1회', unit: 'year',  value: 1 },
+// 주기 프리셋 — 라벨은 intervalLabel(unit,value,t)로 렌더 (월1/3개월/6개월/연1).
+const INTERVAL_PRESETS: { unit: 'month' | 'year'; value: number }[] = [
+  { unit: 'month', value: 1 },
+  { unit: 'month', value: 3 },
+  { unit: 'month', value: 6 },
+  { unit: 'year',  value: 1 },
 ];
 
 interface CareForm {
@@ -63,13 +64,15 @@ const ddayBadge: Record<CareStatus, string> = {
   soon: 'bg-amber-100 text-amber-700',
   ok: 'bg-gray-100 text-gray-400',
 };
-const groupMeta: Record<CareStatus, { label: string; dot: string; text: string }> = {
-  overdue: { label: '지남', dot: 'bg-red-500', text: 'text-red-600' },
-  soon: { label: '임박', dot: 'bg-amber-500', text: 'text-amber-600' },
-  ok: { label: '여유', dot: 'bg-gray-300', text: 'text-gray-400' },
+// label 은 preventive.status.* messages 로 분리 — status id 로 참조.
+const groupMeta: Record<CareStatus, { dot: string; text: string }> = {
+  overdue: { dot: 'bg-red-500', text: 'text-red-600' },
+  soon: { dot: 'bg-amber-500', text: 'text-amber-600' },
+  ok: { dot: 'bg-gray-300', text: 'text-gray-400' },
 };
 
 export default function PreventivePage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
   const { getByPet, addCare, updateCare, markDone, deleteCare } = usePreventiveCares();
@@ -204,7 +207,7 @@ export default function PreventivePage() {
   };
 
   const saveCare = async () => {
-    if (!selectedPetId) { setFormError('반려동물을 먼저 선택해주세요'); return; }
+    if (!selectedPetId) { setFormError(t('preventive.selectPet')); return; }
     setFormError(null);
     setSaving(true);
     try {
@@ -236,22 +239,22 @@ export default function PreventivePage() {
       await load();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'preventive', action: form.id ? 'edit' : 'add' }, extra: { userId: user?.id } });
-      setFormError('저장 중 오류가 발생했어요! 다시 시도해주세요');
+      setFormError(t('preventive.saveError'));
     } finally {
       setSaving(false);
     }
   };
 
   const confirmDone = async () => {
-    const t = doneTarget;
+    const tgt = doneTarget;
     setDoneTarget(null);
-    if (!t) return;
-    const nextDue = addInterval(doneDate, t.interval_unit, t.interval_value);
+    if (!tgt) return;
+    const nextDue = addInterval(doneDate, tgt.interval_unit, tgt.interval_value);
     try {
-      await markDone(t.id, doneDate, t.interval_unit, t.interval_value);
+      await markDone(tgt.id, doneDate, tgt.interval_unit, tgt.interval_value);
       await load();
       // 무엇이 일어났는지 즉시 보여주는 피드백 (방금 등록 직후 "안 변하는데?" 혼란 방지)
-      setToast(`다음 예정일이 ${nextDue.replace(/-/g, '. ')}로 갱신됐어요`);
+      setToast(t('preventive.toastUpdated', { date: nextDue.replace(/-/g, '. ') }));
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'preventive', action: 'done' }, extra: { userId: user?.id } });
     }
@@ -293,22 +296,22 @@ export default function PreventivePage() {
           <span className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 text-lg">{meta.emoji}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-gray-900 truncate">{meta.label}</span>
+              <span className="text-sm font-semibold text-gray-900 truncate">{categoryLabel(c.category, t)}</span>
               {c.name && c.name !== meta.label && <span className="text-[11px] text-gray-400 truncate">{c.name}</span>}
               {c.alarm_enabled && <Bell size={11} className="flex-shrink-0 text-blue-500" />}
             </div>
             <p className="text-[11px] text-gray-400 mt-0.5 truncate">
-              다음 {fmtDate(c.next_due_date)} · {intervalLabel(c.interval_unit, c.interval_value)}
+              {t('preventive.nextPrefix')} {fmtDate(c.next_due_date)} · {intervalLabel(c.interval_unit, c.interval_value, t)}
             </p>
           </div>
         </button>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${ddayBadge[st]}`}>{ddayLabel(c.next_due_date)}</span>
+          <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${ddayBadge[st]}`}>{ddayLabel(c.next_due_date, t)}</span>
           <button
             onClick={() => { setDoneDate(todayISO()); setDoneTarget(c); }}
             className="text-[11px] font-bold text-blue-600 border border-blue-100 bg-white rounded-full px-2.5 py-1 hover:bg-blue-50 transition-colors"
           >
-            완료
+            {t('preventive.done')}
           </button>
         </div>
       </div>
@@ -333,10 +336,10 @@ export default function PreventivePage() {
       {/* 헤더 — 복약 관리와 동일 */}
       <div className="sticky top-0 z-30 bg-white relative">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
-          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-semibold text-gray-700">예방 관리</h1>
+          <h1 className="text-sm font-semibold text-gray-700">{t('record.module.preventive')}</h1>
         </header>
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
@@ -354,7 +357,7 @@ export default function PreventivePage() {
         {noPets ? (
           <div className="text-center py-16">
             <Syringe size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-400 text-sm">먼저 반려동물을 등록해주세요</p>
+            <p className="text-gray-400 text-sm">{t('common.registerPetFirst')}</p>
           </div>
         ) : (!petsLoaded || loading) ? (
           <div className="space-y-3 pt-2">
@@ -363,21 +366,21 @@ export default function PreventivePage() {
         ) : (
           <>
             <p className="text-xs text-gray-400 leading-snug">
-              예방접종·심장사상충·구충 등 주기적으로 챙길 예방을 한 곳에서 관리해요! 예정일이 다가오면 알림으로 알려드려요
+              {t('preventive.intro')}
             </p>
 
             {cares.length === 0 ? (
               <div className="text-center py-12">
                 <Syringe size={40} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-400 text-sm">등록된 예방 항목이 없어요</p>
-                <p className="text-gray-300 text-xs mt-1">+ 버튼으로 추가해보세요</p>
+                <p className="text-gray-400 text-sm">{t('preventive.empty')}</p>
+                <p className="text-gray-300 text-xs mt-1">{t('preventive.emptyHint')}</p>
               </div>
             ) : (
               (['overdue', 'soon', 'ok'] as CareStatus[]).map((st) =>
                 grouped[st].length > 0 ? (
                   <div key={st} className="space-y-2">
                     <h2 className={`flex items-center gap-1.5 text-[11px] font-bold tracking-wide ${groupMeta[st].text}`}>
-                      <span className={`w-2 h-2 rounded-full ${groupMeta[st].dot}`} />{groupMeta[st].label}
+                      <span className={`w-2 h-2 rounded-full ${groupMeta[st].dot}`} />{t(`preventive.status.${st}`)}
                     </h2>
                     {grouped[st].map((c) => <CareCard key={c.id} c={c} />)}
                   </div>
@@ -404,14 +407,14 @@ export default function PreventivePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeEditor}>
           <div className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">{form.id ? '예방 항목 수정' : '예방 항목 추가'}</h2>
+              <h2 className="text-base font-bold text-gray-900">{form.id ? t('preventive.editTitle') : t('preventive.addTitle')}</h2>
               <button onClick={closeEditor} className="p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
             </div>
 
             <div className="p-4 space-y-3">
               {/* 카테고리 */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">카테고리</label>
+                <label className="text-xs text-gray-400 mb-1.5 block">{t('preventive.categoryLabel')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {PREVENTIVE_CATEGORIES.map((cat) => (
                     <button
@@ -422,7 +425,7 @@ export default function PreventivePage() {
                         form.category === cat.id ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'
                       }`}
                     >
-                      {cat.emoji} {cat.label}
+                      {cat.emoji} {categoryLabel(cat.id, t)}
                     </button>
                   ))}
                 </div>
@@ -430,7 +433,7 @@ export default function PreventivePage() {
 
               {/* 제품 (선택) */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">제품 <span className="text-gray-300">(선택)</span></label>
+                <label className="text-xs text-gray-400 mb-1.5 block">{t('preventive.product')} <span className="text-gray-300">{t('common.optional')}</span></label>
                 {categoryMeta(form.category).products.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {categoryMeta(form.category).products.map((p) => (
@@ -449,7 +452,7 @@ export default function PreventivePage() {
                 )}
                 <input
                   type="search"
-                  placeholder="제품·항목명 직접 입력 (예: 하트가드)"
+                  placeholder={t('preventive.productPlaceholder')}
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   maxLength={24}
@@ -460,20 +463,20 @@ export default function PreventivePage() {
 
               {/* 주기 */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">주기</label>
+                <label className="text-xs text-gray-400 mb-1.5 block">{t('preventive.cycleLabel')}</label>
                 <div className="flex gap-1.5">
                   {INTERVAL_PRESETS.map((p) => {
                     const on = form.interval_unit === p.unit && form.interval_value === p.value;
                     return (
                       <button
-                        key={p.label}
+                        key={`${p.unit}-${p.value}`}
                         type="button"
                         onClick={() => setForm((f) => ({ ...f, interval_unit: p.unit, interval_value: p.value }))}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           on ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'
                         }`}
                       >
-                        {p.label}
+                        {intervalLabel(p.unit, p.value, t)}
                       </button>
                     );
                   })}
@@ -482,7 +485,7 @@ export default function PreventivePage() {
 
               {/* 마지막 시행일 */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">마지막 시행일</label>
+                <label className="text-xs text-gray-400 mb-1 block">{t('preventive.lastDone')}</label>
                 <DatePicker
                   value={form.last_done_date}
                   onChange={(v) => setForm((f) => ({ ...f, last_done_date: v }))}
@@ -490,7 +493,7 @@ export default function PreventivePage() {
                   inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                 />
                 <p className="text-[11px] text-blue-500 bg-blue-50 rounded-lg px-2.5 py-1.5 mt-1.5">
-                  → 다음 예정일 <b>{nextDuePreview.replace(/-/g, '. ')}</b> 로 자동 계산
+                  {t.rich('preventive.nextDueCalc', { date: nextDuePreview.replace(/-/g, '. '), b: (c) => <b>{c}</b> })}
                 </p>
               </div>
 
@@ -505,15 +508,15 @@ export default function PreventivePage() {
                   }`}
                 >
                   {subscribing ? <Loader2 size={14} className="animate-spin" /> : form.alarm_enabled ? <Bell size={14} /> : <BellOff size={14} />}
-                  {subscribing ? '알림 켜는 중...' : `예방 알림 ${form.alarm_enabled ? 'ON' : 'OFF'}`}
+                  {subscribing ? t('record.form.alarmTurningOn') : t('preventive.alarm', { state: form.alarm_enabled ? 'ON' : 'OFF' })}
                 </button>
                 {canUseAlarm && form.alarm_enabled && (
-                  <p className="text-[11px] text-gray-400 px-1">예정일 3일 전·당일에 푸시로 알려드려요</p>
+                  <p className="text-[11px] text-gray-400 px-1">{t('preventive.alarmHint')}</p>
                 )}
                 {canUseAlarm && form.alarm_enabled && notifPermission === 'denied' && !isNativeApp() && (
                   <div className="flex items-start gap-1.5 px-2 py-1.5 mt-1 bg-red-50 border border-red-100 rounded-md text-[11px] text-red-600 leading-snug">
                     <BellOff size={11} className="flex-shrink-0 mt-0.5" />
-                    <p>브라우저 알림이 차단되어 있어요! 앱 설정에서 알림 허용으로 변경 후 다시 시도해주세요</p>
+                    <p>{t('record.form.notifBlocked')}</p>
                   </div>
                 )}
               </div>
@@ -525,7 +528,7 @@ export default function PreventivePage() {
                 disabled={saving}
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors"
               >
-                {saving ? '저장 중...' : form.id ? '수정' : '추가'}
+                {saving ? t('record.form.saving') : form.id ? t('common.edit') : t('common.add')}
               </button>
 
               {form.id && (
@@ -536,7 +539,7 @@ export default function PreventivePage() {
                   }}
                   className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
                 >
-                  <Trash2 size={13} /> 삭제
+                  <Trash2 size={13} /> {t('common.delete')}
                 </button>
               )}
             </div>
@@ -547,10 +550,10 @@ export default function PreventivePage() {
       {/* 알림 권한 soft-prompt */}
       <ConfirmModal
         open={showPushPrompt}
-        title="예방 알림을 받을까요?"
-        message="예정일에 맞춰 예방 알림을 보내드려요! 알림을 허용하면 바로 적용돼요"
-        confirmLabel="받을게요"
-        cancelLabel="나중에"
+        title={t('preventive.softPromptTitle')}
+        message={t('preventive.softPromptMsg')}
+        confirmLabel={t('record.form.allow')}
+        cancelLabel={t('record.form.later')}
         onConfirm={handlePushAllow}
         onCancel={() => setShowPushPrompt(false)}
       />
@@ -559,25 +562,25 @@ export default function PreventivePage() {
       {doneTarget && (
         <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={() => setDoneTarget(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-5 relative" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setDoneTarget(null)} className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500" aria-label="닫기"><X size={16} /></button>
+            <button onClick={() => setDoneTarget(null)} className="absolute top-3 right-3 p-0.5 text-gray-300 hover:text-gray-500" aria-label={t('common.close')}><X size={16} /></button>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
                 <Check size={16} className="text-blue-600" />
               </div>
-              <p className="text-sm font-bold text-gray-800">'{categoryMeta(doneTarget.category).label}' 완료 처리</p>
+              <p className="text-sm font-bold text-gray-800">{t('preventive.doneTitle', { name: categoryLabel(doneTarget.category, t) })}</p>
             </div>
             <p className="text-xs text-gray-500 leading-relaxed mb-3 break-keep break-words">
-              시행일을 기준으로 다음 예정일이 <b>{intervalLabel(doneTarget.interval_unit, doneTarget.interval_value)}</b> 뒤로 자동 갱신돼요
+              {t.rich('preventive.doneDesc', { interval: intervalLabel(doneTarget.interval_unit, doneTarget.interval_value, t), b: (c) => <b>{c}</b> })}
             </p>
-            <label className="text-xs text-gray-400 mb-1 block">시행일</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t('preventive.doneDate')}</label>
             <DatePicker value={doneDate} onChange={setDoneDate} max={todayISO()}
               inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white mb-2" />
             <p className="text-[11px] text-blue-500 bg-blue-50 rounded-lg px-2.5 py-1.5 mb-4">
-              → 다음 예정일 <b>{addInterval(doneDate, doneTarget.interval_unit, doneTarget.interval_value).replace(/-/g, '. ')}</b>
+              {t.rich('preventive.nextDueShort', { date: addInterval(doneDate, doneTarget.interval_unit, doneTarget.interval_value).replace(/-/g, '. '), b: (c) => <b>{c}</b> })}
             </p>
             <div className="flex gap-2">
-              <button onClick={() => setDoneTarget(null)} className="flex-1 py-2.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">취소</button>
-              <button onClick={confirmDone} className="flex-1 py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors">완료</button>
+              <button onClick={() => setDoneTarget(null)} className="flex-1 py-2.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">{t('common.cancel')}</button>
+              <button onClick={confirmDone} className="flex-1 py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors">{t('preventive.done')}</button>
             </div>
           </div>
         </div>
@@ -586,10 +589,10 @@ export default function PreventivePage() {
       {/* 삭제 확인 */}
       <ConfirmModal
         open={!!deleteTarget}
-        title={deleteTarget ? `'${categoryMeta(deleteTarget.category).label}' 삭제할까요?` : ''}
-        message="삭제하면 예정일·알림도 함께 사라져요"
-        confirmLabel="삭제"
-        cancelLabel="취소"
+        title={deleteTarget ? t('preventive.deleteTitle', { name: categoryLabel(deleteTarget.category, t) }) : ''}
+        message={t('preventive.deleteMessage')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -601,17 +604,15 @@ export default function PreventivePage() {
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
             <div className="flex items-center gap-2 mb-3">
               <Bell size={18} className="text-blue-500" />
-              <h3 className="text-sm font-bold text-gray-800">알림 기능</h3>
+              <h3 className="text-sm font-bold text-gray-800">{t('record.form.alarmFeatureTitle')}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-1 break-keep break-words">
-              {!isPWA
-                ? '앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'
-                : 'Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요'}
+              {!isPWA ? t('record.form.alarmUpsellApp') : t('record.form.alarmUpsellWeb')}
             </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">투약·예약·퇴원·예방 일정에 맞춰 푸시 알림을 보내드려요</p>
+            <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('record.form.alarmUpsellDesc')}</p>
             <div className="flex gap-2">
-              <button onClick={() => setShowAlarmUpgrade(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">닫기</button>
-              <button onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">요금제 보기</button>
+              <button onClick={() => setShowAlarmUpgrade(false)} className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">{t('common.close')}</button>
+              <button onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">{t('record.form.viewPlans')}</button>
             </div>
           </div>
         </div>

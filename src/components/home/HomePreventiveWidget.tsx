@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Syringe, ChevronDown, ChevronRight } from 'lucide-react';
 import { usePreventiveCares } from '@/hooks/usePreventiveCares';
 import type { PreventiveCare } from '@/lib/supabase';
-import { categoryMeta, careStatus, ddayLabel, ddayFrom, type CareStatus } from '@/lib/preventiveCare';
+import { categoryMeta, categoryLabel, careStatus, ddayLabel, ddayFrom, type CareStatus } from '@/lib/preventiveCare';
 
 // 홈 "예방 관리" 위젯 — 평소엔 한 줄 요약, 탭하면 다가오는 예방 리스트로 펼침.
 // D-7 이내(임박·지남 포함) 예방이 있을 때만 노출 (없으면 자동 숨김 → 홈 깔끔).
@@ -22,6 +23,7 @@ const badgeCls: Record<CareStatus, string> = {
 };
 
 export function HomePreventiveWidget() {
+  const t = useTranslations();
   const [cares, setCares] = useState<PreventiveCare[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -63,10 +65,9 @@ export function HomePreventiveWidget() {
 
   const top = cares[0];
   const topStatus = careStatus(top.next_due_date);
-  const topMeta = categoryMeta(top.category);
   const summary = cares.length === 1
-    ? `${topMeta.label} ${ddayLabel(top.next_due_date)}`
-    : `${topMeta.label} 외 ${cares.length - 1}개 예정`;
+    ? `${categoryLabel(top.category, t)} ${ddayLabel(top.next_due_date, t)}`
+    : t('home.preventiveWidget.summaryMore', { label: categoryLabel(top.category, t), count: cares.length - 1 });
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100">
@@ -76,11 +77,11 @@ export function HomePreventiveWidget() {
           <Syringe size={18} className="text-sky-500" />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-gray-900">예방 관리</p>
+          <p className="text-[13px] font-bold text-gray-900">{t('record.module.preventive')}</p>
           <p className="text-[11px] text-gray-400 truncate">{summary}</p>
         </div>
         <span className={`text-[11px] font-bold px-2 py-1 rounded-full flex-none ${badgeCls[topStatus]}`}>
-          {ddayLabel(top.next_due_date)}
+          {ddayLabel(top.next_due_date, t)}
         </span>
         <ChevronDown size={16} className={`text-gray-400 flex-none transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
@@ -100,12 +101,12 @@ export function HomePreventiveWidget() {
                 <span className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center flex-none text-base">{meta.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-gray-900 truncate">
-                    {meta.label}
+                    {categoryLabel(c.category, t)}
                     {c.pets?.name ? <span className="text-gray-400 font-normal"> · {c.pets.name}</span> : null}
                   </p>
                 </div>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-none ${badgeCls[st]}`}>
-                  {ddayLabel(c.next_due_date)}
+                  {ddayLabel(c.next_due_date, t)}
                 </span>
               </button>
             );
@@ -114,7 +115,7 @@ export function HomePreventiveWidget() {
             onClick={() => router.push('/records/preventive')}
             className="mt-1 w-full flex items-center justify-center gap-0.5 py-2 text-[12px] font-medium text-sky-600 hover:text-sky-700 transition-colors"
           >
-            예방 관리 <ChevronRight size={13} />
+            {t('record.module.preventive')} <ChevronRight size={13} />
           </button>
         </div>
       )}

@@ -13,7 +13,10 @@
     "all": "전체",
     "optional": "(선택)",
     "pet": "반려동물",
-    "back": "뒤로"
+    "back": "뒤로",
+    "edit": "수정",
+    "add": "추가",
+    "registerPetFirst": "먼저 반려동물을 등록해주세요"
   },
   "nav": {
     "home": "홈",
@@ -98,7 +101,8 @@
         "title": "AI가 기록을 함께 읽어드려요",
         "subtitle": "우리 아이 건강 기록을 바탕으로 증상을 분석해요"
       }
-    }
+    },
+    "preventiveWidget": { "summaryMore": "{label} 외 {count}개 예정" }
   },
   "record": {
     "type": {
@@ -302,7 +306,34 @@
       "vaccine": "종합백신", "rabies": "광견병", "health_check": "건강검진", "other": "기타"
     },
     "interval": { "monthly": "월 1회", "yearly": "연 1회", "everyMonths": "{value}개월", "everyYears": "{value}년" },
-    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days}일 지남", "overdueMax": "30일+ 지남" }
+    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days}일 지남", "overdueMax": "30일+ 지남" },
+    "status": { "overdue": "지남", "soon": "임박", "ok": "여유" },
+    "selectPet": "반려동물을 먼저 선택해주세요",
+    "saveError": "저장 중 오류가 발생했어요! 다시 시도해주세요",
+    "toastUpdated": "다음 예정일이 {date}로 갱신됐어요",
+    "nextPrefix": "다음",
+    "done": "완료",
+    "intro": "예방접종·심장사상충·구충 등 주기적으로 챙길 예방을 한 곳에서 관리해요! 예정일이 다가오면 알림으로 알려드려요",
+    "empty": "등록된 예방 항목이 없어요",
+    "emptyHint": "+ 버튼으로 추가해보세요",
+    "addTitle": "예방 항목 추가",
+    "editTitle": "예방 항목 수정",
+    "categoryLabel": "카테고리",
+    "product": "제품",
+    "productPlaceholder": "제품·항목명 직접 입력 (예: 하트가드)",
+    "cycleLabel": "주기",
+    "lastDone": "마지막 시행일",
+    "nextDueCalc": "→ 다음 예정일 <b>{date}</b> 로 자동 계산",
+    "nextDueShort": "→ 다음 예정일 <b>{date}</b>",
+    "alarm": "예방 알림 {state}",
+    "alarmHint": "예정일 3일 전·당일에 푸시로 알려드려요",
+    "softPromptTitle": "예방 알림을 받을까요?",
+    "softPromptMsg": "예정일에 맞춰 예방 알림을 보내드려요! 알림을 허용하면 바로 적용돼요",
+    "doneTitle": "'{name}' 완료 처리",
+    "doneDesc": "시행일을 기준으로 다음 예정일이 <b>{interval}</b> 뒤로 자동 갱신돼요",
+    "doneDate": "시행일",
+    "deleteTitle": "'{name}' 삭제할까요?",
+    "deleteMessage": "삭제하면 예정일·알림도 함께 사라져요"
   },
   "excretion": {
     "condition": {
