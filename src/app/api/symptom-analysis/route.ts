@@ -8,7 +8,11 @@ import { startOfDayKST, startOfWindowKST } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
-import { matchRedFlags } from '@/data/redFlags';
+import { matchRedFlagsDetailed } from '@/data/redFlags';
+import { localeFromRequest } from '@/lib/aiLocale';
+import { normalizeSeverity, normalizeLikelihood, normalizeEmergencySeverity } from '@/lib/enumNormalize';
+import { BLOOD_RE, MELENA_RE } from '@/lib/bloodPatterns';
+import { buildSymptomSystemPromptEn } from '@/lib/prompts/symptomPrompt';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -22,12 +26,15 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (auth.error) return auth.error;
     const userId = auth.user!.id;
+    // 응답 언어 — NEXT_LOCALE 쿠키 직접 읽기 (클라 본문 변경 없음).
+    const locale = localeFromRequest(request);
+    const en = locale === 'en';
 
     // 분 단위 burst 방어. 일일 한도와 별개로 초단위 스팸 차단.
     // 10 req/min 은 정상 유저가 절대 넘을 수 없는 값. 매크로만 걸림.
     if (!checkRateLimit(`${userId}:symptom-analysis`, 10, 60_000)) {
       return NextResponse.json(
-        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+        { error: en ? 'Too many requests. Please try again shortly.' : '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
         { status: 429 },
       );
     }
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest) {
     // 보안: fetchPetContext 가 user_id 검증 포함.
     const petContext = petId ? await fetchPetContext(supabaseAdmin, userId, petId) : null;
     // 맞춤 분석(펫 의료정보 반영)은 Plus 전용 — plan 확정 후 무료면 컨텍스트를 비운다(아래).
-    let petContextText = buildPetContextPrompt(petContext);
+    let petContextText = buildPetContextPrompt(petContext, locale);
     // species(강아지/고양이)는 게이팅하지 않음 — 무료도 정확한 종별 분석을 받는다.
     // (클라이언트가 petType 따로 보내도 펫 정보가 우선)
     const effectivePetType = petContext?.pet.type ?? petType;
@@ -79,7 +86,9 @@ export async function POST(request: NextRequest) {
     // Plan-based character limit
     if (symptoms.length > config.maxSymptomLength) {
       return NextResponse.json({
-        error: `증상 입력은 최대 ${config.maxSymptomLength}자까지 가능합니다.${plan === 'free' ? ' 업그레이드하면 500자까지 입력할 수 있어요.' : ''}`,
+        error: en
+          ? `Symptom input can be up to ${config.maxSymptomLength} characters.${plan === 'free' ? ' Upgrade to enter up to 500 characters.' : ''}`
+          : `증상 입력은 최대 ${config.maxSymptomLength}자까지 가능합니다.${plan === 'free' ? ' 업그레이드하면 500자까지 입력할 수 있어요.' : ''}`,
       }, { status: 400 });
     }
 
@@ -98,19 +107,27 @@ export async function POST(request: NextRequest) {
       .gte('created_at', since.toISOString());
 
     if ((count || 0) >= limit) {
-      const label = isRefinement ? '재분석' : '증상 분석';
-      const period = useMonthly ? '이번 달' : '오늘';
-      const reset = useMonthly ? '다음 달 1일에 초기화됩니다.' : '밤 12시(자정)에 초기화됩니다.';
       // `\n` 기준 두 줄 구성 — 클라이언트가 split 해서 둘째 줄은 작게 렌더.
-      return NextResponse.json({
-        error: `${period}의 ${label} 횟수(${limit}회)를 모두 사용했습니다.\n${reset}`,
-        limitReached: true,
-      }, { status: 429 });
+      let errorMsg: string;
+      if (en) {
+        const label = isRefinement ? 're-analyses' : 'symptom analyses';
+        const period = useMonthly ? "this month's" : "today's";
+        const reset = useMonthly ? 'It resets on the 1st of next month.' : 'It resets at midnight (12 AM).';
+        errorMsg = `You've used all of ${period} ${label} (${limit}).\n${reset}`;
+      } else {
+        const label = isRefinement ? '재분석' : '증상 분석';
+        const period = useMonthly ? '이번 달' : '오늘';
+        const reset = useMonthly ? '다음 달 1일에 초기화됩니다.' : '밤 12시(자정)에 초기화됩니다.';
+        errorMsg = `${period}의 ${label} 횟수(${limit}회)를 모두 사용했습니다.\n${reset}`;
+      }
+      return NextResponse.json({ error: errorMsg, limitReached: true }, { status: 429 });
     }
 
     const petLabel = effectivePetType === 'cat' ? '고양이' : '강아지';
     // 환자 호칭 — 펫 컨텍스트 있으면 이름 사용 ("우리 살구가"), 없으면 종 ("우리 강아지가")
-    const patientLabel = effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`;
+    const patientLabel = en
+      ? (effectivePetName ? `our ${effectivePetName}` : `our ${effectivePetType === 'cat' ? 'cat' : 'dog'}`)
+      : (effectivePetName ? `우리 ${effectivePetName}` : `우리 ${petLabel}`);
 
     // Build follow-up context for refined analysis.
     // blocked 질문 = (1) 클라이언트가 누적한 모든 이전 질문 + (2) 이번 답변의 질문.
@@ -130,28 +147,41 @@ export async function POST(request: NextRequest) {
         allPreviousQuestions.length > 0 ? allPreviousQuestions : fallbackPrev
       ));
       const blockedQuestionsText = blockedQuestions.length > 0
-        ? `\n\n[⚠️ 이미 물어본 질문 — 절대 다시 묻지 말 것]\n${blockedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n→ 위 질문과 같거나 의미가 유사한 질문 생성 금지. 정말 새로운 임상 정보를 묻는 질문만 생성.`
+        ? (en
+            ? `\n\n[⚠️ Already-asked questions — never ask these again]\n${blockedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n→ Do not generate questions identical or similar in meaning to the above. Only generate questions asking genuinely new clinical information.`
+            : `\n\n[⚠️ 이미 물어본 질문 — 절대 다시 묻지 말 것]\n${blockedQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n→ 위 질문과 같거나 의미가 유사한 질문 생성 금지. 정말 새로운 임상 정보를 묻는 질문만 생성.`)
         : '';
-      followupContext = `\n\n보호자가 추가 질문에 답변했습니다:\n${answersText}${blockedQuestionsText}\n\n이 추가 정보를 반영하여 더 정확하게 분석해줘. 이전 분석을 완전히 대체하는 새로운 분석을 제공해.`;
+      followupContext = en
+        ? `\n\nThe guardian answered the follow-up questions:\n${answersText}${blockedQuestionsText}\n\nReflect this additional information for a more accurate analysis. Provide a new analysis that completely replaces the previous one.`
+        : `\n\n보호자가 추가 질문에 답변했습니다:\n${answersText}${blockedQuestionsText}\n\n이 추가 정보를 반영하여 더 정확하게 분석해줘. 이전 분석을 완전히 대체하는 새로운 분석을 제공해.`;
     }
 
     // 펫 컨텍스트 안내 블록 — 환자 정보가 있으면 user message 에 [환자 정보] 섹션
     // 형태로 주입. NULL 필드는 buildPetContextPrompt 에서 자동 생략됨.
     const petContextBlock = petContextText
-      ? `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘:
+      ? (en
+          ? `\n\n${petContextText}\n\nReflect the patient information above in your analysis:
+- Prioritize breed-predisposed diseases
+- Check links with chronic conditions
+- Consider possible side effects of current medications
+- Recommend avoiding allergens/contraindicated drugs`
+          : `\n\n${petContextText}\n\n위 환자 정보를 반영하여 분석해줘:
 - 품종 호발 질병 우선 고려
 - 만성질환과의 연관성 검토
 - 복용 약물 부작용 가능성 검토
-- 알레르기/금기 약물 회피 권고`
+- 알레르기/금기 약물 회피 권고`)
       : '';
 
     // ── 레드플래그(치명적 감염성 질환) 주입 ──
     // 입력 증상이 매칭될 때만 짧은 힌트를 user message 에 주입. prose 규칙이 긴
     // 프롬프트에 묻혀 누락되던 파보·디스템퍼·범백·FIP·광견병·고양이 안과 감염을
     // "반드시 감별 후보 포함"으로 강제. 매칭 안 되면 빈 문자열(프롬프트 비대화 X).
-    const redFlagHints = matchRedFlags(effectivePetType, symptoms);
-    const redFlagBlock = redFlagHints.length > 0
-      ? `\n\n[이 증상에서 반드시 감별 후보에 포함할 주요 질환 — 누락 금지]\n${redFlagHints.map((h) => `- ${h}`).join('\n')}\n→ 위 질환을 diseases 배열에 반드시 포함하되, action/설명에 "확진은 병원 검사 필요"를 명시하라. (사진이 아닌 증상 기반이므로 감별로 제시하는 것은 적절)`
+    // 레드플래그 — locale 별 힌트 + concern 하한(후처리 보정용)을 함께 받음.
+    const redFlagMatches = matchRedFlagsDetailed(effectivePetType, symptoms, locale);
+    const redFlagBlock = redFlagMatches.length > 0
+      ? (en
+          ? `\n\n[Key diseases that MUST be included as differential candidates for these symptoms — do not omit]\n${redFlagMatches.map((m) => `- ${m.hint}`).join('\n')}\n→ Include the above in the diseases array, and state in action/description that "confirmation requires veterinary testing." (Symptom-based, so presenting them as differentials is appropriate.)`
+          : `\n\n[이 증상에서 반드시 감별 후보에 포함할 주요 질환 — 누락 금지]\n${redFlagMatches.map((m) => `- ${m.hint}`).join('\n')}\n→ 위 질환을 diseases 배열에 반드시 포함하되, action/설명에 "확진은 병원 검사 필요"를 명시하라. (사진이 아닌 증상 기반이므로 감별로 제시하는 것은 적절)`)
       : '';
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -170,7 +200,9 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `당신은 한국 수의학 임상 경험 15년 이상의 보드 인증 수의사입니다.
+            content: en
+              ? buildSymptomSystemPromptEn(effectivePetType, isRefinement)
+              : `당신은 한국 수의학 임상 경험 15년 이상의 보드 인증 수의사입니다.
 ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 분석합니다.
 
 [책임감과 윤리 — 분석의 기본 자세]
@@ -450,7 +482,9 @@ type 사용 가이드:
           },
           {
             role: 'user',
-            content: `${patientLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${redFlagBlock}${petContextBlock}${followupContext}`,
+            content: en
+              ? `${patientLabel} is showing these symptoms: "${sanitizeForLLM(symptoms)}"${redFlagBlock}${petContextBlock}${followupContext}`
+              : `${patientLabel}가 이런 증상을 보입니다: "${sanitizeForLLM(symptoms)}"${redFlagBlock}${petContextBlock}${followupContext}`,
           },
         ],
       }),
@@ -516,11 +550,10 @@ type 사용 가이드:
         if (typeof s === 'string') return { sign: s, severity: '즉시' as const };
         if (s && typeof s === 'object' && 'sign' in s) {
           const obj = s as { sign?: string; severity?: string; reason?: string };
-          const severity =
-            obj.severity === '24시간내' || obj.severity === '경과관찰' ? obj.severity : '즉시';
+          // EN/KO 어느 쪽 enum 이든 KO canonical 로 흡수 (영어 모드는 'Now'/'Within 24h' 등).
           return {
             sign: String(obj.sign || ''),
-            severity: severity as '즉시' | '24시간내' | '경과관찰',
+            severity: normalizeEmergencySeverity(obj.severity),
             ...(obj.reason ? { reason: String(obj.reason) } : {}),
           };
         }
@@ -544,13 +577,12 @@ type 사용 가이드:
         return true;
       })
       .map((d: any) => {
-        const standardKo = lookupVetTerm(d?.name_en);
-        // severity / likelihood 누락·오류 방어 — AI 가 빈 값을 보내면 UI 가
-        // "색만 있고 글자 없는 뱃지" 로 렌더되던 버그 방지(드문 JSON 글리치용).
-        // 기본값: severity=관찰, likelihood=낮음. 전체 긴급도는 별도 concern_level 박스가 담당하므로
-        // 보조 정보인 질병 뱃지는 과경고하지 않는다.
-        const severity = ['긴급', '주의', '관찰'].includes(d?.severity) ? d.severity : '관찰';
-        const likelihood = ['높음', '중간', '낮음'].includes(d?.likelihood) ? d.likelihood : '낮음';
+        // vetTerms KO 보정은 한국어 출력일 때만 — EN 은 모델이 준 영어 name_ko 유지(기준 8).
+        const standardKo = en ? null : lookupVetTerm(d?.name_en);
+        // severity / likelihood 정규화 — EN/KO enum 모두 KO canonical 로 흡수 + 누락 시 안전 기본값.
+        // (전체 긴급도는 concern_level 박스 담당이라 보조 뱃지는 과경고하지 않음 → 기본 관찰/낮음)
+        const severity = normalizeSeverity(d?.severity);
+        const likelihood = normalizeLikelihood(d?.likelihood);
         return {
           ...d,
           ...(standardKo ? { name_ko: standardKo } : {}),
@@ -576,15 +608,26 @@ type 사용 가이드:
     // LLM 이 규칙을 어기고 출혈을 low 로 깔아도 여기서 강제 격상한다.
     //   · melena(검은·타르변)·커피찌꺼기 토물 = 상부 위장관 출혈 → high
     //   · 그 외 출혈(선홍 등) = 최소 medium (절대 low 금지)
-    // "피"·"혈" 단독은 오탐(피부/피곤/빈혈/혈압)이 많아 제외하고, 출혈을 뜻하는 복합어만 매칭.
-    const bloodRe = /혈변|혈뇨|토혈|혈토|객혈|각혈|하혈|잠혈|출혈|코피|혈담|선홍|피똥|피\s*똥|핏덩|핏물|피설사|피\s*설사|피를?\s*토|피를?\s*흘|피가?\s*나|피가?\s*섞|피\s*섞|피가?\s*묻|피\s*묻|붉은\s*피|빨간\s*피/;
-    const melenaRe = /흑변|흑색변|검은\s*변|검은색\s*변|타르|짜장|커피\s*찌꺼기|커피색/;
-    const bloodDetected = bloodRe.test(symptoms);
-    const melenaDetected = melenaRe.test(symptoms);
+    // "피"·"혈" 단독은 오탐(피부/피곤/빈혈/혈압)이 많아 제외하고, 출혈을 뜻하는 복합어/영어 토큰만 매칭.
+    // 공유 패턴(bloodPatterns)으로 KO+EN 동시 감지 — 영어 입력도 안전망 동작.
+    const bloodDetected = BLOOD_RE.test(symptoms);
+    const melenaDetected = MELENA_RE.test(symptoms);
     if (melenaDetected) {
       concernLevel = 'high';
     } else if (bloodDetected && concernLevel === 'low') {
       concernLevel = 'medium';
+    }
+
+    // ── 레드플래그 concern 하한 보정 (AI 응답과 무관, 서버 강제) ──
+    // 치명 감염성(파보·디스템퍼·범백·FIP·광견병) 매칭 → high, 그 외(고양이 안과 감염) → 최소 medium.
+    // floor 만 올림(절대 내리지 않음) → KO/EN 공통, 누락 위험 차단.
+    if (redFlagMatches.length > 0) {
+      const wantHigh = redFlagMatches.some((m) => m.concernFloor === 'high');
+      if (wantHigh) {
+        concernLevel = 'high';
+      } else if (concernLevel === 'low') {
+        concernLevel = 'medium';
+      }
     }
 
     // reassurance / watch_signs — high 일 땐 의도적으로 생략 (응급 신호 강조에 집중).
@@ -602,21 +645,25 @@ type 사용 가이드:
     // AI 가 가끔 모든 필드 다 비우는 케이스 (특히 매우 가벼운 증상) 대비.
     // 빈 화면 회피 → 보호자가 최소한의 가이드라도 받게.
     if (correctedDiseases.length === 0 && concernLevel !== 'high' && !reassurance) {
-      reassurance = '현재 증상만으로는 특정 질병을 의심할 만한 근거가 충분하지 않아요. 일시적인 변화일 가능성이 있으니 며칠 더 지켜봐 주세요.';
+      reassurance = en
+        ? "The current symptoms alone aren't enough to suspect a specific disease. It may be a temporary change, so please keep an eye on it for a few more days."
+        : '현재 증상만으로는 특정 질병을 의심할 만한 근거가 충분하지 않아요. 일시적인 변화일 가능성이 있으니 며칠 더 지켜봐 주세요.';
     }
     if (correctedDiseases.length === 0 && concernLevel !== 'high' && watchSigns.length === 0) {
-      watchSigns = [
-        '증상이 1주일 이상 지속될 때',
-        '다른 증상이 함께 나타날 때',
-        '활동성·식욕이 평소와 다를 때',
-      ];
+      watchSigns = en
+        ? ['If it lasts more than a week', 'If other symptoms appear together', 'If activity or appetite differs from usual']
+        : ['증상이 1주일 이상 지속될 때', '다른 증상이 함께 나타날 때', '활동성·식욕이 평소와 다를 때'];
     }
 
     // 출혈이 medium 으로 격상된 케이스: AI 의 안심 문구가 "정상" 톤일 수 있어 보수적으로 교체.
     if (bloodDetected && concernLevel === 'medium') {
-      reassurance = '출혈이 동반된 증상이에요. 가벼운 원인일 수도 있지만, 정확한 확인을 위해 가까운 시일 내 진료를 권장해요.';
+      reassurance = en
+        ? 'These symptoms involve bleeding. The cause may be mild, but we recommend a veterinary visit soon to confirm.'
+        : '출혈이 동반된 증상이에요. 가벼운 원인일 수도 있지만, 정확한 확인을 위해 가까운 시일 내 진료를 권장해요.';
       if (watchSigns.length === 0) {
-        watchSigns = ['출혈량이 늘거나 반복될 때', '무기력·식욕부진·구토가 동반될 때', '검은색/타르 같은 변이 보일 때'];
+        watchSigns = en
+          ? ['If bleeding increases or recurs', 'If lethargy, loss of appetite, or vomiting appears', 'If black/tarry stool appears']
+          : ['출혈량이 늘거나 반복될 때', '무기력·식욕부진·구토가 동반될 때', '검은색/타르 같은 변이 보일 때'];
       }
     }
 
@@ -644,6 +691,6 @@ type 사용 가이드:
       tags: { feature: 'openai', action: 'symptom-analysis' },
     });
     console.error('Symptom analysis error:', error);
-    return NextResponse.json({ error: '증상 분석에 실패했습니다.' }, { status: 500 });
+    return NextResponse.json({ error: 'Symptom analysis failed.' }, { status: 500 });
   }
 }
