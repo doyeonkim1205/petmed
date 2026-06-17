@@ -31,16 +31,19 @@ export function LanguageToggle() {
     { value: 'en', label: t('english') },
   ];
 
+  // 글자 크기·기본 반려동물 선택 UI 와 동일한 알약(pill) 버튼 스타일로 통일.
   return (
-    <div className="inline-flex rounded-xl bg-gray-100 p-1" role="group" aria-label={t('language')}>
+    <div className="flex gap-2" role="group" aria-label={t('language')}>
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           disabled={pending}
           onClick={() => setLocale(opt.value)}
-          className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
-            locale === opt.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+          className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
+            locale === opt.value
+              ? 'border-blue-500 bg-blue-50 text-blue-600'
+              : 'border-gray-200 text-gray-400 hover:border-gray-300'
           }`}
         >
           {opt.label}
