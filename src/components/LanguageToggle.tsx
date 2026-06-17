@@ -4,15 +4,18 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import type { Locale } from '@/i18n/config';
 import { LOCALE_COOKIE } from '@/i18n/config';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 /**
  * 언어 전환 — 쿠키(NEXT_LOCALE) 저장 후 새로고침(reload-on-switch).
  * 라우팅을 건드리지 않고 서버 렌더 locale 만 바꾼다.
- * (추후: 로그인 유저는 profiles.preferred_language 에도 동기화)
+ * 로그인 유저는 profiles.preferred_language 에도 저장 → 다른 기기에서 다음 로그인 시 반영.
  */
 export function LanguageToggle() {
   const locale = useLocale() as Locale;
   const t = useTranslations('settings');
+  const { user } = useAuth();
   const [pending, startTransition] = useTransition();
 
   const setLocale = (next: Locale) => {
@@ -21,7 +24,13 @@ export function LanguageToggle() {
     // Secure 는 일부러 생략 — localhost(http) 개발 환경에서 쿠키가 안 잡히는 문제 방지.
     // (프로덕션은 HTTPS + SameSite=Lax 라 CSRF 위험 낮음)
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    startTransition(() => {
+    startTransition(async () => {
+      // 로그인 유저면 계정에도 저장(다른 기기 동기화). 실패해도 쿠키 전환은 진행.
+      if (user) {
+        try {
+          await supabase.from('profiles').update({ preferred_language: next }).eq('id', user.id);
+        } catch { /* 네트워크 실패 무시 — 쿠키 기반 전환은 동작 */ }
+      }
       window.location.reload();
     });
   };
