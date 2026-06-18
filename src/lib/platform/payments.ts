@@ -142,6 +142,28 @@ export const platformPayments = {
     }
   },
 
+  /** 🔧 임시 진단 — 구독 화면 디버그 박스용. 안정화 후 제거. */
+  async debugInfo(userId: string): Promise<string> {
+    const parts = [`app=${isNativeApp()}`, `key=${RC_GOOGLE_API_KEY ? RC_GOOGLE_API_KEY.slice(0, 6) + '…' : 'MISSING'}`];
+    if (!this.isNativeBilling()) return parts.concat('nativeBilling=false').join(' ');
+    try {
+      const Purchases = await ensureConfigured(userId);
+      const offerings = await Purchases.getOfferings();
+      const cur = offerings.current as { identifier?: string; availablePackages?: unknown[] } | null;
+      const all = offerings.all ?? {};
+      parts.push(`curId=${cur?.identifier ?? 'NULL'}`);
+      parts.push(`curPkgs=${cur?.availablePackages?.length ?? 0}`);
+      parts.push(`allKeys=[${Object.keys(all).join(',')}]`);
+      const picked = pickPackage(resolveOffering(offerings), 'plus_monthly') as
+        | { product?: { identifier?: string; priceString?: string } }
+        | null;
+      parts.push(`pickM=${picked?.product?.identifier ?? 'NULL'}/${picked?.product?.priceString ?? '-'}`);
+    } catch (e) {
+      parts.push(`ERR=${(e as Error).message}`);
+    }
+    return parts.join(' ');
+  },
+
   /** 현재 'plus' 엔타이틀먼트 활성 여부 조회 (로그인 후 동기화 보조용). */
   async hasActiveEntitlement(userId: string): Promise<boolean> {
     if (!this.isNativeBilling()) return false;
