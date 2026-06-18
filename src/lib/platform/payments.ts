@@ -1,71 +1,58 @@
 /**
  * 결제 어댑터.
  *   - 웹/TWA   : 토스 결제 (구독 페이지가 /payment 로 라우팅 — 이 어댑터를 쓰지 않음)
- *   - 네이티브 앱 : Google Play Billing (RevenueCat). Play 정책상 디지털 구독은 Play Billing 필수라,
- *                 앱에선 토스 라우트를 절대 타지 않는다.
+ *   - 네이티브 앱 : Google Play Billing — PawDex 전용 NativeBilling 브릿지 경유.
  *
- * RC SDK 는 isNativeApp() 가드 뒤에서 동적 import → 웹/TWA 번들엔 별도 청크로 분리, dormant.
- * NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY 미설정이면 isNativeBilling()=false →
- * 구독 페이지가 네이티브 결제 CTA 를 숨긴다. (Play Billing 출시 전까지 안전 dormant)
- *
- * ⚠️ 상품 조회는 getOfferings() 가 아니라 getProducts() 를 쓴다.
- *    getOfferings() 가 (Capacitor 브릿지에서) 네이티브는 상품을 다 받아놓고도 JS 로 결과를
- *    돌려주지 않고 멈추는 현상이 있어, productId 로 직접 조회하는 getProducts 로 우회.
- *    모든 RC 호출은 타임아웃으로 감싸 멈춰도 UI(버튼/가격)가 영구 잠기지 않게 한다.
+ * ⚠️ @revenuecat/purchases-capacitor 의 JS(getProducts/getOfferings/purchasePackage)는 쓰지 않는다.
+ *    그 플러그인은 CustomerInfo·StoreProduct 같은 복잡 중첩 객체를 JS Promise 로 resolve 하는데,
+ *    이 앱의 원격(server.url) WebView 조합에서 복잡객체가 JS 로 돌아오지 않고 멈춘다(진단 확인).
+ *    → 네이티브 NativeBilling 플러그인이 RC Native SDK 를 직접 호출하고, JS 로는 문자열/boolean
+ *      중심의 "평평한 JSON" 만 반환한다.
  *
  * 엔타이틀먼트('plus') 활성 여부는 보조 신호일 뿐, 권한의 진실원은 profiles.plan.
  * 실제 plan 갱신은 RevenueCat 웹훅(/api/payments/revenuecat-webhook)이 담당.
  */
 import { isNativeApp } from './env';
-import type { PurchasesStoreProduct } from '@revenuecat/purchases-capacitor';
+import { registerPlugin } from '@capacitor/core';
 
 const RC_GOOGLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY || '';
-const PLUS_ENTITLEMENT = 'plus';
 
-let configuredFor: string | null = null;
+/** 네이티브에서 돌려주는 평평한 결과(문자열/boolean 중심). 복잡 객체는 절대 넘기지 않는다. */
+interface FlatResult {
+  ok: boolean;
+  active?: boolean;
+  cancelled?: boolean;
+  productId?: string;
+  entitlement?: string;
+  error?: string;
+  count?: number;
+  monthly?: string;
+  monthlyId?: string;
+  annual?: string;
+  annualId?: string;
+}
 
-/** RC 호출이 브릿지에서 멈춰도 UI 가 영구 대기하지 않도록 타임아웃으로 감싼다. */
+interface ConfigOpts {
+  apiKey: string;
+  appUserId?: string;
+}
+
+const NativeBilling = registerPlugin<{
+  configure(o: ConfigOpts): Promise<FlatResult>;
+  getPrices(o: ConfigOpts): Promise<FlatResult>;
+  purchaseMonthly(o: ConfigOpts): Promise<FlatResult>;
+  purchaseAnnual(o: ConfigOpts): Promise<FlatResult>;
+  restorePurchases(o: ConfigOpts): Promise<FlatResult>;
+  getCustomerStatus(o: ConfigOpts): Promise<FlatResult>;
+}>('NativeBilling');
+
+/** 네이티브 호출이 혹시라도 멈춰도 UI 가 영구 대기하지 않도록 타임아웃으로 감싼다. */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms);
   });
   return Promise.race([p.finally(() => clearTimeout(timer)), timeout]);
-}
-
-async function ensureConfigured(userId: string) {
-  const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
-  if (configuredFor !== userId) {
-    // 진단용 DEBUG 로그 — 상품/권한 문제를 logcat 에 출력. (안정화 후 WARN 으로 낮추거나 제거)
-    // ⚠️ await 하지 않는다(비차단) — 브릿지가 여기서 멈추면 이후 호출에 도달 못 함.
-    try { void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG }); } catch { /* noop */ }
-    await withTimeout(Purchases.configure({ apiKey: RC_GOOGLE_API_KEY, appUserID: userId }), 10000, 'configure');
-    configuredFor = userId;
-  }
-  return Purchases;
-}
-
-/**
- * productId(=Play 구독 상품 ID, 예: plus_monthly)로 StoreProduct 직접 조회.
- * Google 은 base plan 단위로 여러 StoreProduct(plus_monthly:monthly 등)를 줄 수 있어
- * productId 정확일치 또는 'productId:' prefix 매칭으로 고른다. 없으면 첫 상품.
- * ⚠️ productId 는 base plan id(monthly/yearly) 가 아니라 구독 상품 ID 다.
- */
-async function fetchProduct(
-  Purchases: Awaited<ReturnType<typeof ensureConfigured>>,
-  productId: string,
-): Promise<PurchasesStoreProduct | null> {
-  const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
-  const { products } = await withTimeout(
-    Purchases.getProducts({ productIdentifiers: [productId], type: PRODUCT_CATEGORY.SUBSCRIPTION }),
-    10000,
-    'getProducts',
-  );
-  return (
-    products.find((p) => p.identifier === productId || p.identifier.startsWith(`${productId}:`)) ??
-    products[0] ??
-    null
-  );
 }
 
 export interface PurchaseResult {
@@ -76,16 +63,15 @@ export interface PurchaseResult {
 }
 
 export const platformPayments = {
-  /** RevenueCat SDK 키 설정 여부 (플랫폼 무관). 앱에서 RC 사용 가능 여부 판단에 쓴다. */
+  /** RC 키 설정 여부 (플랫폼 무관). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
   isRevenueCatReady(): boolean {
     return !!RC_GOOGLE_API_KEY;
   },
 
   /**
-   * 앱에서 실제 RC 구매를 띄울 수 있는 상태 (네이티브 앱 + RC 키 존재).
-   * ⚠️ UI 분기에서 "이게 false 면 토스"로 쓰면 안 됨 — 앱+키없음도 false 라 토스로 샘.
+   * 앱에서 실제 구매를 띄울 수 있는 상태 (네이티브 앱 + RC 키 존재).
+   * ⚠️ UI 분기에서 "이게 false 면 토스"로 쓰면 안 됨 — 앱+키없음도 false.
    *    토스 노출은 반드시 isNativeApp()===false(웹) 로만 판단할 것.
-   *    이 플래그는 purchase/restore 내부 가드 + "RC 구매 버튼을 띄울지"에만 사용.
    */
   isNativeBilling(): boolean {
     return isNativeApp() && !!RC_GOOGLE_API_KEY;
@@ -96,22 +82,22 @@ export const platformPayments = {
     return 'https://play.google.com/store/account/subscriptions';
   },
 
-  /** productId(예: plus_monthly)에 해당하는 상품 구매. 네이티브 전용. */
+  /** productId(plus_monthly/plus_yearly) 구매. 네이티브 전용. */
   async purchase(userId: string, productId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false, error: 'native billing unavailable' };
     try {
-      const Purchases = await ensureConfigured(userId);
-      const product = await fetchProduct(Purchases, productId);
-      if (!product) return { ok: false, active: false, error: 'no product' };
-      const res = await Purchases.purchaseStoreProduct({ product });
-      return { ok: true, active: !!res.customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
+      const opts: ConfigOpts = { apiKey: RC_GOOGLE_API_KEY, appUserId: userId };
+      const wantsYear = /year|annual/i.test(productId);
+      const res = await withTimeout(
+        wantsYear ? NativeBilling.purchaseAnnual(opts) : NativeBilling.purchaseMonthly(opts),
+        180000,
+        'purchase',
+      );
+      if (res.cancelled) return { ok: false, active: false, canceled: true };
+      if (res.ok) return { ok: true, active: !!res.active };
+      return { ok: false, active: false, error: res.error || 'purchase failed' };
     } catch (e) {
-      const err = e as { code?: string; userCancelled?: boolean; message?: string };
-      // RC: 사용자 취소는 에러로 던져지지만 결제 실패가 아님.
-      if (err.userCancelled || err.code === 'PURCHASE_CANCELLED' || err.code === '1') {
-        return { ok: false, active: false, canceled: true };
-      }
-      return { ok: false, active: false, error: err.message || String(e) };
+      return { ok: false, active: false, error: (e as Error).message };
     }
   },
 
@@ -119,9 +105,12 @@ export const platformPayments = {
   async restore(userId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false };
     try {
-      const Purchases = await ensureConfigured(userId);
-      const { customerInfo } = await withTimeout(Purchases.restorePurchases(), 15000, 'restore');
-      return { ok: true, active: !!customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
+      const res = await withTimeout(
+        NativeBilling.restorePurchases({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        30000,
+        'restore',
+      );
+      return { ok: !!res.ok, active: !!res.active, error: res.error };
     } catch (e) {
       return { ok: false, active: false, error: (e as Error).message };
     }
@@ -131,40 +120,15 @@ export const platformPayments = {
   async getPriceString(userId: string, productId: string): Promise<string | null> {
     if (!this.isNativeBilling()) return null;
     try {
-      const Purchases = await ensureConfigured(userId);
-      const product = await fetchProduct(Purchases, productId);
-      return product?.priceString ?? null;
+      const res = await withTimeout(
+        NativeBilling.getPrices({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        15000,
+        'getPrices',
+      );
+      if (!res.ok) return null;
+      return /year|annual/i.test(productId) ? res.annual ?? null : res.monthly ?? null;
     } catch {
       return null;
-    }
-  },
-
-  /** 🔧 임시 진단 — 구독 화면 디버그 박스용. 안정화 후 제거. */
-  async debugInfo(userId: string): Promise<string> {
-    const head = `app=${isNativeApp()} key=${RC_GOOGLE_API_KEY ? RC_GOOGLE_API_KEY.slice(0, 6) + '…' : 'MISSING'}`;
-    if (!this.isNativeBilling()) return `${head} nativeBilling=false`;
-    // 바깥 타임아웃 — import/setLogLevel/configure 등 무엇이 멈춰도 12초 안에 반드시 결과 반환.
-    const inner = (async () => {
-      const parts: string[] = [];
-      const Purchases = await ensureConfigured(userId);
-      parts.push('configured=ok');
-      const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
-      const reqIds = ['plus_monthly', 'plus_yearly'];
-      parts.push(`req=[${reqIds.join(',')}]`);
-      const { products } = await withTimeout(
-        Purchases.getProducts({ productIdentifiers: reqIds, type: PRODUCT_CATEGORY.SUBSCRIPTION }),
-        9000,
-        'getProducts',
-      );
-      parts.push(`n=${products.length}`);
-      parts.push(`ids=[${products.map((p) => p.identifier).join(',')}]`);
-      parts.push(`prices=[${products.map((p) => p.priceString).join(',')}]`);
-      return parts.join(' ');
-    })();
-    try {
-      return `${head} ${await withTimeout(inner, 12000, 'debugInfo')}`;
-    } catch (e) {
-      return `${head} ERR=${(e as Error).message}`;
     }
   },
 
@@ -172,9 +136,12 @@ export const platformPayments = {
   async hasActiveEntitlement(userId: string): Promise<boolean> {
     if (!this.isNativeBilling()) return false;
     try {
-      const Purchases = await ensureConfigured(userId);
-      const { customerInfo } = await withTimeout(Purchases.getCustomerInfo(), 10000, 'getCustomerInfo');
-      return !!customerInfo.entitlements.active[PLUS_ENTITLEMENT];
+      const res = await withTimeout(
+        NativeBilling.getCustomerStatus({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        15000,
+        'status',
+      );
+      return !!res.active;
     } catch {
       return false;
     }
