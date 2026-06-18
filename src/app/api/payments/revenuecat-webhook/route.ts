@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
   // subscriptions.product_id 는 payment_products(id) 로 FK 가 걸려 있어(plus_monthly/plus_yearly),
   // 베이스플랜 접미사를 떼어 매핑한다. (안 떼면 FK 위반 → upsert 실패 → 행 미생성)
   const productId = event.product_id ? String(event.product_id).split(':')[0] : null;
-  const store = event.store ? String(event.store).toLowerCase() : 'play';
+  // RC 는 store 를 'PLAY_STORE'/'APP_STORE'/'MAC_APP_STORE' 등으로 보냄.
+  // subscriptions.store CHECK 는 ('toss','play','apple') 만 허용 → 매핑 필수
+  // (소문자 'play_store' 그대로 넣으면 CHECK 위반으로 upsert 가 조용히 실패한다).
+  const storeRaw = event.store ? String(event.store).toLowerCase() : 'play';
+  const store = storeRaw.includes('app') ? 'apple' : 'play';
   const txId = event.original_transaction_id ? String(event.original_transaction_id) : null;
   const eventTxId = event.transaction_id ? String(event.transaction_id) : null;
   // 결제 금액(구매 통화 기준). KRW 면 정수(3900/40000). 없으면 0 → 기록 생략.
