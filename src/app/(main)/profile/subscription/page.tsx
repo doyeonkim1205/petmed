@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
@@ -136,6 +136,7 @@ export default function SubscriptionPage() {
   const appRcBilling = isApp && rcReady;  // 앱에서 RC 구매 버튼 노출
   const [purchasing, setPurchasing] = useState(false);
   const [justPurchased, setJustPurchased] = useState(false); // 구매 직후 낙관적 Plus 표시 + 성공 카드
+  const didAutoSyncRef = useRef(false); // 진입 자동 sync 1회만 실행 (StrictMode 중복/리렌더 방지)
   const [nativePrice, setNativePrice] = useState<string | null>(null);
   const [nativePriceYearly, setNativePriceYearly] = useState<string | null>(null);
 
@@ -240,20 +241,29 @@ export default function SubscriptionPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-    } catch { /* noop — 웹훅 폴백 */ }
+    } catch (e) {
+      // 화면은 막지 않되(웹훅 폴백) 로그는 남김. 서버 sync API 는 실제 실패를 Sentry 로 기록함.
+      console.warn('[subscription:sync] request failed', e);
+    }
   };
 
   // 앱: 구독 페이지 진입 시 RC 와 즉시 동기화 — 웹훅 누락/지연 보정.
   // (구매 없이 들어와도 entitlement 기준으로 subscriptions 행/상태가 정확히 채워짐 → "이용중" 뱃지 등)
+  // ⚠️ didAutoSyncRef 로 1회만 (StrictMode 이중실행/리렌더 시 RC 불필요 재호출 방지). dep 은 user?.id 기준.
   useEffect(() => {
-    if (!user || !appRcBilling) return;
+    if (!user || !appRcBilling || didAutoSyncRef.current) return;
+    didAutoSyncRef.current = true;
     (async () => {
-      await syncSubscription();
-      await refreshProfile();
-      await fetchData();
+      try {
+        await syncSubscription();
+        await refreshProfile();
+        await fetchData();
+      } catch (error) {
+        console.warn('[subscription:auto-sync] failed', error);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, appRcBilling]);
+  }, [user?.id, appRcBilling]);
 
   // ── 네이티브 결제(RevenueCat) 핸들러 ──
   // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
