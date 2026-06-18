@@ -19,12 +19,39 @@ const PLUS_ENTITLEMENT = 'plus';
 let configuredFor: string | null = null;
 
 async function ensureConfigured(userId: string) {
-  const { Purchases } = await import('@revenuecat/purchases-capacitor');
+  const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
   if (configuredFor !== userId) {
+    // 진단용 DEBUG 로그 — offerings 가 비는 원인(키/상품/권한)을 logcat 에 출력.
+    // (안정화 후 LOG_LEVEL.WARN 으로 낮추거나 제거)
+    try { await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG }); } catch { /* noop */ }
     await Purchases.configure({ apiKey: RC_GOOGLE_API_KEY, appUserID: userId });
     configuredFor = userId;
   }
   return Purchases;
+}
+
+/**
+ * Offering 에서 월간/연간 package 선택.
+ *  1순위: RC 표준 편의 접근자 current.monthly / current.annual ($rc_monthly / $rc_annual).
+ *  2순위: (커스텀 package id 대비) product.identifier prefix 매칭 (plus_monthly / plus_monthly:베이스플랜).
+ * ⚠️ productId 는 Play '구독 상품 ID'(plus_monthly/plus_yearly) — base plan id(monthly/yearly) 가 아님.
+ */
+function pickPackage(
+  offering: { monthly?: unknown; annual?: unknown; availablePackages?: unknown[] } | null | undefined,
+  productId: string,
+) {
+  if (!offering) return null;
+  const wantsYear = /year|annual/i.test(productId);
+  const byAccessor = (wantsYear ? offering.annual : offering.monthly) as
+    | { product: { identifier: string; priceString: string } }
+    | undefined;
+  if (byAccessor) return byAccessor;
+  const pkgs = (offering.availablePackages ?? []) as { product: { identifier: string; priceString: string } }[];
+  return (
+    pkgs.find((p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`)) ??
+    pkgs[0] ??
+    null
+  );
 }
 
 export interface PurchaseResult {
@@ -61,13 +88,9 @@ export const platformPayments = {
     try {
       const Purchases = await ensureConfigured(userId);
       const offerings = await Purchases.getOfferings();
-      const pkgs = offerings.current?.availablePackages ?? [];
-      // RC product.identifier 가 'plus_monthly' 또는 'plus_monthly:base-plan' 형태일 수 있어 prefix 매칭.
-      const pkg = pkgs.find(
-        (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
-      ) ?? pkgs[0];
+      const pkg = pickPackage(offerings.current, productId);
       if (!pkg) return { ok: false, active: false, error: 'no package' };
-      const res = await Purchases.purchasePackage({ aPackage: pkg });
+      const res = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
       return { ok: true, active: !!res.customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
     } catch (e) {
       const err = e as { code?: string; userCancelled?: boolean; message?: string };
@@ -97,10 +120,7 @@ export const platformPayments = {
     try {
       const Purchases = await ensureConfigured(userId);
       const offerings = await Purchases.getOfferings();
-      const pkgs = offerings.current?.availablePackages ?? [];
-      const pkg = pkgs.find(
-        (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
-      ) ?? pkgs[0];
+      const pkg = pickPackage(offerings.current, productId);
       return pkg?.product.priceString ?? null;
     } catch {
       return null;
