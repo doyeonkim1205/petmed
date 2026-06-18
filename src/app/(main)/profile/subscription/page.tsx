@@ -114,6 +114,7 @@ export default function SubscriptionPage() {
   const [refundCheck, setRefundCheck] = useState<RefundCheck | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
+  const [actionError, setActionError] = useState(false); // actionMessage 가 에러인지(회색+빨강 스타일)
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -134,6 +135,7 @@ export default function SubscriptionPage() {
   const rcReady = platformPayments.isRevenueCatReady();
   const appRcBilling = isApp && rcReady;  // 앱에서 RC 구매 버튼 노출
   const [purchasing, setPurchasing] = useState(false);
+  const [justPurchased, setJustPurchased] = useState(false); // 구매 직후 낙관적 Plus 표시 + 성공 카드
   const [nativePrice, setNativePrice] = useState<string | null>(null);
   const [nativePriceYearly, setNativePriceYearly] = useState<string | null>(null);
 
@@ -228,24 +230,41 @@ export default function SubscriptionPage() {
     }
   };
 
+  // 구매 직후 서버 즉시 동기화 — RC Secret 키로 서버가 entitlement 확인 → DB 갱신(웹훅 지연 흡수).
+  // 실패해도(키 미설정 등) 무시 — 웹훅이 결국 반영하고, 낙관적 표시로 UX 는 이미 Plus.
+  const syncSubscription = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch('/api/subscription/sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+    } catch { /* noop — 웹훅 폴백 */ }
+  };
+
   // ── 네이티브 결제(RevenueCat) 핸들러 ──
   // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
   const handleNativePurchase = async (productId: string) => {
     if (!user || purchasing) return;
     setPurchasing(true);
     setActionMessage('');
+    setActionError(false);
     try {
       const res = await platformPayments.purchase(user.id, productId);
       if (res.canceled) return; // 사용자가 결제창에서 취소 — 조용히 무시
       if (res.ok && res.active) {
-        setActionMessage(t('subscription.purchaseSuccess'));
-        await refreshProfile();
+        setJustPurchased(true);                 // ① 낙관적 즉시 Plus 표시
+        await syncSubscription();                // ② 서버가 RC 직접 확인 → profiles.plan/subscriptions 갱신
+        await refreshProfile();                  // ③ AuthContext 전역 갱신 (모든 화면 반영)
         await fetchData();
       } else {
-        setActionMessage(res.error || t('subscription.purchaseError'));
+        setActionError(true);
+        setActionMessage(t('subscription.purchaseError'));
       }
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'subscription', action: 'rc-purchase' }, extra: { userId: user?.id, productId } });
+      setActionError(true);
       setActionMessage(t('subscription.purchaseError'));
     } finally {
       setPurchasing(false);
@@ -259,7 +278,9 @@ export default function SubscriptionPage() {
     try {
       const res = await platformPayments.restore(user.id);
       if (res.active) {
+        setJustPurchased(true);
         setActionMessage(t('subscription.purchaseSuccess'));
+        await syncSubscription();
         await refreshProfile();
         await fetchData();
       } else {
@@ -274,7 +295,7 @@ export default function SubscriptionPage() {
   const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
 
   const currentPlan = profile?.plan || 'free';
-  const isPaid = currentPlan !== 'free';
+  const isPaid = currentPlan !== 'free' || justPurchased; // 낙관적: 구매 직후 서버 반영 전이라도 Plus 표시
   const isActive = subscription?.status === 'active';
   const isCanceled = subscription?.status === 'canceled';
   const isRecurring = subscription?.billing_type === 'recurring';
@@ -284,6 +305,10 @@ export default function SubscriptionPage() {
   // 자동 갱신 유저만 즉시 재결제 가능 (1회 결제는 next_billing_at 없음 → cron 안 돔).
   const billingFailedCount = subscription?.billing_failed_count || 0;
   const isInRetry = isActive && billingFailedCount > 0 && isRecurring;
+  // 성공 카드용 — purchaseSuccess("구독이 완료됐어요. Plus 혜택을…")를 제목/설명으로 분리.
+  const successFull = t('subscription.purchaseSuccess');
+  const successTitle = successFull.split('. ')[0];
+  const successDesc = successFull.split('. ').slice(1).join('. ');
 
   // Toss returns issuer codes instead of card company names
   const CARD_ISSUERS: Record<string, string> = {
@@ -335,27 +360,44 @@ export default function SubscriptionPage() {
         )}
 
         {/* ── 1. Plan Card ── */}
-        <div className={`rounded-2xl border p-4 mb-5 ${isPaid || isTrialActive() ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                {isPaid || isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
-                <span className={`text-lg font-bold ${isPaid || isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
-                  {isPaid ? 'Plus' : isTrialActive() ? t('subscription.planPlusTrial') : 'Free'}
-                </span>
+        {isPaid ? (
+          /* Plus — 프리미엄 솔리드 블루 카드 (왕관 = 기존 lucide Crown) */
+          <div className="relative overflow-hidden rounded-2xl p-4 mb-5 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/15">
+            <span className="pointer-events-none absolute -right-3 -bottom-5 text-[64px] leading-none opacity-[0.13] rotate-[-12deg] select-none">🐾</span>
+            <div className="relative flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Crown size={18} className="text-white" />
+                  <span className="text-lg font-extrabold tracking-tight">Plus</span>
+                </div>
+                <p className="text-xs text-blue-50/90">{t('subscription.planDescPaid')}</p>
               </div>
-              <p className="text-xs text-gray-500">
-                {isPaid ? t('subscription.planDescPaid') : isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
-              </p>
+              {hasSub && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold bg-white/20 text-white">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-300' : 'bg-orange-300'}`} />
+                  {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
+                </span>
+              )}
             </div>
-            {hasSub && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
-                {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
-              </span>
-            )}
           </div>
-        </div>
+        ) : (
+          /* Free / Trial — 기존 라이트 카드 유지 */
+          <div className={`rounded-2xl border p-4 mb-5 ${isTrialActive() ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  {isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
+                  <span className={`text-lg font-bold ${isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
+                    {isTrialActive() ? t('subscription.planPlusTrial') : 'Free'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Subscribe buttons (Free only — no subscription info) ── */}
         {!isPaid && !hasSub && (
@@ -524,9 +566,31 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {/* ── 3. Action Message ── */}
-        {actionMessage && (
-          <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700 mb-4 leading-relaxed">{actionMessage}</div>
+        {/* ── 3. 구매 성공 = 소프트하지 않은 솔리드 A카드 (왕관 = lucide Crown) ── */}
+        {justPurchased && (
+          <div className="relative overflow-hidden rounded-2xl p-[18px] mb-4 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/15">
+            <span className="pointer-events-none absolute -right-3 -bottom-5 text-[64px] leading-none opacity-[0.13] rotate-[-12deg] select-none">🐾</span>
+            <div className="relative">
+              <span className="inline-flex items-center gap-1.5 bg-white/20 text-white px-2.5 py-1 rounded-full text-[11px] font-bold mb-2.5">
+                <Crown size={12} /> PawDex Plus
+              </span>
+              <h3 className="text-base font-extrabold tracking-tight">{successTitle}</h3>
+              {successDesc && <p className="text-xs text-blue-50/90 mt-1 leading-relaxed">{successDesc}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* ── 안내/에러 메시지 (성공 카드와 별개) ── */}
+        {!justPurchased && actionMessage && (
+          actionError ? (
+            /* 에러 — 회색 바탕 + 빨강 아이콘/글자 + 중앙정렬 */
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4 text-center">
+              <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border border-red-200 text-red-600 text-sm font-extrabold mb-2">!</div>
+              <p className="text-[13px] text-red-600 font-semibold leading-relaxed">{actionMessage}</p>
+            </div>
+          ) : (
+            <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700 mb-4 leading-relaxed">{actionMessage}</div>
+          )
         )}
 
         {/* ── 4. Primary Actions (토스 전용·웹만 — 정기전환·연간전환·카드변경) ── */}
