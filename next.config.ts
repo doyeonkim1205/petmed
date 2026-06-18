@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
       "base-uri 'self'",
       "form-action 'self' https://*.tosspayments.com https://*.toss.im",
       "frame-ancestors 'none'",
+      // 위반 리포트 수집(강제 차단은 유지, 모니터링용). 레거시 report-uri + 신형 report-to 둘 다.
+      "report-uri /api/csp-report",
+      "report-to csp",
     ].join('; ');
 
     return [
@@ -50,6 +53,8 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Content-Security-Policy', value: csp },
+          // report-to 가 참조하는 리포팅 엔드포인트(신형 Reporting API).
+          { key: 'Reporting-Endpoints', value: 'csp="/api/csp-report"' },
         ],
       },
     ];
