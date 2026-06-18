@@ -505,7 +505,7 @@ export default function SubscriptionPage() {
             </div>
             <div className="divide-y divide-gray-50">
               <DetailRow icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
-                label={t('subscription.billingMethod')} value={isRecurring ? t('subscription.billingMonthly') : isYearly ? t('subscription.billingYearly') : t('subscription.billing30day')} accent={isRecurring} />
+                label={t('subscription.billingMethod')} value={isYearly ? t('subscription.billingYearly') : isRecurring ? t('subscription.billingMonthly') : t('subscription.billing30day')} accent={isRecurring} />
               {isRecurring ? (
                 subscription.next_billing_at && (
                   <DetailRow icon={<Calendar size={14} className="text-blue-500" />}
