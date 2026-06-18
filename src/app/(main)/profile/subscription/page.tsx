@@ -243,6 +243,18 @@ export default function SubscriptionPage() {
     } catch { /* noop — 웹훅 폴백 */ }
   };
 
+  // 앱: 구독 페이지 진입 시 RC 와 즉시 동기화 — 웹훅 누락/지연 보정.
+  // (구매 없이 들어와도 entitlement 기준으로 subscriptions 행/상태가 정확히 채워짐 → "이용중" 뱃지 등)
+  useEffect(() => {
+    if (!user || !appRcBilling) return;
+    (async () => {
+      await syncSubscription();
+      await refreshProfile();
+      await fetchData();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, appRcBilling]);
+
   // ── 네이티브 결제(RevenueCat) 핸들러 ──
   // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
   const handleNativePurchase = async (productId: string) => {
