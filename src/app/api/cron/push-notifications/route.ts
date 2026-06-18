@@ -45,6 +45,7 @@ import { isTrialActive } from '@/lib/plans';
 import { categoryLabelI18n } from '@/lib/preventiveCare';
 import { sendFcmToUser } from '@/lib/fcmAdmin';
 import type { PreventiveCategory } from '@/lib/supabase';
+import { secureEqual } from '@/lib/secureCompare';
 
 type Lang = 'ko' | 'en';
 
@@ -240,7 +241,7 @@ function buildPreventiveMessage(
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!secureEqual(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

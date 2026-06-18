@@ -83,6 +83,14 @@ const TESTS = [
       return { ok: bad.length === 0, detail: bad.length ? `쓰기 정책 존재(위험): ${bad.join(', ')}` : '결제 테이블 쓰기 정책 없음 (서비스롤 전용)' };
     },
   },
+  {
+    name: '5) subscriptions/payment_history: 클라이언트 쓰기/파괴 GRANT 없음 (SELECT 전용)',
+    async run() {
+      const rows = await q(`select table_name, privilege_type from information_schema.table_privileges where table_name in ('subscriptions','payment_history') and grantee='authenticated' and privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE');`);
+      const bad = rows.map(r => `${r.table_name}:${r.privilege_type}`);
+      return { ok: bad.length === 0, detail: bad.length ? `위험 GRANT: ${bad.join(', ')}` : '결제 테이블에 클라 INSERT/UPDATE/DELETE/TRUNCATE GRANT 없음' };
+    },
+  },
 ];
 
 console.log(`\n🔒 Supabase 보안 불변식 점검 — 대상: ${target} (${ref})\n`);
