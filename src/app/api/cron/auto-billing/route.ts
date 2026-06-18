@@ -7,6 +7,7 @@ import { getProductById } from '@/lib/products';
 import { decrypt } from '@/lib/encryption';
 import { logActivityServer } from '@/lib/activityLogServer';
 import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
+import { secureEqual } from '@/lib/secureCompare';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,7 @@ interface DueSubscription {
 export async function GET(request: NextRequest) {
   // Vercel cron sends Authorization: Bearer <CRON_SECRET>
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!secureEqual(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
+import { secureEqual } from '@/lib/secureCompare';
 
 /**
  * RevenueCat 웹훅 — 앱(Google Play Billing) 구독 상태를 Supabase 로 동기화.
@@ -46,8 +47,9 @@ export async function POST(request: NextRequest) {
   if (!secret) {
     return NextResponse.json({ error: 'not configured' }, { status: 503 });
   }
-  const authHeader = request.headers.get('authorization') || '';
-  if (authHeader !== `Bearer ${secret}` && authHeader !== secret) {
+  // Authorization 헤더는 'Bearer <secret>' 또는 '<secret>' 둘 다 허용 → 상수시간 비교.
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!secureEqual(token, secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
