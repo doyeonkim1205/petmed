@@ -440,6 +440,7 @@ export default function SubscriptionPage() {
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
                   {t('subscription.restorePurchase')}
                 </button>
+                <p className="text-center text-[10px] text-gray-300 leading-relaxed -mt-0.5">{t('subscription.restoreHint')}</p>
               </div>
             ) : (
               /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
@@ -559,6 +560,7 @@ export default function SubscriptionPage() {
                   className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
                   {t('subscription.restorePurchase')}
                 </button>
+                <p className="text-center text-[10px] text-gray-300 leading-relaxed -mt-0.5">{t('subscription.restoreHint')}</p>
               </div>
             ) : (
               /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
