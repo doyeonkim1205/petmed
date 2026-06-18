@@ -136,6 +136,7 @@ export default function SubscriptionPage() {
   const [purchasing, setPurchasing] = useState(false);
   const [nativePrice, setNativePrice] = useState<string | null>(null);
   const [nativePriceYearly, setNativePriceYearly] = useState<string | null>(null);
+  const [debugStr, setDebugStr] = useState<string>('…'); // 🔧 임시 진단
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -170,6 +171,12 @@ export default function SubscriptionPage() {
     platformPayments.getPriceString(user.id, 'plus_monthly').then(setNativePrice).catch(() => {});
     platformPayments.getPriceString(user.id, 'plus_yearly').then(setNativePriceYearly).catch(() => {});
   }, [user, appRcBilling]);
+
+  // 🔧 임시 진단 — appRcBilling 무관하게 항상 실행 (isApp/rcReady/offering 상태 확인)
+  useEffect(() => {
+    if (!user) return;
+    platformPayments.debugInfo(user.id).then(setDebugStr).catch((e) => setDebugStr('debugInfo throw: ' + e.message));
+  }, [user]);
 
   const handleRetryBilling = async () => {
     setActionLoading('retry');
@@ -315,6 +322,13 @@ export default function SubscriptionPage() {
       </header>
 
       <div className="px-4 pt-2">
+        {/* 🔧 임시 진단 박스 — 원인 확정 후 제거 */}
+        <div className="mb-3 rounded-lg bg-yellow-50 border border-yellow-300 p-2 text-[10px] leading-relaxed text-yellow-900 break-all font-mono">
+          <span className="font-bold">DEBUG </span>
+          isApp={String(isApp)} rcReady={String(rcReady)} appRcBilling={String(appRcBilling)} nativePrice={String(nativePrice)}
+          <br />{debugStr}
+        </div>
+
         {/* ── Trial 안내 카드 (트라이얼 기간 중에만 표시) ── */}
         {isTrialActive() && (
           <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-5 mb-5 text-center">
