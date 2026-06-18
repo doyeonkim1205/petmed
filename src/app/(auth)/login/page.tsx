@@ -11,7 +11,7 @@ import { registerPlugin } from '@capacitor/core';
 const NativeDiag = registerPlugin<{
   ping(): Promise<{ ok: boolean; message: string }>;
   waitAndReturn(): Promise<{ ok: boolean; value: string }>;
-  getPrices(): Promise<{ ok: boolean; count?: number; monthly?: string; annual?: string; monthlyId?: string; annualId?: string; error?: string }>;
+  getPrices(opts?: { apiKey?: string }): Promise<{ ok: boolean; count?: number; monthly?: string; annual?: string; monthlyId?: string; annualId?: string; error?: string }>;
 }>('NativeDiag');
 
 function isInAppBrowser(): boolean {
@@ -82,7 +82,7 @@ export default function LoginPage() {
       Promise.race([p, new Promise<T>((_, r) => setTimeout(() => r(new Error('timeout_' + ms)), ms))]);
     to(NativeDiag.ping(), 8000).then((r) => setDiagPing(JSON.stringify(r))).catch((e) => setDiagPing('ERR:' + e.message));
     to(NativeDiag.waitAndReturn(), 8000).then((r) => setDiagWait(JSON.stringify(r))).catch((e) => setDiagWait('ERR:' + e.message));
-    to(NativeDiag.getPrices(), 15000).then((r) => setDiagPrices(JSON.stringify(r))).catch((e) => setDiagPrices('ERR:' + e.message));
+    to(NativeDiag.getPrices({ apiKey: process.env.NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY || '' }), 15000).then((r) => setDiagPrices(JSON.stringify(r))).catch((e) => setDiagPrices('ERR:' + e.message));
   }, []);
 
   const handleDevLogin = async (e: React.FormEvent) => {
