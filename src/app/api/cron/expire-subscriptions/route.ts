@@ -20,12 +20,15 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date().toISOString();
 
-    // Find expired subscriptions (active or canceled, past period_end)
+    // Find expired subscriptions (active or canceled, past period_end).
+    // ⚠️ Play(앱) 구독은 제외 — 만료/갱신 판정은 RevenueCat 웹훅(EXPIRATION/RENEWAL)이 진실원.
+    //    period_end 만 보고 강등하면 갱신 웹훅 지연 시 유효 구독을 조기 강등할 위험.
     const { data: expired } = await supabaseAdmin
       .from('subscriptions')
       .select('user_id, plan')
       .in('status', ['active', 'canceled'])
-      .lt('period_end', now);
+      .lt('period_end', now)
+      .neq('store', 'play');
 
     if (!expired || expired.length === 0) {
       await logActivityServer(null, 'cron.expire_subscriptions', {
@@ -36,12 +39,13 @@ export async function GET(request: NextRequest) {
 
     const userIds = expired.map(s => s.user_id);
 
-    // Update subscriptions to expired
+    // Update subscriptions to expired (Play 제외 — 위 select 와 동일 가드)
     await supabaseAdmin
       .from('subscriptions')
       .update({ status: 'expired', updated_at: now })
       .in('user_id', userIds)
-      .in('status', ['active', 'canceled']);
+      .in('status', ['active', 'canceled'])
+      .neq('store', 'play');
 
     // Downgrade profiles to free
     await supabaseAdmin

@@ -38,6 +38,8 @@ const GRANT_TYPES = new Set([
 // ⚠️ CANCELLATION 은 '해지 예약'(자동갱신 OFF)일 뿐 만료 시점까지는 active → 즉시 다운그레이드 X.
 //    BILLING_ISSUE(grace) 도 즉시 회수 X (EXPIRATION 이 최종 판정). 실권한은 expires_at/entitlement 기준.
 const REVOKE_TYPES = new Set(['EXPIRATION', 'REFUND']);
+// 실제 결제(돈이 오간)가 발생하는 이벤트 — payment_history 기록 대상.
+const PAYMENT_TYPES = new Set(['INITIAL_PURCHASE', 'RENEWAL', 'NON_RENEWING_PURCHASE', 'PRODUCT_CHANGE']);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,6 +76,9 @@ export async function POST(request: NextRequest) {
   const productId = event.product_id ? String(event.product_id).split(':')[0] : null;
   const store = event.store ? String(event.store).toLowerCase() : 'play';
   const txId = event.original_transaction_id ? String(event.original_transaction_id) : null;
+  const eventTxId = event.transaction_id ? String(event.transaction_id) : null;
+  // 결제 금액(구매 통화 기준). KRW 면 정수(3900/40000). 없으면 0 → 기록 생략.
+  const priceAmount = Number(event.price_in_purchased_currency ?? event.price ?? 0);
 
   // 로그인 유저(Supabase uid)만 동기화. 익명/비정상 id 는 200 으로 흡수(재시도 폭주 방지).
   if (!UUID_RE.test(appUserId)) {
@@ -128,6 +133,25 @@ export async function POST(request: NextRequest) {
         });
       }
       await supabaseAdmin.from('profiles').update({ plan: 'plus' }).eq('id', appUserId);
+
+      // Play 결제내역 기록 — 실제 결제 이벤트 + 금액이 있을 때만. 멱등: provider_payment_id 유니크.
+      if (PAYMENT_TYPES.has(type) && priceAmount > 0) {
+        const providerPaymentId = `rc_${eventTxId || txId || 'na'}_${eventAtMs}`;
+        const { error: payErr } = await supabaseAdmin.from('payment_history').insert({
+          user_id: appUserId,
+          amount: Math.round(priceAmount),
+          status: 'done',
+          store,
+          provider_payment_id: providerPaymentId,
+        });
+        // 23505 = unique_violation(웹훅 재전송 중복) → 정상 무시. 그 외만 가시화.
+        if (payErr && payErr.code !== '23505') {
+          Sentry.captureException(new Error(`payment_history insert failed: ${payErr.message}`), {
+            tags: { feature: 'payment', action: 'revenuecat-webhook-payment' },
+            extra: { type, appUserId, providerPaymentId },
+          });
+        }
+      }
     } else if (REVOKE_TYPES.has(type)) {
       await supabaseAdmin.from('subscriptions').update({
         status: 'expired',
