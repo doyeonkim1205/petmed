@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { isNativeApp } from '@/lib/platform';
+import { registerPlugin } from '@capacitor/core';
+
+// 🔧 임시 브릿지 진단 플러그인
+const NativeDiag = registerPlugin<{
+  ping(): Promise<{ ok: boolean; message: string }>;
+  waitAndReturn(): Promise<{ ok: boolean; value: string }>;
+}>('NativeDiag');
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -42,6 +49,8 @@ function isDevLoginEnv(): boolean {
 export default function LoginPage() {
   const t = useTranslations();
   const [error, setError] = useState('');
+  const [diagPing, setDiagPing] = useState('…'); // 🔧 임시 브릿지 진단
+  const [diagWait, setDiagWait] = useState('…');
   const [inApp, setInApp] = useState(false);
   const [devLogin, setDevLogin] = useState(false);
   const [devEmail, setDevEmail] = useState('');
@@ -62,6 +71,15 @@ export default function LoginPage() {
     if (params.get('reason') === 'session_evicted') {
       setError(t('auth.sessionEvicted'));
     }
+  }, []);
+
+  // 🔧 임시 브릿지 진단 — 로그인 불필요. ping(동기) + waitAndReturn(비동기) 결과 표시.
+  useEffect(() => {
+    if (!isNativeApp()) { setDiagPing('web(skip)'); setDiagWait('web(skip)'); return; }
+    const to = <T,>(p: Promise<T>, ms: number) =>
+      Promise.race([p, new Promise<T>((_, r) => setTimeout(() => r(new Error('timeout_' + ms)), ms))]);
+    to(NativeDiag.ping(), 8000).then((r) => setDiagPing(JSON.stringify(r))).catch((e) => setDiagPing('ERR:' + e.message));
+    to(NativeDiag.waitAndReturn(), 8000).then((r) => setDiagWait(JSON.stringify(r))).catch((e) => setDiagWait('ERR:' + e.message));
   }, []);
 
   const handleDevLogin = async (e: React.FormEvent) => {
@@ -115,6 +133,10 @@ export default function LoginPage() {
       <main className="flex-1 flex flex-col items-stretch max-w-sm mx-auto w-full">
         {/* 흰 카드 — 2등분(상=텍스트, 하=버튼) + 약관 하단 */}
         <div className="w-full bg-white rounded-3xl shadow-lg px-7 py-10 flex-1 min-h-[680px] flex flex-col">
+          {/* 🔧 임시 브릿지 진단 패널 (확정 후 제거) */}
+          <div className="mb-3 rounded-lg bg-yellow-50 border border-yellow-300 p-2 text-[10px] leading-relaxed text-yellow-900 break-all font-mono">
+            <span className="font-bold">DIAG </span>ping={diagPing}<br />waitAndReturn={diagWait}
+          </div>
           {/* [상반부 2/3] PawDex + 카피 — 자기 영역 중앙 */}
           <div className="flex-[2] flex flex-col items-center justify-center">
             <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
