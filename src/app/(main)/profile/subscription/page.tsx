@@ -327,10 +327,6 @@ export default function SubscriptionPage() {
   // 자동 갱신 유저만 즉시 재결제 가능 (1회 결제는 next_billing_at 없음 → cron 안 돔).
   const billingFailedCount = subscription?.billing_failed_count || 0;
   const isInRetry = isActive && billingFailedCount > 0 && isRecurring;
-  // 성공 카드용 — purchaseSuccess("구독이 완료됐어요. Plus 혜택을…")를 제목/설명으로 분리.
-  const successFull = t('subscription.purchaseSuccess');
-  const successTitle = successFull.split('. ')[0];
-  const successDesc = successFull.split('. ').slice(1).join('. ');
 
   // Toss returns issuer codes instead of card company names
   const CARD_ISSUERS: Record<string, string> = {
@@ -573,17 +569,10 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {/* ── 3. 구매 성공 = 소프트하지 않은 솔리드 A카드 (왕관 = lucide Crown) ── */}
+        {/* ── 3. 구매 성공 = 미니멀 파랑 한 줄 (잠깐 떴다 사라지는 안내) ── */}
         {justPurchased && (
-          <div className="relative overflow-hidden rounded-2xl p-[18px] mb-4 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/15">
-            <span className="pointer-events-none absolute -right-3 -bottom-5 text-[64px] leading-none opacity-[0.13] rotate-[-12deg] select-none">🐾</span>
-            <div className="relative">
-              <span className="inline-flex items-center gap-1.5 bg-white/20 text-white px-2.5 py-1 rounded-full text-[11px] font-bold mb-2.5">
-                <Crown size={12} /> PawDex Plus
-              </span>
-              <h3 className="text-base font-extrabold tracking-tight">{successTitle}</h3>
-              {successDesc && <p className="text-xs text-blue-50/90 mt-1 leading-relaxed">{successDesc}</p>}
-            </div>
+          <div className="flex items-center justify-center gap-1.5 bg-blue-50 rounded-xl py-2.5 px-3 mb-4 text-[13px] font-semibold text-blue-700 leading-relaxed text-center">
+            <span className="text-blue-600 font-bold">✓</span> {t('subscription.purchaseSuccess')}
           </div>
         )}
 
