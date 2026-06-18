@@ -391,10 +391,10 @@ export default function SubscriptionPage() {
                 {isPaid ? t('subscription.planDescPaid') : isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
               </p>
             </div>
-            {hasSub && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
-                {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
+            {(hasSub || justPurchased) && (
+              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${(isActive || justPurchased) ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${(isActive || justPurchased) ? 'bg-green-400' : 'bg-orange-400'}`} />
+                {(isActive || justPurchased) ? t('subscription.statusActive') : t('subscription.statusCanceled')}
               </span>
             )}
           </div>
@@ -432,11 +432,13 @@ export default function SubscriptionPage() {
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-                <button onClick={handleRestore} disabled={purchasing}
-                  className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
-                  {t('subscription.restorePurchase')}
-                </button>
-                <p className="text-center text-[10px] text-gray-300 leading-relaxed -mt-0.5">{t('subscription.restoreHint')}</p>
+                <div className="pt-1">
+                  <button onClick={handleRestore} disabled={purchasing}
+                    className="w-full text-center text-[11px] text-gray-400 underline disabled:opacity-50">
+                    {t('subscription.restorePurchase')}
+                  </button>
+                  <p className="text-center text-[10px] text-gray-300 mt-0.5">{t('subscription.restoreHint')}</p>
+                </div>
               </div>
             ) : (
               /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
@@ -552,11 +554,13 @@ export default function SubscriptionPage() {
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
                   badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-                <button onClick={handleRestore} disabled={purchasing}
-                  className="w-full text-center text-[11px] text-gray-400 underline py-1 disabled:opacity-50">
-                  {t('subscription.restorePurchase')}
-                </button>
-                <p className="text-center text-[10px] text-gray-300 leading-relaxed -mt-0.5">{t('subscription.restoreHint')}</p>
+                <div className="pt-1">
+                  <button onClick={handleRestore} disabled={purchasing}
+                    className="w-full text-center text-[11px] text-gray-400 underline disabled:opacity-50">
+                    {t('subscription.restorePurchase')}
+                  </button>
+                  <p className="text-center text-[10px] text-gray-300 mt-0.5">{t('subscription.restoreHint')}</p>
+                </div>
               </div>
             ) : (
               /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
