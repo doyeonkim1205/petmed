@@ -37,7 +37,8 @@ async function ensureConfigured(userId: string) {
   const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
   if (configuredFor !== userId) {
     // 진단용 DEBUG 로그 — 상품/권한 문제를 logcat 에 출력. (안정화 후 WARN 으로 낮추거나 제거)
-    try { await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG }); } catch { /* noop */ }
+    // ⚠️ await 하지 않는다(비차단) — 브릿지가 여기서 멈추면 이후 호출에 도달 못 함.
+    try { void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG }); } catch { /* noop */ }
     await withTimeout(Purchases.configure({ apiKey: RC_GOOGLE_API_KEY, appUserID: userId }), 10000, 'configure');
     configuredFor = userId;
   }
@@ -140,25 +141,31 @@ export const platformPayments = {
 
   /** 🔧 임시 진단 — 구독 화면 디버그 박스용. 안정화 후 제거. */
   async debugInfo(userId: string): Promise<string> {
-    const parts = [`app=${isNativeApp()}`, `key=${RC_GOOGLE_API_KEY ? RC_GOOGLE_API_KEY.slice(0, 6) + '…' : 'MISSING'}`];
-    if (!this.isNativeBilling()) return parts.concat('nativeBilling=false').join(' ');
-    try {
+    const head = `app=${isNativeApp()} key=${RC_GOOGLE_API_KEY ? RC_GOOGLE_API_KEY.slice(0, 6) + '…' : 'MISSING'}`;
+    if (!this.isNativeBilling()) return `${head} nativeBilling=false`;
+    // 바깥 타임아웃 — import/setLogLevel/configure 등 무엇이 멈춰도 12초 안에 반드시 결과 반환.
+    const inner = (async () => {
+      const parts: string[] = [];
       const Purchases = await ensureConfigured(userId);
+      parts.push('configured=ok');
       const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
       const reqIds = ['plus_monthly', 'plus_yearly'];
       parts.push(`req=[${reqIds.join(',')}]`);
       const { products } = await withTimeout(
         Purchases.getProducts({ productIdentifiers: reqIds, type: PRODUCT_CATEGORY.SUBSCRIPTION }),
-        10000,
+        9000,
         'getProducts',
       );
       parts.push(`n=${products.length}`);
       parts.push(`ids=[${products.map((p) => p.identifier).join(',')}]`);
       parts.push(`prices=[${products.map((p) => p.priceString).join(',')}]`);
+      return parts.join(' ');
+    })();
+    try {
+      return `${head} ${await withTimeout(inner, 12000, 'debugInfo')}`;
     } catch (e) {
-      parts.push(`ERR=${(e as Error).message}`);
+      return `${head} ERR=${(e as Error).message}`;
     }
-    return parts.join(' ');
   },
 
   /** 현재 'plus' 엔타이틀먼트 활성 여부 조회 (로그인 후 동기화 보조용). */
