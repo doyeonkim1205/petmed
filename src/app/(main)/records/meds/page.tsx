@@ -321,9 +321,9 @@ export default function MedsPage() {
           {/* 복약 시각은 기간(날짜)보다 '앞'에 둬서 1일 3회여도 시간이 먼저 살아남고 날짜가 잘리게.
               알림 ON 일 때만 표시(사용자가 직접 설정한 값). 별도 시계 아이콘·라인 없이 한 줄로 통합. */}
           <p className="text-xs text-gray-400 mt-0.5 truncate">
-            {m.dosage && `${m.dosage} · `}{freqDisplay(m.frequency)}
-            {m.alarm_enabled && m.alarm_times && m.alarm_times.length > 0 && ` · ${[...m.alarm_times].sort().join(', ')}`}
-            {m.start_date && ` · ${fmtDate(m.start_date)}${m.end_date ? `~${fmtDate(m.end_date)}` : '~'}`}
+            {m.dosage && `${m.dosage} / `}{freqDisplay(m.frequency)}
+            {m.alarm_enabled && m.alarm_times && m.alarm_times.length > 0 && ` / ${[...m.alarm_times].sort().join(', ')}`}
+            {m.start_date && ` / ${fmtDate(m.start_date)}${m.end_date ? `~${fmtDate(m.end_date)}` : '~'}`}
           </p>
         </div>
       </button>
