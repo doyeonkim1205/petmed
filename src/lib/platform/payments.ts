@@ -31,6 +31,21 @@ async function ensureConfigured(userId: string) {
 }
 
 /**
+ * getOfferings() 결과에서 사용할 offering 결정.
+ * current(=대시보드 Current 지정)가 우선이지만, Current 미지정/패키지가 다른 offering에
+ * 들어있는 경우를 대비해 all 의 첫 offering 으로 fallback (앱이 빈 화면 되는 것 방지).
+ */
+function resolveOffering(offerings: {
+  current?: { availablePackages?: unknown[] } | null;
+  all?: Record<string, { availablePackages?: unknown[] }>;
+}) {
+  const cur = offerings.current;
+  if (cur && (cur.availablePackages?.length ?? 0) > 0) return cur;
+  const all = Object.values(offerings.all ?? {});
+  return all.find((o) => (o.availablePackages?.length ?? 0) > 0) ?? cur ?? null;
+}
+
+/**
  * Offering 에서 월간/연간 package 선택.
  *  1순위: RC 표준 편의 접근자 current.monthly / current.annual ($rc_monthly / $rc_annual).
  *  2순위: (커스텀 package id 대비) product.identifier prefix 매칭 (plus_monthly / plus_monthly:베이스플랜).
@@ -88,7 +103,7 @@ export const platformPayments = {
     try {
       const Purchases = await ensureConfigured(userId);
       const offerings = await Purchases.getOfferings();
-      const pkg = pickPackage(offerings.current, productId);
+      const pkg = pickPackage(resolveOffering(offerings), productId);
       if (!pkg) return { ok: false, active: false, error: 'no package' };
       const res = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
       return { ok: true, active: !!res.customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
@@ -120,7 +135,7 @@ export const platformPayments = {
     try {
       const Purchases = await ensureConfigured(userId);
       const offerings = await Purchases.getOfferings();
-      const pkg = pickPackage(offerings.current, productId);
+      const pkg = pickPackage(resolveOffering(offerings), productId);
       return pkg?.product.priceString ?? null;
     } catch {
       return null;
