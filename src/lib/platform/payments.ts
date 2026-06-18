@@ -145,8 +145,10 @@ export const platformPayments = {
     try {
       const Purchases = await ensureConfigured(userId);
       const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
+      const reqIds = ['plus_monthly', 'plus_yearly'];
+      parts.push(`req=[${reqIds.join(',')}]`);
       const { products } = await withTimeout(
-        Purchases.getProducts({ productIdentifiers: ['plus_monthly', 'plus_yearly'], type: PRODUCT_CATEGORY.SUBSCRIPTION }),
+        Purchases.getProducts({ productIdentifiers: reqIds, type: PRODUCT_CATEGORY.SUBSCRIPTION }),
         10000,
         'getProducts',
       );
