@@ -8,63 +8,61 @@
  * NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY 미설정이면 isNativeBilling()=false →
  * 구독 페이지가 네이티브 결제 CTA 를 숨긴다. (Play Billing 출시 전까지 안전 dormant)
  *
+ * ⚠️ 상품 조회는 getOfferings() 가 아니라 getProducts() 를 쓴다.
+ *    getOfferings() 가 (Capacitor 브릿지에서) 네이티브는 상품을 다 받아놓고도 JS 로 결과를
+ *    돌려주지 않고 멈추는 현상이 있어, productId 로 직접 조회하는 getProducts 로 우회.
+ *    모든 RC 호출은 타임아웃으로 감싸 멈춰도 UI(버튼/가격)가 영구 잠기지 않게 한다.
+ *
  * 엔타이틀먼트('plus') 활성 여부는 보조 신호일 뿐, 권한의 진실원은 profiles.plan.
  * 실제 plan 갱신은 RevenueCat 웹훅(/api/payments/revenuecat-webhook)이 담당.
  */
 import { isNativeApp } from './env';
+import type { PurchasesStoreProduct } from '@revenuecat/purchases-capacitor';
 
 const RC_GOOGLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY || '';
 const PLUS_ENTITLEMENT = 'plus';
 
 let configuredFor: string | null = null;
 
+/** RC 호출이 브릿지에서 멈춰도 UI 가 영구 대기하지 않도록 타임아웃으로 감싼다. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms);
+  });
+  return Promise.race([p.finally(() => clearTimeout(timer)), timeout]);
+}
+
 async function ensureConfigured(userId: string) {
   const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
   if (configuredFor !== userId) {
-    // 진단용 DEBUG 로그 — offerings 가 비는 원인(키/상품/권한)을 logcat 에 출력.
-    // (안정화 후 LOG_LEVEL.WARN 으로 낮추거나 제거)
+    // 진단용 DEBUG 로그 — 상품/권한 문제를 logcat 에 출력. (안정화 후 WARN 으로 낮추거나 제거)
     try { await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG }); } catch { /* noop */ }
-    await Purchases.configure({ apiKey: RC_GOOGLE_API_KEY, appUserID: userId });
+    await withTimeout(Purchases.configure({ apiKey: RC_GOOGLE_API_KEY, appUserID: userId }), 10000, 'configure');
     configuredFor = userId;
   }
   return Purchases;
 }
 
 /**
- * getOfferings() 결과에서 사용할 offering 결정.
- * current(=대시보드 Current 지정)가 우선이지만, Current 미지정/패키지가 다른 offering에
- * 들어있는 경우를 대비해 all 의 첫 offering 으로 fallback (앱이 빈 화면 되는 것 방지).
+ * productId(=Play 구독 상품 ID, 예: plus_monthly)로 StoreProduct 직접 조회.
+ * Google 은 base plan 단위로 여러 StoreProduct(plus_monthly:monthly 등)를 줄 수 있어
+ * productId 정확일치 또는 'productId:' prefix 매칭으로 고른다. 없으면 첫 상품.
+ * ⚠️ productId 는 base plan id(monthly/yearly) 가 아니라 구독 상품 ID 다.
  */
-function resolveOffering(offerings: {
-  current?: { availablePackages?: unknown[] } | null;
-  all?: Record<string, { availablePackages?: unknown[] }>;
-}) {
-  const cur = offerings.current;
-  if (cur && (cur.availablePackages?.length ?? 0) > 0) return cur;
-  const all = Object.values(offerings.all ?? {});
-  return all.find((o) => (o.availablePackages?.length ?? 0) > 0) ?? cur ?? null;
-}
-
-/**
- * Offering 에서 월간/연간 package 선택.
- *  1순위: RC 표준 편의 접근자 current.monthly / current.annual ($rc_monthly / $rc_annual).
- *  2순위: (커스텀 package id 대비) product.identifier prefix 매칭 (plus_monthly / plus_monthly:베이스플랜).
- * ⚠️ productId 는 Play '구독 상품 ID'(plus_monthly/plus_yearly) — base plan id(monthly/yearly) 가 아님.
- */
-function pickPackage(
-  offering: { monthly?: unknown; annual?: unknown; availablePackages?: unknown[] } | null | undefined,
+async function fetchProduct(
+  Purchases: Awaited<ReturnType<typeof ensureConfigured>>,
   productId: string,
-) {
-  if (!offering) return null;
-  const wantsYear = /year|annual/i.test(productId);
-  const byAccessor = (wantsYear ? offering.annual : offering.monthly) as
-    | { product: { identifier: string; priceString: string } }
-    | undefined;
-  if (byAccessor) return byAccessor;
-  const pkgs = (offering.availablePackages ?? []) as { product: { identifier: string; priceString: string } }[];
+): Promise<PurchasesStoreProduct | null> {
+  const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
+  const { products } = await withTimeout(
+    Purchases.getProducts({ productIdentifiers: [productId], type: PRODUCT_CATEGORY.SUBSCRIPTION }),
+    10000,
+    'getProducts',
+  );
   return (
-    pkgs.find((p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`)) ??
-    pkgs[0] ??
+    products.find((p) => p.identifier === productId || p.identifier.startsWith(`${productId}:`)) ??
+    products[0] ??
     null
   );
 }
@@ -97,15 +95,14 @@ export const platformPayments = {
     return 'https://play.google.com/store/account/subscriptions';
   },
 
-  /** productId(예: plus_monthly)에 해당하는 RC 패키지 구매. 네이티브 전용. */
+  /** productId(예: plus_monthly)에 해당하는 상품 구매. 네이티브 전용. */
   async purchase(userId: string, productId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false, error: 'native billing unavailable' };
     try {
       const Purchases = await ensureConfigured(userId);
-      const offerings = await Purchases.getOfferings();
-      const pkg = pickPackage(resolveOffering(offerings), productId);
-      if (!pkg) return { ok: false, active: false, error: 'no package' };
-      const res = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
+      const product = await fetchProduct(Purchases, productId);
+      if (!product) return { ok: false, active: false, error: 'no product' };
+      const res = await Purchases.purchaseStoreProduct({ product });
       return { ok: true, active: !!res.customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
     } catch (e) {
       const err = e as { code?: string; userCancelled?: boolean; message?: string };
@@ -122,21 +119,20 @@ export const platformPayments = {
     if (!this.isNativeBilling()) return { ok: false, active: false };
     try {
       const Purchases = await ensureConfigured(userId);
-      const { customerInfo } = await Purchases.restorePurchases();
+      const { customerInfo } = await withTimeout(Purchases.restorePurchases(), 15000, 'restore');
       return { ok: true, active: !!customerInfo.entitlements.active[PLUS_ENTITLEMENT] };
     } catch (e) {
       return { ok: false, active: false, error: (e as Error).message };
     }
   },
 
-  /** productId 의 RC 로컬라이즈 가격 문자열(예: '₩3,500') — 앱은 Play 실제가를 표시해야 함. 없으면 null. */
+  /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — Play 실제가. 없으면 null. */
   async getPriceString(userId: string, productId: string): Promise<string | null> {
     if (!this.isNativeBilling()) return null;
     try {
       const Purchases = await ensureConfigured(userId);
-      const offerings = await Purchases.getOfferings();
-      const pkg = pickPackage(resolveOffering(offerings), productId);
-      return pkg?.product.priceString ?? null;
+      const product = await fetchProduct(Purchases, productId);
+      return product?.priceString ?? null;
     } catch {
       return null;
     }
@@ -148,16 +144,15 @@ export const platformPayments = {
     if (!this.isNativeBilling()) return parts.concat('nativeBilling=false').join(' ');
     try {
       const Purchases = await ensureConfigured(userId);
-      const offerings = await Purchases.getOfferings();
-      const cur = offerings.current as { identifier?: string; availablePackages?: unknown[] } | null;
-      const all = offerings.all ?? {};
-      parts.push(`curId=${cur?.identifier ?? 'NULL'}`);
-      parts.push(`curPkgs=${cur?.availablePackages?.length ?? 0}`);
-      parts.push(`allKeys=[${Object.keys(all).join(',')}]`);
-      const picked = pickPackage(resolveOffering(offerings), 'plus_monthly') as
-        | { product?: { identifier?: string; priceString?: string } }
-        | null;
-      parts.push(`pickM=${picked?.product?.identifier ?? 'NULL'}/${picked?.product?.priceString ?? '-'}`);
+      const { PRODUCT_CATEGORY } = await import('@revenuecat/purchases-capacitor');
+      const { products } = await withTimeout(
+        Purchases.getProducts({ productIdentifiers: ['plus_monthly', 'plus_yearly'], type: PRODUCT_CATEGORY.SUBSCRIPTION }),
+        10000,
+        'getProducts',
+      );
+      parts.push(`n=${products.length}`);
+      parts.push(`ids=[${products.map((p) => p.identifier).join(',')}]`);
+      parts.push(`prices=[${products.map((p) => p.priceString).join(',')}]`);
     } catch (e) {
       parts.push(`ERR=${(e as Error).message}`);
     }
@@ -169,7 +164,7 @@ export const platformPayments = {
     if (!this.isNativeBilling()) return false;
     try {
       const Purchases = await ensureConfigured(userId);
-      const { customerInfo } = await Purchases.getCustomerInfo();
+      const { customerInfo } = await withTimeout(Purchases.getCustomerInfo(), 10000, 'getCustomerInfo');
       return !!customerInfo.entitlements.active[PLUS_ENTITLEMENT];
     } catch {
       return false;
