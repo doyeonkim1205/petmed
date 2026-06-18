@@ -359,45 +359,28 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {/* ── 1. Plan Card ── */}
-        {isPaid ? (
-          /* Plus — 프리미엄 솔리드 블루 카드 (왕관 = 기존 lucide Crown) */
-          <div className="relative overflow-hidden rounded-2xl p-4 mb-5 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/15">
-            <span className="pointer-events-none absolute -right-3 -bottom-5 text-[64px] leading-none opacity-[0.13] rotate-[-12deg] select-none">🐾</span>
-            <div className="relative flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <Crown size={18} className="text-white" />
-                  <span className="text-lg font-extrabold tracking-tight">Plus</span>
-                </div>
-                <p className="text-xs text-blue-50/90">{t('subscription.planDescPaid')}</p>
-              </div>
-              {hasSub && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold bg-white/20 text-white">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-300' : 'bg-orange-300'}`} />
-                  {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
+        {/* ── 1. Plan Card (기존 라이트 단일 카드) ── */}
+        <div className={`rounded-2xl border p-4 mb-5 ${isPaid || isTrialActive() ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                {isPaid || isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
+                <span className={`text-lg font-bold ${isPaid || isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
+                  {isPaid ? 'Plus' : isTrialActive() ? t('subscription.planPlusTrial') : 'Free'}
                 </span>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Free / Trial — 기존 라이트 카드 유지 */
-          <div className={`rounded-2xl border p-4 mb-5 ${isTrialActive() ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  {isTrialActive() ? <Crown size={16} className="text-blue-500" /> : <Zap size={16} className="text-gray-400" />}
-                  <span className={`text-lg font-bold ${isTrialActive() ? 'text-blue-700' : 'text-gray-700'}`}>
-                    {isTrialActive() ? t('subscription.planPlusTrial') : 'Free'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">
-                  {isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
-                </p>
               </div>
+              <p className="text-xs text-gray-500">
+                {isPaid ? t('subscription.planDescPaid') : isTrialActive() ? t('subscription.planDescTrial') : t('subscription.planDescFree')}
+              </p>
             </div>
+            {hasSub && (
+              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-orange-400'}`} />
+                {isActive ? t('subscription.statusActive') : t('subscription.statusCanceled')}
+              </span>
+            )}
           </div>
-        )}
+        </div>
 
         {/* ── Subscribe buttons (Free only — no subscription info) ── */}
         {!isPaid && !hasSub && (
