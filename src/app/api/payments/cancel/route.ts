@@ -32,6 +32,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '활성 구독이 없습니다.' }, { status: 404 });
     }
 
+    // Play(앱) 구독은 Google Play 에서만 해지·환불 가능. 토스 해지 경로로 처리하지 않는다.
+    // (UI 에서도 막혀 있지만 서버 방어심층 — 잘못된 호출은 명확히 거부)
+    if (subscription.store === 'play') {
+      return NextResponse.json(
+        { error: 'Google Play 구독은 Google Play 구독 관리에서 해지·환불해 주세요.' },
+        { status: 400 },
+      );
+    }
+
     let refundedAmount: number | null = null;
     // Use billing secret key if the subscription was paid via billing (bill) service
     const useBillingKey = subscription.billing_type === 'recurring';

@@ -28,6 +28,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '활성 구독이 없습니다.' }, { status: 404 });
     }
 
+    // Play(앱) 구독은 Google Play 환불 절차만 가능 — 토스 환불 경로로 처리하지 않는다(방어심층).
+    if (subscription.store === 'play') {
+      return NextResponse.json(
+        { error: 'Google Play 구독은 Google Play 에서 환불을 요청해 주세요.' },
+        { status: 400 },
+      );
+    }
+
     // 2. Check if within 24 hours of payment
     const { data: payment } = await supabaseAdmin
       .from('payment_history')
