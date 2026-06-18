@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
   const appUserId = String(event.app_user_id || '');
   const eventAtMs = Number(event.event_timestamp_ms || 0);
   const expirationMs = Number(event.expiration_at_ms || 0);
-  const productId = event.product_id ? String(event.product_id) : null;
+  // RC 의 Play product_id 는 'plus_yearly:annual'(상품ID:베이스플랜) 형태.
+  // subscriptions.product_id 는 payment_products(id) 로 FK 가 걸려 있어(plus_monthly/plus_yearly),
+  // 베이스플랜 접미사를 떼어 매핑한다. (안 떼면 FK 위반 → upsert 실패 → 행 미생성)
+  const productId = event.product_id ? String(event.product_id).split(':')[0] : null;
   const store = event.store ? String(event.store).toLowerCase() : 'play';
   const txId = event.original_transaction_id ? String(event.original_transaction_id) : null;
 
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (GRANT_TYPES.has(type)) {
-      await supabaseAdmin.from('subscriptions').upsert({
+      const { error: upsertErr } = await supabaseAdmin.from('subscriptions').upsert({
         user_id: appUserId,
         plan: 'plus',
         product_id: productId,
@@ -117,6 +120,13 @@ export async function POST(request: NextRequest) {
         last_event_at: eventAt.toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
+      // supabase-js 는 DB 에러 시 throw 하지 않으므로 명시적으로 잡아 가시화한다.
+      if (upsertErr) {
+        Sentry.captureException(new Error(`subscriptions upsert failed: ${upsertErr.message}`), {
+          tags: { feature: 'payment', action: 'revenuecat-webhook-upsert' },
+          extra: { type, appUserId, productId },
+        });
+      }
       await supabaseAdmin.from('profiles').update({ plan: 'plus' }).eq('id', appUserId);
     } else if (REVOKE_TYPES.has(type)) {
       await supabaseAdmin.from('subscriptions').update({
