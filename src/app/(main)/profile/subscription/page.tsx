@@ -324,7 +324,7 @@ export default function SubscriptionPage() {
       <div className="px-4 pt-2">
         {/* 🔧 임시 진단 박스 — 원인 확정 후 제거 */}
         <div className="mb-3 rounded-lg bg-yellow-50 border border-yellow-300 p-2 text-[10px] leading-relaxed text-yellow-900 break-all font-mono">
-          <span className="font-bold">DEBUG build=gp4 </span>
+          <span className="font-bold">DEBUG build=gp5 </span>
           isApp={String(isApp)} rcReady={String(rcReady)} appRcBilling={String(appRcBilling)} nativePrice={String(nativePrice)}
           <br />{debugStr}
         </div>
