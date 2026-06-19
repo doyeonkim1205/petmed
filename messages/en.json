@@ -364,10 +364,10 @@
     "alarmHint": "We'll notify you 3 days before and on the due date",
     "softPromptTitle": "Turn on preventive reminders?",
     "softPromptMsg": "We'll send reminders on the due date! Allow notifications to apply right away.",
-    "doneTitle": "Mark '{name}' as done",
+    "doneTitle": "Mark ''{name}'' as done",
     "doneDesc": "The next due date auto-updates to <b>{interval}</b> after the done date",
     "doneDate": "Done date",
-    "deleteTitle": "Delete '{name}'?",
+    "deleteTitle": "Delete ''{name}''?",
     "deleteMessage": "Deleting also removes the due date and reminders"
   },
   "excretion": {
@@ -453,8 +453,8 @@
     "namePlaceholder": "Medication/supplement name",
     "softPromptTitle": "Turn on medication reminders?",
     "softPromptMsg": "We'll send reminders at the set times! Allow notifications to apply right away.",
-    "actionTitleLinked": "What would you like to do with '{name}'?",
-    "actionTitleDelete": "Delete '{name}'?",
+    "actionTitleLinked": "What would you like to do with ''{name}''?",
+    "actionTitleDelete": "Delete ''{name}''?",
     "actionMsgLinked": "This medication is also in a visit record! Deleting it completely removes it from the visit record too.",
     "actionMsgDelete": "Deleting also removes dose history and reminders",
     "endToday": "End dosing today <preserve>(keep records)</preserve>",
@@ -465,7 +465,7 @@
   "expenses": {
     "category": { "medical": "Medical", "food": "Food", "snack": "Treats", "insurance": "Insurance", "supplies": "Supplies & toys", "grooming": "Grooming", "other": "Other" },
     "period": { "month": "1 month", "3month": "3 months", "year": "1 year", "all": "All", "custom": "Custom" },
-    "hint": "Costs entered in records (visits/hospitalization) are\nauto-summed into '{category}'.",
+    "hint": "Costs entered in records (visits/hospitalization) are\nauto-summed into ''{category}''.",
     "totalSpent": "{period} total",
     "byCategoryShow": "Show categories",
     "byCategoryHide": "Hide categories",
