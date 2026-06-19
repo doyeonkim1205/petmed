@@ -524,7 +524,7 @@ export async function GET(request: NextRequest) {
         notification: {
           title: en ? `💊 Time for ${petName}'s meds` : `💊 ${petName} 약 먹을 시간이에요`,
           body: `${drugText} · ${timeLabel}`,
-          url: '/records',
+          url: '/',
           category: 'medication',
           tag: `med-${userId}-${petId}-${currentTime}`,
         },
