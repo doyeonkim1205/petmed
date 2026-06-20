@@ -5,6 +5,11 @@ import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+// 복약/예방 변경 시 홈 위젯이 즉시 재조회하도록 알림 (홈 위젯이 listen).
+function notifyScheduleUpdated() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('pawdex:schedule-updated'));
+}
+
 export function useMedications() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -31,6 +36,7 @@ export function useMedications() {
       .single();
 
     if (error) throw error;
+    notifyScheduleUpdated();
     return data;
   };
 
@@ -54,6 +60,7 @@ export function useMedications() {
       .eq('user_id', user.id);
 
     if (error) throw error;
+    notifyScheduleUpdated();
   };
 
   const deleteMedication = async (id: string) => {
@@ -66,6 +73,7 @@ export function useMedications() {
       .eq('user_id', user.id);
 
     if (error) throw error;
+    notifyScheduleUpdated();
   };
 
   const getTodayMedications = useCallback(async (petId?: string, date?: string) => {

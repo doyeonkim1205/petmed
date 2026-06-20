@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Pill, ChevronDown, ChevronRight, Check } from 'lucide-react';
@@ -40,6 +40,7 @@ export function HomeMedicationWidget() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { getTodayMedications, getChecksForDate, toggleCheck } = useMedications();
 
   const today = localTodayISO();
@@ -60,18 +61,24 @@ export function HomeMedicationWidget() {
     }
   }, [getTodayMedications, getChecksForDate, today]);
 
-  useEffect(() => { load(); }, [load]);
+  // 마운트 + 앱 내에서 홈('/')으로 복귀할 때마다 재조회.
+  // Next.js 라우터 캐시로 위젯이 재마운트되지 않아도 pathname 변화로 잡는다
+  // (복약 페이지에서 수정 후 뒤로가기 → 홈 복귀 시 stale 방지).
+  useEffect(() => { if (pathname === '/') load(); }, [pathname, load]);
 
-  // 홈 복귀 시 재조회 — 복약/기록 변경 후 돌아와도 stale 안 되게.
-  // pageshow=bfcache(뒤로가기) 복원, focus=창 포커스, visibilitychange=탭 전환 커버.
+  // 외부 앱/탭 복귀(focus·visibility·bfcache) + 복약·예방 변경 즉시 반영.
+  // 이 이벤트들은 SPA 이동 땐 안 터지므로 위 pathname 재조회와 병행.
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'visible') load(); };
-    window.addEventListener('pageshow', load);
-    window.addEventListener('focus', load);
+    const onRefresh = () => { if (window.location.pathname === '/') load(); };
+    const onVis = () => { if (document.visibilityState === 'visible') onRefresh(); };
+    window.addEventListener('pageshow', onRefresh);
+    window.addEventListener('focus', onRefresh);
+    window.addEventListener('pawdex:schedule-updated', onRefresh);
     document.addEventListener('visibilitychange', onVis);
     return () => {
-      window.removeEventListener('pageshow', load);
-      window.removeEventListener('focus', load);
+      window.removeEventListener('pageshow', onRefresh);
+      window.removeEventListener('focus', onRefresh);
+      window.removeEventListener('pawdex:schedule-updated', onRefresh);
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [load]);

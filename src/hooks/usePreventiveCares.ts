@@ -7,6 +7,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { PreventiveCare, PreventiveCategory } from '@/lib/supabase';
 import { addInterval } from '@/lib/preventiveCare';
 
+// 예방/복약 변경 시 홈 위젯이 즉시 재조회하도록 알림 (홈 위젯이 listen).
+function notifyScheduleUpdated() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('pawdex:schedule-updated'));
+}
+
 export function usePreventiveCares() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -67,6 +72,7 @@ export function usePreventiveCares() {
       .select()
       .single();
     if (error) throw error;
+    notifyScheduleUpdated();
     return data as PreventiveCare;
   };
 
@@ -99,6 +105,7 @@ export function usePreventiveCares() {
       .eq('id', id)
       .eq('user_id', user.id);
     if (error) throw error;
+    notifyScheduleUpdated();
   };
 
   // "완료" — 시행 완료 처리. 마지막 시행일=완료일(기본 오늘), 다음 예정일 주기만큼 롤.
@@ -111,6 +118,7 @@ export function usePreventiveCares() {
       .eq('id', id)
       .eq('user_id', user.id);
     if (error) throw error;
+    notifyScheduleUpdated();
   };
 
   const deleteCare = async (id: string) => {
@@ -121,6 +129,7 @@ export function usePreventiveCares() {
       .eq('id', id)
       .eq('user_id', user.id);
     if (error) throw error;
+    notifyScheduleUpdated();
   };
 
   return { loading, getByPet, getUpcoming, addCare, updateCare, markDone, deleteCare };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Syringe, ChevronDown, ChevronRight } from 'lucide-react';
@@ -28,6 +28,7 @@ export function HomePreventiveWidget() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { getUpcoming } = usePreventiveCares();
 
   const load = useCallback(async () => {
@@ -44,19 +45,25 @@ export function HomePreventiveWidget() {
     }
   }, [getUpcoming]);
 
-  useEffect(() => { load(); }, [load]);
+  // 마운트 + 앱 내에서 홈('/')으로 복귀할 때마다 재조회.
+  // Next.js 라우터 캐시로 위젯이 재마운트되지 않아도 pathname 변화로 잡는다
+  // (예방/복약 페이지에서 뒤로가기 → 홈 복귀 시 stale 방지).
+  useEffect(() => { if (pathname === '/') load(); }, [pathname, load]);
 
-  // 홈이 다시 보일 때(다른 탭에서 예방 추가 후 복귀 등) 재조회 — Next.js 라우터 캐시로
-  // 위젯이 재마운트되지 않아 추가한 항목이 안 보이던 문제 방지.
+  // 외부 앱/탭 복귀(focus·visibility·bfcache) + 예방·복약 변경 즉시 반영.
+  // 이 이벤트들은 SPA 이동 땐 안 터지므로 위 pathname 재조회와 병행.
   useEffect(() => {
-    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    const onRefresh = () => { if (window.location.pathname === '/') load(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') onRefresh(); };
+    window.addEventListener('focus', onRefresh);
+    window.addEventListener('pageshow', onRefresh);
+    window.addEventListener('pawdex:schedule-updated', onRefresh);
     document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', load);
-    window.addEventListener('pageshow', load); // bfcache(뒤로가기) 복원 시에도 재조회
     return () => {
+      window.removeEventListener('focus', onRefresh);
+      window.removeEventListener('pageshow', onRefresh);
+      window.removeEventListener('pawdex:schedule-updated', onRefresh);
       document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', load);
-      window.removeEventListener('pageshow', load);
     };
   }, [load]);
 
