@@ -89,6 +89,25 @@ async function nativeAppleSignIn(): Promise<void> {
 }
 
 async function nativeKakaoSignIn(): Promise<void> {
+  if (isIOS()) {
+    // iOS: capacitor-kakao-login-plugin 은 SPM(Package.swift) 미지원이라 Cap8.4 SPM
+    //   프로젝트에 안 붙는다. → Kakao 공식 iOS SDK 를 쓰는 커스텀 네이티브 브릿지
+    //   (KakaoLoginBridge.swift, jsName 'KakaoLogin')로 우회. 평평 JSON({ok,idToken})만 반환.
+    //   Android 는 아래 기존 플러그인 그대로 — 운영 무영향(분기 격리).
+    const { registerPlugin } = await import('@capacitor/core');
+    const KakaoLogin = registerPlugin<{
+      login(): Promise<{ ok: boolean; idToken?: string; error?: string }>;
+    }>('KakaoLogin');
+    const res = await KakaoLogin.login();
+    if (!res.ok || !res.idToken) {
+      throw new Error(res.error || '카카오 로그인 토큰(idToken)을 받지 못했습니다. (OIDC 확인)');
+    }
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'kakao', token: res.idToken });
+    if (error) throw error;
+    return;
+  }
+
+  // Android: 기존 capacitor-kakao-login-plugin 그대로.
   const { KakaoLoginPlugin } = await import('capacitor-kakao-login-plugin');
   const res = await KakaoLoginPlugin.goLogin();
   const idToken = res.idToken; // OIDC 활성화 시 제공
