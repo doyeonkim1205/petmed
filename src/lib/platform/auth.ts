@@ -31,12 +31,6 @@ function randomNonce(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** SHA-256 → hex (Web Crypto). */
-async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function nativeGoogleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
   if (!googleInitialized) {
@@ -51,16 +45,16 @@ async function nativeGoogleSignIn(): Promise<void> {
     googleInitialized = true;
   }
 
-  // iOS GoogleSignIn 은 idToken 에 nonce 를 넣는다. Supabase signInWithIdToken 은 nonce 가
-  // "토큰에 있으면 호출에도 있어야" 하므로(Supabase 공식 네이티브 구글 패턴):
-  //   raw nonce 생성 → SHA256(hashed)를 GoogleSignIn 에 전달(토큰 nonce 클레임=hashed),
-  //   raw 를 Supabase 에 전달 → Supabase 가 raw 를 해시해 토큰 nonce 와 대조 → 일치.
+  // iOS GoogleSignIn 은 idToken 에 nonce 를 넣어, signInWithIdToken 에도 nonce 가 필요하다.
+  //   → raw nonce 를 @capgo(options.nonce) 와 Supabase 양쪽에 "그대로" 전달.
+  //   @capgo 가 내부에서 한 번 해시해 토큰 nonce=SHA256(raw) 가 되고, Supabase 도 받은 raw 를
+  //   해시해 대조하므로 일치한다. (hashed 를 넘기면 이중 해시로 mismatch — 검증된 동작)
   // ⚠️ Android(Credential Manager)는 nonce 없이도 통과하던 흐름이라 그대로 둔다(iOS 한정).
   let rawNonce: string | undefined;
   const options: { nonce?: string } = {};
   if (isIOS()) {
     rawNonce = randomNonce();
-    options.nonce = await sha256Hex(rawNonce);
+    options.nonce = rawNonce;
   }
 
   // scopes 를 넘기지 않는다 — 커스텀 scopes 는 @capgo 가 MainActivity 수정을 요구.
