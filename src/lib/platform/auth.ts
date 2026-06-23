@@ -16,13 +16,25 @@ import { isNativeApp } from './env';
 // 네이티브 idToken 의 audience 가 이 값이어야 Supabase 검증을 통과한다.
 const GOOGLE_WEB_CLIENT_ID =
   '410413803951-sctmkic11eh1th44b60oc3mkn5bg95nf.apps.googleusercontent.com';
+// iOS 전용 OAuth client (GCP 같은 프로젝트). iOSServerClientId=webClientId 로 두면
+// 발급 idToken 의 aud 가 webClientId 가 되어 Supabase 검증을 그대로 통과(별도 등록 불필요).
+// ⚠️ 이 client ID 는 reversed 형태로 iOS Info.plist URL 스킴에도 등록돼야 한다(콜백용).
+const GOOGLE_IOS_CLIENT_ID =
+  '410413803951-1n80pqemn9o7d55etpt30c2ouk2novnh.apps.googleusercontent.com';
 
 let googleInitialized = false;
 
 async function nativeGoogleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
   if (!googleInitialized) {
-    await SocialLogin.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID } });
+    // iOS 필드(iOSClientId/iOSServerClientId)는 Android 에선 무시됨 — 한 번에 안전하게 설정.
+    await SocialLogin.initialize({
+      google: {
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        iOSClientId: GOOGLE_IOS_CLIENT_ID,
+        iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+      },
+    });
     googleInitialized = true;
   }
   // scopes 를 넘기지 않는다 — 커스텀 scopes 는 @capgo 가 MainActivity 수정을 요구.
