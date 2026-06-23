@@ -24,7 +24,20 @@ const GOOGLE_IOS_CLIENT_ID =
 
 let googleInitialized = false;
 
-/** JWT payload 의 nonce 클레임 추출 (Web Crypto/JSON, 실패 시 undefined). */
+/** 랜덤 nonce (hex). */
+function randomNonce(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** SHA-256 → hex (Web Crypto). */
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** JWT payload 의 nonce 클레임 추출 (진단용). */
 function extractJwtNonce(jwt: string): string | undefined {
   try {
     const seg = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -49,27 +62,32 @@ async function nativeGoogleSignIn(): Promise<void> {
     googleInitialized = true;
   }
 
-  // scopes 를 넘기지 않는다 — 커스텀 scopes 는 @capgo 가 MainActivity 수정을 요구.
-  // email/profile/openid 는 기본 포함되어 idToken 클레임에 담기므로 인증에 충분.
-  const res = await SocialLogin.login({ provider: 'google', options: {} });
+  // iOS nonce 처리 (Supabase signInWithIdToken):
+  //   ① forcePrompt:true → @capgo 가 restorePreviousSignIn(우리 nonce 무시, 캐시 토큰 재사용)
+  //      대신 fresh login() 경로를 타게 강제 → 우리 nonce 가 실제 토큰에 반영됨.
+  //   ② 정석 패턴: SHA256(raw)=hashed 를 GoogleSignIn(@capgo)에 → 토큰 nonce=hashed,
+  //      raw 를 Supabase 에 → GoTrue 가 sha256(raw)=hashed 로 대조 → 일치.
+  //   Android(Credential Manager)는 nonce 없이 통과하던 흐름이라 미적용(iOS 한정).
+  let rawNonce: string | undefined;
+  const options: { nonce?: string; forcePrompt?: boolean } = {};
+  if (isIOS()) {
+    options.forcePrompt = true;
+    rawNonce = randomNonce();
+    options.nonce = await sha256Hex(rawNonce);
+  }
+
+  const res = await SocialLogin.login({ provider: 'google', options });
   const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
   if (!idToken) throw new Error('구글 로그인 토큰(idToken)을 받지 못했습니다.');
-
-  // iOS: GoogleSignIn 이 idToken 에 자체 nonce 를 넣지만 @capgo 가 그 값을 안 돌려준다
-  //   (우리가 options.nonce 로 넘긴 값은 무시됨 — 진단으로 확인). signInWithIdToken 은
-  //   토큰에 nonce 가 있으면 호출에도 같은 값을 요구하므로, 토큰에서 직접 추출해 그대로 전달한다.
-  //   Android(Credential Manager)는 nonce 없이 통과하던 흐름이라 미적용(iOS 한정).
-  const nonce = isIOS() ? extractJwtNonce(idToken) : undefined;
 
   const { error } = await supabase.auth.signInWithIdToken({
     provider: 'google',
     token: idToken,
-    ...(nonce ? { nonce } : {}),
+    ...(rawNonce ? { nonce: rawNonce } : {}),
   });
-  // ── TEMP(iOS): 실패 시에만 진단 — 새 코드 동작(캐시 아님) 확인용 [gv3] 태그 + 보낸 nonce.
-  //    성공하면 alert 없이 그대로 진행. 원인 확정 후 제거.
+  // ── TEMP(iOS): 실패 시에만 진단([gv4]). 성공하면 alert 없이 진행. 원인 확정 후 제거.
   if (error && isIOS()) {
-    alert(`[gv3 실패]\nerr=${error.message}\nsentNonce=${nonce}`);
+    alert(`[gv4 실패]\nerr=${error.message}\nsentHashed=${options.nonce}\ntokenNonce=${extractJwtNonce(idToken)}`);
   }
   if (error) throw error;
 }
