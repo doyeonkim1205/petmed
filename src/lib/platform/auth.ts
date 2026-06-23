@@ -37,17 +37,6 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** JWT payload 의 nonce 클레임 추출 (진단용). */
-function extractJwtNonce(jwt: string): string | undefined {
-  try {
-    const seg = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(decodeURIComponent(escape(atob(seg))));
-    return typeof payload?.nonce === 'string' ? payload.nonce : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 async function nativeGoogleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
   if (!googleInitialized) {
@@ -85,10 +74,6 @@ async function nativeGoogleSignIn(): Promise<void> {
     token: idToken,
     ...(rawNonce ? { nonce: rawNonce } : {}),
   });
-  // ── TEMP(iOS): 실패 시에만 진단([gv4]). 성공하면 alert 없이 진행. 원인 확정 후 제거.
-  if (error && isIOS()) {
-    alert(`[gv4 실패]\nerr=${error.message}\nsentHashed=${options.nonce}\ntokenNonce=${extractJwtNonce(idToken)}`);
-  }
   if (error) throw error;
 }
 
