@@ -10,7 +10,7 @@
  * 청크로 분리되어 절대 로드되지 않는다 (Capacitor 코드가 웹 번들에 섞이지 않음).
  */
 import { supabase } from '@/lib/supabase';
-import { isNativeApp } from './env';
+import { isNativeApp, isIOS } from './env';
 
 // Supabase 구글 OAuth 와 동일한 Web client ID (GCP 프로젝트 410413803951).
 // 네이티브 idToken 의 audience 가 이 값이어야 Supabase 검증을 통과한다.
@@ -23,6 +23,19 @@ const GOOGLE_IOS_CLIENT_ID =
   '410413803951-1n80pqemn9o7d55etpt30c2ouk2novnh.apps.googleusercontent.com';
 
 let googleInitialized = false;
+
+/** 랜덤 nonce (hex). */
+function randomNonce(): string {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** SHA-256 → hex (Web Crypto). */
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 async function nativeGoogleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
@@ -37,13 +50,30 @@ async function nativeGoogleSignIn(): Promise<void> {
     });
     googleInitialized = true;
   }
+
+  // iOS GoogleSignIn 은 idToken 에 nonce 를 넣는다. Supabase signInWithIdToken 은 nonce 가
+  // "토큰에 있으면 호출에도 있어야" 하므로(Supabase 공식 네이티브 구글 패턴):
+  //   raw nonce 생성 → SHA256(hashed)를 GoogleSignIn 에 전달(토큰 nonce 클레임=hashed),
+  //   raw 를 Supabase 에 전달 → Supabase 가 raw 를 해시해 토큰 nonce 와 대조 → 일치.
+  // ⚠️ Android(Credential Manager)는 nonce 없이도 통과하던 흐름이라 그대로 둔다(iOS 한정).
+  let rawNonce: string | undefined;
+  const options: { nonce?: string } = {};
+  if (isIOS()) {
+    rawNonce = randomNonce();
+    options.nonce = await sha256Hex(rawNonce);
+  }
+
   // scopes 를 넘기지 않는다 — 커스텀 scopes 는 @capgo 가 MainActivity 수정을 요구.
   // email/profile/openid 는 기본 포함되어 idToken 클레임에 담기므로 인증에 충분.
-  const res = await SocialLogin.login({ provider: 'google', options: {} });
+  const res = await SocialLogin.login({ provider: 'google', options });
   const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
   if (!idToken) throw new Error('구글 로그인 토큰(idToken)을 받지 못했습니다.');
 
-  const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: 'google',
+    token: idToken,
+    ...(rawNonce ? { nonce: rawNonce } : {}),
+  });
   if (error) throw error;
 }
 
