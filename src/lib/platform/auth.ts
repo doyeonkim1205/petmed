@@ -66,6 +66,11 @@ async function nativeGoogleSignIn(): Promise<void> {
     token: idToken,
     ...(nonce ? { nonce } : {}),
   });
+  // ── TEMP(iOS): 실패 시에만 진단 — 새 코드 동작(캐시 아님) 확인용 [gv3] 태그 + 보낸 nonce.
+  //    성공하면 alert 없이 그대로 진행. 원인 확정 후 제거.
+  if (error && isIOS()) {
+    alert(`[gv3 실패]\nerr=${error.message}\nsentNonce=${nonce}`);
+  }
   if (error) throw error;
 }
 
