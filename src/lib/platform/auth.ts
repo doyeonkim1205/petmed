@@ -24,17 +24,15 @@ const GOOGLE_IOS_CLIENT_ID =
 
 let googleInitialized = false;
 
-/** 랜덤 nonce (hex). */
-function randomNonce(): string {
-  const arr = new Uint8Array(16);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** SHA-256 → hex (Web Crypto). */
-async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+/** JWT payload 의 nonce 클레임 추출 (Web Crypto/JSON, 실패 시 undefined). */
+function extractJwtNonce(jwt: string): string | undefined {
+  try {
+    const seg = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(decodeURIComponent(escape(atob(seg))));
+    return typeof payload?.nonce === 'string' ? payload.nonce : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function nativeGoogleSignIn(): Promise<void> {
@@ -51,41 +49,22 @@ async function nativeGoogleSignIn(): Promise<void> {
     googleInitialized = true;
   }
 
-  // iOS GoogleSignIn 은 idToken 에 nonce 를 넣어, signInWithIdToken 에도 nonce 가 필요하다.
-  //   → raw nonce 를 @capgo(options.nonce) 와 Supabase 양쪽에 "그대로" 전달.
-  //   @capgo 가 내부에서 한 번 해시해 토큰 nonce=SHA256(raw) 가 되고, Supabase 도 받은 raw 를
-  //   해시해 대조하므로 일치한다. (hashed 를 넘기면 이중 해시로 mismatch — 검증된 동작)
-  // ⚠️ Android(Credential Manager)는 nonce 없이도 통과하던 흐름이라 그대로 둔다(iOS 한정).
-  let rawNonce: string | undefined;
-  const options: { nonce?: string } = {};
-  if (isIOS()) {
-    rawNonce = randomNonce();
-    options.nonce = rawNonce;
-  }
-
   // scopes 를 넘기지 않는다 — 커스텀 scopes 는 @capgo 가 MainActivity 수정을 요구.
   // email/profile/openid 는 기본 포함되어 idToken 클레임에 담기므로 인증에 충분.
-  const res = await SocialLogin.login({ provider: 'google', options });
+  const res = await SocialLogin.login({ provider: 'google', options: {} });
   const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
   if (!idToken) throw new Error('구글 로그인 토큰(idToken)을 받지 못했습니다.');
 
-  // ── TEMP 진단(iOS): 토큰의 실제 nonce 값을 확인해 정확한 매칭 방식을 확정한다.
-  //    이 alert 가 뜨면 = 새 코드가 도는 것(캐시 아님). 값 확인 후 제거 예정.
-  if (isIOS() && rawNonce) {
-    try {
-      const seg = idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(decodeURIComponent(escape(atob(seg))));
-      const hashed = await sha256Hex(rawNonce);
-      alert(`[nonce 진단]\nraw=${rawNonce}\nsha256(raw)=${hashed}\ntoken.nonce=${payload.nonce}`);
-    } catch (e) {
-      alert('nonce decode 실패: ' + (e as Error).message);
-    }
-  }
+  // iOS: GoogleSignIn 이 idToken 에 자체 nonce 를 넣지만 @capgo 가 그 값을 안 돌려준다
+  //   (우리가 options.nonce 로 넘긴 값은 무시됨 — 진단으로 확인). signInWithIdToken 은
+  //   토큰에 nonce 가 있으면 호출에도 같은 값을 요구하므로, 토큰에서 직접 추출해 그대로 전달한다.
+  //   Android(Credential Manager)는 nonce 없이 통과하던 흐름이라 미적용(iOS 한정).
+  const nonce = isIOS() ? extractJwtNonce(idToken) : undefined;
 
   const { error } = await supabase.auth.signInWithIdToken({
     provider: 'google',
     token: idToken,
-    ...(rawNonce ? { nonce: rawNonce } : {}),
+    ...(nonce ? { nonce } : {}),
   });
   if (error) throw error;
 }
