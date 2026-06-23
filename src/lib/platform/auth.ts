@@ -31,6 +31,12 @@ function randomNonce(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** SHA-256 → hex (Web Crypto). */
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function nativeGoogleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
   if (!googleInitialized) {
@@ -62,6 +68,19 @@ async function nativeGoogleSignIn(): Promise<void> {
   const res = await SocialLogin.login({ provider: 'google', options });
   const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
   if (!idToken) throw new Error('구글 로그인 토큰(idToken)을 받지 못했습니다.');
+
+  // ── TEMP 진단(iOS): 토큰의 실제 nonce 값을 확인해 정확한 매칭 방식을 확정한다.
+  //    이 alert 가 뜨면 = 새 코드가 도는 것(캐시 아님). 값 확인 후 제거 예정.
+  if (isIOS() && rawNonce) {
+    try {
+      const seg = idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(decodeURIComponent(escape(atob(seg))));
+      const hashed = await sha256Hex(rawNonce);
+      alert(`[nonce 진단]\nraw=${rawNonce}\nsha256(raw)=${hashed}\ntoken.nonce=${payload.nonce}`);
+    } catch (e) {
+      alert('nonce decode 실패: ' + (e as Error).message);
+    }
+  }
 
   const { error } = await supabase.auth.signInWithIdToken({
     provider: 'google',
