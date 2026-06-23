@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
-import { isNativeApp } from '@/lib/platform';
+import { isNativeApp, isIOS } from '@/lib/platform';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -48,16 +48,18 @@ export default function LoginPage() {
   const [devPassword, setDevPassword] = useState('');
   const [devLoading, setDevLoading] = useState(false);
   const [showDevToggle, setShowDevToggle] = useState(false);
+  const [showApple, setShowApple] = useState(false); // iOS 네이티브에서만 Apple 로그인 노출
   // 필수 동의 — 둘 다 체크해야 구글/카카오 로그인 가능 (가입=첫 OAuth 로그인이라 이 화면이 유일한 동의 지점).
   const [agreeAge, setAgreeAge] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const canLogin = agreeAge && agreeTerms;
   const router = useRouter();
-  const { signIn, signInWithGoogle, signInWithKakao } = useAuth();
+  const { signIn, signInWithGoogle, signInWithKakao, signInWithApple } = useAuth();
 
   useEffect(() => {
     setInApp(isInAppBrowser());
     setShowDevToggle(isDevLoginEnv());
+    setShowApple(isIOS());
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
       setError(t('auth.sessionEvicted'));
@@ -108,6 +110,15 @@ export default function LoginPage() {
     if (error) { setError(error.message); return; }
     // 네이티브 카카오도 리다이렉트가 없어 수동으로 홈 이동 (웹은 콜백이 처리).
     if (isNativeApp()) router.push('/');
+  };
+
+  const handleAppleLogin = async () => {
+    if (!canLogin) { setError(t('login.agreeRequired')); return; }
+    setError('');
+    const { error } = await signInWithApple();
+    if (error) { setError(error.message); return; }
+    // Apple 로그인은 iOS 네이티브 전용 — 리다이렉트 없어 수동 홈 이동.
+    router.push('/');
   };
 
   return (
@@ -185,6 +196,21 @@ export default function LoginPage() {
                 </svg>
                 {t('auth.googleSignIn')}
               </button>
+
+              {/* Apple 로그인 — iOS 네이티브에서만 노출 (심사 4.8 대응) */}
+              {showApple && (
+                <button
+                  onClick={handleAppleLogin}
+                  disabled={!canLogin}
+                  className="w-full h-12 flex items-center justify-center gap-3 rounded-xl font-semibold transition-transform active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                  style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M17.05 12.04c-.03-2.07 1.69-3.06 1.77-3.11-.97-1.41-2.47-1.6-3-1.62-1.27-.13-2.49.75-3.14.75-.65 0-1.65-.73-2.71-.71-1.39.02-2.68.81-3.4 2.06-1.45 2.51-.37 6.22 1.04 8.26.69 1 1.51 2.12 2.58 2.08 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.61.67 2.71.65 1.12-.02 1.83-1.02 2.51-2.02.79-1.15 1.12-2.27 1.14-2.33-.03-.01-2.18-.84-2.2-3.33zM15 5.38c.57-.7.96-1.66.85-2.63-.83.04-1.83.55-2.42 1.24-.53.62-.99 1.61-.87 2.55.92.07 1.87-.47 2.44-1.16z" />
+                  </svg>
+                  {t('auth.appleSignIn')}
+                </button>
+              )}
             </div>
           </div>
 

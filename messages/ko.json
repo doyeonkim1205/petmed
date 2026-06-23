@@ -73,6 +73,7 @@
   "auth": {
     "kakaoSignIn": "카카오로 시작하기",
     "googleSignIn": "Google로 시작하기",
+    "appleSignIn": "Apple로 시작하기",
     "sessionEvicted": "다른 기기에서 로그인하여 이 기기는 자동 로그아웃됐어요. 다시 로그인해주세요.",
     "signInFailed": "로그인 실패",
     "loginCancelled": "로그인이 취소되었습니다.",

@@ -73,6 +73,7 @@
   "auth": {
     "kakaoSignIn": "Continue with Kakao",
     "googleSignIn": "Continue with Google",
+    "appleSignIn": "Continue with Apple",
     "sessionEvicted": "You were signed out because this account signed in on another device. Please sign in again.",
     "signInFailed": "Sign-in failed",
     "loginCancelled": "Sign-in was cancelled.",

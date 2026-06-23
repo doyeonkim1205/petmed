@@ -1013,6 +1013,16 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error(t('profile.delete.sessionExpired'));
 
+      // Apple 로그인 계정(iOS 네이티브)은 탈퇴 직전 재인증으로 일회성 코드를 받아
+      // 서버가 Apple 토큰을 revoke 하도록 넘긴다 (5.1.1). 실패해도 탈퇴는 진행.
+      let appleAuthCode: string | undefined;
+      try {
+        const { isNativeApp, platformAuth } = await import('@/lib/platform');
+        if (isNativeApp() && session.user?.app_metadata?.provider === 'apple') {
+          appleAuthCode = await platformAuth.getAppleRevokeCode();
+        }
+      } catch {}
+
       const res = await fetch('/api/delete-account', {
         method: 'POST',
         headers: {
@@ -1022,6 +1032,7 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
         body: JSON.stringify({
           reason: reason || null,
           reasonDetail: reasonDetail.trim() || null,
+          appleAuthCode: appleAuthCode || null,
         }),
       });
       const body = await res.json();

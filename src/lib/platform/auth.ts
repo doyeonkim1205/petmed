@@ -35,6 +35,17 @@ async function nativeGoogleSignIn(): Promise<void> {
   if (error) throw error;
 }
 
+async function nativeAppleSignIn(): Promise<void> {
+  const { SocialLogin } = await import('@capgo/capacitor-social-login');
+  // Apple 은 iOS 네이티브 capability(Sign in with Apple)만 켜져 있으면 별도 초기화 불필요.
+  const res = await SocialLogin.login({ provider: 'apple', options: { scopes: ['email', 'name'] } });
+  const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
+  if (!idToken) throw new Error('Apple 로그인 토큰(idToken)을 받지 못했습니다.');
+  // Supabase Apple provider 가 활성화돼 있어야 통과 (Service ID/Key 설정 필요).
+  const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: idToken });
+  if (error) throw error;
+}
+
 async function nativeKakaoSignIn(): Promise<void> {
   const { KakaoLoginPlugin } = await import('capacitor-kakao-login-plugin');
   const res = await KakaoLoginPlugin.goLogin();
@@ -70,5 +81,35 @@ export const platformAuth = {
       },
     });
     if (error) throw error;
+  },
+
+  /**
+   * Apple 로그인 — iOS 네이티브 전용 (웹/Android 비노출).
+   * 심사 가이드라인 4.8 대응: 제3자 소셜 로그인 제공 시 Apple 로그인 옵션 필수.
+   */
+  async loginWithApple(): Promise<void> {
+    if (!isNativeApp()) throw new Error('Apple 로그인은 iOS 앱에서만 지원됩니다.');
+    return nativeAppleSignIn();
+  },
+
+  /**
+   * 탈퇴 시 Apple 토큰 revoke 용 일회성 authorizationCode 확보.
+   * Apple 은 authorization/refresh 토큰으로만 revoke 가능(idToken 불가)하고 code 는
+   * 단명(약 5분)이라, 탈퇴 직전 재인증으로 새로 받아 서버(/api/delete-account)에 넘긴다.
+   * ⚠️ @capgo Apple 응답의 authorizationCode 필드명은 실기기에서 검증 필요(현재 추정 매핑).
+   * 실패해도 탈퇴는 진행되어야 하므로 호출부에서 best-effort 로 감쌀 것.
+   */
+  async getAppleRevokeCode(): Promise<string | undefined> {
+    if (!isNativeApp()) return undefined;
+    try {
+      const { SocialLogin } = await import('@capgo/capacitor-social-login');
+      const res = await SocialLogin.login({ provider: 'apple', options: { scopes: [] } });
+      const r = (res as {
+        result?: { authorizationCode?: string; accessToken?: { token?: string } };
+      }).result;
+      return r?.authorizationCode ?? r?.accessToken?.token;
+    } catch {
+      return undefined;
+    }
   },
 };

@@ -14,6 +14,17 @@ export function isNativeApp(): boolean {
 }
 
 /**
+ * 네이티브 iOS 앱 여부. Apple 로그인 버튼 노출·Apple 결제/관리URL 분기에 사용.
+ * Capacitor 셸이 주입하는 `window.Capacitor.getPlatform()` 값으로 판정한다.
+ * (웹/Android 에서는 false → iOS 전용 코드가 노출/실행되지 않음)
+ */
+export function isIOS(): boolean {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor;
+  return cap?.getPlatform?.() === 'ios';
+}
+
+/**
  * "설치된 앱"(알림 등 기능 게이트용) 판정.
  * PWA standalone/fullscreen + Capacitor 네이티브를 모두 "설치됨"으로 본다.
  * 알림 화면들의 isPWA 체크(standalone 만)가 Capacitor 를 놓치던 문제를 한 곳에서 해결.

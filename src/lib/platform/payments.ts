@@ -12,10 +12,16 @@
  * 엔타이틀먼트('plus') 활성 여부는 보조 신호일 뿐, 권한의 진실원은 profiles.plan.
  * 실제 plan 갱신은 RevenueCat 웹훅(/api/payments/revenuecat-webhook)이 담당.
  */
-import { isNativeApp } from './env';
+import { isNativeApp, isIOS } from './env';
 import { registerPlugin } from '@capacitor/core';
 
 const RC_GOOGLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY || '';
+const RC_APPLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_APPLE_API_KEY || '';
+
+/** 현재 플랫폼에 맞는 RevenueCat Public API 키 (iOS=Apple / 그 외=Google). */
+function activeApiKey(): string {
+  return isIOS() ? RC_APPLE_API_KEY : RC_GOOGLE_API_KEY;
+}
 
 /** 네이티브에서 돌려주는 평평한 결과(문자열/boolean 중심). 복잡 객체는 절대 넘기지 않는다. */
 interface FlatResult {
@@ -63,30 +69,37 @@ export interface PurchaseResult {
 }
 
 export const platformPayments = {
-  /** RC 키 설정 여부 (플랫폼 무관). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
+  /** RC 키 설정 여부 (현재 플랫폼 기준). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
   isRevenueCatReady(): boolean {
-    return !!RC_GOOGLE_API_KEY;
+    return !!activeApiKey();
   },
 
   /**
-   * 앱에서 실제 구매를 띄울 수 있는 상태 (네이티브 앱 + RC 키 존재).
+   * 앱에서 실제 구매를 띄울 수 있는 상태 (네이티브 앱 + 플랫폼 RC 키 존재).
    * ⚠️ UI 분기에서 "이게 false 면 토스"로 쓰면 안 됨 — 앱+키없음도 false.
    *    토스 노출은 반드시 isNativeApp()===false(웹) 로만 판단할 것.
+   * ⚠️ iOS: 구매 "실행" 경로(RC JS vs Swift 브릿지)는 Phase 4 실기기 검증 후 확정 →
+   *    그때까지 아래 purchase/restore 가 iOS 에서 'pending' 을 반환하므로,
+   *    Apple 키는 그 구현이 끝난 뒤 주입할 것(키만 먼저 넣으면 미구현 구매창 노출).
    */
   isNativeBilling(): boolean {
-    return isNativeApp() && !!RC_GOOGLE_API_KEY;
+    return isNativeApp() && !!activeApiKey();
   },
 
-  /** Google Play 구독 관리(해지) 딥링크 — 서버 강제해지 불가, 사용자가 여기서 해지. */
+  /** 구독 관리(해지) 딥링크 — iOS=App Store / 그 외=Google Play. 서버 강제해지 불가. */
   manageSubscriptionsUrl(): string {
-    return 'https://play.google.com/store/account/subscriptions';
+    return isIOS()
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
   },
 
   /** productId(plus_monthly/plus_yearly) 구매. 네이티브 전용. */
   async purchase(userId: string, productId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false, error: 'native billing unavailable' };
+    // iOS 결제 경로 미구현(Phase 4) — Android 전용 NativeBilling 플러그인을 호출하지 않는다.
+    if (isIOS()) return { ok: false, active: false, error: 'ios billing not implemented yet' };
     try {
-      const opts: ConfigOpts = { apiKey: RC_GOOGLE_API_KEY, appUserId: userId };
+      const opts: ConfigOpts = { apiKey: activeApiKey(), appUserId: userId };
       const wantsYear = /year|annual/i.test(productId);
       const res = await withTimeout(
         wantsYear ? NativeBilling.purchaseAnnual(opts) : NativeBilling.purchaseMonthly(opts),
@@ -104,9 +117,10 @@ export const platformPayments = {
   /** 구매 복원 (기기 변경·재설치). 'plus' 활성 여부 반환. */
   async restore(userId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false };
+    if (isIOS()) return { ok: false, active: false, error: 'ios billing not implemented yet' };
     try {
       const res = await withTimeout(
-        NativeBilling.restorePurchases({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.restorePurchases({ apiKey: activeApiKey(), appUserId: userId }),
         30000,
         'restore',
       );
@@ -116,12 +130,13 @@ export const platformPayments = {
     }
   },
 
-  /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — Play 실제가. 없으면 null. */
+  /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — 스토어 실제가. 없으면 null. */
   async getPriceString(userId: string, productId: string): Promise<string | null> {
     if (!this.isNativeBilling()) return null;
+    if (isIOS()) return null; // iOS 결제 경로 미구현(Phase 4)
     try {
       const res = await withTimeout(
-        NativeBilling.getPrices({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.getPrices({ apiKey: activeApiKey(), appUserId: userId }),
         15000,
         'getPrices',
       );
@@ -135,9 +150,10 @@ export const platformPayments = {
   /** 현재 'plus' 엔타이틀먼트 활성 여부 조회 (로그인 후 동기화 보조용). */
   async hasActiveEntitlement(userId: string): Promise<boolean> {
     if (!this.isNativeBilling()) return false;
+    if (isIOS()) return false; // iOS 결제 경로 미구현(Phase 4)
     try {
       const res = await withTimeout(
-        NativeBilling.getCustomerStatus({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.getCustomerStatus({ apiKey: activeApiKey(), appUserId: userId }),
         15000,
         'status',
       );
