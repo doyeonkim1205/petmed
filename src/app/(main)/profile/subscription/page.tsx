@@ -670,6 +670,12 @@ export default function SubscriptionPage() {
                 <ActionBtn onClick={goManageInPlay}>{t('subscription.manageInPlay')}</ActionBtn>
                 <p className="text-[10px] text-gray-400 text-center px-2 leading-relaxed">{t('subscription.manageInPlayDesc')}</p>
               </>
+            ) : subscription?.store === 'apple' ? (
+              <>
+                {/* App Store 구독 — goManageInPlay 는 iOS 에서 App Store 관리 URL 로 열림 */}
+                <ActionBtn onClick={goManageInPlay}>{t('subscription.manageInAppStore')}</ActionBtn>
+                <p className="text-[10px] text-gray-400 text-center px-2 leading-relaxed">{t('subscription.manageInAppStoreDesc')}</p>
+              </>
             ) : (
               /* 웹(토스)에서 결제한 구독을 앱에서 열람 — 앱에선 관리 불가, 웹 안내 */
               <p className="text-[11px] text-gray-400 text-center px-2 leading-relaxed bg-gray-50 rounded-xl py-3">
