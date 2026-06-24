@@ -20,6 +20,9 @@ interface DashboardStats {
   totalUsers: number;
   todaySearches: number;
   totalRevenue: number;
+  plusUsers: number;
+  autoRenewing: number;
+  canceling: number;
   activeSubscribers: number;
   todaySignups: number;
   planDistribution: { plan: string; count: number }[];
@@ -97,11 +100,18 @@ export default function DashboardPage() {
 
   if (!stats) return <p className="text-gray-500">통계를 불러올 수 없습니다.</p>;
 
-  const cards = [
+  const cards: { title: string; value: string; icon: typeof Users; color: string; sub?: string }[] = [
     { title: '총 회원', value: stats.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600' },
     { title: '오늘 검색', value: stats.todaySearches.toLocaleString(), icon: Search, color: 'text-green-600' },
     { title: '총 수익', value: `₩${stats.totalRevenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600' },
-    { title: '활성 구독자', value: stats.activeSubscribers.toLocaleString(), icon: UserCheck, color: 'text-orange-600' },
+    {
+      // "현재 Plus 권한 보유자"(profiles.plan='plus') — 해지했지만 기간 남은 유저 포함.
+      title: 'Plus 이용자',
+      value: stats.plusUsers.toLocaleString(),
+      icon: UserCheck,
+      color: 'text-orange-600',
+      sub: `자동갱신 ${stats.autoRenewing} · 해지예정 ${stats.canceling}`,
+    },
   ];
 
   return (
@@ -121,6 +131,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{card.value}</p>
+                {card.sub && <p className="text-xs text-gray-400 mt-1">{card.sub}</p>}
               </CardContent>
             </Card>
           );

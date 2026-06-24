@@ -20,14 +20,16 @@ export async function GET(request: Request) {
     { count: totalUsers },
     { count: todaySearches },
     { data: revenue },
-    { count: activeSubscribers },
+    { data: subsRows },
     { count: todaySignups },
     { data: profiles },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today),
     supabase.from('payment_history').select('amount').eq('status', 'done'),
-    supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    // 구독 지표는 행 수가 아니라 distinct user_id 로 센다(과거/중복 행 방지).
+    //   상태별 분리: 자동갱신(active) vs 해지예정(canceled + 기간 미래).
+    supabase.from('subscriptions').select('user_id, status, period_end'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
     supabase.from('profiles').select('plan'),
   ]);
@@ -37,6 +39,22 @@ export async function GET(request: Request) {
     counts[p.plan] = (counts[p.plan] || 0) + 1;
   });
   const planDistribution = Object.entries(counts).map(([plan, count]) => ({ plan, count }));
+
+  // 구독 지표 — "활성 구독자" 단일 숫자(status='active' 행 수)는 해지했지만 기간 남은
+  //   유저를 놓치고 행 중복도 못 거른다. 그래서 셋으로 분리해 distinct user_id 로 집계:
+  //   - plusUsers     : profiles.plan='plus' = 현재 Plus 권한 보유자(앱이 실제로 보는 값)
+  //   - autoRenewing  : status='active'           = 자동갱신 중
+  //   - canceling     : status='canceled' & 기간 미래 = 해지했지만 아직 이용 가능(해지 예정)
+  const nowIso = new Date().toISOString();
+  const autoRenewSet = new Set<string>();
+  const cancelingSet = new Set<string>();
+  for (const s of (subsRows || []) as { user_id: string; status: string; period_end: string | null }[]) {
+    if (s.status === 'active') autoRenewSet.add(s.user_id);
+    else if (s.status === 'canceled' && s.period_end && s.period_end > nowIso) cancelingSet.add(s.user_id);
+  }
+  const plusUsers = counts['plus'] || 0;
+  const autoRenewing = autoRenewSet.size;
+  const canceling = cancelingSet.size;
 
   const totalRevenue = (revenue || []).reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
 
@@ -148,7 +166,11 @@ export async function GET(request: Request) {
     totalUsers: totalUsers || 0,
     todaySearches: todaySearches || 0,
     totalRevenue,
-    activeSubscribers: activeSubscribers || 0,
+    plusUsers,
+    autoRenewing,
+    canceling,
+    // 하위호환: 기존 activeSubscribers 소비처가 있으면 자동갱신 수로 매핑
+    activeSubscribers: autoRenewing,
     todaySignups: todaySignups || 0,
     planDistribution: planDistribution || [],
     heavyUsers,
