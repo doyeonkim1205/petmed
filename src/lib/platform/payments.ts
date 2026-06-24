@@ -80,7 +80,7 @@ let rcConfigured = false;
 async function rcConfigure(userId: string) {
   const { Purchases } = await import('@revenuecat/purchases-capacitor');
   if (!rcConfigured) {
-    await Purchases.configure({ apiKey: activeApiKey(), appUserID: userId });
+    await withTimeout(Purchases.configure({ apiKey: activeApiKey(), appUserID: userId }), 12000, 'configure');
     rcConfigured = true;
   }
   return Purchases;
@@ -131,24 +131,24 @@ async function iosHasEntitlement(userId: string): Promise<boolean> {
 
 let rcDiagShown = false;
 async function iosGetPrice(userId: string, productId: string): Promise<string | null> {
+  // ── TEMP 단계 진단(1회): 어디서 멈추는지 추적. 원인 확정 후 제거.
+  const first = !rcDiagShown;
+  if (first) rcDiagShown = true;
   try {
+    if (first) alert('[RC진단] A: configure 시작');
     const Purchases = await rcConfigure(userId);
+    if (first) alert('[RC진단] B: configure 성공 → getOfferings 시작');
     const offerings = await withTimeout(Purchases.getOfferings(), 15000, 'offerings');
-    // ── TEMP 진단(1회): getOfferings 실제 결과 확인. 원인 확정 후 제거.
-    if (!rcDiagShown) {
-      rcDiagShown = true;
+    if (first) {
       const cur = offerings.current;
       const pkgs = cur?.availablePackages ?? [];
-      const desc = pkgs.map((p) => `${p.identifier}=${p.product.identifier}:${p.product.priceString}`).join(' | ');
-      alert(`[RC진단]\ncurrent=${cur ? cur.identifier : 'NULL'}\npkgs=${pkgs.length}\nallOfferings=${Object.keys(offerings.all).join(',') || '(none)'}\n${desc || '(빈 패키지)'}`);
+      const desc = pkgs.map((p) => `${p.product.identifier}:${p.product.priceString}`).join(' | ');
+      alert(`[RC진단] C: getOfferings 성공\ncurrent=${cur ? cur.identifier : 'NULL'}\npkgs=${pkgs.length}\n${desc || '(빈 패키지)'}`);
     }
     const aPackage = offerings.current?.availablePackages.find((p) => p.product.identifier === productId);
     return aPackage?.product.priceString ?? null;
   } catch (e) {
-    if (!rcDiagShown) {
-      rcDiagShown = true;
-      alert('[RC진단] getOfferings 에러: ' + (e as Error).message);
-    }
+    if (first) alert('[RC진단] 에러: ' + (e as Error).message);
     return null;
   }
 }
