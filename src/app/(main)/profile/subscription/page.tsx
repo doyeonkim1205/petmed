@@ -269,6 +269,12 @@ export default function SubscriptionPage() {
   // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
   const handleNativePurchase = async (productId: string) => {
     if (!user || purchasing) return;
+    // 구매 직전 재확인 — 화면이 stale 이어도 이미 구독 중이면 중복 구매를 막는다.
+    if ((profile?.plan && profile.plan !== 'free') || justPurchased) {
+      setActionError(true);
+      setActionMessage(t('subscription.alreadySubscribed'));
+      return;
+    }
     setPurchasing(true);
     setActionMessage('');
     setActionError(false);
@@ -278,11 +284,18 @@ export default function SubscriptionPage() {
       if (res.ok && res.active) {
         setJustPurchased(true);                 // ① 낙관적 즉시 Plus 표시
         await syncSubscription();                // ② 서버가 RC 직접 확인 → profiles.plan/subscriptions 갱신
-        await refreshProfile();                  // ③ AuthContext 전역 갱신 (모든 화면 반영)
+        await refreshProfile();                  // ③ AuthContext 전역 갱신
         await fetchData();
-      } else {
+        // 웹훅 지연 흡수 — 백그라운드로 한 번 더 재동기화(구매 버튼은 막지 않음).
+        setTimeout(() => { void syncSubscription().then(() => refreshProfile()); }, 3000);
+      } else if (res.error && /receipt|active subscriber|already/i.test(res.error)) {
+        // 같은 Apple ID 가 다른 PawDex 계정에 묶인 경우 — 원문 대신 친화적 안내.
         setActionError(true);
-        setActionMessage(t('subscription.purchaseError'));
+        setActionMessage(t('subscription.errorReceiptConflict'));
+      } else {
+        // ok 여도 active 아님 = 권한 확인 실패 → 복원 유도.
+        setActionError(true);
+        setActionMessage(t('subscription.purchaseNeedRestore'));
       }
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'subscription', action: 'rc-purchase' }, extra: { userId: user?.id, productId } });
@@ -423,11 +436,11 @@ export default function SubscriptionPage() {
             ) : appRcBilling ? (
               /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
               <div className="space-y-2.5">
-                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')}
+                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
                   title={t('subscription.subscribeMonthlyTitle')}
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')} />
-                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
+                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
@@ -545,11 +558,11 @@ export default function SubscriptionPage() {
             ) : appRcBilling ? (
               /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
               <div className="space-y-2.5">
-                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')}
+                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
                   title={t('subscription.subscribeMonthlyTitle')}
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')} />
-                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')}
+                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
@@ -870,13 +883,13 @@ function ActionBtn({ children, onClick, variant = 'default' }: { children: React
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
 }
 
-function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor }: {
+function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disabled }: {
   onClick: () => void; title: string; price: string; priceSub?: string; sub?: string;
-  badge?: string; badgeColor?: string;
+  badge?: string; badgeColor?: string; disabled?: boolean;
 }) {
   return (
-    <button onClick={onClick}
-      className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50">
+    <button onClick={onClick} disabled={disabled}
+      className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none">
       {/* 좌우 2-column: 왼쪽 = title + sub / 오른쪽 = price + priceSub */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1 min-w-0">
