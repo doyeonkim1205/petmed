@@ -180,6 +180,7 @@ export default function SubscriptionsPage() {
                     <TableHead>이메일</TableHead>
                     <TableHead>플랜</TableHead>
                     <TableHead>상태</TableHead>
+                    <TableHead>플랫폼</TableHead>
                     <TableHead>시작일</TableHead>
                     <TableHead>종료일</TableHead>
                   </TableRow>
@@ -197,6 +198,12 @@ export default function SubscriptionsPage() {
                         }`}>
                           {sub.status}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {sub.store === 'apple' ? 'iOS'
+                          : (sub.store === 'play' || sub.store === 'play_store') ? 'Android'
+                          : sub.store === 'toss' ? '웹'
+                          : (sub.store || '-')}
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
                         {new Date(sub.period_start).toLocaleDateString('ko-KR')}
