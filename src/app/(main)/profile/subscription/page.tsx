@@ -174,6 +174,13 @@ export default function SubscriptionPage() {
     platformPayments.getPriceString(user.id, 'plus_yearly').then(setNativePriceYearly).catch(() => {});
   }, [user, appRcBilling]);
 
+  // ── TEMP 진단(v7): 결제 분기 상태 확인. 네이티브 앱에서만 1회 alert. 원인 확정 후 제거.
+  useEffect(() => {
+    const cap = (window as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
+    if (!cap?.isNativePlatform?.()) return;
+    alert(`[SUB진단 v7]\nplatform=${cap.getPlatform?.()}\nisApp=${isApp}\nrcReady=${rcReady}\nappRcBilling=${appRcBilling}`);
+  }, []);
+
 
   const handleRetryBilling = async () => {
     setActionLoading('retry');
