@@ -80,8 +80,24 @@ export async function GET(request: Request) {
     eventTypeCounts[e.event_type] = (eventTypeCounts[e.event_type] || 0) + 1;
   }
 
+  // 플랫폼별 활성 구독자 수 (apple=iOS / play(_store)=Android / toss=웹)
+  const countActiveByStore = async (stores: string[]) => {
+    const { count: c } = await supabase
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .in('store', stores)
+      .eq('status', 'active');
+    return c || 0;
+  };
+  const platformCounts = {
+    ios: await countActiveByStore(['apple']),
+    android: await countActiveByStore(['play', 'play_store']),
+    web: await countActiveByStore(['toss']),
+  };
+
   return NextResponse.json({
     subscriptions: subscriptions || [],
+    platformCounts,
     subscriptionTotal: count || 0,
     subscriptionPages: Math.ceil((count || 0) / limit),
     subPage,

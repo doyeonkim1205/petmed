@@ -174,6 +174,14 @@ export default function SubscriptionsPage() {
             </div>
           ) : (
             <>
+              {data?.platformCounts && (
+                <div className="flex items-center gap-2 mb-3 text-xs">
+                  <span className="text-gray-400">활성 구독자</span>
+                  <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">iOS {data.platformCounts.ios}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-700">Android {data.platformCounts.android}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">웹 {data.platformCounts.web}</span>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
