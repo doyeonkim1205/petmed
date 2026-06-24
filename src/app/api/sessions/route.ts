@@ -16,10 +16,12 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
-  const { device_id } = await request.json();
+  const { device_id, platform } = await request.json();
   if (!device_id) {
     return NextResponse.json({ error: 'device_id is required' }, { status: 400 });
   }
+  // 어드민 유입 분석용 플랫폼 라벨. 신뢰 가능한 값만 통과(클라가 보낸 임의 문자열 차단).
+  const platformLabel = ['ios', 'android', 'web'].includes(platform) ? platform : null;
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
@@ -34,7 +36,13 @@ export async function POST(request: NextRequest) {
   await supabaseAdmin
     .from('active_sessions')
     .upsert(
-      { user_id: userId, device_id, last_active: new Date().toISOString() },
+      {
+        user_id: userId,
+        device_id,
+        last_active: new Date().toISOString(),
+        // platform 은 알 때만 갱신 — null 로 덮어 기존 라벨을 지우지 않는다.
+        ...(platformLabel ? { platform: platformLabel } : {}),
+      },
       { onConflict: 'user_id,device_id' },
     );
 

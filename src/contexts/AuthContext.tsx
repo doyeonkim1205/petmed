@@ -136,10 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           (async () => {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
+            const { getPlatform } = await import('@/lib/platform');
             return authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId() }),
+              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
             });
           })(),
           fetchProfile(localSession.user.id),
@@ -246,10 +247,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
+            const { getPlatform } = await import('@/lib/platform');
             await authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId() }),
+              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
             });
           } catch {}
           const profileData = await fetchProfile(authUser.id);

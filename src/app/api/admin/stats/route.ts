@@ -101,7 +101,50 @@ export async function GET(request: Request) {
   }
   heavyUsers.sort((a, b) => b.records - a.records);
 
+  // 가입 경로(provider) 분포 — auth.users 는 public 스키마가 아니라 admin API 로 읽는다.
+  //   app_metadata.provider: google | kakao | apple | email.
+  const providerCounts: Record<string, number> = {};
+  {
+    const perPage = 1000;
+    let page = 1;
+    for (;;) {
+      const { data: pageData, error: listErr } = await supabase.auth.admin.listUsers({ page, perPage });
+      if (listErr || !pageData?.users?.length) break;
+      for (const u of pageData.users) {
+        const prov = (u.app_metadata?.provider as string) || 'email';
+        providerCounts[prov] = (providerCounts[prov] || 0) + 1;
+      }
+      if (pageData.users.length < perPage) break;
+      page++;
+    }
+  }
+
+  // 플랫폼 분포 — 유저별 "가장 최근 세션의 platform" 기준 distinct 카운트.
+  //   active_sessions.platform 은 로그인 하트비트로 채워지므로, 배포 이후 재로그인한
+  //   유저부터 집계됨(과거 무료 유저는 platform=null → untracked 로 분리 노출).
+  const { data: platformSessions } = await supabase
+    .from('active_sessions')
+    .select('user_id, platform, last_active')
+    .not('platform', 'is', null)
+    .order('last_active', { ascending: false });
+  const seenPlatformUser = new Set<string>();
+  const platformCounts = { ios: 0, android: 0, web: 0 };
+  for (const s of platformSessions || []) {
+    if (seenPlatformUser.has(s.user_id)) continue; // 최신순 정렬 → 처음 본 게 최신 세션
+    seenPlatformUser.add(s.user_id);
+    const p = s.platform as 'ios' | 'android' | 'web';
+    if (p === 'ios' || p === 'android' || p === 'web') {
+      platformCounts[p]++;
+    }
+  }
+  const platformTracked = seenPlatformUser.size;
+  const platformUntracked = Math.max((totalUsers || 0) - platformTracked, 0);
+
   return NextResponse.json({
+    providerCounts,
+    platformCounts,
+    platformTracked,
+    platformUntracked,
     totalUsers: totalUsers || 0,
     todaySearches: todaySearches || 0,
     totalRevenue,

@@ -25,6 +25,18 @@ export function isIOS(): boolean {
 }
 
 /**
+ * 현재 플랫폼 문자열 — 'ios' | 'android' | 'web'.
+ * 세션 하트비트에 실어 보내 active_sessions.platform 에 기록(어드민 유입 분석용).
+ * Capacitor 셸이 주입하는 getPlatform() 을 신뢰하되, 알 수 없으면 'web'.
+ */
+export function getPlatform(): 'ios' | 'android' | 'web' {
+  if (typeof window === 'undefined') return 'web';
+  const cap = (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor;
+  const p = cap?.getPlatform?.();
+  return p === 'ios' || p === 'android' ? p : 'web';
+}
+
+/**
  * "설치된 앱"(알림 등 기능 게이트용) 판정.
  * PWA standalone/fullscreen + Capacitor 네이티브를 모두 "설치됨"으로 본다.
  * 알림 화면들의 isPWA 체크(standalone 만)가 Capacitor 를 놓치던 문제를 한 곳에서 해결.
