@@ -68,90 +68,10 @@ export interface PurchaseResult {
   error?: string;
 }
 
-// ── iOS 결제: RevenueCat Capacitor JS 경로 ─────────────────────────────────
-//    Android 는 NativeBilling 브릿지 유지. iOS 는 RC 공식 Capacitor 플러그인 직접 사용.
-//    ⚠️ RC JS 의 복잡객체(CustomerInfo/Offerings)가 원격(server.url) WebView 에서 JS 로
-//    안 돌아올 위험이 있다(Android 에서 그래서 NativeBilling 으로 우회). iOS(WKWebView)는
-//    실기기 검증 필요 — 여기서 멈추면 NativeStoreKitBridge.swift(평평 JSON)로 전환.
-//    (현재는 "RC JS 먼저 시도" 단계. withTimeout 으로 영구대기 방지.)
-const RC_ENTITLEMENT = 'plus';
-let rcConfigured = false;
-
-async function rcConfigure(userId: string) {
-  const { Purchases } = await import('@revenuecat/purchases-capacitor');
-  if (!rcConfigured) {
-    await withTimeout(Purchases.configure({ apiKey: activeApiKey(), appUserID: userId }), 12000, 'configure');
-    rcConfigured = true;
-  }
-  return Purchases;
-}
-
-async function iosPurchase(userId: string, productId: string): Promise<PurchaseResult> {
-  try {
-    const Purchases = await rcConfigure(userId);
-    const offerings = await withTimeout(Purchases.getOfferings(), 20000, 'offerings');
-    const cur = offerings.current;
-    if (!cur) return { ok: false, active: false, error: 'no current offering' };
-    const wantsYear = /year|annual/i.test(productId);
-    const aPackage =
-      cur.availablePackages.find((p) => p.product.identifier === productId) ??
-      (wantsYear ? cur.annual : cur.monthly) ??
-      null;
-    if (!aPackage) return { ok: false, active: false, error: 'package not found' };
-    const res = await withTimeout(Purchases.purchasePackage({ aPackage }), 180000, 'purchase');
-    return { ok: true, active: !!res.customerInfo.entitlements.active[RC_ENTITLEMENT] };
-  } catch (e) {
-    const err = e as { code?: string; message?: string; userCancelled?: boolean };
-    if (err.userCancelled || /cancel/i.test(err.message || '')) {
-      return { ok: false, active: false, canceled: true };
-    }
-    return { ok: false, active: false, error: err.message || 'purchase failed' };
-  }
-}
-
-async function iosRestore(userId: string): Promise<PurchaseResult> {
-  try {
-    const Purchases = await rcConfigure(userId);
-    const res = await withTimeout(Purchases.restorePurchases(), 30000, 'restore');
-    return { ok: true, active: !!res.customerInfo.entitlements.active[RC_ENTITLEMENT] };
-  } catch (e) {
-    return { ok: false, active: false, error: (e as Error).message };
-  }
-}
-
-async function iosHasEntitlement(userId: string): Promise<boolean> {
-  try {
-    const Purchases = await rcConfigure(userId);
-    const res = await withTimeout(Purchases.getCustomerInfo(), 15000, 'status');
-    return !!res.customerInfo.entitlements.active[RC_ENTITLEMENT];
-  } catch {
-    return false;
-  }
-}
-
-let rcDiagShown = false;
-async function iosGetPrice(userId: string, productId: string): Promise<string | null> {
-  // ── TEMP 단계 진단(1회): 어디서 멈추는지 추적. 원인 확정 후 제거.
-  const first = !rcDiagShown;
-  if (first) rcDiagShown = true;
-  try {
-    if (first) alert('[RC진단] A: configure 시작');
-    const Purchases = await rcConfigure(userId);
-    if (first) alert('[RC진단] B: configure 성공 → getOfferings 시작');
-    const offerings = await withTimeout(Purchases.getOfferings(), 15000, 'offerings');
-    if (first) {
-      const cur = offerings.current;
-      const pkgs = cur?.availablePackages ?? [];
-      const desc = pkgs.map((p) => `${p.product.identifier}:${p.product.priceString}`).join(' | ');
-      alert(`[RC진단] C: getOfferings 성공\ncurrent=${cur ? cur.identifier : 'NULL'}\npkgs=${pkgs.length}\n${desc || '(빈 패키지)'}`);
-    }
-    const aPackage = offerings.current?.availablePackages.find((p) => p.product.identifier === productId);
-    return aPackage?.product.priceString ?? null;
-  } catch (e) {
-    if (first) alert('[RC진단] 에러: ' + (e as Error).message);
-    return null;
-  }
-}
+// iOS·Android 모두 NativeBilling 브릿지(RC Native SDK 직접 호출, 평평 JSON)를 사용한다.
+//   RC Capacitor JS 는 원격(server.url) WebView 에서 configure/offerings 가 멈춰
+//   (Android·iOS 동일 재현) 사용 불가 → 네이티브 브릿지로 우회. iOS 구현은
+//   NativeBillingPlugin.swift(RevenueCat iOS SDK 호출), Android 는 Kotlin NativeBilling.
 
 export const platformPayments = {
   /** RC 키 설정 여부 (현재 플랫폼 기준). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
@@ -180,7 +100,6 @@ export const platformPayments = {
   /** productId(plus_monthly/plus_yearly) 구매. 네이티브 전용. */
   async purchase(userId: string, productId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false, error: 'native billing unavailable' };
-    if (isIOS()) return iosPurchase(userId, productId); // iOS=RC JS / Android=NativeBilling
     try {
       const opts: ConfigOpts = { apiKey: activeApiKey(), appUserId: userId };
       const wantsYear = /year|annual/i.test(productId);
@@ -200,7 +119,6 @@ export const platformPayments = {
   /** 구매 복원 (기기 변경·재설치). 'plus' 활성 여부 반환. */
   async restore(userId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false };
-    if (isIOS()) return iosRestore(userId);
     try {
       const res = await withTimeout(
         NativeBilling.restorePurchases({ apiKey: activeApiKey(), appUserId: userId }),
@@ -216,7 +134,6 @@ export const platformPayments = {
   /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — 스토어 실제가. 없으면 null. */
   async getPriceString(userId: string, productId: string): Promise<string | null> {
     if (!this.isNativeBilling()) return null;
-    if (isIOS()) return iosGetPrice(userId, productId);
     try {
       const res = await withTimeout(
         NativeBilling.getPrices({ apiKey: activeApiKey(), appUserId: userId }),
@@ -233,7 +150,6 @@ export const platformPayments = {
   /** 현재 'plus' 엔타이틀먼트 활성 여부 조회 (로그인 후 동기화 보조용). */
   async hasActiveEntitlement(userId: string): Promise<boolean> {
     if (!this.isNativeBilling()) return false;
-    if (isIOS()) return iosHasEntitlement(userId);
     try {
       const res = await withTimeout(
         NativeBilling.getCustomerStatus({ apiKey: activeApiKey(), appUserId: userId }),
