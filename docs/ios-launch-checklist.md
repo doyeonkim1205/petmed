@@ -112,6 +112,19 @@
 
 ---
 
+## ⚠️ 운영(main/prod) 반영 전 DB 마이그레이션 — 순서 필수
+
+> develop→main 머지 **전에** prod DB에 컬럼을 먼저 추가해야 한다.
+> 순서가 뒤집히면 코드가 없는 컬럼에 write 시도 → API 에러(로그인 자체는 안 깨지나 에러 로그·기록 누락).
+> dev DB에는 이미 적용 완료. **dev-first → 머지 시 prod 적용** 규칙(`feedback_db_migration_flow`).
+
+- [ ] **[콘솔]** prod DB(`ylbxtzwbwbnlmfxqgmoz`)에 컬럼 추가
+      `ALTER TABLE active_sessions ADD COLUMN IF NOT EXISTS platform text;`
+      (어드민 대시보드 "유입 분석 — 플랫폼" 카운트용. dev `lzmmiksdvioidcldrnvh` 적용 완료 ✅)
+- [ ] 위 적용 **후** develop → main 머지 / prod 배포
+
+---
+
 ## 심사 반려 주의 포인트 (Apple)
 
 | 가이드라인 | 리스크 | 대응 |
