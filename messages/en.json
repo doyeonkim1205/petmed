@@ -873,7 +873,7 @@
     "manageInPlay": "Manage subscription in Google Play",
     "manageInPlayDesc": "Change, cancel, or refund your subscription in the Google Play subscriptions screen.",
     "manageInAppStore": "Manage subscription in App Store",
-    "manageInAppStoreDesc": "Change, cancel, or refund your subscription in the App Store subscriptions screen.",
+    "manageInAppStoreDesc": "Change, cancel, or refund your subscription in the App Store.",
     "manageOnWeb": "This subscription was purchased on the web. Manage or cancel it at pawdex.store.",
     "purchaseSuccess": "Subscription complete. You can now use Plus features.",
     "purchaseError": "Couldn't complete the purchase. Please try again shortly.",
