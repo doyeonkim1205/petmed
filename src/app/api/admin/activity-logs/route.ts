@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { kstDateToUtcRange } from '@/lib/dailyBoundary';
 
 export async function GET(request: Request) {
   const { error } = await verifyAdmin(request);
@@ -43,8 +44,15 @@ export async function GET(request: Request) {
     .from('activity_logs')
     .select('*', { count: 'exact' });
 
-  if (from) query = query.gte('created_at', from);
-  if (to) query = query.lte('created_at', `${to}T23:59:59`);
+  // 날짜 필터는 KST 달력 날짜 → UTC 경계로 변환 (안 하면 9시간 어긋남).
+  if (from) {
+    const r = kstDateToUtcRange(from);
+    if (r) query = query.gte('created_at', r.startIso);
+  }
+  if (to) {
+    const r = kstDateToUtcRange(to);
+    if (r) query = query.lte('created_at', r.endIso);
+  }
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
   if (action) query = query.eq('action', action);
   else if (category === 'deleted_user') {

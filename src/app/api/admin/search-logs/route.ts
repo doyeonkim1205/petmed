@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { kstDateToUtcRange } from '@/lib/dailyBoundary';
 
 type LogKind = 'disease' | 'symptom' | 'symptom_refine' | 'symptom_photo';
 type SearchType = 'all' | 'disease' | 'symptom' | 'symptom_photo';
@@ -45,10 +46,13 @@ export async function GET(request: Request) {
   let resolvedUserId = '';
   if (userSearch) {
     if (userSearch.includes('@')) {
+      // PostgREST 필터에서 의미를 갖는 문자 제거 (활동로그와 동일 정책).
+      //   %/_ 와일드카드·or() 구분자가 검색을 깨거나 의도 밖 매칭하는 것 방지.
+      const safe = userSearch.replace(/[%,()\\*"]/g, '').trim();
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .ilike('email', `%${userSearch}%`)
+        .ilike('email', `%${safe}%`)
         .limit(1)
         .maybeSingle();
       if (profile) resolvedUserId = profile.id;
@@ -62,8 +66,15 @@ export async function GET(request: Request) {
     .from('search_logs')
     .select('id, user_id, query, pet_type, kind, created_at', { count: 'exact' });
 
-  if (from) query = query.gte('created_at', from);
-  if (to) query = query.lte('created_at', `${to}T23:59:59`);
+  // 날짜 필터는 KST 달력 날짜 → UTC 경계로 변환 (안 하면 9시간 어긋남).
+  if (from) {
+    const r = kstDateToUtcRange(from);
+    if (r) query = query.gte('created_at', r.startIso);
+  }
+  if (to) {
+    const r = kstDateToUtcRange(to);
+    if (r) query = query.lte('created_at', r.endIso);
+  }
   if (resolvedUserId) query = query.eq('user_id', resolvedUserId);
   if (type === 'disease') query = query.eq('kind', 'disease');
   else if (type === 'symptom') query = query.in('kind', ['symptom', 'symptom_refine']);
