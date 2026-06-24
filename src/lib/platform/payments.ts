@@ -129,13 +129,26 @@ async function iosHasEntitlement(userId: string): Promise<boolean> {
   }
 }
 
+let rcDiagShown = false;
 async function iosGetPrice(userId: string, productId: string): Promise<string | null> {
   try {
     const Purchases = await rcConfigure(userId);
     const offerings = await withTimeout(Purchases.getOfferings(), 15000, 'offerings');
+    // ── TEMP 진단(1회): getOfferings 실제 결과 확인. 원인 확정 후 제거.
+    if (!rcDiagShown) {
+      rcDiagShown = true;
+      const cur = offerings.current;
+      const pkgs = cur?.availablePackages ?? [];
+      const desc = pkgs.map((p) => `${p.identifier}=${p.product.identifier}:${p.product.priceString}`).join(' | ');
+      alert(`[RC진단]\ncurrent=${cur ? cur.identifier : 'NULL'}\npkgs=${pkgs.length}\nallOfferings=${Object.keys(offerings.all).join(',') || '(none)'}\n${desc || '(빈 패키지)'}`);
+    }
     const aPackage = offerings.current?.availablePackages.find((p) => p.product.identifier === productId);
     return aPackage?.product.priceString ?? null;
-  } catch {
+  } catch (e) {
+    if (!rcDiagShown) {
+      rcDiagShown = true;
+      alert('[RC진단] getOfferings 에러: ' + (e as Error).message);
+    }
     return null;
   }
 }
