@@ -274,8 +274,6 @@ export default function SubscriptionPage() {
     setActionError(false);
     try {
       const res = await platformPayments.purchase(user.id, productId);
-      // ── TEMP 진단: 구매 결과 raw 확인. 원인 확정 후 제거.
-      alert(`[구매결과]\nproductId=${productId}\nok=${res.ok}\nactive=${res.active}\ncanceled=${res.canceled || false}\nerror=${res.error || '-'}`);
       if (res.canceled) return; // 사용자가 결제창에서 취소 — 조용히 무시
       if (res.ok && res.active) {
         setJustPurchased(true);                 // ① 낙관적 즉시 Plus 표시
