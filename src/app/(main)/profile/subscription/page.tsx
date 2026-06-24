@@ -135,6 +135,7 @@ export default function SubscriptionPage() {
   const rcReady = platformPayments.isRevenueCatReady();
   const appRcBilling = isApp && rcReady;  // 앱에서 RC 구매 버튼 노출
   const [purchasing, setPurchasing] = useState(false);
+  const [processingProduct, setProcessingProduct] = useState<string | null>(null); // 로딩 표시할 버튼
   const [justPurchased, setJustPurchased] = useState(false); // 구매 직후 낙관적 Plus 표시 + 성공 카드
   const didAutoSyncRef = useRef(false); // 진입 자동 sync 1회만 실행 (StrictMode 중복/리렌더 방지)
   const [nativePrice, setNativePrice] = useState<string | null>(null);
@@ -233,17 +234,21 @@ export default function SubscriptionPage() {
 
   // 구매 직후 서버 즉시 동기화 — RC Secret 키로 서버가 entitlement 확인 → DB 갱신(웹훅 지연 흡수).
   // 실패해도(키 미설정 등) 무시 — 웹훅이 결국 반영하고, 낙관적 표시로 UX 는 이미 Plus.
-  const syncSubscription = async () => {
+  // 반환: 서버가 확인한 { active } (실패/미설정 시 null → 호출부에서 fail-open).
+  const syncSubscription = async (): Promise<{ active?: boolean } | null> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch('/api/subscription/sync', {
+      if (!session) return null;
+      const res = await fetch('/api/subscription/sync', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
+      if (!res.ok) return null;
+      return await res.json().catch(() => null);
     } catch (e) {
       // 화면은 막지 않되(웹훅 폴백) 로그는 남김. 서버 sync API 는 실제 실패를 Sentry 로 기록함.
       console.warn('[subscription:sync] request failed', e);
+      return null;
     }
   };
 
@@ -269,25 +274,39 @@ export default function SubscriptionPage() {
   // 권한(profiles.plan)의 진실원은 RC 웹훅. 구매 성공 후 약간의 지연 대비 재조회.
   const handleNativePurchase = async (productId: string) => {
     if (!user || purchasing) return;
-    // 구매 직전 재확인 — 화면이 stale 이어도 이미 구독 중이면 중복 구매를 막는다.
+    // (a) 빠른 클라 체크 — 명백히 구독 중이면 즉시 중단(라운드트립 생략).
     if ((profile?.plan && profile.plan !== 'free') || justPurchased) {
       setActionError(true);
       setActionMessage(t('subscription.alreadySubscribed'));
       return;
     }
+    // 잠금은 탭 순간부터 — 확인/결제 내내 모든 버튼 disabled + 누른 버튼 로딩 표시.
     setPurchasing(true);
+    setProcessingProduct(productId);
     setActionMessage('');
     setActionError(false);
     try {
+      // (b) 서버 재확인(stale 방어) — 이 구간이 "구독 상태 확인 중...".
+      //     active 면 중단. sync 실패(null)면 fail-open → 그대로 구매 진행(정상 구매자 안 막음).
+      const pre = await syncSubscription();
+      if (pre?.active) {
+        await refreshProfile();
+        setActionError(true);
+        setActionMessage(t('subscription.alreadySubscribed'));
+        return;
+      }
+
       const res = await platformPayments.purchase(user.id, productId);
       if (res.canceled) return; // 사용자가 결제창에서 취소 — 조용히 무시
       if (res.ok && res.active) {
         setJustPurchased(true);                 // ① 낙관적 즉시 Plus 표시
-        await syncSubscription();                // ② 서버가 RC 직접 확인 → profiles.plan/subscriptions 갱신
+        await syncSubscription();                // ② 서버가 RC 직접 확인 → profiles.plan/subscriptions 갱신 (0초)
         await refreshProfile();                  // ③ AuthContext 전역 갱신
         await fetchData();
-        // 웹훅 지연 흡수 — 백그라운드로 한 번 더 재동기화(구매 버튼은 막지 않음).
-        setTimeout(() => { void syncSubscription().then(() => refreshProfile()); }, 3000);
+        // 웹훅/RC 전파 지연 흡수 — 3초·8초 뒤 백그라운드 재동기화(버튼은 막지 않음).
+        for (const delay of [3000, 8000]) {
+          setTimeout(() => { void syncSubscription().then(() => refreshProfile()); }, delay);
+        }
       } else if (res.error && /receipt|active subscriber|already/i.test(res.error)) {
         // 같은 Apple ID 가 다른 PawDex 계정에 묶인 경우 — 원문 대신 친화적 안내.
         setActionError(true);
@@ -303,6 +322,7 @@ export default function SubscriptionPage() {
       setActionMessage(t('subscription.purchaseError'));
     } finally {
       setPurchasing(false);
+      setProcessingProduct(null);
     }
   };
 
@@ -437,10 +457,12 @@ export default function SubscriptionPage() {
               /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
               <div className="space-y-2.5">
                 <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
+                  loading={processingProduct === 'plus_monthly'} loadingText={t('subscription.checkingStatus')}
                   title={t('subscription.subscribeMonthlyTitle')}
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')} />
                 <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
+                  loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
@@ -559,10 +581,12 @@ export default function SubscriptionPage() {
               /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
               <div className="space-y-2.5">
                 <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
+                  loading={processingProduct === 'plus_monthly'} loadingText={t('subscription.checkingStatus')}
                   title={t('subscription.subscribeMonthlyTitle')}
                   price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
                   sub={t('subscription.subscribeMonthlySub')} />
                 <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
+                  loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
                   title={t('subscription.subscribeYearlyTitle')}
                   price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
                   sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
@@ -883,31 +907,39 @@ function ActionBtn({ children, onClick, variant = 'default' }: { children: React
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
 }
 
-function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disabled }: {
+function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disabled, loading, loadingText }: {
   onClick: () => void; title: string; price: string; priceSub?: string; sub?: string;
-  badge?: string; badgeColor?: string; disabled?: boolean;
+  badge?: string; badgeColor?: string; disabled?: boolean; loading?: boolean; loadingText?: string;
 }) {
   return (
     <button onClick={onClick} disabled={disabled}
       className="w-full rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none">
-      {/* 좌우 2-column: 왼쪽 = title + sub / 오른쪽 = price + priceSub */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-700">{title}</span>
-            {badge && (
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${badgeColor || 'bg-blue-100 text-blue-600'}`}>
-                {badge}
-              </span>
-            )}
+      {loading ? (
+        /* 로딩: 스피너 + 문구 중앙 정렬 (가격/제목 자리 대체) */
+        <div className="flex items-center justify-center gap-2 py-0.5 text-xs font-semibold text-gray-600">
+          <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+          {loadingText}
+        </div>
+      ) : (
+        /* 좌우 2-column: 왼쪽 = title + sub / 오른쪽 = price + priceSub */
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-700">{title}</span>
+              {badge && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${badgeColor || 'bg-blue-100 text-blue-600'}`}>
+                  {badge}
+                </span>
+              )}
+            </div>
+            {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
           </div>
-          {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+          <div className="text-right flex-shrink-0">
+            <span className="text-sm font-bold text-gray-900">{price}</span>
+            {priceSub && <p className="text-[9px] text-gray-400 mt-0.5">{priceSub}</p>}
+          </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <span className="text-sm font-bold text-gray-900">{price}</span>
-          {priceSub && <p className="text-[9px] text-gray-400 mt-0.5">{priceSub}</p>}
-        </div>
-      </div>
+      )}
     </button>
   );
 }
