@@ -44,6 +44,7 @@ export default function SubscriptionsPage() {
   const [eventPage, setEventPage] = useState(1);
   const [data, setData] = useState<{
     subscriptions: any[];
+    platformCounts?: { ios: number; android: number; web: number };
     subscriptionTotal: number;
     subscriptionPages: number;
     payments: any[];
