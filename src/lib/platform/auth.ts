@@ -80,11 +80,22 @@ async function nativeGoogleSignIn(): Promise<void> {
 async function nativeAppleSignIn(): Promise<void> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
   // Apple 은 iOS 네이티브 capability(Sign in with Apple)만 켜져 있으면 별도 초기화 불필요.
-  const res = await SocialLogin.login({ provider: 'apple', options: { scopes: ['email', 'name'] } });
+  // nonce(구글과 동일 정석): SHA256(raw)=hashed 를 Apple(@capgo)에 → 토큰 nonce=hashed,
+  //   raw 를 Supabase 에 → GoTrue 가 sha256(raw) 로 대조 → 일치.
+  const rawNonce = randomNonce();
+  const hashedNonce = await sha256Hex(rawNonce);
+  const res = await SocialLogin.login({
+    provider: 'apple',
+    options: { scopes: ['email', 'name'], nonce: hashedNonce },
+  });
   const idToken = (res as { result?: { idToken?: string } }).result?.idToken;
   if (!idToken) throw new Error('Apple 로그인 토큰(idToken)을 받지 못했습니다.');
-  // Supabase Apple provider 가 활성화돼 있어야 통과 (Service ID/Key 설정 필요).
-  const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: idToken });
+  // Supabase Apple provider 가 활성화돼 있어야 통과 (Client ID=번들ID 등록 필요).
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: 'apple',
+    token: idToken,
+    nonce: rawNonce,
+  });
   if (error) throw error;
 }
 
