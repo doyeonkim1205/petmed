@@ -8,6 +8,9 @@ import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
+// getPlatform 은 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
+//   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
+import { getPlatform } from '@/lib/platform/env';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -136,7 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           (async () => {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
-            const { getPlatform } = await import('@/lib/platform');
             return authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -247,7 +249,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const { getDeviceId } = await import('@/lib/deviceId');
             const { authFetch } = await import('@/lib/authFetch');
-            const { getPlatform } = await import('@/lib/platform');
             await authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
