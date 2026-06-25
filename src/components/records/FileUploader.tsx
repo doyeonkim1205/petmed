@@ -25,7 +25,9 @@ function formatStorageMB(mb: number): string {
 
 export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
   const t = useTranslations();
-  const ph = placeholder ?? t('uploader.placeholder');
+  // 기본 안내문구("여기를 눌러…")는 촬영·파일선택 버튼과 중복이라 생략.
+  //   일상 '한 컷' 등 의미있는 커스텀 placeholder 가 넘어올 때만 표시.
+  const ph = placeholder ?? null;
   const [dragOver, setDragOver] = useState(false);
   // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
   const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
