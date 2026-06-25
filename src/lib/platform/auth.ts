@@ -107,9 +107,11 @@ async function nativeKakaoSignIn(): Promise<void> {
     //   Android 는 아래 기존 플러그인 그대로 — 운영 무영향(분기 격리).
     const { registerPlugin } = await import('@capacitor/core');
     const KakaoLogin = registerPlugin<{
-      login(): Promise<{ ok: boolean; idToken?: string; error?: string }>;
+      login(): Promise<{ ok: boolean; idToken?: string; error?: string; cancelled?: boolean }>;
     }>('KakaoLogin');
     const res = await KakaoLogin.login();
+    // 사용자가 로그인 취소 — 에러 아님. 'cancelled' 메시지로 던져 로그인 화면이 빨간 에러를 숨긴다.
+    if (res.cancelled) throw new Error('cancelled');
     if (!res.ok || !res.idToken) {
       throw new Error(res.error || '카카오 로그인 토큰(idToken)을 받지 못했습니다. (OIDC 확인)');
     }

@@ -421,7 +421,7 @@ export default function MedsPage() {
 
       {/* 편집기 (바텀시트) */}
       {editorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeEditor}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={closeEditor}>
           <div
             className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
