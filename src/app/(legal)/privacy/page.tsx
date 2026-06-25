@@ -39,10 +39,10 @@ function PrivacyKo() {
         <p><strong>필수 항목:</strong> 이메일 주소, 비밀번호(해시 처리), 닉네임</p>
         <p><strong>선택 항목:</strong> 프로필 사진, 반려동물 정보(이름, 종류, 품종, 생년월일, 성별, 중성화, 체중, 만성질환), 건강 기록(증상, 진료 내용, 입퇴원, 일상 기록(산책·식사·수분·배변·기분 등), 투약 정보, 체중 기록)</p>
         <p><strong>사진 증상 분석 (선택):</strong> 사용자가 분석 목적으로 직접 업로드한 반려동물 증상 사진. 분석 요청 시 일시적으로 처리되며 서버에 저장하지 않습니다. 자세한 처리 방식은 아래 7. 섹션 참고.</p>
-        <p><strong>결제 정보:</strong> 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리). 자동 결제 이용 시 토스페이먼츠로부터 발급받은 암호화된 빌링키를 저장합니다.</p>
-        <p><strong>푸시 알림:</strong> 알림 수신 동의 시 기기 식별을 위한 구독 정보(엔드포인트, 암호화 키)를 수집합니다. 유료 플랜에서만 수집되며, 구독 해지 또는 탈퇴 시 즉시 삭제됩니다.</p>
+        <p><strong>결제 정보:</strong> 웹(pawdex.store) 결제 시 카드사 정보, 승인번호 (카드번호는 직접 저장하지 않으며, 토스페이먼츠를 통해 처리). 자동 결제 이용 시 토스페이먼츠로부터 발급받은 암호화된 빌링키를 저장합니다. 모바일 앱 결제는 Apple App Store(iOS)·Google Play(Android)의 인앱 결제로 처리되며, 결제 수단 정보는 Apple·Google이 처리하여 당사가 수집하지 않습니다. 구독 상태 확인을 위해 RevenueCat을 통해 익명 사용자 식별자와 구독 상품·상태 정보를 처리합니다.</p>
+        <p><strong>푸시 알림:</strong> 알림 수신 동의 시 기기 식별을 위한 구독 정보(엔드포인트, 암호화 키 또는 FCM/APNs 토큰)를 수집합니다. 유료 플랜에서만 수집되며, 구독 해지 또는 탈퇴 시 즉시 삭제됩니다.</p>
         <p><strong>자동 수집 항목:</strong> 서비스 이용 기록, 접속 로그, 기기 정보</p>
-        <p><strong>소셜 로그인 시:</strong> Google 또는 카카오 계정의 이메일 주소, 프로필 사진(선택)</p>
+        <p><strong>소셜 로그인 시:</strong> Google, 카카오 또는 Apple 계정의 이메일 주소, 프로필 사진(선택). Apple 로그인 시 이메일 가리기를 선택하면 Apple의 비공개 릴레이 주소가 수집될 수 있습니다.</p>
       </Section>
 
       <Section title="3. 개인정보의 보유 및 이용 기간">
@@ -105,6 +105,21 @@ function PrivacyKo() {
               <td className="py-2">카카오(주)</td>
               <td className="py-2">지도 표시 및 주변 동물병원 검색</td>
               <td className="py-2">대한민국</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Apple Inc.</td>
+              <td className="py-2">iOS 앱 인앱 결제 처리, Apple 로그인</td>
+              <td className="py-2">미국</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Google LLC</td>
+              <td className="py-2">Android 앱 인앱 결제 처리(Google Play), Google 로그인</td>
+              <td className="py-2">미국</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">RevenueCat, Inc.</td>
+              <td className="py-2">앱 인앱 구독 상태 관리·검증</td>
+              <td className="py-2">미국</td>
             </tr>
           </tbody>
         </table>
@@ -217,7 +232,7 @@ function PrivacyKo() {
         <ul>
           <li><strong>파기 절차:</strong> 회원 탈퇴 요청 시 즉시 파기하며, 법령에 따라 보관이 필요한 정보는 별도 분리하여 보관 후 기간 만료 시 파기합니다.</li>
           <li><strong>파기 방법:</strong> 전자적 파일은 복구 불가능한 방법으로 삭제하며, 종이 문서는 분쇄 또는 소각합니다.</li>
-          <li><strong>소셜 로그인 연동 해제:</strong> 회원 탈퇴 시 Google 또는 카카오 소셜 로그인 연동을 서버 측에서 자동 해제하여, 재가입 시 새로운 동의 절차를 거치도록 합니다.</li>
+          <li><strong>소셜 로그인 연동 해제:</strong> 회원 탈퇴 시 Google, 카카오 또는 Apple 소셜 로그인 연동을 서버 측에서 자동 해제(Apple은 토큰 revoke)하여, 재가입 시 새로운 동의 절차를 거치도록 합니다.</li>
           <li>
             <strong>비식별 활동 기록 보관:</strong>
             탈퇴 시 프로필 (이름, 이메일, 닉네임, 연락처 등) 은 즉시 삭제되며,
@@ -277,7 +292,7 @@ function PrivacyKo() {
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / 펫 상세 정보 항목 추가)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 26일 (개정 — 앱 인앱 결제(Apple·Google)·RevenueCat·Apple 로그인 명시)</p>
     </>
   );
 }
@@ -309,10 +324,10 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
         <p><strong>Required:</strong> Email address, password (hashed), nickname</p>
         <p><strong>Optional:</strong> Profile photo, pet information (name, species, breed, date of birth, sex, neuter status, weight, chronic conditions), health records (symptoms, visit details, hospitalization, daily records (walks, meals, hydration, elimination, mood, etc.), medication information, weight records)</p>
         <p><strong>Photo symptom analysis (optional):</strong> Pet symptom photos that the user uploads for analysis. They are processed temporarily upon an analysis request and are not stored on our servers. See Section 7 below for details.</p>
-        <p><strong>Payment information:</strong> Card issuer information and approval number (the card number itself is not stored directly and is processed through Toss Payments). For automatic payments, an encrypted billing key issued by Toss Payments is stored.</p>
+        <p><strong>Payment information:</strong> For web (pawdex.store) payments, card issuer information and approval number (the card number itself is not stored directly and is processed through Toss Payments); for automatic payments, an encrypted billing key issued by Toss Payments is stored. Mobile app payments are processed via the in-app billing of the Apple App Store (iOS) and Google Play (Android); payment method details are handled by Apple/Google and are not collected by us. To verify subscription status, an anonymous user identifier and subscription product/status information are processed through RevenueCat.</p>
         <p><strong>Push notifications:</strong> With your consent to receive notifications, subscription information for device identification (endpoint, encryption keys) is collected. It is collected only on paid plans and is deleted immediately upon cancellation or withdrawal.</p>
         <p><strong>Automatically collected:</strong> Service usage records, access logs, device information</p>
-        <p><strong>For social login:</strong> Email address of the Google or Kakao account, profile photo (optional)</p>
+        <p><strong>For social login:</strong> Email address of the Google, Kakao, or Apple account, profile photo (optional). If you choose Hide My Email when signing in with Apple, an Apple private relay address may be collected.</p>
       </Section>
 
       <Section title="3. Retention and Use Period of Personal Information">
@@ -374,6 +389,21 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
               <td className="py-2">Kakao Corp.</td>
               <td className="py-2">Map display and nearby animal hospital search</td>
               <td className="py-2">Republic of Korea</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Apple Inc.</td>
+              <td className="py-2">iOS in-app purchase processing, Sign in with Apple</td>
+              <td className="py-2">United States</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">Google LLC</td>
+              <td className="py-2">Android in-app purchase processing (Google Play), Google login</td>
+              <td className="py-2">United States</td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-2">RevenueCat, Inc.</td>
+              <td className="py-2">In-app subscription status management and validation</td>
+              <td className="py-2">United States</td>
             </tr>
           </tbody>
         </table>
@@ -486,7 +516,7 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
         <ul>
           <li><strong>Destruction procedure:</strong> Destroyed immediately upon a withdrawal request; information that must be retained by law is stored separately and destroyed when the period expires.</li>
           <li><strong>Destruction method:</strong> Electronic files are deleted in an unrecoverable manner, and paper documents are shredded or incinerated.</li>
-          <li><strong>Disconnecting social login:</strong> Upon withdrawal, the Google or Kakao social login connection is automatically disconnected on the server side so that re-registration requires a new consent process.</li>
+          <li><strong>Disconnecting social login:</strong> Upon withdrawal, the Google, Kakao, or Apple social login connection is automatically disconnected on the server side (for Apple, the token is revoked) so that re-registration requires a new consent process.</li>
           <li>
             <strong>Retention of de-identified activity records:</strong>
             Upon withdrawal, the profile (name, email, nickname, contact, etc.) is deleted immediately, while activity
@@ -545,7 +575,7 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
         <p>This policy applies from its effective date, and any changes are announced through a notice within the Service.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 3, 2026 (revised — daily records / pet detail items added)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 26, 2026 (revised — app in-app billing (Apple/Google), RevenueCat, Sign in with Apple specified)</p>
     </>
   );
 }

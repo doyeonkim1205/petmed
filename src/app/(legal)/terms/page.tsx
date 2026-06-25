@@ -139,7 +139,7 @@ function TermsKo() {
         <ol>
           <li>서비스는 무료(Free), 플러스(Plus)의 2단계 요금제를 제공하며, 각 요금제의 이용 범위 및 요금은 서비스 내 요금제 페이지에 게시합니다.</li>
           <li>플러스 요금제는 결제 주기에 따라 월간(매월 자동 갱신 또는 1회 결제)과 연간(1회 결제)으로 구성됩니다.</li>
-          <li>유료 서비스의 결제는 토스페이먼츠(주)가 제공하는 결제 시스템을 통해 처리됩니다.</li>
+          <li>유료 서비스의 결제는 이용 환경에 따라 처리됩니다. 웹(pawdex.store)은 토스페이먼츠(주)의 결제 시스템을, 모바일 앱은 각 스토어의 인앱 결제 시스템(iOS는 Apple App Store, Android는 Google Play)을 통해 처리됩니다.</li>
           <li>결제 금액, 결제일, 이용 기간 등은 결제 시 명확히 표시됩니다.</li>
           <li>서비스는 요금제의 가격 및 내용을 변경할 수 있으며, 변경 시 30일 전 서비스 내 공지를 통해 안내합니다.</li>
         </ol>
@@ -152,7 +152,8 @@ function TermsKo() {
           <li>회원은 서비스 내 요금제 관리 페이지에서 언제든지 자동 갱신을 해제할 수 있으며, 해제 시 등록된 결제 수단 정보는 즉시 폐기됩니다.</li>
           <li>자동 갱신을 해제하더라도 현재 결제 주기 만료일까지는 유료 기능을 계속 이용할 수 있습니다.</li>
           <li>자동 결제가 실패한 경우 서비스는 일정 간격으로 최대 3회까지 재시도하며, 모두 실패하면 자동으로 무료 플랜으로 전환됩니다. 카드 분실, 도난, 만료 등 즉시 재시도가 무의미한 경우에는 곧바로 무료 플랜으로 전환됩니다.</li>
-          <li>자동 결제 예정일 3일 전에 푸시 알림으로 결제 예정 사실을 안내합니다.</li>
+          <li>자동 결제 예정일 3일 전에 푸시 알림으로 결제 예정 사실을 안내합니다. (본 항의 사전 알림·카드 정보 폐기·재시도 절차는 웹(토스페이먼츠) 결제에 적용됩니다.)</li>
+          <li>모바일 앱(iOS App Store·Android Google Play)에서 결제한 구독의 자동 갱신·해지·환불은 각 스토어의 정책과 구독 관리 화면을 통해 처리되며, 자세한 내용은 환불 정책의 앱 결제 안내를 따릅니다.</li>
           <li>자동 결제 관련 환불 기준은 환불 정책에 따릅니다.</li>
         </ol>
       </Section>
@@ -169,7 +170,7 @@ function TermsKo() {
 
       <Section title="제14조 (구독 해지)">
         <ol>
-          <li>회원은 서비스 내 요금제 관리 페이지에서 언제든지 구독을 해지할 수 있습니다.</li>
+          <li>회원은 서비스 내 요금제 관리 페이지에서 언제든지 구독을 해지할 수 있습니다. 모바일 앱(App Store·Google Play)에서 결제한 구독은 각 스토어의 구독 관리 화면(iOS: 설정 &gt; Apple 계정 &gt; 구독 / Android: Google Play &gt; 구독)에서 해지합니다.</li>
           <li>구독 해지 시 현재 결제 주기의 만료일까지 유료 기능을 계속 이용할 수 있습니다.</li>
           <li>결제 주기 만료 후 자동으로 무료(Free) 플랜으로 전환됩니다.</li>
           <li>무료 플랜 전환 시 유료 플랜 제한을 초과하는 데이터는 삭제되지 않으나, 해당 기능의 추가 사용이 제한됩니다.</li>
@@ -185,7 +186,7 @@ function TermsKo() {
         </ol>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 3일 (개정 — 일상 기록 / AI 사진 증상 분석 명시)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 26일 (개정 — 앱 스토어(App Store·Google Play) 인앱 결제 명시)</p>
     </>
   );
 }
@@ -316,7 +317,7 @@ function TermsEn({ refNotice }: { refNotice: string }) {
         <ol>
           <li>The Service offers a two-tier plan structure, Free and Plus; the usage scope and price of each plan are posted on the plans page within the Service.</li>
           <li>The Plus plan consists of monthly (automatic monthly renewal or one-time payment) and annual (one-time payment) options depending on the billing cycle.</li>
-          <li>Payment for paid services is processed through the payment system provided by Toss Payments Co., Ltd.</li>
+          <li>Payment for paid services is processed depending on the environment: the web (pawdex.store) uses the payment system provided by Toss Payments Co., Ltd., while the mobile apps use each store&apos;s in-app billing system (Apple App Store on iOS, Google Play on Android).</li>
           <li>The payment amount, payment date, and usage period are clearly shown at the time of payment.</li>
           <li>The Service may change plan prices and contents; changes are announced within the Service 30 days in advance.</li>
         </ol>
@@ -329,7 +330,8 @@ function TermsEn({ refNotice }: { refNotice: string }) {
           <li>A Member may turn off auto-renewal at any time on the Subscription &amp; Billing page; when turned off, the registered payment method information is discarded immediately.</li>
           <li>Even after turning off auto-renewal, paid features remain usable until the end of the current billing cycle.</li>
           <li>If automatic payment fails, the Service retries up to 3 times at set intervals; if all fail, the plan is automatically switched to Free. Where an immediate retry is meaningless (e.g. a lost, stolen, or expired card), the plan switches to Free immediately.</li>
-          <li>A push notification is sent 3 days before the scheduled automatic payment date to inform the Member of the upcoming charge.</li>
+          <li>A push notification is sent 3 days before the scheduled automatic payment date to inform the Member of the upcoming charge. (The advance notice, payment-information disposal, and retry procedures in this article apply to web (Toss Payments) purchases.)</li>
+          <li>For subscriptions purchased in the mobile apps (Apple App Store / Google Play), automatic renewal, cancellation, and refunds are handled through each store&apos;s policies and subscription management screens; see the App Purchases section of the Refund Policy for details.</li>
           <li>Refund standards related to automatic payment follow the Refund Policy.</li>
         </ol>
       </Section>
@@ -346,7 +348,7 @@ function TermsEn({ refNotice }: { refNotice: string }) {
 
       <Section title="Article 14 (Cancelling a Subscription)">
         <ol>
-          <li>A Member may cancel their subscription at any time on the Subscription &amp; Billing page within the Service.</li>
+          <li>A Member may cancel their subscription at any time on the Subscription &amp; Billing page within the Service. Subscriptions purchased in the mobile apps (App Store / Google Play) are cancelled through each store&apos;s subscription management screen (iOS: Settings &gt; Apple Account &gt; Subscriptions / Android: Google Play &gt; Subscriptions).</li>
           <li>Upon cancellation, paid features remain usable until the end of the current billing cycle.</li>
           <li>After the billing cycle ends, the plan is automatically switched to Free.</li>
           <li>When switching to Free, data exceeding the Free plan limits is not deleted, but further use of those features is restricted.</li>
@@ -362,7 +364,7 @@ function TermsEn({ refNotice }: { refNotice: string }) {
         </ol>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 3, 2026 (revised — daily records / AI photo symptom analysis specified)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 26, 2026 (revised — App Store / Google Play in-app billing specified)</p>
     </>
   );
 }
