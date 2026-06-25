@@ -134,7 +134,6 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
             dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
           }`}
         >
-          {ph && <p className="text-sm text-gray-600 mb-3">{ph}</p>}
           {/* 촬영 · 갤러리 두 진입점 (사진 분석 페이지와 동일 스타일).
               촬영 = capture 카메라 / 파일 선택 = 갤러리+PDF. iOS·Android 모두 동작. */}
           <div className="flex items-center justify-center gap-1 text-gray-600">
@@ -156,7 +155,8 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
               <span className="text-xs font-medium">{t('uploader.choosePhoto')}</span>
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-3">{t('uploader.formatHint', { max: maxFiles })}</p>
+          {ph && <p className="text-sm text-gray-600 mt-3">{ph}</p>}
+          <p className="text-[11px] text-gray-400 mt-1">{t('uploader.formatHint', { max: maxFiles })}</p>
           {storageUsage && storageUsage.limitMB > 0 && (
             <p className="text-[11px] text-gray-400 mt-0.5">
               {t('uploader.remaining')} <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
