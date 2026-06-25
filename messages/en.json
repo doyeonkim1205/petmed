@@ -429,7 +429,9 @@
     "upsellFree": "Plus supports up to 5 files and about 20× the storage (1GB)",
     "storageCheckHint": "Check your storage in My page > App settings",
     "formatHint": "JPG, PNG, PDF · up to {max}",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "takePhoto": "Take photo",
+    "choosePhoto": "Choose file"
   },
   "calendar": {
     "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -650,8 +652,8 @@
     "plusOnly": "Plus only",
     "uploadedAlt": "Uploaded photo",
     "removePhoto": "Remove photo",
-    "takePhoto": "Take a photo",
-    "fromGallery": "Choose from gallery",
+    "takePhoto": "Take photo",
+    "fromGallery": "Choose file",
     "symptomDetail": "Symptom details",
     "detailPlaceholder": "e.g. Itchy for 3 days, inside the right ear.",
     "detailHint": "Tell us when it started, where, and how (at least 5 characters)",

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
+import { X, FileText, Image as ImageIcon, AlertCircle, Camera } from 'lucide-react';
 
 interface FileUploaderProps {
   files: File[];
@@ -25,11 +25,16 @@ function formatStorageMB(mb: number): string {
 
 export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
   const t = useTranslations();
-  const ph = placeholder ?? t('uploader.placeholder');
+  // 기본 안내문구("여기를 눌러…")는 촬영·파일선택 버튼과 중복이라 생략.
+  //   일상 '한 컷' 등 의미있는 커스텀 placeholder 가 넘어올 때만 표시.
+  const ph = placeholder ?? null;
   const [dragOver, setDragOver] = useState(false);
   // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
   const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // 카메라 촬영 전용 input — accept=image/* + capture 로 iOS·Android 모두 카메라 직접 실행.
+  //   (기존 파일 input 은 accept 에 PDF 가 섞여 Android WebView 가 카메라를 안 띄움)
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -127,25 +132,54 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-          onClick={() => inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-            dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+          className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors ${
+            dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
           }`}
         >
-          <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-          <p className="text-sm text-gray-600">{ph}</p>
+          {/* 촬영 · 갤러리 두 진입점 (사진 분석 페이지와 동일 스타일).
+              촬영 = capture 카메라 / 파일 선택 = 갤러리+PDF. iOS·Android 모두 동작. */}
+          <div className="flex items-center justify-center gap-1 text-gray-600">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 px-4 py-1 hover:text-blue-600 transition-colors"
+            >
+              <Camera size={24} />
+              <span className="text-xs font-medium">{t('uploader.takePhoto')}</span>
+            </button>
+            <span className="text-gray-300 text-xl leading-none">·</span>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 px-4 py-1 hover:text-blue-600 transition-colors"
+            >
+              <ImageIcon size={24} />
+              <span className="text-xs font-medium">{t('uploader.choosePhoto')}</span>
+            </button>
+          </div>
+          {ph && <p className="text-sm text-gray-600 mt-3">{ph}</p>}
           <p className="text-[11px] text-gray-400 mt-1">{t('uploader.formatHint', { max: maxFiles })}</p>
           {storageUsage && storageUsage.limitMB > 0 && (
             <p className="text-[11px] text-gray-400 mt-0.5">
               {t('uploader.remaining')} <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
             </p>
           )}
+          {/* 갤러리·파일 (PDF 포함) */}
           <input
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,application/pdf"
             multiple
-            onChange={(e) => handleFiles(e.target.files)}
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+            className="hidden"
+          />
+          {/* 카메라 직접 촬영 — capture=environment 로 후면 카메라 */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
             className="hidden"
           />
         </div>
