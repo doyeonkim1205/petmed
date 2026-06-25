@@ -401,7 +401,7 @@ export default function PreventivePage() {
       {!noPets && selectedPetId && !editorOpen && (
         <button
           onClick={openAdd}
-          className="fixed bottom-20 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+          className="fixed bottom-[calc(5rem_+_env(safe-area-inset-bottom))] w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
           style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
         >
           <Plus size={24} />
@@ -626,7 +626,7 @@ export default function PreventivePage() {
 
       {/* 완료 피드백 토스트 */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] px-4 py-2.5 rounded-full bg-gray-900/90 text-white text-xs font-medium shadow-lg flex items-center gap-1.5 max-w-[90vw]">
+        <div className="fixed bottom-[calc(6rem_+_env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[70] px-4 py-2.5 rounded-full bg-gray-900/90 text-white text-xs font-medium shadow-lg flex items-center gap-1.5 max-w-[90vw]">
           <Check size={13} className="text-green-400 flex-shrink-0" />
           <span className="truncate">{toast}</span>
         </div>

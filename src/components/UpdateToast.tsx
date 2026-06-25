@@ -165,7 +165,7 @@ export function UpdateToast() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-20 left-3 right-3 z-[80] max-w-md mx-auto">
+    <div className="fixed bottom-[calc(5rem_+_env(safe-area-inset-bottom))] left-3 right-3 z-[80] max-w-md mx-auto">
       <div className="bg-blue-600/90 backdrop-blur-md text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
         <Sparkles size={18} className="flex-shrink-0" />
         <span className="text-xs font-medium flex-1">{t('update.ready')}</span>

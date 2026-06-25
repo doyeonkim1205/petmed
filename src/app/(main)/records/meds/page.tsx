@@ -412,7 +412,7 @@ export default function MedsPage() {
       {!noPets && selectedPetId && !editorOpen && (
         <button
           onClick={openAdd}
-          className="fixed bottom-20 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+          className="fixed bottom-[calc(5rem_+_env(safe-area-inset-bottom))] w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
           style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
         >
           <Plus size={24} />

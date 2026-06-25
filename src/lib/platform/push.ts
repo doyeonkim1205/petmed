@@ -50,12 +50,18 @@ async function registerIosFcm(
   }
 }
 
-/** 네이티브 FCM 등록: 권한 요청 → 토큰 수신 → /api/push/fcm/register 저장. */
-export async function registerNativePush(): Promise<boolean> {
+/**
+ * 네이티브 FCM 등록: 권한 → 토큰 수신 → /api/push/fcm/register 저장.
+ * opts.prompt=false 면 권한 미허용 시 팝업 없이 종료 (로그인 시 자동 토큰 재귀속용 —
+ *   이미 허용된 기기에서만 조용히 재등록, 임의 권한 팝업 방지).
+ */
+export async function registerNativePush(opts?: { prompt?: boolean }): Promise<boolean> {
+  const prompt = opts?.prompt !== false;
   const { PushNotifications } = await import('@capacitor/push-notifications');
 
   let perm = await PushNotifications.checkPermissions();
   if (perm.receive !== 'granted') {
+    if (!prompt) return false;
     perm = await PushNotifications.requestPermissions();
   }
   if (perm.receive !== 'granted') return false;

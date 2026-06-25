@@ -402,7 +402,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { registerNativePush, unregisterNativePush } = await import('@/lib/platform');
         if (cancelled) return;
-        if (eligible) await registerNativePush();
+        // prompt:false → 이미 권한 허용된 기기에서만 조용히 재귀속 (로그인 시 권한 팝업 X).
+        if (eligible) await registerNativePush({ prompt: false });
         else await unregisterNativePush();
       } catch {}
     })();

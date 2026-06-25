@@ -42,6 +42,13 @@ function isDevLoginEnv(): boolean {
   return false;
 }
 
+// 사용자가 소셜 로그인 창을 '취소'한 경우 — 에러가 아니므로 빨간 메시지 안 띄움.
+//   Apple 1001(canceled), 구글/카카오 popup 닫힘 등 다양한 취소 시그니처를 폭넓게 매칭.
+function isUserCancelled(msg?: string): boolean {
+  const m = (msg || '').toLowerCase();
+  return /cancel|1001|취소|popup|closed|dismiss|aborted|user.?denied/.test(m);
+}
+
 export default function LoginPage() {
   const t = useTranslations();
   const [error, setError] = useState('');
@@ -103,7 +110,7 @@ export default function LoginPage() {
     }
     setError('');
     const { error } = await signInWithGoogle();
-    if (error) { setError(error.message); return; }
+    if (error) { if (!isUserCancelled(error.message)) setError(error.message); return; }
     // 네이티브 구글 로그인은 리다이렉트가 없어 세션만 설정되므로 수동으로 홈 이동.
     // (웹 OAuth 는 /auth/callback 리다이렉트가 라우팅을 처리)
     if (isNativeApp()) router.push('/');
@@ -113,7 +120,7 @@ export default function LoginPage() {
     if (!canLogin) { setError(t('login.agreeRequired')); return; }
     setError('');
     const { error } = await signInWithKakao();
-    if (error) { setError(error.message); return; }
+    if (error) { if (!isUserCancelled(error.message)) setError(error.message); return; }
     // 네이티브 카카오도 리다이렉트가 없어 수동으로 홈 이동 (웹은 콜백이 처리).
     if (isNativeApp()) router.push('/');
   };
@@ -122,7 +129,7 @@ export default function LoginPage() {
     if (!canLogin) { setError(t('login.agreeRequired')); return; }
     setError('');
     const { error } = await signInWithApple();
-    if (error) { setError(error.message); return; }
+    if (error) { if (!isUserCancelled(error.message)) setError(error.message); return; }
     // Apple 로그인은 iOS 네이티브 전용 — 리다이렉트 없어 수동 홈 이동.
     router.push('/');
   };

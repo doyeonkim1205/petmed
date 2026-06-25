@@ -433,7 +433,8 @@ export default function RecordsPage() {
           <button
             onClick={handleBulkDelete}
             disabled={deleting}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 h-12 px-6 bg-red-500 text-[#fff] rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-red-600 active:scale-95 transition-all z-40 disabled:opacity-50"
+            className="fixed left-1/2 -translate-x-1/2 h-12 px-6 bg-red-500 text-[#fff] rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-red-600 active:scale-95 transition-all z-40 disabled:opacity-50"
+            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
           >
             <Trash2 size={18} />
             <span className="font-medium text-sm">{deleting ? t('record.select.deleting') : t('record.select.deleteCount', { count: selectedIds.size })}</span>
@@ -441,8 +442,8 @@ export default function RecordsPage() {
         ) : !selectMode && (
           <button
             onClick={() => router.push('/records/add')}
-            className="fixed bottom-20 right-4 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
-            style={{ right: 'max(1rem, calc(50% - 224px + 1rem))' }}
+            className="fixed right-4 w-13 h-13 bg-blue-600 text-[#fff] rounded-full shadow-md flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all z-40"
+            style={{ right: 'max(1rem, calc(50% - 224px + 1rem))', bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
           >
             <Plus size={24} />
           </button>

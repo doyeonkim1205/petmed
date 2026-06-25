@@ -98,7 +98,7 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-20 left-3 right-3 z-[75] max-w-md mx-auto">
+    <div className="fixed bottom-[calc(5rem_+_env(safe-area-inset-bottom))] left-3 right-3 z-[75] max-w-md mx-auto">
       <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
           <Smartphone size={18} className="text-blue-600" />
