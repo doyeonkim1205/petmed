@@ -39,11 +39,14 @@ capabilities — it is not a repackaged website:
 - In-App Purchase via StoreKit for the "PawDex Plus" auto-renewable subscription
 - Camera & Photo Library to attach images to health records
 
-SIGN-IN (required):
-  Email:    pawdex.console@gmail.com
-  Password: <YOUR_PASSWORD>  (set in App Store Connect demo account fields)
-You may also tap "Sign in with Apple" to create an account instantly.
-The demo account is pre-populated with a pet and sample records.
+SIGN-IN (required) — please use the email/password account below:
+  1. On the login screen, scroll to the bottom and tap "이메일로 로그인" (Sign in with email).
+  2. Enter:
+       Email:    pawdex.console@gmail.com
+       Password: <YOUR_PASSWORD>  (set in the demo account fields above)
+  3. Tap 로그인 (Sign in).
+(Google/Kakao buttons require Korean third-party accounts; please use the email
+ login above. The demo account is pre-populated with a pet and sample records.)
 
 HOW TO TEST:
 - Records: Home → tap a category card to add/view pet health records.
