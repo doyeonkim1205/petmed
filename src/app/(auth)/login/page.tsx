@@ -23,6 +23,11 @@ function isDevLoginEnv(): boolean {
   // 토스 심사 중 prod 에서도 임시 노출 (이메일/비밀번호 로그인 폼).
   // ENABLE_PAYMENT_REVIEW 와 같이 켜고, 심사 통과 후 둘 다 끔.
   if (process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true') return true;
+  // ⚠️ App Store 심사용 — iOS 네이티브 앱에선 이메일 로그인 노출.
+  //   리뷰어는 구글/카카오 로그인 불가 → 데모 계정(이메일/비번)으로 로그인해야 함.
+  //   iOS 앱은 pawdex.store 를 원격 로드하므로 이 분기만으로 앱에 즉시 반영.
+  //   👉 App Store 심사 통과 후 이 줄을 제거하고 재배포하면 앱에서 다시 숨겨짐.
+  if (isIOS()) return true;
   const host = window.location.hostname;
   if (host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1') return true;
   // prod(pawdex.store): 토스 심사용으로 "웹 브라우저"에선 노출, "설치한 앱(TWA/PWA standalone)"
@@ -215,16 +220,16 @@ export default function LoginPage() {
           </div>
 
 
-          {/* 개발자 로그인 — test.pawdex.store / localhost 에서만 표시.
-              prod (pawdex.store) 에선 hostname 분기로 안 보임. */}
+          {/* 이메일 로그인 — dev(test/localhost) + iOS 앱(심사용) + 웹(설치앱 아닐 때) 표시.
+              prod 설치앱(Android)에선 숨김. iOS 분기는 심사 통과 후 제거. */}
           {showDevToggle && (
             <div className="pt-1 mt-auto border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setDevLogin(v => !v)}
-                className="text-[10px] text-gray-300 hover:text-gray-400 w-full text-center pt-3"
+                className="text-xs text-gray-400 hover:text-gray-600 w-full text-center pt-3"
               >
-                개발자 로그인 {devLogin ? '닫기' : '열기'}
+                이메일로 로그인 {devLogin ? '닫기' : '열기'}
               </button>
               {devLogin && (
                 <form onSubmit={handleDevLogin} className="mt-3 space-y-2">
