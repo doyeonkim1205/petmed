@@ -614,7 +614,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col pb-20">
+    <div className="min-h-screen bg-white flex flex-col pb-[calc(5rem_+_env(safe-area-inset-bottom))]">
       <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
         <button onClick={handleBack} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
@@ -1191,7 +1191,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       )}
 
       {/* Bottom Save Button */}
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-10 keyboard-hide-on-open">
+      <div className="fixed bottom-[calc(4rem_+_env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-10 keyboard-hide-on-open">
         <button
           type="button"
           onClick={() => handleSubmit()}

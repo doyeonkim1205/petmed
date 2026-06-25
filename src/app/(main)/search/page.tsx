@@ -902,7 +902,7 @@ function SearchContent() {
       </div>
 
       {/* Content Area */}
-      <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-20' : ''}`}>
+      <div className={`flex-1 px-4 pb-4 ${showBottomBar ? 'pb-[calc(5rem_+_env(safe-area-inset-bottom))]' : ''}`}>
         {/* Symptom Mode Results */}
         {searchMode === 'symptom' && (symptomLoading || symptomResult || symptomError) ? (
           <div className="max-w-sm mx-auto space-y-4">
@@ -1499,7 +1499,7 @@ function SearchContent() {
 
       {/* Bottom Sticky Bookmark Bar */}
       {showBottomBar && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-30">
+        <div className="fixed bottom-[calc(4rem_+_env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-3 z-30">
           {saveError && (
             <p className="text-xs text-red-600 mb-2 text-center">{saveError}</p>
           )}

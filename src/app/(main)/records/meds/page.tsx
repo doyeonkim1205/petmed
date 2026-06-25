@@ -423,7 +423,7 @@ export default function MedsPage() {
       {editorOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={closeEditor}>
           <div
-            className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto"
+            className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto scroll-visible"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
