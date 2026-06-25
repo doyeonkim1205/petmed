@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { createClient } from '@supabase/supabase-js';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,22 +13,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function checkAdmin() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // getUser() 는 토큰을 검증·자동 갱신한다. 기존엔 getSession() 의 access_token 을
+      //   수동 클라에 그대로 박아, 토큰 만료 상태로 재진입 시 role 조회가 실패해
+      //   관리자가 홈으로 튕기는 문제가 있었음. 자동갱신 supabase 싱글톤으로 조회.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         router.replace('/');
         return;
       }
 
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${session.access_token}` } } }
-      );
-
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
       if (!profile || profile.role !== 'admin') {
