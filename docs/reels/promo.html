@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>PawDex Promo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html,body { width:1080px; height:1920px; overflow:hidden;
+    font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background:linear-gradient(165deg,#2f6bff 0%, #3f7bff 42%, #5b8dff 100%); }
+  #stage { position:relative; width:1080px; height:1920px; }
+  .layer { position:absolute; will-change:transform,opacity; }
+  .pawbg { fill:rgba(255,255,255,.08); }
+  .logo { top:150px; left:0; right:0; text-align:center; }
+  .logo .mark { width:78px; height:78px; vertical-align:middle; }
+  .logo .name { font-size:56px; font-weight:900; color:#fff; letter-spacing:-1px; margin-left:18px; vertical-align:middle; }
+  .pets { left:160px; top:430px; width:760px; }
+  .h1 { left:80px; right:80px; top:1060px; text-align:center; font-size:96px; font-weight:900; color:#fff; line-height:1.2; letter-spacing:-3px; text-shadow:0 4px 24px rgba(0,30,90,.25); }
+  .h1 em { font-style:normal; color:#ffe6a1; }
+  .sub { left:80px; right:80px; top:1320px; text-align:center; font-size:42px; font-weight:600; color:rgba(255,255,255,.95); letter-spacing:-.8px; }
+  .chip { left:0; right:0; top:1560px; text-align:center; }
+  .chip span { display:inline-flex; align-items:center; gap:18px; background:#fff; color:#2357e6; font-size:44px; font-weight:800; padding:30px 60px; border-radius:999px; box-shadow:0 16px 44px rgba(0,20,70,.32); }
+  .chip span svg { width:46px; height:50px; }
+  .free { left:0; right:0; top:1700px; text-align:center; font-size:32px; font-weight:700; color:rgba(255,255,255,.92); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg class="layer pawbg" id="paw1" style="top:-100px;right:-120px;width:460px;height:460px" viewBox="0 0 100 100"><g><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg>
+  <svg class="layer pawbg" id="paw2" style="bottom:-80px;left:-100px;width:380px;height:380px" viewBox="0 0 100 100"><g><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg>
+
+  <div class="layer logo" id="logo"><svg class="mark" viewBox="0 0 100 100"><g fill="#fff"><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg><span class="name">PawDex</span></div>
+
+  <svg class="layer pets" id="pets" viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg">
+    <rect x="40" y="40" width="680" height="440" rx="70" fill="#ffffff" opacity="0.14"/>
+    <g transform="translate(250,280)">
+      <ellipse cx="-118" cy="40" rx="48" ry="92" fill="#d9a96b" transform="rotate(-12 -118 40)"/>
+      <ellipse cx="118" cy="40" rx="48" ry="92" fill="#d9a96b" transform="rotate(12 118 40)"/>
+      <ellipse cx="0" cy="0" rx="150" ry="142" fill="#f0c98a"/>
+      <ellipse cx="0" cy="56" rx="92" ry="78" fill="#fbe6bf"/>
+      <circle cx="-58" cy="-18" r="20" fill="#3a2a17"/><circle cx="58" cy="-18" r="20" fill="#3a2a17"/>
+      <circle cx="-51" cy="-25" r="6" fill="#fff"/><circle cx="65" cy="-25" r="6" fill="#fff"/>
+      <ellipse cx="0" cy="40" rx="26" ry="18" fill="#3a2a17"/>
+      <path d="M0 58 Q0 86 -34 86 M0 58 Q0 86 34 86" stroke="#3a2a17" stroke-width="7" fill="none" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(510,300)">
+      <path d="M-112 -78 L-58 -8 L-150 -20 Z" fill="#aab4c4"/><path d="M112 -78 L58 -8 L150 -20 Z" fill="#aab4c4"/>
+      <path d="M-104 -70 L-70 -22 L-128 -28 Z" fill="#ffc2cf"/><path d="M104 -70 L70 -22 L128 -28 Z" fill="#ffc2cf"/>
+      <circle cx="0" cy="0" r="138" fill="#c3ccd9"/>
+      <ellipse cx="0" cy="34" rx="86" ry="74" fill="#eef1f6"/>
+      <ellipse cx="-54" cy="-12" rx="15" ry="22" fill="#2c3340"/><ellipse cx="54" cy="-12" rx="15" ry="22" fill="#2c3340"/>
+      <circle cx="-49" cy="-20" r="5" fill="#fff"/><circle cx="59" cy="-20" r="5" fill="#fff"/>
+      <path d="M0 26 l-16 14 h32 z" fill="#ff8fa6"/>
+      <path d="M0 40 Q0 60 -22 58 M0 40 Q0 60 22 58" stroke="#7a8596" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <g stroke="#9aa4b3" stroke-width="5" stroke-linecap="round"><path d="M-40 24 L-130 10"/><path d="M-40 38 L-128 44"/><path d="M40 24 L130 10"/><path d="M40 38 L128 44"/></g>
+    </g>
+  </svg>
+
+  <div class="layer h1" id="h1">우리 아이 건강,<br><em>기록부터 AI 분석</em>까지</div>
+  <div class="layer sub" id="sub">흩어진 건강 정보를 PawDex 하나로 🐾</div>
+  <div class="layer chip" id="chip"><span><svg viewBox="0 0 256 283"><path fill="#EA4335" d="M119.6 134.9 1 259.1c2.7 9.6 9.7 17.3 18.9 21.1 9.2 3.7 19.6 3 28.2-2L181.4 202.2z"/><path fill="#FBBC04" d="M239.4 113.8 181.7 80.8l-64.9 57 65.2 64.3 57.2-32.7c10.3-5.4 16.8-16.1 16.8-27.8 0-11.7-6.5-22.4-16.8-27.8z"/><path fill="#4285F4" d="M1.1 23.5C.3 26.1 0 28.9 0 31.6V250.9c0 2.7.4 5.5 1.1 8.1L123.6 138.1z"/><path fill="#34A853" d="M120.4 141.3 181.7 80.8 48.6 4.5C43.6 1.6 37.9 0 32.1 0 17.6 0 5 9.5 1.1 23.4z"/></svg>Play 스토어</span></div>
+  <div class="layer free" id="free">지금 무료로 시작하기</div>
+</div>
+<script>
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const lerp = (a,b,p) => a+(b-a)*p;
+const easeOutCubic = p => 1-Math.pow(1-p,3);
+const easeOutBack = p => { const c1=1.70158,c3=c1+1; return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2); };
+
+// 각 레이어: 등장 구간[s,e], 효과
+const A = [
+  { id:'logo', s:0.10, e:0.80, y:-40, ease:easeOutCubic },
+  { id:'pets', s:0.45, e:1.35, scale:0.55, ease:easeOutBack },
+  { id:'h1',   s:1.35, e:2.05, y:60,  ease:easeOutCubic },
+  { id:'sub',  s:2.15, e:2.80, y:40,  ease:easeOutCubic },
+  { id:'chip', s:2.95, e:3.60, scale:0.7, ease:easeOutBack },
+  { id:'free', s:3.35, e:3.90, y:24,  ease:easeOutCubic },
+];
+
+function frame(t){
+  for (const a of A){
+    const el = document.getElementById(a.id);
+    const p = a.ease(clamp01((t-a.s)/(a.e-a.s)));
+    el.style.opacity = clamp01((t-a.s)/((a.e-a.s)*0.6));
+    let tf = '';
+    if (a.y != null) tf += `translateY(${lerp(a.y,0,p)}px)`;
+    if (a.scale != null) tf += ` scale(${lerp(a.scale,1,p)})`;
+    el.style.transform = tf;
+    if (a.id==='pets') el.style.transformOrigin = 'center center';
+    if (a.id==='chip') el.style.transformOrigin = 'center center';
+  }
+  // 펫 등장 후 은은한 상하 보빙
+  if (t > 1.35){ const bob = Math.sin((t-1.35)*3.2)*7; document.getElementById('pets').style.transform += ` translateY(${bob}px)`; }
+}
+const t = parseFloat((location.hash.match(/t=([\d.]+)/)||[])[1] || '99');
+frame(t);
+</script>
+</body>
+</html>

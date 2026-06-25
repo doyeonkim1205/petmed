@@ -44,9 +44,11 @@ function isDevLoginEnv(): boolean {
 
 // 사용자가 소셜 로그인 창을 '취소'한 경우 — 에러가 아니므로 빨간 메시지 안 띄움.
 //   Apple 1001(canceled), 구글/카카오 popup 닫힘 등 다양한 취소 시그니처를 폭넓게 매칭.
+//   카카오 iOS 웹로그인(카톡 미설치) 취소 = ASWebAuthenticationSession 에러
+//   ("The operation couldn't be completed. (…WebAuthenticationSession error 1.)") → 함께 매칭.
 function isUserCancelled(msg?: string): boolean {
   const m = (msg || '').toLowerCase();
-  return /cancel|1001|취소|popup|closed|dismiss|aborted|user.?denied/.test(m);
+  return /cancel|1001|취소|popup|closed|dismiss|aborted|user.?denied|webauthenticationsession|operation could/.test(m);
 }
 
 export default function LoginPage() {
@@ -121,7 +123,6 @@ export default function LoginPage() {
     setError('');
     const { error } = await signInWithKakao();
     if (error) {
-      if (error.message?.startsWith('KAKAODBG')) alert(error.message); // [임시 진단] 취소 시그니처 확인
       if (!isUserCancelled(error.message)) setError(error.message);
       return;
     }

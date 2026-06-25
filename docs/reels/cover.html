@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>PawDex Reels Cover</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  body { font-family:'Pretendard','Apple SD Gothic Neo',sans-serif; }
+  .cover { position:relative; width:1080px; height:1920px; overflow:hidden; display:none;
+    background:linear-gradient(165deg,#2f6bff 0%, #3f7bff 42%, #5b8dff 100%); }
+  .cover.show { display:block; }
+  .paw-bg { position:absolute; fill:rgba(255,255,255,.08); }
+
+  .brand { position:absolute; top:96px; left:0; right:0; text-align:center; z-index:5; }
+  .brand .logo { display:inline-flex; align-items:center; gap:16px; }
+  .brand .logo .mark { width:74px; height:74px; }
+  .brand .logo .name { font-size:52px; font-weight:900; color:#fff; letter-spacing:-1px; }
+
+  /* 펫 카드 */
+  .pets { position:absolute; left:50%; top:300px; transform:translateX(-50%); width:760px; height:520px; z-index:3; }
+
+  /* 훅 텍스트 */
+  .hook { position:absolute; left:80px; right:80px; top:880px; z-index:5; text-align:center; }
+  .hook .q { display:inline-block; font-size:34px; font-weight:800; color:#cfe0ff; margin-bottom:24px; letter-spacing:-.5px; }
+  .hook h1 { font-size:92px; font-weight:900; color:#fff; line-height:1.18; letter-spacing:-3px;
+    text-shadow:0 4px 24px rgba(0,30,90,.25); }
+  .hook h1 em { font-style:normal; color:#ffe6a1; }
+  .hook .sub { margin-top:34px; font-size:38px; font-weight:600; color:rgba(255,255,255,.92); line-height:1.5; letter-spacing:-.8px; }
+
+  /* 하단 CTA */
+  .cta { position:absolute; left:0; right:0; bottom:150px; text-align:center; z-index:5; }
+  .cta .chip { display:inline-flex; align-items:center; gap:16px; background:#fff; color:#2357e6;
+    font-size:40px; font-weight:800; padding:26px 52px; border-radius:999px; box-shadow:0 14px 40px rgba(0,20,70,.3); letter-spacing:-.5px; }
+  .cta .chip svg { width:42px; height:46px; }
+  .cta .free { display:block; margin-top:26px; font-size:30px; font-weight:700; color:rgba(255,255,255,.9); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const PAW_MARK = '<svg class="mark" viewBox="0 0 100 100"><g fill="#fff"><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg>';
+
+const PLAY = '<svg viewBox="0 0 256 283"><path fill="#EA4335" d="M119.6 134.9 1 259.1c2.7 9.6 9.7 17.3 18.9 21.1 9.2 3.7 19.6 3 28.2-2L181.4 202.2z"/><path fill="#FBBC04" d="M239.4 113.8 181.7 80.8l-64.9 57 65.2 64.3 57.2-32.7c10.3-5.4 16.8-16.1 16.8-27.8 0-11.7-6.5-22.4-16.8-27.8z"/><path fill="#4285F4" d="M1.1 23.5C.3 26.1 0 28.9 0 31.6V250.9c0 2.7.4 5.5 1.1 8.1L123.6 138.1z"/><path fill="#34A853" d="M120.4 141.3 181.7 80.8 48.6 4.5C43.6 1.6 37.9 0 32.1 0 17.6 0 5 9.5 1.1 23.4z"/></svg>';
+
+// 강아지 + 고양이 일러스트 (플랫 스티커풍)
+const PETS = `<svg viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg">
+  <!-- 둥근 흰 배경 카드 -->
+  <rect x="40" y="40" width="680" height="440" rx="70" fill="#ffffff" opacity="0.14"/>
+  <!-- ===== 강아지 (왼쪽) ===== -->
+  <g transform="translate(250,280)">
+    <ellipse cx="-118" cy="40" rx="48" ry="92" fill="#d9a96b" transform="rotate(-12 -118 40)"/>
+    <ellipse cx="118" cy="40" rx="48" ry="92" fill="#d9a96b" transform="rotate(12 118 40)"/>
+    <ellipse cx="0" cy="0" rx="150" ry="142" fill="#f0c98a"/>
+    <ellipse cx="0" cy="56" rx="92" ry="78" fill="#fbe6bf"/>
+    <circle cx="-58" cy="-18" r="20" fill="#3a2a17"/>
+    <circle cx="58" cy="-18" r="20" fill="#3a2a17"/>
+    <circle cx="-51" cy="-25" r="6" fill="#fff"/>
+    <circle cx="65" cy="-25" r="6" fill="#fff"/>
+    <ellipse cx="0" cy="40" rx="26" ry="18" fill="#3a2a17"/>
+    <path d="M0 58 Q0 86 -34 86 M0 58 Q0 86 34 86" stroke="#3a2a17" stroke-width="7" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- ===== 고양이 (오른쪽, 살짝 앞) ===== -->
+  <g transform="translate(510,300)">
+    <path d="M-112 -78 L-58 -8 L-150 -20 Z" fill="#aab4c4"/>
+    <path d="M112 -78 L58 -8 L150 -20 Z" fill="#aab4c4"/>
+    <path d="M-104 -70 L-70 -22 L-128 -28 Z" fill="#ffc2cf"/>
+    <path d="M104 -70 L70 -22 L128 -28 Z" fill="#ffc2cf"/>
+    <circle cx="0" cy="0" r="138" fill="#c3ccd9"/>
+    <ellipse cx="0" cy="34" rx="86" ry="74" fill="#eef1f6"/>
+    <ellipse cx="-54" cy="-12" rx="15" ry="22" fill="#2c3340"/>
+    <ellipse cx="54" cy="-12" rx="15" ry="22" fill="#2c3340"/>
+    <circle cx="-49" cy="-20" r="5" fill="#fff"/>
+    <circle cx="59" cy="-20" r="5" fill="#fff"/>
+    <path d="M0 26 l-16 14 h32 z" fill="#ff8fa6"/>
+    <path d="M0 40 Q0 60 -22 58 M0 40 Q0 60 22 58" stroke="#7a8596" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <g stroke="#9aa4b3" stroke-width="5" stroke-linecap="round">
+      <path d="M-40 24 L-130 10"/><path d="M-40 38 L-128 44"/>
+      <path d="M40 24 L130 10"/><path d="M40 38 L128 44"/>
+    </g>
+  </g>
+</svg>`;
+
+const COVERS = [
+  { id:'A', q:'혹시 우리 아이…',
+    h:'병원 기록<br><em>어디다</em> 적어두셨어요?',
+    sub:'진료·증상·복약·통계까지<br>PawDex 하나로 똑똑하게' },
+  { id:'B', q:'우리 아이 건강, 이제',
+    h:'기록부터<br><em>AI 분석</em>까지',
+    sub:'흩어진 건강 정보를<br>한 곳에서 편하게 관리해요' },
+];
+
+const root = document.getElementById('root');
+const only = (location.hash.match(/id=(\w+)/)||[])[1];
+COVERS.forEach((c)=>{
+  const show = (!only || only===c.id) ? ' show' : '';
+  root.insertAdjacentHTML('beforeend', `
+  <div class="cover${show}" data-id="${c.id}">
+    <svg class="paw-bg" style="top:-90px;right:-110px;width:420px;height:420px" viewBox="0 0 100 100"><g><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg>
+    <svg class="paw-bg" style="bottom:-70px;left:-90px;width:340px;height:340px" viewBox="0 0 100 100"><g><ellipse cx="23" cy="42" rx="9" ry="13"/><ellipse cx="40" cy="28" rx="9.5" ry="14"/><ellipse cx="60" cy="28" rx="9.5" ry="14"/><ellipse cx="77" cy="42" rx="9" ry="13"/><path d="M50 50c14 0 26 10 26 22 0 9-7.5 14-16 14-3.5 0-6-1.8-10-1.8s-6.5 1.8-10 1.8C21.5 86 14 81 14 72c0-12 12-22 26-22z"/></g></svg>
+    <div class="brand"><span class="logo">${PAW_MARK}<span class="name">PawDex</span></span></div>
+    <div class="pets">${PETS}</div>
+    <div class="hook"><span class="q">${c.q}</span><h1>${c.h}</h1><div class="sub">${c.sub}</div></div>
+    <div class="cta"><span class="chip">${PLAY}Play 스토어</span><span class="free">지금 무료로 시작하기</span></div>
+  </div>`);
+});
+</script>
+</body>
+</html>

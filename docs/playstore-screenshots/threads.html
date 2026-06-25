@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>PawDex Threads Images</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html, body { background:#fff; }
+  :root { --ink:#1b2742; --sub:#5b6478; --blue-deep:#2357e6; --chip-bg:#eef3fb; }
+  body { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+
+  .slide { position:relative; width:1080px; height:1350px; overflow:hidden; display:none;
+    background:linear-gradient(180deg,#eef4ff 0%, #f7faff 40%, #ffffff 100%); }
+  .slide.show { display:block; }
+  /* 은은한 발바닥 워터마크 (허전함 보완) */
+  .paw { position:absolute; right:-70px; bottom:-60px; width:520px; height:520px; opacity:.05; z-index:0; fill:#2f6bff; }
+
+  .head { position:absolute; left:80px; right:80px; top:108px; z-index:5; text-align:center; }
+  .chip { display:inline-flex; align-items:center; gap:11px; padding:13px 28px 13px 22px;
+    background:var(--chip-bg); border-radius:999px; font-size:30px; font-weight:800; color:var(--blue-deep); margin-bottom:26px; }
+  .chip svg { width:33px; height:33px; }
+  .title { font-size:62px; font-weight:800; line-height:1.28; color:var(--ink); letter-spacing:-1.6px; }
+  .sub { margin-top:20px; font-size:31px; font-weight:500; line-height:1.5; color:var(--sub); letter-spacing:-0.5px; }
+
+  /* ===== 리얼 디바이스 프레임 ===== */
+  .device { position:relative; width:520px; padding:14px; border-radius:64px;
+    background:linear-gradient(150deg,#3a3d45 0%,#15171c 38%,#0b0d12 100%);
+    box-shadow:0 50px 100px rgba(20,40,90,.32), inset 0 0 0 2px rgba(255,255,255,.07), inset 0 0 14px rgba(0,0,0,.6); }
+  .device .scr { position:relative; border-radius:50px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+  .device .island { position:absolute; top:16px; left:50%; transform:translateX(-50%); width:122px; height:33px; background:#000; border-radius:18px; z-index:6; }
+  .device .sbar { flex:0 0 auto; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 46px 0 50px; background:#fff; z-index:4; }
+  .device .sbar .t { font-size:25px; font-weight:700; color:#111; letter-spacing:.5px; }
+  .device .sbar .r { display:flex; align-items:center; gap:9px; }
+  .device .sbar .r svg { height:24px; width:auto; fill:#111; }
+  .device .shot { flex:0 0 auto; overflow:hidden; }
+  .device .shot img { width:100%; height:auto; display:block; }
+  .device .glare { position:absolute; inset:0; border-radius:50px; pointer-events:none; z-index:5;
+    background:linear-gradient(125deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 34%); }
+  .device .pow { position:absolute; right:-4px; top:250px; width:5px; height:100px; border-radius:0 5px 5px 0; background:linear-gradient(#2a2d35,#0e1014); }
+  .device .v1 { position:absolute; left:-4px; top:210px; width:5px; height:62px; border-radius:5px 0 0 5px; background:linear-gradient(#2a2d35,#0e1014); }
+  .device .v2 { position:absolute; left:-4px; top:286px; width:5px; height:62px; border-radius:5px 0 0 5px; background:linear-gradient(#2a2d35,#0e1014); }
+
+  /* 2대 듀오 (틸트 겹침) — 풀 폰(하단 안 잘리게) */
+  .duo { position:absolute; left:0; top:446px; width:1080px; height:904px; z-index:2; }
+  .duo .device { position:absolute; transform-origin:top left; }
+  .duo .back  { left:188px; top:92px; transform:scale(.65) rotate(-5deg); z-index:1; }
+  .duo .front { left:506px; top:0;   transform:scale(.73) rotate(4deg);  z-index:2; }
+
+  /* 3대 팬 (가운데 앞·크게, 양옆 뒤·틸트) */
+  .trio { position:absolute; left:0; top:432px; width:1080px; height:918px; z-index:2; }
+  .trio .device { position:absolute; transform-origin:center top; }
+  .trio .center { left:280px; top:10px;  transform:scale(.62); z-index:3; }
+  .trio .left   { left:-12px; top:98px;  transform:scale(.54) rotate(-10deg); z-index:1; }
+  .trio .right  { left:572px; top:98px;  transform:scale(.54) rotate(10deg);  z-index:2; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const I = {
+  notebook:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2z"/><path d="M8 4v17M12 9h4M12 13h4"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.4 2-5a4.8 4.8 0 0 0-9-2.3A4.8 4.8 0 0 0 3 9c0 1.6.5 3.5 2 5l7 7z"/></svg>',
+};
+const SB = '<span class="r">'
+  + '<svg viewBox="0 0 20 14"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6" width="3" height="8" rx="1"/><rect x="10" y="3" width="3" height="11" rx="1"/><rect x="15" y="0" width="3" height="14" rx="1"/></svg>'
+  + '<svg viewBox="0 0 22 16"><path d="M11 3.2c3 0 5.7 1.1 7.7 3l-1.6 1.7C15.5 7.4 13.4 6.5 11 6.5S6.5 7.4 4.9 7.9L3.3 6.2C5.3 4.3 8 3.2 11 3.2zm0 4.6c1.7 0 3.3.6 4.5 1.7l-1.6 1.7c-.8-.7-1.8-1.1-2.9-1.1s-2.1.4-2.9 1.1L6.5 9.5C7.7 8.4 9.3 7.8 11 7.8zm0 4.4c.8 0 1.5.3 2 .9L11 16l-2-1.9c.5-.6 1.2-.9 2-.9z"/></svg>'
+  + '<svg viewBox="0 0 30 14"><rect x="1" y="1" width="24" height="12" rx="3.2" fill="none" stroke="#111" stroke-width="1.4"/><rect x="26.5" y="4.5" width="2.2" height="5" rx="1"/><rect x="3" y="3" width="20" height="8" rx="1.8"/></svg>'
+  + '</span>';
+const PAW = '<svg class="paw" viewBox="0 0 100 100"><ellipse cx="23" cy="42" rx="8.5" ry="12"/><ellipse cx="40" cy="29" rx="9" ry="13"/><ellipse cx="60" cy="29" rx="9" ry="13"/><ellipse cx="77" cy="42" rx="8.5" ry="12"/><path d="M50 50c14 0 25 9.5 25 21 0 8.5-7 13.5-15.5 13.5-3.3 0-5.5-1.7-9.5-1.7s-6.2 1.7-9.5 1.7C32 86 25 81 25 71c0-11.5 11-21 25-21z"/></svg>';
+
+const SLIDES = [
+  // ── 1번 글: "우리 아이 건강 기록, 한 곳에" ──
+  { id:'a1', kind:'three', chip:['notebook','건강 기록'],
+    title:'기록부터 AI 분석까지',
+    sub:'기록을 남기고 AI 증상 분석도 확인할 수 있어요',
+    screens:['screens/slide1.png','screens/slide2a.png','screens/slide3a.png'] },  // [center, left, right]
+  { id:'a2', kind:'two', chip:['search','정보 탐색'],
+    title:'궁금한 정보부터 병원 찾기까지',
+    sub:'수의학 논문을 찾아보고 주변 동물병원도 확인할 수 있어요',
+    screens:['screens/slide8.png','screens/slide7.png'] },  // [front=병원, back=논문]
+  // ── 2번 글: "기록을 넘어, 돌봄이 쉬워지도록" ──
+  { id:'b1', kind:'two', chip:['clock','기록 관리'],
+    title:'기록 흐름을 한눈에',
+    sub:'타임라인과 캘린더로 다시 확인할 수 있어요',
+    screens:['screens/slide4a.png','screens/slide4b.png'] },  // [front=타임라인, back=캘린더]
+  { id:'b2', kind:'three', chip:['heart','돌봄 관리'],
+    title:'생활 패턴과 비용 흐름까지',
+    sub:'건강 변화와 지출 흐름을 함께 살펴볼 수 있어요',
+    screens:['screens/slide5a.png','screens/slide5b.png','screens/slide6.png'] },  // [center=체중, left=음수량, right=지출]
+];
+
+function deviceHTML(src, cls){
+  return `<div class="device ${cls||''}"><div class="scr">
+    <div class="island"></div>
+    <div class="sbar"><span class="t">9:41</span>${SB}</div>
+    <div class="shot"><img src="${src}" /></div>
+    <div class="glare"></div>
+  </div><div class="pow"></div><div class="v1"></div><div class="v2"></div></div>`;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  const params = new URLSearchParams(location.search);
+  const only = params.get('id');
+  SLIDES.forEach((s)=>{
+    const show = (!only || only===s.id) ? ' show' : '';
+    let stage;
+    if (s.kind==='three'){
+      stage = `<div class="trio">${deviceHTML(s.screens[1],'left')}${deviceHTML(s.screens[2],'right')}${deviceHTML(s.screens[0],'center')}</div>`;
+    } else {
+      stage = `<div class="duo">${deviceHTML(s.screens[1],'back')}${deviceHTML(s.screens[0],'front')}</div>`;
+    }
+    root.insertAdjacentHTML('beforeend',
+      `<div class="slide ${s.kind}${show}" data-id="${s.id}">${PAW}<div class="head"><div class="chip">${I[s.chip[0]]}${s.chip[1]}</div><div class="title">${s.title}</div><div class="sub">${s.sub}</div></div>${stage}</div>`);
+  });
+}
+render();
+</script>
+</body>
+</html>
