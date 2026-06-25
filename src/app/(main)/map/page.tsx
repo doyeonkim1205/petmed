@@ -483,7 +483,6 @@ export default function MapPage() {
             )}
             {loadingPhase >= 2 && (
               <div className="mt-4 space-y-1.5 text-[11px] text-gray-500 leading-relaxed">
-                <p className="font-medium text-gray-700">{t('map.loadingSlow')}</p>
                 <p>{t('map.loadingNetwork')}</p>
               </div>
             )}
