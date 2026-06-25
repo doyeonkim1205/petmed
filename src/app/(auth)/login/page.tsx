@@ -120,7 +120,11 @@ export default function LoginPage() {
     if (!canLogin) { setError(t('login.agreeRequired')); return; }
     setError('');
     const { error } = await signInWithKakao();
-    if (error) { if (!isUserCancelled(error.message)) setError(error.message); return; }
+    if (error) {
+      if (error.message?.startsWith('KAKAODBG')) alert(error.message); // [임시 진단] 취소 시그니처 확인
+      if (!isUserCancelled(error.message)) setError(error.message);
+      return;
+    }
     // 네이티브 카카오도 리다이렉트가 없어 수동으로 홈 이동 (웹은 콜백이 처리).
     if (isNativeApp()) router.push('/');
   };
