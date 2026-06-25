@@ -79,7 +79,7 @@ export default function StartPage() {
             rel="noopener noreferrer"
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
           >
-            <GooglePlayIcon size={26} />
+            <GooglePlayIcon size={24} />
             <span className="text-left leading-tight">
               <span className="block text-[9px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
               <span className="block text-[14px] font-extrabold">Google Play</span>
