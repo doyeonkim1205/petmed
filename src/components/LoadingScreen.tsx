@@ -33,15 +33,18 @@ export function LoadingScreen({ inMain = false }: { inMain?: boolean }) {
 
   return (
     <div
-      className="flex flex-col items-center justify-center bg-white"
+      className="relative flex items-center justify-center bg-white"
       style={{ minHeight: '100vh' }}
     >
-      {/* 스플래시와 동일한 앱 아이콘 — 스플래시 화면이 그대로 이어지는 것처럼 보이게.
+      {/* 아이콘은 스플래시와 '동일한 위치(화면 정중앙) + 크기'로 고정 — flex 중앙정렬.
+          스피너를 함께 묶어 정렬하면 아이콘이 위로 밀려 스플래시와 어긋나므로,
+          스피너는 absolute 로 아이콘 아래에만 얹어 아이콘 위치를 건드리지 않는다.
           eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icons/icon-512x512.png" alt="PawDex" className="h-28 w-28" />
+      <img src="/icons/icon-512x512.png" alt="PawDex" className="h-44 w-44" />
       <Loader2
         size={24}
-        className="mt-6 text-blue-400 animate-spin motion-reduce:animate-none"
+        className="absolute left-1/2 -translate-x-1/2 text-blue-400 animate-spin motion-reduce:animate-none"
+        style={{ top: 'calc(50% + 116px)' }}
         aria-label={t('common.loading')}
       />
     </div>
