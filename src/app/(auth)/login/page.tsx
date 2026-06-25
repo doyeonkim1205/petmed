@@ -23,11 +23,9 @@ function isDevLoginEnv(): boolean {
   // 토스 심사 중 prod 에서도 임시 노출 (이메일/비밀번호 로그인 폼).
   // ENABLE_PAYMENT_REVIEW 와 같이 켜고, 심사 통과 후 둘 다 끔.
   if (process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === 'true') return true;
-  // ⚠️ App Store 심사용 — iOS 네이티브 앱에선 이메일 로그인 노출.
-  //   리뷰어는 구글/카카오 로그인 불가 → 데모 계정(이메일/비번)으로 로그인해야 함.
-  //   iOS 앱은 pawdex.store 를 원격 로드하므로 이 분기만으로 앱에 즉시 반영.
-  //   👉 App Store 심사 통과 후 이 줄을 제거하고 재배포하면 앱에서 다시 숨겨짐.
-  if (isIOS()) return true;
+  // 주의: iOS 앱에선 자동 노출 X (일반 유저에게 숨김). App Store 리뷰어는
+  //   로고(PawDex) 7회 탭 비밀 제스처로 이메일 로그인을 연다 → 심사 노트에 안내.
+  //   (매 업데이트 심사마다 리뷰어 로그인 필요하므로 영구 유지)
   const host = window.location.hostname;
   if (host === 'test.pawdex.store' || host === 'localhost' || host === '127.0.0.1') return true;
   // prod(pawdex.store): 토스 심사용으로 "웹 브라우저"에선 노출, "설치한 앱(TWA/PWA standalone)"
@@ -54,6 +52,9 @@ export default function LoginPage() {
   const [devLoading, setDevLoading] = useState(false);
   const [showDevToggle, setShowDevToggle] = useState(false);
   const [showApple, setShowApple] = useState(false); // iOS 네이티브에서만 Apple 로그인 노출
+  // 비밀 제스처: 로고(PawDex) 7회 탭 → 이메일 로그인 노출 (App Store 리뷰어 전용, 일반 유저엔 숨김).
+  const [emailTaps, setEmailTaps] = useState(0);
+  const [revealEmail, setRevealEmail] = useState(false);
   // 필수 동의 — 둘 다 체크해야 구글/카카오 로그인 가능 (가입=첫 OAuth 로그인이라 이 화면이 유일한 동의 지점).
   const [agreeAge, setAgreeAge] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -133,7 +134,10 @@ export default function LoginPage() {
         <div className="w-full bg-white rounded-3xl shadow-lg px-7 py-10 flex-1 min-h-[680px] flex flex-col">
           {/* [상반부 2/3] PawDex + 카피 — 자기 영역 중앙 */}
           <div className="flex-[2] flex flex-col items-center justify-center">
-            <h1 className="text-4xl font-extrabold text-blue-600 tracking-tight">PawDex</h1>
+            <h1
+              onClick={() => setEmailTaps((n) => { const c = n + 1; if (c >= 7) { setRevealEmail(true); setDevLogin(true); } return c; })}
+              className="text-4xl font-extrabold text-blue-600 tracking-tight select-none"
+            >PawDex</h1>
             <p className="text-base text-gray-700 mt-4 text-center leading-relaxed font-medium">
               {t('login.subtitle1')}<br />
               <span className="text-blue-600 font-bold">{t('login.subtitle2')}</span>
@@ -220,9 +224,9 @@ export default function LoginPage() {
           </div>
 
 
-          {/* 이메일 로그인 — dev(test/localhost) + iOS 앱(심사용) + 웹(설치앱 아닐 때) 표시.
-              prod 설치앱(Android)에선 숨김. iOS 분기는 심사 통과 후 제거. */}
-          {showDevToggle && (
+          {/* 이메일 로그인 — dev(test/localhost) + 웹(설치앱 아닐 때) 자동 표시.
+              prod 앱(iOS/Android)에선 숨김. iOS 리뷰어는 로고 7회 탭(revealEmail)으로 노출. */}
+          {(showDevToggle || revealEmail) && (
             <div className="pt-1 mt-auto border-t border-gray-100">
               <button
                 type="button"

@@ -40,13 +40,15 @@ capabilities — it is not a repackaged website:
 - Camera & Photo Library to attach images to health records
 
 SIGN-IN (required) — please use the email/password account below:
-  1. On the login screen, scroll to the bottom and tap "이메일로 로그인" (Sign in with email).
+  1. On the login screen, TAP THE "PawDex" TITLE (logo) 7 TIMES.
+     → A hidden email login form appears at the bottom (hidden from normal users
+       on purpose; this is the reviewer access path).
   2. Enter:
        Email:    apple.review@pawdex.store
        Password: <YOUR_PASSWORD>  (set in the demo account fields above)
   3. Tap 로그인 (Sign in).
-(Google/Kakao buttons require Korean third-party accounts; please use the email
- login above. The demo account is pre-populated with a pet and sample records.)
+(Google/Kakao require Korean third-party accounts; please use the email login
+ above. The demo account is pre-populated with a pet and sample records.)
 
 HOW TO TEST:
 - Records: Home → tap a category card to add/view pet health records.
