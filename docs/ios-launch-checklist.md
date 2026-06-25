@@ -8,6 +8,24 @@
 
 ---
 
+## ✅ 현재 상태 (2026-06-26 갱신)
+
+거의 완료. **남은 건 Phase 6(TestFlight 빌드 → 회귀 → 심사 제출)뿐.**
+
+- **완료**: Apple 로그인(provider/error1001 해결) · 탈퇴 Apple revoke · 결제 iOS 분기(payments.ts) ·
+  **RC Apple 키 운영 빌드에 박힘(`appl_` 확인)** → iOS `isRevenueCatReady()=true`, 실제 구매 버튼 노출 ·
+  App Store Connect 상품/앱 등록 · 실기기 Sandbox 구매 end-to-end(사용자 검증) ·
+  아이콘/스플래시(발바닥 위치 조정) · 스크린샷(1290×2796) · App Privacy/심사노트/리뷰어계정 ·
+  Info.plist 권한문구(카메라/사진/위치) · 안전영역(탭바·모달·저장버튼·헤더 노치) ·
+  FCM 계정누수 수정 · 카메라 첨부(촬영·압축) · 카카오 취소 빨간에러 차단 · 이메일로그인 숨김(7탭) ·
+  APNs/Kakao URL스킴/Google iOS OAuth(사용자 확인)
+- **남은 것**:
+  - [ ] **[Mac]** pawdex-cap 최신 pull → `cap sync ios` → Archive 업로드 (카카오 Swift·스플래시 포함)
+  - [ ] **[Mac/콘솔]** TestFlight 내부테스트 전체 회귀(로그인4종·결제·복원·취소·탈퇴·푸시·카메라·위치)
+  - [ ] **[콘솔]** 개인정보처리방침 URL(`pawdex.store/privacy`) 입력 확인 + 심사 제출
+
+---
+
 ## Phase 0 — 사전 준비물 (시작 전 확인)
 
 - [ ] **[콘솔]** Apple Developer Program 가입 ($99/년) — 없으면 App Store Connect 진입 불가

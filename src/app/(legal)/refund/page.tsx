@@ -32,6 +32,16 @@ function RefundKo() {
         </ul>
       </Section>
 
+      <Section title="1-2. 앱(App Store) 결제 안내">
+        <p>PawDex iOS 앱에서 결제한 Plus 구독은 <strong>Apple App Store 결제 시스템</strong>으로 처리되며, 결제·자동 갱신·해지·환불은 <strong>Apple의 정책 및 절차</strong>를 따릅니다.</p>
+        <ul>
+          <li>구독 해지·자동 갱신 중지는 기기의 <strong>설정 &gt; [Apple 계정] &gt; 구독</strong> 또는 <a href="https://apps.apple.com/account/subscriptions" className="text-blue-500" target="_blank" rel="noopener noreferrer">apps.apple.com/account/subscriptions</a>에서 진행해 주세요. (앱 내 요금제 관리에서도 해당 화면으로 이동할 수 있습니다.)</li>
+          <li><strong>환불은 Apple을 통해서만 가능</strong>하며 <a href="https://reportaproblem.apple.com" className="text-blue-500" target="_blank" rel="noopener noreferrer">reportaproblem.apple.com</a>에서 직접 요청해 주세요. App Store 결제는 서비스가 직접 환불 처리할 수 없습니다.</li>
+          <li>App Store 결제에는 아래 2항 이하의 서비스 내 환불 기준(24시간·일할 계산·재시도 주기 등)이 적용되지 않으며, Apple의 환불 정책을 따릅니다.</li>
+          <li>구독 해지 시에도 현재 결제 주기 만료일까지 유료 기능을 계속 이용할 수 있습니다.</li>
+        </ul>
+      </Section>
+
       <Section title="2. 월간 구독 환불">
         <ul>
           <li>결제일로부터 <strong>24시간 이내</strong>이고, 유료 서비스를 이용하지 않은 경우 <strong>전액 환불</strong>이 가능합니다.</li>
@@ -103,7 +113,7 @@ function RefundKo() {
         </ul>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 4월 13일 (개정)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 26일 (개정 — App Store 결제 안내 추가)</p>
     </>
   );
 }
@@ -124,6 +134,16 @@ function RefundEn({ refNotice }: { refNotice: string }) {
           <li>Refund eligibility is reviewed based on this policy&apos;s standards (within 24 hours of payment and unused) and processed in accordance with Google Play policy.</li>
           <li>If an automatic renewal payment fails, Google retries under its grace period and account hold policies; if it is not recovered, the subscription is automatically terminated.</li>
           <li>The detailed procedures in Section 2 and below (in-app refund requests, retry intervals, etc.) apply to payments made on the web (pawdex.store).</li>
+        </ul>
+      </Section>
+
+      <Section title="1-2. App (App Store) Purchases">
+        <p>Plus subscriptions purchased in the PawDex iOS app are processed through the <strong>Apple App Store billing system</strong>, and payment, automatic renewal, cancellation, and refunds follow <strong>Apple&apos;s policies and procedures</strong>.</p>
+        <ul>
+          <li>To cancel your subscription or turn off auto-renewal, go to <strong>Settings &gt; [your Apple Account] &gt; Subscriptions</strong> on your device or visit <a href="https://apps.apple.com/account/subscriptions" className="text-blue-500" target="_blank" rel="noopener noreferrer">apps.apple.com/account/subscriptions</a>. (The in-app Subscription &amp; Billing page also links to this screen.)</li>
+          <li><strong>Refunds are available only through Apple.</strong> Please request them directly at <a href="https://reportaproblem.apple.com" className="text-blue-500" target="_blank" rel="noopener noreferrer">reportaproblem.apple.com</a>. The Service cannot process refunds for App Store purchases.</li>
+          <li>The in-app refund standards in Section 2 and below (24-hour window, pro-rated amounts, retry intervals, etc.) do not apply to App Store purchases, which follow Apple&apos;s refund policy.</li>
+          <li>Even after cancelling, you can keep using paid features until the end of the current billing cycle.</li>
         </ul>
       </Section>
 
@@ -198,7 +218,7 @@ function RefundEn({ refNotice }: { refNotice: string }) {
         </ul>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: April 13, 2026 (revised)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 26, 2026 (revised — App Store purchases section added)</p>
     </>
   );
 }
