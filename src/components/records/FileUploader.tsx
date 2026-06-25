@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle, Camera } from 'lucide-react';
 
 interface FileUploaderProps {
   files: File[];
@@ -30,6 +30,9 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
   // 거부된 파일 안내 — 5초 후 자동 사라짐, 새 파일 선택 시 즉시 새 결과로 교체.
   const [rejectedFiles, setRejectedFiles] = useState<{ name: string; reason: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // 카메라 촬영 전용 input — accept=image/* + capture 로 iOS·Android 모두 카메라 직접 실행.
+  //   (기존 파일 input 은 accept 에 PDF 가 섞여 Android WebView 가 카메라를 안 띄움)
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -149,6 +152,27 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
             className="hidden"
           />
         </div>
+      )}
+
+      {!atLimit && (
+        <>
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 active:scale-[0.99] transition-colors"
+          >
+            <Camera size={16} className="text-gray-400" />
+            {t('uploader.takePhoto')}
+          </button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+            className="hidden"
+          />
+        </>
       )}
 
       {files.length > 0 && (
