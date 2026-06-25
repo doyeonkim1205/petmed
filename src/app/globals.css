@@ -255,6 +255,13 @@ input, textarea, [contenteditable="true"], [contenteditable=""] {
   -webkit-touch-callout: default;
 }
 
+/* 모달 등 스크롤 영역에 '항상 보이는' 얇은 스크롤바.
+   안드로이드 WebView 는 overflow 스크롤바를 기본 숨겨 스크롤 가능 여부가 안 보임 → 명시 표시. */
+.scroll-visible::-webkit-scrollbar { width: 6px; }
+.scroll-visible::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.22); border-radius: 3px; }
+.scroll-visible::-webkit-scrollbar-track { background: transparent; }
+.scroll-visible { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.22) transparent; }
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
