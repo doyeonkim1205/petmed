@@ -8,7 +8,7 @@
 ## 1. 입력 필드 (App Store Connect)
 
 - **로그인 필요(Sign-in required)**: 예(Yes)
-- **데모 계정 사용자 이름(User name)**: `pawdex.console@gmail.com` ✅ (프로덕션 생성 완료, 데모 데이터 채움)
+- **데모 계정 사용자 이름(User name)**: `apple.review@pawdex.store` ✅ (프로덕션 생성 완료, 데모 데이터 채움)
 - **데모 계정 암호(Password)**: `(본인이 설정한 비밀번호 — App Store Connect에 직접 입력)`
 - **연락처(Contact)**: 이름 / 이메일 / 전화번호
 - **비고(Notes)**: 아래 3번 영문 텍스트 그대로 붙여넣기
@@ -42,7 +42,7 @@ capabilities — it is not a repackaged website:
 SIGN-IN (required) — please use the email/password account below:
   1. On the login screen, scroll to the bottom and tap "이메일로 로그인" (Sign in with email).
   2. Enter:
-       Email:    pawdex.console@gmail.com
+       Email:    apple.review@pawdex.store
        Password: <YOUR_PASSWORD>  (set in the demo account fields above)
   3. Tap 로그인 (Sign in).
 (Google/Kakao buttons require Korean third-party accounts; please use the email
