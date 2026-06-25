@@ -91,7 +91,8 @@
       추적 데이터 없음 → **ATT 불필요**. 반려동물 기록=User Content(Health 아님).
 - [x] **스크린샷** 1290×2796 8장 완료 → 바탕화면 `PawDex/홍보/앱스토어 스크린샷/pawdex_0N_ios.png`
       (Play 완성본을 폭 맞춰 확대 + 배경 가장자리 연장, 찌그러짐·이음새 없음)
-- [ ] 심사 노트 작성 (4.2 — 웹뷰 하이브리드 설명, 테스트 계정 제공)
+- [x] 심사 노트 + 리뷰어 테스트 계정 완료 → `docs/ios-review-notes.md`
+      계정 `pawdex.console@gmail.com`(프로덕션, 데모 데이터 채움, free 플랜→구독 테스트 가능)
 - [ ] 개인정보처리방침 URL (`pawdex.store/privacy`) 입력
 
 ---
