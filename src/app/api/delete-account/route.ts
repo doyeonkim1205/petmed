@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+
+// ES256 JWT 서명에 Node crypto 를 쓰므로 Node 런타임 고정 (Edge 금지).
+export const runtime = 'nodejs';
 
 // Unlink from OAuth provider using server-side admin keys
 async function unlinkKakao(kakaoUserId: string) {
@@ -25,6 +29,86 @@ async function revokeGoogle(providerToken: string | undefined) {
   });
 }
 
+function base64url(input: Buffer | string): string {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+/**
+ * Apple "Sign in with Apple" client_secret JWT (ES256) 생성.
+ * 필요한 env (Apple Developer 계정 발급): APPLE_TEAM_ID / APPLE_KEY_ID /
+ * APPLE_CLIENT_ID(네이티브=번들ID 또는 Services ID) / APPLE_PRIVATE_KEY(.p8 내용).
+ * 하나라도 없으면 null → 호출부에서 best-effort no-op.
+ */
+function buildAppleClientSecret(): string | null {
+  const teamId = process.env.APPLE_TEAM_ID;
+  const keyId = process.env.APPLE_KEY_ID;
+  const clientId = process.env.APPLE_CLIENT_ID;
+  const privateKey = process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  if (!teamId || !keyId || !clientId || !privateKey) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64url(JSON.stringify({ alg: 'ES256', kid: keyId }));
+  const payload = base64url(
+    JSON.stringify({
+      iss: teamId,
+      iat: now,
+      exp: now + 300,
+      aud: 'https://appleid.apple.com',
+      sub: clientId,
+    }),
+  );
+  const signingInput = `${header}.${payload}`;
+  const signer = crypto.createSign('SHA256');
+  signer.update(signingInput);
+  // ES256 은 JOSE(r||s, p1363) 포맷 서명이 필요 — Node 기본 DER 이므로 명시.
+  const signature = signer.sign({ key: privateKey, dsaEncoding: 'ieee-p1363' });
+  return `${signingInput}.${base64url(signature)}`;
+}
+
+/**
+ * Apple 토큰 revoke (5.1.1 대응). 탈퇴 직전 클라가 재인증으로 받은 일회성
+ * authorizationCode 를 받아 ① refresh_token 교환 → ② revoke.
+ * env 미설정/코드 없음/네트워크 실패 모두 best-effort no-op (탈퇴 흐름 차단 금지).
+ */
+async function revokeApple(authorizationCode: string | undefined) {
+  if (!authorizationCode) return;
+  const clientId = process.env.APPLE_CLIENT_ID;
+  const clientSecret = buildAppleClientSecret();
+  if (!clientId || !clientSecret) return;
+
+  // 1) authorization_code → refresh_token
+  const tokenRes = await fetch('https://appleid.apple.com/auth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: authorizationCode,
+      grant_type: 'authorization_code',
+    }).toString(),
+  });
+  if (!tokenRes.ok) return;
+  const tokenJson = (await tokenRes.json().catch(() => null)) as { refresh_token?: string } | null;
+  const refreshToken = tokenJson?.refresh_token;
+  if (!refreshToken) return;
+
+  // 2) refresh_token revoke → Apple 측 연결 해제
+  await fetch('https://appleid.apple.com/auth/revoke', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      token: refreshToken,
+      token_type_hint: 'refresh_token',
+    }).toString(),
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -42,11 +126,13 @@ export async function POST(request: Request) {
 
     // Parse optional payload (provider token + 탈퇴 이유)
     let providerToken: string | undefined;
+    let appleAuthCode: string | undefined;
     let reason: string | null = null;
     let reasonDetail: string | null = null;
     try {
       const body = await request.json();
       providerToken = body.providerToken;
+      if (typeof body.appleAuthCode === 'string') appleAuthCode = body.appleAuthCode;
       if (typeof body.reason === 'string') reason = body.reason.slice(0, 50);
       if (typeof body.reasonDetail === 'string') reasonDetail = body.reasonDetail.slice(0, 200);
     } catch {
@@ -71,6 +157,8 @@ export async function POST(request: Request) {
         await unlinkKakao(kakaoId);
       } else if (provider === 'google') {
         await revokeGoogle(providerToken);
+      } else if (provider === 'apple') {
+        await revokeApple(appleAuthCode);
       }
     } catch {
       // Continue with deletion even if unlink fails

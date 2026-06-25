@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Smartphone, Copy, X, Check } from 'lucide-react';
 import { detectDevice } from '@/lib/deviceDetect';
 import { isRunningInInstalledApp } from '@/lib/installState';
+import { isNativeApp } from '@/lib/platform';
 
 const DISMISS_KEY = 'inAppBrowserHintDismissedAt';
 const DISMISS_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — 더 짧게 (Safari 전환이 중요)
@@ -26,6 +27,9 @@ export function InAppBrowserHint() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // Capacitor 네이티브 앱(iOS WKWebView)은 "Safari 아님"으로 오인돼 안내가 뜨므로 차단.
+    // 네이티브 앱은 이미 정식 앱이라 인앱브라우저 안내가 불필요.
+    if (isNativeApp()) return;
     const device = detectDevice();
     if (!device || !device.needsSafariTransition || device.isStandalone) return;
     // TWA / PWA 컨텍스트에선 hint 전혀 불필요 (설치된 앱 안에선 이미

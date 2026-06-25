@@ -80,8 +80,45 @@ export async function GET(request: Request) {
     eventTypeCounts[e.event_type] = (eventTypeCounts[e.event_type] || 0) + 1;
   }
 
+  // 현재 Plus 이용자 플랫폼 분포 — "자동갱신(active)" + "해지했지만 기간 남음(canceled & 미래)"
+  //   을 모두 포함하고 distinct user_id 로 센다. status='active' 만 세면 해지예정 유저가
+  //   빠져 Plus 이용자 수와 플랫폼 합계가 어긋남.
+  //   유저가 여러 구독 행을 가지면 가장 늦은 period_end(현재 유효 구독)의 store 로 귀속.
+  const nowIso = new Date().toISOString();
+  const storeToPlatform = (store: string | null): 'ios' | 'android' | 'web' | null => {
+    if (store === 'apple') return 'ios';
+    if (store === 'play' || store === 'play_store') return 'android';
+    if (store === 'toss') return 'web';
+    return null;
+  };
+  const { data: liveRows } = await supabase
+    .from('subscriptions')
+    .select('user_id, store, status, period_end')
+    .order('period_end', { ascending: false }); // 가장 늦은 만료일 먼저
+  const userPlatform = new Map<string, 'ios' | 'android' | 'web'>();
+  const autoRenewSet = new Set<string>();
+  const cancelingSet = new Set<string>();
+  for (const r of (liveRows || []) as { user_id: string; store: string | null; status: string; period_end: string | null }[]) {
+    const isActive = r.status === 'active';
+    const isCancelingValid = r.status === 'canceled' && !!r.period_end && r.period_end > nowIso;
+    if (!isActive && !isCancelingValid) continue; // 만료/완전해지는 제외
+    if (isActive) autoRenewSet.add(r.user_id);
+    if (isCancelingValid) cancelingSet.add(r.user_id);
+    if (!userPlatform.has(r.user_id)) {
+      const p = storeToPlatform(r.store);
+      if (p) userPlatform.set(r.user_id, p);
+    }
+  }
+  const platformCounts = { ios: 0, android: 0, web: 0 };
+  for (const p of userPlatform.values()) platformCounts[p]++;
+  const autoRenewing = autoRenewSet.size;
+  const canceling = cancelingSet.size;
+
   return NextResponse.json({
     subscriptions: subscriptions || [],
+    platformCounts,
+    autoRenewing,
+    canceling,
     subscriptionTotal: count || 0,
     subscriptionPages: Math.ceil((count || 0) / limit),
     subPage,

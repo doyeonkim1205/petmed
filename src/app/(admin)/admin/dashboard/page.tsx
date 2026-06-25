@@ -20,9 +20,16 @@ interface DashboardStats {
   totalUsers: number;
   todaySearches: number;
   totalRevenue: number;
+  plusUsers: number;
+  autoRenewing: number;
+  canceling: number;
   activeSubscribers: number;
   todaySignups: number;
   planDistribution: { plan: string; count: number }[];
+  providerCounts: Record<string, number>;
+  platformCounts: { ios: number; android: number; web: number };
+  platformTracked: number;
+  platformUntracked: number;
   heavyUsers: HeavyUser[];
   usageSummary: {
     totalRecords: number;
@@ -35,6 +42,13 @@ interface DashboardStats {
 type TrendPoint = { bucket: string; signups: number; searches: number; revenue: number };
 type Bucket = 'day' | 'week' | 'month';
 type Metric = 'signups' | 'searches' | 'revenue';
+
+const PROVIDER_LABEL: Record<string, string> = {
+  google: '구글',
+  kakao: '카카오',
+  apple: '애플',
+  email: '이메일',
+};
 
 const BUCKET_LABEL: Record<Bucket, string> = { day: '일', week: '주', month: '월' };
 const METRIC_META: Record<Metric, { label: string; color: string; isMoney?: boolean }> = {
@@ -86,11 +100,18 @@ export default function DashboardPage() {
 
   if (!stats) return <p className="text-gray-500">통계를 불러올 수 없습니다.</p>;
 
-  const cards = [
+  const cards: { title: string; value: string; icon: typeof Users; color: string; sub?: string }[] = [
     { title: '총 회원', value: stats.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600' },
     { title: '오늘 검색', value: stats.todaySearches.toLocaleString(), icon: Search, color: 'text-green-600' },
     { title: '총 수익', value: `₩${stats.totalRevenue.toLocaleString()}`, icon: CreditCard, color: 'text-purple-600' },
-    { title: '활성 구독자', value: stats.activeSubscribers.toLocaleString(), icon: UserCheck, color: 'text-orange-600' },
+    {
+      // "현재 Plus 권한 보유자"(profiles.plan='plus') — 해지했지만 기간 남은 유저 포함.
+      title: 'Plus 이용자',
+      value: stats.plusUsers.toLocaleString(),
+      icon: UserCheck,
+      color: 'text-orange-600',
+      sub: `자동갱신 ${stats.autoRenewing} · 해지예정 ${stats.canceling}`,
+    },
   ];
 
   return (
@@ -110,6 +131,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{card.value}</p>
+                {card.sub && <p className="text-xs text-gray-400 mt-1">{card.sub}</p>}
               </CardContent>
             </Card>
           );
@@ -138,6 +160,67 @@ export default function DashboardPage() {
                   <span className="font-medium">{item.count}명</span>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 유입 분석 — 가입 경로(provider) + 플랫폼(android/ios/web) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* 가입 경로 분포 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-500">가입 경로</CardTitle>
+            <p className="text-xs text-gray-400 mt-1">소셜 로그인 / 이메일 가입 비중</p>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const entries = Object.entries(stats.providerCounts || {}).sort((a, b) => b[1] - a[1]);
+              const total = entries.reduce((s, [, c]) => s + c, 0);
+              if (total === 0) return <p className="text-sm text-gray-400">데이터 없음</p>;
+              return (
+                <div className="space-y-2">
+                  {entries.map(([prov, count]) => (
+                    <div key={prov} className="flex justify-between items-center">
+                      <span className="text-sm">{PROVIDER_LABEL[prov] || prov}</span>
+                      <span className="font-medium">
+                        {count}명
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({Math.round((count / total) * 100)}%)
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* 플랫폼 분포 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-500">플랫폼</CardTitle>
+            <p className="text-xs text-gray-400 mt-1">최근 접속 기기 기준 · 재로그인한 유저부터 집계</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[
+                { key: 'android', label: '안드로이드', value: stats.platformCounts?.android ?? 0 },
+                { key: 'ios', label: 'iOS', value: stats.platformCounts?.ios ?? 0 },
+                { key: 'web', label: '웹', value: stats.platformCounts?.web ?? 0 },
+              ].map((p) => (
+                <div key={p.key} className="flex justify-between items-center">
+                  <span className="text-sm">{p.label}</span>
+                  <span className="font-medium">{p.value}명</span>
+                </div>
+              ))}
+              {stats.platformUntracked > 0 && (
+                <div className="flex justify-between items-center pt-2 mt-1 border-t border-gray-100">
+                  <span className="text-xs text-gray-400">미집계(과거 접속)</span>
+                  <span className="text-xs text-gray-400">{stats.platformUntracked}명</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

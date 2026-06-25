@@ -12,10 +12,16 @@
  * 엔타이틀먼트('plus') 활성 여부는 보조 신호일 뿐, 권한의 진실원은 profiles.plan.
  * 실제 plan 갱신은 RevenueCat 웹훅(/api/payments/revenuecat-webhook)이 담당.
  */
-import { isNativeApp } from './env';
+import { isNativeApp, isIOS } from './env';
 import { registerPlugin } from '@capacitor/core';
 
 const RC_GOOGLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_GOOGLE_API_KEY || '';
+const RC_APPLE_API_KEY = process.env.NEXT_PUBLIC_REVENUECAT_APPLE_API_KEY || '';
+
+/** 현재 플랫폼에 맞는 RevenueCat Public API 키 (iOS=Apple / 그 외=Google). */
+function activeApiKey(): string {
+  return isIOS() ? RC_APPLE_API_KEY : RC_GOOGLE_API_KEY;
+}
 
 /** 네이티브에서 돌려주는 평평한 결과(문자열/boolean 중심). 복잡 객체는 절대 넘기지 않는다. */
 interface FlatResult {
@@ -62,31 +68,40 @@ export interface PurchaseResult {
   error?: string;
 }
 
+// iOS·Android 모두 NativeBilling 브릿지(RC Native SDK 직접 호출, 평평 JSON)를 사용한다.
+//   RC Capacitor JS 는 원격(server.url) WebView 에서 configure/offerings 가 멈춰
+//   (Android·iOS 동일 재현) 사용 불가 → 네이티브 브릿지로 우회. iOS 구현은
+//   NativeBillingPlugin.swift(RevenueCat iOS SDK 호출), Android 는 Kotlin NativeBilling.
+
 export const platformPayments = {
-  /** RC 키 설정 여부 (플랫폼 무관). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
+  /** RC 키 설정 여부 (현재 플랫폼 기준). 앱에서 결제 UI 를 띄울지 판단에 쓴다. */
   isRevenueCatReady(): boolean {
-    return !!RC_GOOGLE_API_KEY;
+    return !!activeApiKey();
   },
 
   /**
-   * 앱에서 실제 구매를 띄울 수 있는 상태 (네이티브 앱 + RC 키 존재).
+   * 앱에서 실제 구매를 띄울 수 있는 상태 (네이티브 앱 + 플랫폼 RC 키 존재).
    * ⚠️ UI 분기에서 "이게 false 면 토스"로 쓰면 안 됨 — 앱+키없음도 false.
    *    토스 노출은 반드시 isNativeApp()===false(웹) 로만 판단할 것.
+   * iOS=RC Capacitor JS / Android=NativeBilling 브릿지로 실제 구매 실행.
+   *    (iOS RC JS 가 원격 WebView 에서 막히면 Swift StoreKit 브릿지로 전환 — 실기기 검증)
    */
   isNativeBilling(): boolean {
-    return isNativeApp() && !!RC_GOOGLE_API_KEY;
+    return isNativeApp() && !!activeApiKey();
   },
 
-  /** Google Play 구독 관리(해지) 딥링크 — 서버 강제해지 불가, 사용자가 여기서 해지. */
+  /** 구독 관리(해지) 딥링크 — iOS=App Store / 그 외=Google Play. 서버 강제해지 불가. */
   manageSubscriptionsUrl(): string {
-    return 'https://play.google.com/store/account/subscriptions';
+    return isIOS()
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
   },
 
   /** productId(plus_monthly/plus_yearly) 구매. 네이티브 전용. */
   async purchase(userId: string, productId: string): Promise<PurchaseResult> {
     if (!this.isNativeBilling()) return { ok: false, active: false, error: 'native billing unavailable' };
     try {
-      const opts: ConfigOpts = { apiKey: RC_GOOGLE_API_KEY, appUserId: userId };
+      const opts: ConfigOpts = { apiKey: activeApiKey(), appUserId: userId };
       const wantsYear = /year|annual/i.test(productId);
       const res = await withTimeout(
         wantsYear ? NativeBilling.purchaseAnnual(opts) : NativeBilling.purchaseMonthly(opts),
@@ -106,7 +121,7 @@ export const platformPayments = {
     if (!this.isNativeBilling()) return { ok: false, active: false };
     try {
       const res = await withTimeout(
-        NativeBilling.restorePurchases({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.restorePurchases({ apiKey: activeApiKey(), appUserId: userId }),
         30000,
         'restore',
       );
@@ -116,12 +131,12 @@ export const platformPayments = {
     }
   },
 
-  /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — Play 실제가. 없으면 null. */
+  /** productId 의 로컬라이즈 가격 문자열(예: '₩3,900') — 스토어 실제가. 없으면 null. */
   async getPriceString(userId: string, productId: string): Promise<string | null> {
     if (!this.isNativeBilling()) return null;
     try {
       const res = await withTimeout(
-        NativeBilling.getPrices({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.getPrices({ apiKey: activeApiKey(), appUserId: userId }),
         15000,
         'getPrices',
       );
@@ -137,7 +152,7 @@ export const platformPayments = {
     if (!this.isNativeBilling()) return false;
     try {
       const res = await withTimeout(
-        NativeBilling.getCustomerStatus({ apiKey: RC_GOOGLE_API_KEY, appUserId: userId }),
+        NativeBilling.getCustomerStatus({ apiKey: activeApiKey(), appUserId: userId }),
         15000,
         'status',
       );

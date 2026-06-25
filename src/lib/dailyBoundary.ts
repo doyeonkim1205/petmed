@@ -35,3 +35,17 @@ export function startOfMonthKST(): Date {
 export function startOfWindowKST(win: 'day' | 'month'): Date {
   return win === 'month' ? startOfMonthKST() : startOfDayKST();
 }
+
+/**
+ * 'YYYY-MM-DD' (KST 달력 날짜) → 그 날의 KST 자정/끝을 UTC ISO 로 변환.
+ * 어드민 로그 날짜 필터(from/to)용 — created_at(UTC timestamptz)과 비교할 때
+ *   날짜 문자열을 그냥 쓰면 UTC 로 해석돼 KST 기준 9시간 어긋남.
+ * 형식이 잘못됐거나 파싱 불가하면 null (필터를 적용하지 않게 함).
+ */
+export function kstDateToUtcRange(dateStr: string): { startIso: string; endIso: string } | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const start = new Date(`${dateStr}T00:00:00.000+09:00`);
+  const end = new Date(`${dateStr}T23:59:59.999+09:00`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+  return { startIso: start.toISOString(), endIso: end.toISOString() };
+}

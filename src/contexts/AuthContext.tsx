@@ -8,6 +8,9 @@ import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
+// getPlatform 은 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
+//   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
+import { getPlatform } from '@/lib/platform/env';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -19,6 +22,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithKakao: () => Promise<{ error: Error | null }>;
+  signInWithApple: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
@@ -138,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId() }),
+              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
             });
           })(),
           fetchProfile(localSession.user.id),
@@ -248,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await authFetch('/api/sessions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId() }),
+              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
             });
           } catch {}
           const profileData = await fetchProfile(authUser.id);
@@ -435,6 +439,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithApple = async () => {
+    try {
+      await platformAuth.loginWithApple();
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = async () => {
     // Log before clearing state
     if (user) {
@@ -550,7 +563,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user, profile, session, loading,
-        signUp, signIn, signInWithGoogle, signInWithKakao, signOut, updateProfile, refreshProfile,
+        signUp, signIn, signInWithGoogle, signInWithKakao, signInWithApple, signOut, updateProfile, refreshProfile,
       }}
     >
       {children}

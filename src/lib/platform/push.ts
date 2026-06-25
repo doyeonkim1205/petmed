@@ -9,6 +9,7 @@
  * 네이티브 구현은 동적 import 되어 웹/TWA 번들엔 포함되지 않는다.
  */
 import { authFetch } from '@/lib/authFetch';
+import { isIOS } from './env';
 
 const FCM_TOKEN_KEY = 'pawdex_fcm_token';
 const NOTI_ICON = 'ic_stat_pawdex';
@@ -16,6 +17,38 @@ const NOTI_COLOR = '#2563EB';
 
 let localNotifId = 1;
 let listenersReady = false;
+
+/**
+ * iOS FCM 등록.
+ * ⚠️ @capacitor/push-notifications 의 registration 토큰은 iOS 에선 APNs 토큰이라
+ *    firebase-admin(FCM) 으로 발송 불가. → APNs 등록(register)으로 Firebase 가 apnsToken 을
+ *    잡게 한 뒤, 네이티브 Firebase Messaging 브릿지('PushToken')로 진짜 FCM 토큰을 받아 등록한다.
+ */
+async function registerIosFcm(
+  PushNotifications: typeof import('@capacitor/push-notifications').PushNotifications,
+): Promise<boolean> {
+  // APNs 등록 (Firebase 가 apnsToken 을 잡도록). registration 리스너는 iOS 에선 쓰지 않음(APNs 토큰이라).
+  await PushNotifications.register();
+
+  const { registerPlugin } = await import('@capacitor/core');
+  const PushToken = registerPlugin<{
+    getFcmToken(): Promise<{ ok: boolean; token?: string; error?: string }>;
+  }>('PushToken');
+
+  try {
+    const res = await PushToken.getFcmToken();
+    if (!res.ok || !res.token) return false;
+    await authFetch('/api/push/fcm/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: res.token, platform: 'ios' }),
+    });
+    try { localStorage.setItem(FCM_TOKEN_KEY, res.token); } catch {}
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** 네이티브 FCM 등록: 권한 요청 → 토큰 수신 → /api/push/fcm/register 저장. */
 export async function registerNativePush(): Promise<boolean> {
@@ -26,6 +59,9 @@ export async function registerNativePush(): Promise<boolean> {
     perm = await PushNotifications.requestPermissions();
   }
   if (perm.receive !== 'granted') return false;
+
+  // iOS 는 FCM 토큰을 네이티브 브릿지로 받는다(위 설명). Android 는 기존 흐름.
+  if (isIOS()) return registerIosFcm(PushNotifications);
 
   return new Promise<boolean>((resolve) => {
     let done = false;

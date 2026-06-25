@@ -20,14 +20,16 @@ export async function GET(request: Request) {
     { count: totalUsers },
     { count: todaySearches },
     { data: revenue },
-    { count: activeSubscribers },
+    { data: subsRows },
     { count: todaySignups },
     { data: profiles },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today),
     supabase.from('payment_history').select('amount').eq('status', 'done'),
-    supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    // 구독 지표는 행 수가 아니라 distinct user_id 로 센다(과거/중복 행 방지).
+    //   상태별 분리: 자동갱신(active) vs 해지예정(canceled + 기간 미래).
+    supabase.from('subscriptions').select('user_id, status, period_end'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
     supabase.from('profiles').select('plan'),
   ]);
@@ -37,6 +39,22 @@ export async function GET(request: Request) {
     counts[p.plan] = (counts[p.plan] || 0) + 1;
   });
   const planDistribution = Object.entries(counts).map(([plan, count]) => ({ plan, count }));
+
+  // 구독 지표 — "활성 구독자" 단일 숫자(status='active' 행 수)는 해지했지만 기간 남은
+  //   유저를 놓치고 행 중복도 못 거른다. 그래서 셋으로 분리해 distinct user_id 로 집계:
+  //   - plusUsers     : profiles.plan='plus' = 현재 Plus 권한 보유자(앱이 실제로 보는 값)
+  //   - autoRenewing  : status='active'           = 자동갱신 중
+  //   - canceling     : status='canceled' & 기간 미래 = 해지했지만 아직 이용 가능(해지 예정)
+  const nowIso = new Date().toISOString();
+  const autoRenewSet = new Set<string>();
+  const cancelingSet = new Set<string>();
+  for (const s of (subsRows || []) as { user_id: string; status: string; period_end: string | null }[]) {
+    if (s.status === 'active') autoRenewSet.add(s.user_id);
+    else if (s.status === 'canceled' && s.period_end && s.period_end > nowIso) cancelingSet.add(s.user_id);
+  }
+  const plusUsers = counts['plus'] || 0;
+  const autoRenewing = autoRenewSet.size;
+  const canceling = cancelingSet.size;
 
   const totalRevenue = (revenue || []).reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
 
@@ -101,11 +119,58 @@ export async function GET(request: Request) {
   }
   heavyUsers.sort((a, b) => b.records - a.records);
 
+  // 가입 경로(provider) 분포 — auth.users 는 public 스키마가 아니라 admin API 로 읽는다.
+  //   app_metadata.provider: google | kakao | apple | email.
+  const providerCounts: Record<string, number> = {};
+  {
+    const perPage = 1000;
+    let page = 1;
+    for (;;) {
+      const { data: pageData, error: listErr } = await supabase.auth.admin.listUsers({ page, perPage });
+      if (listErr || !pageData?.users?.length) break;
+      for (const u of pageData.users) {
+        const prov = (u.app_metadata?.provider as string) || 'email';
+        providerCounts[prov] = (providerCounts[prov] || 0) + 1;
+      }
+      if (pageData.users.length < perPage) break;
+      page++;
+    }
+  }
+
+  // 플랫폼 분포 — 유저별 "가장 최근 세션의 platform" 기준 distinct 카운트.
+  //   active_sessions.platform 은 로그인 하트비트로 채워지므로, 배포 이후 재로그인한
+  //   유저부터 집계됨(과거 무료 유저는 platform=null → untracked 로 분리 노출).
+  const { data: platformSessions } = await supabase
+    .from('active_sessions')
+    .select('user_id, platform, last_active')
+    .not('platform', 'is', null)
+    .order('last_active', { ascending: false });
+  const seenPlatformUser = new Set<string>();
+  const platformCounts = { ios: 0, android: 0, web: 0 };
+  for (const s of platformSessions || []) {
+    if (seenPlatformUser.has(s.user_id)) continue; // 최신순 정렬 → 처음 본 게 최신 세션
+    seenPlatformUser.add(s.user_id);
+    const p = s.platform as 'ios' | 'android' | 'web';
+    if (p === 'ios' || p === 'android' || p === 'web') {
+      platformCounts[p]++;
+    }
+  }
+  const platformTracked = seenPlatformUser.size;
+  const platformUntracked = Math.max((totalUsers || 0) - platformTracked, 0);
+
   return NextResponse.json({
+    providerCounts,
+    platformCounts,
+    platformTracked,
+    platformUntracked,
     totalUsers: totalUsers || 0,
     todaySearches: todaySearches || 0,
     totalRevenue,
-    activeSubscribers: activeSubscribers || 0,
+    plusUsers,
+    autoRenewing,
+    canceling,
+    // 하위호환: 기존 activeSubscribers 소비처가 있으면 자동갱신 수로 매핑
+    activeSubscribers: autoRenewing,
     todaySignups: todaySignups || 0,
     planDistribution: planDistribution || [],
     heavyUsers,
