@@ -55,6 +55,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#2563eb",
+  // iPhone 홈 인디케이터 안전영역(env(safe-area-inset-*)) 활성화 → 하단 탭바가 바에 가리지 않음.
+  // safe-area 인셋이 없는 웹/안드로이드는 0이라 영향 없음.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
