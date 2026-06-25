@@ -29,9 +29,10 @@ export function Footer() {
   return (
     <nav
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex items-center justify-around z-50 px-2 py-2 keyboard-hide-on-open"
-      // 바 전체 높이 = 아이콘영역(4.5rem) + 하단 안전영역. 안전영역은 padding 으로 아래에만 추가 →
-      //   아이콘 위치는 그대로, 바가 아래로 늘어나 iPhone 홈 인디케이터를 덮음. (인셋 0인 웹/안드는 동일)
-      style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))', paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+      // 바 전체 높이 = 아이콘영역(4.5rem) + 안전영역. 안전영역은 padding 으로 아래에만 추가 →
+      //   아이콘 위치 유지, 바가 아래로 늘어나 iPhone 홈 인디케이터를 덮음. (인셋 0인 웹/안드는 동일)
+      //   클리어런스는 인셋에서 0.5rem 덜어 살짝 낮춤(네이티브 탭바 톤). 인디케이터(~21px)는 여전히 안 가림.
+      style={{ height: 'calc(4.5rem + max(env(safe-area-inset-bottom) - 0.5rem, 0px))', paddingBottom: 'calc(0.5rem + max(env(safe-area-inset-bottom) - 0.5rem, 0px))' }}
     >
       {navItems.map((item) => {
         const isActive = pathname === item.path ||
