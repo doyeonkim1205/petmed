@@ -63,15 +63,12 @@ export default function StartPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-512x512.png" alt="PawDex" className="h-24 w-24 rounded-[22%] shadow-lg" />
         <h1 className="mt-6 text-[26px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
-        <p className="mt-4 text-[19px] font-extrabold leading-snug tracking-tight text-[#1e2a45]">
-          처음 만난 날부터,
+        <p className="mt-4 text-[18px] font-bold leading-relaxed tracking-tight text-[#1e2a45]">
+          오늘의 작은 기록이
           <br />
-          함께하는 모든 날까지.
-        </p>
-        <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#5a6478]">
-          반려동물 건강 기록을
+          내일의 우리 아이를 이해하는
           <br />
-          쉽게 남기고 한눈에 관리해요.
+          힌트가 될 수 있도록.
         </p>
 
         {/* 버튼 */}
@@ -79,11 +76,11 @@ export default function StartPage() {
           href={PLAY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-9 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#16213a] px-7 py-4 text-white shadow-lg shadow-blue-900/15 transition active:scale-[0.98]"
+          className="mt-9 inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-7 py-3.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
         >
-          <GooglePlayIcon size={28} />
+          <GooglePlayIcon size={26} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] font-semibold tracking-[0.04em] opacity-70">Android</span>
+            <span className="block text-[11px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
             <span className="block text-[17px] font-extrabold">Google Play</span>
           </span>
         </a>
@@ -94,11 +91,11 @@ export default function StartPage() {
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled={APPSTORE_URL === '#'}
-          className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#16213a] px-7 py-4 text-white shadow-lg shadow-blue-900/15 transition active:scale-[0.98]"
+          className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-7 py-3.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
         >
-          <AppleIcon size={28} />
+          <AppleIcon size={26} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] font-semibold tracking-[0.04em] opacity-70">iOS</span>
+            <span className="block text-[11px] font-semibold tracking-[0.04em] text-[#8b93a3]">iOS</span>
             <span className="block text-[17px] font-extrabold">App Store</span>
           </span>
         </a>
