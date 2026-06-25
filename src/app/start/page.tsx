@@ -62,43 +62,45 @@ export default function StartPage() {
         {/* 브랜드 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-512x512.png" alt="PawDex" className="h-24 w-24 rounded-[22%] shadow-lg" />
-        <h1 className="mt-6 text-[26px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
+        <h1 className="mt-6 text-[30px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
         <p className="mt-3 text-[14px] font-normal leading-relaxed tracking-tight text-[#5a6478]">
           오늘의 작은 기록이
           <br />
           내일의 우리 아이를 이해하는
           <br />
-          힌트가 될 수 있도록.
+          힌트가 될 수 있도록
         </p>
 
-        {/* 버튼 */}
-        <a
-          href={PLAY_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200/80 bg-white px-5 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
-        >
-          <GooglePlayIcon size={22} />
-          <span className="text-left leading-tight">
-            <span className="block text-[10px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
-            <span className="block text-[15px] font-extrabold">Google Play</span>
-          </span>
-        </a>
+        {/* 버튼 (가로 나란히) */}
+        <div className="mt-8 flex w-full items-center gap-2.5">
+          <a
+            href={PLAY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
+          >
+            <GooglePlayIcon size={20} />
+            <span className="text-left leading-tight">
+              <span className="block text-[9px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
+              <span className="block text-[14px] font-extrabold">Google Play</span>
+            </span>
+          </a>
 
-        {/* App Store 버튼 (URL 발급 전: placeholder) */}
-        <a
-          href={APPSTORE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-disabled={APPSTORE_URL === '#'}
-          className="mt-2.5 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200/80 bg-white px-5 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
-        >
-          <AppleIcon size={22} />
-          <span className="text-left leading-tight">
-            <span className="block text-[10px] font-semibold tracking-[0.04em] text-[#8b93a3]">iOS</span>
-            <span className="block text-[15px] font-extrabold">App Store</span>
-          </span>
-        </a>
+          {/* App Store 버튼 (URL 발급 전: placeholder) */}
+          <a
+            href={APPSTORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={APPSTORE_URL === '#'}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
+          >
+            <AppleIcon size={20} />
+            <span className="text-left leading-tight">
+              <span className="block text-[9px] font-semibold tracking-[0.04em] text-[#8b93a3]">iOS</span>
+              <span className="block text-[14px] font-extrabold">App Store</span>
+            </span>
+          </a>
+        </div>
         {/* 소셜 */}
         <div className="mt-10 flex items-center gap-4">
           <a
