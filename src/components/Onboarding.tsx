@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
-import { LoadingScreen } from '@/components/LoadingScreen';
 
 // 온보딩/로그인 가드를 건너뛰는 공개 경로 (인스타 바이오 랜딩 + 약관/정책).
 // 콜드 유입(localStorage 비어있음)이 온보딩에 가려지지 않고 바로 페이지를 보게 한다.
@@ -441,9 +440,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   if (isPublic) return <>{children}</>;
 
   // localStorage 확인 전까지 하얀 화면 (깜박임 방지)
-  // 세션/온보딩 확인 전 — 빈 흰 화면 대신 스플래시와 동일한 로딩화면(아이콘+스피너)으로
-  //   스플래시→앱 전환 시 아이콘이 끊기지 않게 한다.
-  if (!checked) return <LoadingScreen />;
+  if (!checked) return <div className="fixed inset-0 bg-white z-[200]" />;
 
   // 온보딩 진행 중엔 children 렌더링 자체를 막아 한 프레임짜리 홈 플래시 제거
   return <>{showOnboarding ? <Onboarding onComplete={handleComplete} /> : children}</>;
