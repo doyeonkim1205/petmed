@@ -87,10 +87,10 @@
 ## Phase 5 — App Store Connect 등록 [콘솔]
 
 - [ ] 앱 생성 (이름/카테고리/연령등급)
-- [ ] **App Privacy 라벨** 작성 (직접):
-      이메일/계정ID(Supabase)·반려동물 건강기록·사진(서버 미저장)·위치(병원찾기)·구매정보(RC)·푸시토큰(APNs)·건강데이터카테고리
-      → **전부 "추적(Tracking) 아님"** (광고 없음) → **ATT 팝업 불필요**
-- [ ] **스크린샷** 재렌더 — iPhone 6.9형 **1290×2796** (기존 `docs/playstore-screenshots/template.html` 출력 해상도만 변경)
+- [x] **App Privacy 라벨** 작성 가이드 완료 → `docs/ios-app-privacy.md` (그대로 입력)
+      추적 데이터 없음 → **ATT 불필요**. 반려동물 기록=User Content(Health 아님).
+- [x] **스크린샷** 1290×2796 8장 완료 → 바탕화면 `PawDex/홍보/앱스토어 스크린샷/pawdex_0N_ios.png`
+      (Play 완성본을 폭 맞춰 확대 + 배경 가장자리 연장, 찌그러짐·이음새 없음)
 - [ ] 심사 노트 작성 (4.2 — 웹뷰 하이브리드 설명, 테스트 계정 제공)
 - [ ] 개인정보처리방침 URL (`pawdex.store/privacy`) 입력
 
