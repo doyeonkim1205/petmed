@@ -15,6 +15,8 @@ export const metadata: Metadata = {
 
 const PLAY_URL =
   'https://play.google.com/store/apps/details?id=com.dylabs.pawdex&referrer=utm_source%3Dinstagram%26utm_medium%3Dbio';
+// TODO: App Store 승인 후 발급되는 숫자 ID 링크로 교체 (https://apps.apple.com/app/idXXXXXXXXX)
+const APPSTORE_URL = '#';
 const INSTAGRAM_URL = 'https://www.instagram.com/pawdex_?igsh=Mm5lZzZnZHA5b3Vj';
 const THREADS_URL = 'https://www.threads.com/@pawdex_';
 
@@ -45,6 +47,14 @@ function GooglePlayIcon({ size = 28 }: { size?: number }) {
   );
 }
 
+function AppleIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.05 12.536c-.026-2.617 2.137-3.872 2.234-3.934-1.216-1.78-3.106-2.024-3.78-2.05-1.61-.163-3.142.948-3.957.948-.814 0-2.075-.924-3.41-.899-1.755.026-3.375 1.02-4.28 2.59-1.824 3.165-.467 7.852 1.31 10.42.866 1.257 1.899 2.668 3.253 2.618 1.304-.052 1.798-.845 3.375-.845 1.577 0 2.02.845 3.401.82 1.404-.026 2.293-1.281 3.153-2.543.993-1.46 1.402-2.872 1.427-2.945-.031-.014-2.74-1.052-2.766-4.173-.026-2.611 2.13-3.863 2.228-3.93m-2.6-7.227c.72-.873 1.205-2.087 1.073-3.295-1.036.042-2.292.69-3.036 1.562-.667.774-1.251 2.01-1.094 3.196 1.157.09 2.337-.587 3.057-1.463" />
+    </svg>
+  );
+}
+
 export default function StartPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#e9f1ff] via-[#f4f8ff] to-white px-6 py-12">
@@ -53,10 +63,15 @@ export default function StartPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-512x512.png" alt="PawDex" className="h-24 w-24 rounded-[22%] shadow-lg" />
         <h1 className="mt-6 text-[26px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
-        <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#5a6478]">
-          우리 아이 건강 기록을 한눈에.
+        <p className="mt-4 text-[19px] font-extrabold leading-snug tracking-tight text-[#1e2a45]">
+          처음 만난 날부터,
           <br />
-          AI 분석·통계·알림·지출까지.
+          함께하는 모든 날까지.
+        </p>
+        <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#5a6478]">
+          반려동물 건강 기록을
+          <br />
+          쉽게 남기고 한눈에 관리해요.
         </p>
 
         {/* 버튼 */}
@@ -70,6 +85,21 @@ export default function StartPage() {
           <span className="text-left leading-tight">
             <span className="block text-[11px] font-semibold tracking-[0.04em] opacity-70">Android</span>
             <span className="block text-[17px] font-extrabold">Google Play</span>
+          </span>
+        </a>
+
+        {/* App Store 버튼 (URL 발급 전: placeholder) */}
+        <a
+          href={APPSTORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-disabled={APPSTORE_URL === '#'}
+          className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#16213a] px-7 py-4 text-white shadow-lg shadow-blue-900/15 transition active:scale-[0.98]"
+        >
+          <AppleIcon size={28} />
+          <span className="text-left leading-tight">
+            <span className="block text-[11px] font-semibold tracking-[0.04em] opacity-70">iOS</span>
+            <span className="block text-[17px] font-extrabold">App Store</span>
           </span>
         </a>
         {/* 소셜 */}
