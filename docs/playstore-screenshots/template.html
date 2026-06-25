@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>PawDex Play Store Screenshots</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { background: #fff; }
+  :root { --blue:#2f6bff; --blue-deep:#2357e6; --ink:#1b2742; --sub:#5b6478; --chip-bg:#eef3fb; }
+  body { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+
+  .slide { position:relative; width:1080px; height:1920px; overflow:hidden; display:none; }
+  .slide.show { display:block; }
+
+  /* 텍스트 */
+  .head { position:absolute; left:72px; right:72px; top:130px; z-index:5; text-align:center; }
+  .chip { display:inline-flex; align-items:center; gap:12px; padding:14px 30px 14px 24px;
+    background:var(--chip-bg); border-radius:999px; font-size:31px; font-weight:800; color:var(--blue-deep); margin-bottom:30px; }
+  .chip svg { width:34px; height:34px; }
+  .title { font-size:64px; font-weight:800; line-height:1.24; color:var(--ink); letter-spacing:-1.5px; }
+  .sub { margin-top:26px; font-size:33px; font-weight:500; line-height:1.5; color:var(--sub); letter-spacing:-0.5px; }
+
+  /* ===== 리얼 디바이스 프레임 (post3 동일) ===== */
+  .device { position:relative; width:520px; padding:14px; border-radius:64px;
+    background:linear-gradient(150deg,#3a3d45 0%,#15171c 38%,#0b0d12 100%);
+    box-shadow:0 55px 110px rgba(20,40,90,.34), inset 0 0 0 2px rgba(255,255,255,.07), inset 0 0 14px rgba(0,0,0,.6); }
+  .device .scr { position:relative; border-radius:50px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+  .device .island { position:absolute; top:16px; left:50%; transform:translateX(-50%); width:122px; height:33px; background:#000; border-radius:18px; z-index:6; }
+  .device .sbar { flex:0 0 auto; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 46px 0 50px; background:#fff; z-index:4; }
+  .device .sbar .t { font-size:25px; font-weight:700; color:#111; letter-spacing:.5px; }
+  .device .sbar .r { display:flex; align-items:center; gap:9px; }
+  .device .sbar .r svg { height:24px; width:auto; fill:#111; }
+  .device .shot { flex:0 0 auto; overflow:hidden; }
+  .device .shot img { width:100%; height:auto; display:block; }
+  .device .glare { position:absolute; inset:0; border-radius:50px; pointer-events:none; z-index:5;
+    background:linear-gradient(125deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 34%); }
+  .device .pow { position:absolute; right:-4px; top:250px; width:5px; height:100px; border-radius:0 5px 5px 0; background:linear-gradient(#2a2d35,#0e1014); }
+  .device .v1 { position:absolute; left:-4px; top:210px; width:5px; height:62px; border-radius:5px 0 0 5px; background:linear-gradient(#2a2d35,#0e1014); }
+  .device .v2 { position:absolute; left:-4px; top:286px; width:5px; height:62px; border-radius:5px 0 0 5px; background:linear-gradient(#2a2d35,#0e1014); }
+  .placeholder { width:100%; aspect-ratio:408/913; background:linear-gradient(160deg,#f3f7ff,#e7eefc);
+    display:flex; align-items:center; justify-content:center; color:#9fb0d0; font-size:30px; font-weight:700; }
+
+  /* 단일 폰 (가운데 정렬) */
+  .single .stage { position:absolute; left:0; right:0; top:592px; display:flex; justify-content:center; }
+  .single .device { transform:scale(1.06); transform-origin:top center; }
+
+  /* 2대 듀오 (틸트 겹침): front=앞·크게 / back=뒤·작게 */
+  .duo { position:absolute; left:0; top:636px; width:1080px; height:1300px; }
+  .duo .device { position:absolute; transform-origin:top left; }
+  .duo .back  { left:138px; top:122px; transform:scale(.80) rotate(-5deg); z-index:1; }
+  .duo .front { left:470px; top:0;    transform:scale(.90) rotate(4deg);  z-index:2; }
+
+  /* 블루 인트로 */
+  .slide.blue { background:radial-gradient(120% 95% at 82% 2%, #4f86ff 0%, var(--blue) 46%, var(--blue-deep) 100%); }
+  .slide.blue .head { text-align:center; top:154px; }
+  .slide.blue .brand { display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:30px; }
+  .slide.blue .brand img { width:88px; height:88px; border-radius:22px; box-shadow:0 14px 30px rgba(0,0,0,.2); }
+  .slide.blue .brand .wm { font-size:70px; font-weight:800; color:#fff; letter-spacing:-1px; }
+  .slide.blue .title { color:#fff; font-size:50px; font-weight:700; line-height:1.4; }
+  .slide.blue .sub { color:rgba(255,255,255,.86); }
+  .slide.blue .single .stage, .slide.blue .stage { top:520px; }
+  .slide.blue .single .device { transform:scale(1.1); transform-origin:top center; }
+  .slide.blue .deco { position:absolute; border-radius:50%; background:rgba(255,255,255,.07); }
+  .slide.blue .deco.d1 { width:520px; height:520px; top:-150px; right:-130px; }
+  .slide.blue .deco.d2 { width:340px; height:340px; bottom:200px; left:-160px; }
+
+  /* 흰 기능 */
+  .slide.white { background:linear-gradient(180deg,#f4f8ff 0%, #fafcff 40%, #ffffff 100%); }
+  .slide.white .deco { display:none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const I = {
+  sparkles:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3 11 8l5 1.5L11 11l-1.5 5L8 11l-5-1.5L8 8z"/><path d="M18 14l.8 2.4L21 17l-2.2.6L18 20l-.8-2.4L15 17l2.2-.6z"/></svg>',
+  notebook:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2z"/><path d="M8 4v17M12 9h4M12 13h4"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>',
+  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5"/><circle cx="16.5" cy="12.5" r="1.4" fill="#2357e6" stroke="none"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  mappin:'<svg viewBox="0 0 24 24" fill="none" stroke="#2357e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+};
+const SB = '<span class="r">'
+  + '<svg viewBox="0 0 20 14"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6" width="3" height="8" rx="1"/><rect x="10" y="3" width="3" height="11" rx="1"/><rect x="15" y="0" width="3" height="14" rx="1"/></svg>'
+  + '<svg viewBox="0 0 22 16"><path d="M11 3.2c3 0 5.7 1.1 7.7 3l-1.6 1.7C15.5 7.4 13.4 6.5 11 6.5S6.5 7.4 4.9 7.9L3.3 6.2C5.3 4.3 8 3.2 11 3.2zm0 4.6c1.7 0 3.3.6 4.5 1.7l-1.6 1.7c-.8-.7-1.8-1.1-2.9-1.1s-2.1.4-2.9 1.1L6.5 9.5C7.7 8.4 9.3 7.8 11 7.8zm0 4.4c.8 0 1.5.3 2 .9L11 16l-2-1.9c.5-.6 1.2-.9 2-.9z"/></svg>'
+  + '<svg viewBox="0 0 30 14"><rect x="1" y="1" width="24" height="12" rx="3.2" fill="none" stroke="#111" stroke-width="1.4"/><rect x="26.5" y="4.5" width="2.2" height="5" rx="1"/><rect x="3" y="3" width="20" height="8" rx="1.8"/></svg>'
+  + '</span>';
+
+const SLIDES = [
+  { v:'blue', kind:'single', intro:true,
+    title:'우리 아이 건강 기록은 한눈에',
+    sub:'흩어진 건강 정보와 기록은 PawDex 하나로',
+    screens:['screens/slide1.png'] },
+  { v:'white', kind:'two', chip:['sparkles','AI 케어'],
+    title:'아플 때, 더 빠르게 살펴봐요',
+    sub:'증상 사진, 건강 기록을 바탕으로<br>AI가 관찰 포인트와 참고 정보를 한눈에 정리해요',
+    screens:['screens/slide2a.png','screens/slide2b.png'] },
+  { v:'white', kind:'two', chip:['notebook','건강 기록'],
+    title:'기록부터 관리까지 한곳에',
+    sub:'진료·증상·입퇴원·일상 기록부터<br>복약·예방까지 챙겨요',
+    screens:['screens/slide3a.png','screens/slide3b.png'] },
+  { v:'white', kind:'two', chip:['clock','타임라인'],
+    title:'아이의 기록을 한눈에',
+    sub:'기록은 타임라인으로, 일정은 캘린더와 알림으로 챙겨요',
+    screens:['screens/slide4a.png','screens/slide4b.png'] },
+  { v:'white', kind:'two', chip:['chart','건강 통계'],
+    title:'건강 변화, 그래프로 확인해요',
+    sub:'체중·음수량·식사·대소변·수액 기록을<br>기간별로 한눈에 살펴봐요',
+    screens:['screens/slide5a.png','screens/slide5b.png'] },
+  { v:'white', kind:'single', chip:['wallet','지출 관리'],
+    title:'지출 흐름, 편하게 관리해요',
+    sub:'병원비·사료·간식·용품까지<br>기간별로 쉽게 정리해요',
+    screens:['screens/slide6.png'] },
+  { v:'white', kind:'single', chip:['search','논문 검색'],
+    title:'궁금한 질병, 논문까지 쉽게',
+    sub:'질병이나 키워드를 검색하면<br>AI가 관련 수의학 논문을 쉽게 정리해요',
+    screens:['screens/slide7.png'] },
+  { v:'white', kind:'single', chip:['mappin','병원 찾기'],
+    title:'가까운 병원, 바로 찾아요',
+    sub:'24시·일반 동물병원을 한눈에 찾아요',
+    screens:['screens/slide8.png'] },
+];
+
+function deviceHTML(src, cls){
+  return `<div class="device full ${cls||''}">
+    <div class="scr">
+      <div class="island"></div>
+      <div class="sbar"><span class="t">9:41</span>${SB}</div>
+      <div class="shot"><img src="${src}" onerror="this.parentElement.outerHTML='<div class=\\'placeholder\\'>🐾 앱 스크린샷</div>'" /></div>
+      <div class="glare"></div>
+    </div>
+    <div class="pow"></div><div class="v1"></div><div class="v2"></div>
+  </div>`;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  const params = new URLSearchParams(location.search);
+  const only = params.has('i') ? parseInt(params.get('i'),10) : null;
+  SLIDES.forEach((s, idx)=>{
+    const n = idx+1;
+    const show = (only===null || only===n) ? ' show' : '';
+    let headInner;
+    if (s.intro){
+      headInner = `<div class="brand"><img src="../../public/icons/icon-512x512.png" onerror="this.style.display='none'"/><span class="wm">PawDex</span></div>
+        <div class="title">${s.title}</div>${s.sub?`<div class="sub">${s.sub}</div>`:''}`;
+    } else {
+      headInner = `<div class="chip">${I[s.chip[0]]}${s.chip[1]}</div><div class="title">${s.title}</div><div class="sub">${s.sub}</div>`;
+    }
+    let stage;
+    if (s.kind==='two'){
+      stage = `<div class="duo">${deviceHTML(s.screens[1],'back')}${deviceHTML(s.screens[0],'front')}</div>`;
+    } else {
+      stage = `<div class="stage">${deviceHTML(s.screens[0])}</div>`;
+    }
+    const deco = s.v==='blue' ? '<div class="deco d1"></div><div class="deco d2"></div>' : '<div class="deco d1"></div>';
+    root.insertAdjacentHTML('beforeend',
+      `<div class="slide ${s.v} ${s.kind}${show}" data-n="${n}">${deco}<div class="head">${headInner}</div>${stage}</div>`);
+  });
+}
+render();
+</script>
+</body>
+</html>
