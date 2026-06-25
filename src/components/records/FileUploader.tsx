@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Upload, X, FileText, Image as ImageIcon, Loader2, AlertCircle, Camera } from 'lucide-react';
+import { X, FileText, Image as ImageIcon, AlertCircle, Camera } from 'lucide-react';
 
 interface FileUploaderProps {
   files: File[];
@@ -130,40 +130,48 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-          onClick={() => inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-            dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+          className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors ${
+            dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
           }`}
         >
-          <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-          <p className="text-sm text-gray-600">{ph}</p>
-          <p className="text-[11px] text-gray-400 mt-1">{t('uploader.formatHint', { max: maxFiles })}</p>
+          {ph && <p className="text-sm text-gray-600 mb-3">{ph}</p>}
+          {/* 촬영 · 갤러리 두 진입점 (사진 분석 페이지와 동일 스타일).
+              촬영 = capture 카메라 / 파일 선택 = 갤러리+PDF. iOS·Android 모두 동작. */}
+          <div className="flex items-center justify-center gap-1 text-gray-600">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 px-4 py-1 hover:text-blue-600 transition-colors"
+            >
+              <Camera size={24} />
+              <span className="text-xs font-medium">{t('uploader.takePhoto')}</span>
+            </button>
+            <span className="text-gray-300 text-xl leading-none">·</span>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 px-4 py-1 hover:text-blue-600 transition-colors"
+            >
+              <ImageIcon size={24} />
+              <span className="text-xs font-medium">{t('uploader.choosePhoto')}</span>
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">{t('uploader.formatHint', { max: maxFiles })}</p>
           {storageUsage && storageUsage.limitMB > 0 && (
             <p className="text-[11px] text-gray-400 mt-0.5">
               {t('uploader.remaining')} <span className="font-medium text-gray-500">{formatStorageMB(Math.max(storageUsage.limitMB - storageUsage.usedMB, 0))} / {formatStorageMB(storageUsage.limitMB)}</span>
             </p>
           )}
+          {/* 갤러리·파일 (PDF 포함) */}
           <input
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,application/pdf"
             multiple
-            onChange={(e) => handleFiles(e.target.files)}
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
             className="hidden"
           />
-        </div>
-      )}
-
-      {!atLimit && (
-        <>
-          <button
-            type="button"
-            onClick={() => cameraInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 active:scale-[0.99] transition-colors"
-          >
-            <Camera size={16} className="text-gray-400" />
-            {t('uploader.takePhoto')}
-          </button>
+          {/* 카메라 직접 촬영 — capture=environment 로 후면 카메라 */}
           <input
             ref={cameraInputRef}
             type="file"
@@ -172,7 +180,7 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
             onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
             className="hidden"
           />
-        </>
+        </div>
       )}
 
       {files.length > 0 && (
