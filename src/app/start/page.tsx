@@ -63,7 +63,7 @@ export default function StartPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-512x512.png" alt="PawDex" className="h-24 w-24 rounded-[22%] shadow-lg" />
         <h1 className="mt-6 text-[26px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
-        <p className="mt-4 text-[18px] font-bold leading-relaxed tracking-tight text-[#1e2a45]">
+        <p className="mt-3 text-[14px] font-normal leading-relaxed tracking-tight text-[#5a6478]">
           오늘의 작은 기록이
           <br />
           내일의 우리 아이를 이해하는
@@ -76,12 +76,12 @@ export default function StartPage() {
           href={PLAY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-9 inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-7 py-3.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
+          className="mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200/80 bg-white px-5 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
         >
-          <GooglePlayIcon size={26} />
+          <GooglePlayIcon size={22} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
-            <span className="block text-[17px] font-extrabold">Google Play</span>
+            <span className="block text-[10px] font-semibold tracking-[0.04em] text-[#8b93a3]">Android</span>
+            <span className="block text-[15px] font-extrabold">Google Play</span>
           </span>
         </a>
 
@@ -91,12 +91,12 @@ export default function StartPage() {
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled={APPSTORE_URL === '#'}
-          className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-7 py-3.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
+          className="mt-2.5 inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200/80 bg-white px-5 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
         >
-          <AppleIcon size={26} />
+          <AppleIcon size={22} />
           <span className="text-left leading-tight">
-            <span className="block text-[11px] font-semibold tracking-[0.04em] text-[#8b93a3]">iOS</span>
-            <span className="block text-[17px] font-extrabold">App Store</span>
+            <span className="block text-[10px] font-semibold tracking-[0.04em] text-[#8b93a3]">iOS</span>
+            <span className="block text-[15px] font-extrabold">App Store</span>
           </span>
         </a>
         {/* 소셜 */}
