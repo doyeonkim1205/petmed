@@ -10,7 +10,7 @@ import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
 // getPlatform 은 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
-import { getPlatform } from '@/lib/platform/env';
+import { getPlatform, isNativeApp } from '@/lib/platform/env';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -388,6 +388,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, profile]);
 
+  // 네이티브 FCM 토큰 재귀속 — 같은 기기에서 계정이 바뀌어도 토큰 소유자를 현재 계정에 일치시킨다.
+  //   (로그아웃 정리만으론 '강제종료 후 다른 계정 로그인' / 이미 누수된 기존 토큰을 못 잡음)
+  //   - Plus + 푸시 켠 유저: registerNativePush() → upsert(onConflict token)로 토큰을 현재 계정에 claim.
+  //     (이미 권한 허용 상태라 prompt 없음; is_push_enabled===true 일 때만 → 임의 권한팝업 방지)
+  //   - 그 외(무료/푸시 끔): unregisterNativePush() → 기기 토큰을 token 기준으로 삭제(누수 토큰 청소).
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    if (!user || !profile) return;
+    const eligible = getEffectivePlan(profile.plan) === 'plus' && profile.is_push_enabled === true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { registerNativePush, unregisterNativePush } = await import('@/lib/platform');
+        if (cancelled) return;
+        if (eligible) await registerNativePush();
+        else await unregisterNativePush();
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [user, profile]);
+
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
@@ -486,6 +507,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {}
+
+      // 네이티브 FCM 토큰 해제 — 같은 기기에서 계정 전환 시 이전 계정 복약 알림이
+      //   새 계정으로 새어나가는 것 차단. ⚠️ signOut 이전(JWT 유효할 때) 실행해야 삭제 API 성공.
+      if (isNativeApp()) {
+        try {
+          const { unregisterNativePush } = await import('@/lib/platform');
+          await unregisterNativePush();
+        } catch {}
+      }
     }
 
     // 1) Clear React state immediately
