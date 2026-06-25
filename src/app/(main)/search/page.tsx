@@ -1291,7 +1291,7 @@ function SearchContent() {
                 ))}
               </div>
             )}
-            <div className="mt-10 text-center text-gray-300">
+            <div className="mt-14 text-center text-gray-300">
               <p className="text-sm">{searchMode === 'symptom' ? t('search.emptySymptom') : t('search.emptyDisease')}</p>
               <p className="text-xs mt-1">{searchMode === 'symptom' ? '' : t('search.emptyDiseaseSub')}</p>
             </div>
