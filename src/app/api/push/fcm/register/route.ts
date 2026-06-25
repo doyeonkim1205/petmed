@@ -49,7 +49,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { user, error } = await verifyAuth(request);
+  // 인증만 요구하고 token 기준으로 삭제 — 계정 전환 시 이전 계정 소유로 남은 토큰을
+  //   새 계정(무료 등)이 정리할 수 있게. token 은 UNIQUE(기기 1개)라 소유권 무관 삭제가 안전.
+  //   (기기가 그 토큰을 물리적으로 보유 → claim/clear 자격 있음. 크로스계정 푸시 누수 차단.)
+  const { error } = await verifyAuth(request);
   if (error) return error;
 
   const { token } = await request.json();
@@ -62,6 +65,6 @@ export async function DELETE(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  await supabase.from('fcm_tokens').delete().eq('user_id', user!.id).eq('token', token);
+  await supabase.from('fcm_tokens').delete().eq('token', token);
   return NextResponse.json({ success: true });
 }
