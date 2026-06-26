@@ -17,7 +17,18 @@ interface User {
   plan: string;
   role: string;
   created_at: string;
+  platform?: string | null; // ios | android | web | null (최근 세션 기준)
+  provider?: string; // email | google | kakao | apple (가입 경로)
 }
+
+// 가입 경로 라벨 (auth app_metadata.provider)
+const PROVIDER_LABEL: Record<string, string> = {
+  email: '이메일', google: '구글', kakao: '카카오', apple: '애플',
+};
+// 플랫폼 라벨 (active_sessions.platform)
+const PLATFORM_LABEL: Record<string, string> = {
+  ios: 'iOS', android: 'Android', web: '웹',
+};
 
 interface Payment {
   id: string;
@@ -212,6 +223,8 @@ export default function UsersPage() {
                   <TableRow>
                     <TableHead>이메일</TableHead>
                     <TableHead>닉네임</TableHead>
+                    <TableHead>가입</TableHead>
+                    <TableHead>플랫폼</TableHead>
                     <TableHead>플랜</TableHead>
                     <TableHead>역할</TableHead>
                     <TableHead>가입일</TableHead>
@@ -226,6 +239,12 @@ export default function UsersPage() {
                     >
                       <TableCell className="text-sm">{user.email}</TableCell>
                       <TableCell className="text-sm">{user.nickname || '-'}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {PROVIDER_LABEL[user.provider || 'email'] || user.provider || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {user.platform ? (PLATFORM_LABEL[user.platform] || user.platform) : '-'}
+                      </TableCell>
                       <TableCell>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                           user.plan === 'plus' ? 'bg-blue-100 text-blue-700' :
