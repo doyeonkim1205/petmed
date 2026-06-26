@@ -358,6 +358,17 @@ export default function SubscriptionPage() {
   // Google Play 구독 화면 딥링크 (변경·해지·환불은 여기서). 시스템 브라우저로 열림(Capacitor).
   const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
 
+  // App Store 구독 관리 — StoreKit 네이티브 시트 우선, 실패(미구현 포함) 시 설정 경로 안내.
+  // 원격 WebView 에선 apps.apple.com URL 을 window.open 해도 "연결할 수 없습니다" 로 실패하므로
+  // 네이티브 브릿지로만 연다. 폴백은 외부 열기 대신 텍스트 안내(WebView 에선 외부 열기도 불가).
+  const handleManageApple = async () => {
+    const res = await platformPayments.manageAppleSubscriptions();
+    if (!res.ok) {
+      setActionError(false);
+      setActionMessage(t('subscription.manageAppleFallback'));
+    }
+  };
+
   const currentPlan = profile?.plan || 'free';
   const isPaid = currentPlan !== 'free' || justPurchased; // 낙관적: 구매 직후 서버 반영 전이라도 Plus 표시
   const isActive = subscription?.status === 'active';
@@ -365,6 +376,15 @@ export default function SubscriptionPage() {
   const isRecurring = subscription?.billing_type === 'recurring';
   const isYearly = subscription?.product_id?.includes('yearly');
   const hasSub = isActive || isCanceled;
+  // ── 해지 예약(자동갱신 OFF) 판정 — status 단일 컬럼이 아니라 canceled_at + period_end 기준. ──
+  // 경로별 표현이 달라서(토스/sync=status'canceled', RC 웹훅=canceled_at만) status 만 보면
+  // App Store 해지가 뱃지에 안 잡힌다. canceled_at 이 있고 아직 만료 전이면 "해지 예약"으로 통일.
+  // Plus 권한은 period_end(만료)까지 유지되며, 실제 free 강등은 EXPIRATION 웹훅(profiles.plan)이 담당.
+  const periodEndMs = subscription?.period_end ? new Date(subscription.period_end).getTime() : 0;
+  const beforePeriodEnd = periodEndMs ? Date.now() < periodEndMs : true;
+  const isScheduledCancel = (!!subscription?.canceled_at || isCanceled) && beforePeriodEnd;
+  // 뱃지: 해지 예약이 아니고 활성(또는 구매 직후)일 때만 초록 "이용 중", 그 외 주황 "해지 예약".
+  const showActiveBadge = justPurchased || (isActive && !isScheduledCancel);
   // 결제 실패 retry 중 — Grace Period 안내 + 즉시 재결제 노출 조건.
   // 자동 갱신 유저만 즉시 재결제 가능 (1회 결제는 next_billing_at 없음 → cron 안 돔).
   const billingFailedCount = subscription?.billing_failed_count || 0;
@@ -489,9 +509,9 @@ export default function SubscriptionPage() {
               </p>
             </div>
             {(hasSub || justPurchased) && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${(isActive || justPurchased) ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${(isActive || justPurchased) ? 'bg-green-400' : 'bg-orange-400'}`} />
-                {(isActive || justPurchased) ? t('subscription.statusActive') : t('subscription.statusCanceled')}
+              <span className={`inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-semibold ${showActiveBadge ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${showActiveBadge ? 'bg-green-400' : 'bg-orange-400'}`} />
+                {showActiveBadge ? t('subscription.statusActive') : t('subscription.statusCanceled')}
               </span>
             )}
           </div>
@@ -561,12 +581,13 @@ export default function SubscriptionPage() {
             <div className="divide-y divide-gray-50">
               <DetailRow icon={<RefreshCw size={14} className={isRecurring ? 'text-blue-500' : 'text-gray-400'} />}
                 label={t('subscription.billingMethod')} value={isYearly ? t('subscription.billingYearly') : isRecurring ? t('subscription.billingMonthly') : t('subscription.billing30day')} accent={isRecurring} />
-              {isRecurring ? (
+              {isRecurring && !isScheduledCancel ? (
                 subscription.next_billing_at && (
                   <DetailRow icon={<Calendar size={14} className="text-blue-500" />}
                     label={t('subscription.nextBilling')} value={fmtDate(subscription.next_billing_at)} accent />
                 )
               ) : (
+                /* 해지 예약·1회 결제 → 다음 결제 없음. 이용 종료일(만료일)로 표시. */
                 <DetailRow icon={<Calendar size={14} className="text-gray-400" />}
                   label={t('subscription.expiry')} value={fmtDate(subscription.period_end)} />
               )}
@@ -650,8 +671,8 @@ export default function SubscriptionPage() {
               </>
             ) : subscription?.store === 'apple' ? (
               <>
-                {/* App Store 구독 — goManageInPlay 는 iOS 에서 App Store 관리 URL 로 열림 */}
-                <ActionBtn onClick={goManageInPlay}>{t('subscription.manageInAppStore')}</ActionBtn>
+                {/* App Store 구독 — StoreKit 네이티브 시트. 실패 시 설정 경로 안내로 폴백. */}
+                <ActionBtn onClick={handleManageApple}>{t('subscription.manageInAppStore')}</ActionBtn>
                 <p className="text-[10px] text-gray-400 text-center px-2 leading-relaxed">{t('subscription.manageInAppStoreDesc')}</p>
               </>
             ) : (

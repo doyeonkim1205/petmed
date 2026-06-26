@@ -50,6 +50,9 @@ const NativeBilling = registerPlugin<{
   purchaseAnnual(o: ConfigOpts): Promise<FlatResult>;
   restorePurchases(o: ConfigOpts): Promise<FlatResult>;
   getCustomerStatus(o: ConfigOpts): Promise<FlatResult>;
+  // iOS 전용: StoreKit2 AppStore.showManageSubscriptions(in:) 로 인앱 구독 관리 시트.
+  // 네이티브 미구현/실패 시 reject → 호출부에서 설정 경로 안내로 폴백.
+  manageSubscriptions(o: ConfigOpts): Promise<FlatResult>;
 }>('NativeBilling');
 
 /** 네이티브 호출이 혹시라도 멈춰도 UI 가 영구 대기하지 않도록 타임아웃으로 감싼다. */
@@ -95,6 +98,27 @@ export const platformPayments = {
     return isIOS()
       ? 'https://apps.apple.com/account/subscriptions'
       : 'https://play.google.com/store/account/subscriptions';
+  },
+
+  /**
+   * iOS 앱에서 StoreKit 네이티브 구독 관리 시트를 띄운다.
+   * ⚠️ 원격 WebView 에선 window.open('apps.apple.com/account/subscriptions') 가
+   *    WebView 안에서 로드되려다 "연결할 수 없습니다" 로 실패 → 네이티브 StoreKit 으로 우회.
+   * 반환: { ok } — false 면 호출부가 "설정 > Apple 계정 > 구독" 경로 안내로 폴백.
+   * (네이티브 manageSubscriptions 미구현 시 reject → catch → ok:false)
+   */
+  async manageAppleSubscriptions(): Promise<{ ok: boolean; error?: string }> {
+    if (!isNativeApp() || !isIOS()) return { ok: false, error: 'not ios app' };
+    try {
+      const res = await withTimeout(
+        NativeBilling.manageSubscriptions({ apiKey: activeApiKey() }),
+        20000,
+        'manageSubs',
+      );
+      return { ok: !!res.ok, error: res.error };
+    } catch (e) {
+      return { ok: false, error: (e as Error).message };
+    }
   },
 
   /** productId(plus_monthly/plus_yearly) 구매. 네이티브 전용. */
