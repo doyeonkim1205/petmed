@@ -15,7 +15,8 @@ export const metadata: Metadata = {
 
 const PLAY_URL =
   'https://play.google.com/store/apps/details?id=com.dylabs.pawdex&referrer=utm_source%3Dinstagram%26utm_medium%3Dbio';
-const APPSTORE_URL = 'https://apps.apple.com/kr/iphone/search?term=pawdex';
+const APPSTORE_URL =
+  'https://apps.apple.com/kr/app/pawdex-%EB%B0%98%EB%A0%A4%EB%8F%99%EB%AC%BC-%EA%B1%B4%EA%B0%95%EA%B8%B0%EB%A1%9D/id6783735811';
 const INSTAGRAM_URL = 'https://www.instagram.com/pawdex_?igsh=Mm5lZzZnZHA5b3Vj';
 const THREADS_URL = 'https://www.threads.com/@pawdex_';
 
