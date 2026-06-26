@@ -131,8 +131,13 @@ export default function SubscriptionPage() {
   //   - 웹(!isApp)              → 토스 결제 UI
   //   - 앱 + RC ready(rcReady)  → RevenueCat 구매 UI
   //   - 앱 + RC 없음            → "구독 준비 중"(비활성). 토스 fallback 금지.
-  const isApp = isNativeApp();
-  const rcReady = platformPayments.isRevenueCatReady();
+  // ⚠️ 원격 로드(server.url) 구조라 첫 페인트엔 window.Capacitor 주입이 아직일 수 있다.
+  // 그 순간 isApp=false 로 잡히면 웹(토스 3,900원) 분기가 그려지고, 재렌더 트리거가 없으면
+  // 그대로 멈춤(안드) / 잠깐 깜빡임(아이폰). 마운트 후 platformReady=true 로 강제 재렌더하여
+  // 그 전까진 결제 옵션을 스켈레톤으로만 보여 잘못된 분기·폴백가 노출을 원천 차단한다.
+  const [platformReady, setPlatformReady] = useState(false);
+  const isApp = platformReady && isNativeApp();
+  const rcReady = platformReady && platformPayments.isRevenueCatReady();
   const appRcBilling = isApp && rcReady;  // 앱에서 RC 구매 버튼 노출
   const [purchasing, setPurchasing] = useState(false);
   const [processingProduct, setProcessingProduct] = useState<string | null>(null); // 로딩 표시할 버튼
@@ -167,6 +172,10 @@ export default function SubscriptionPage() {
     // Track page view
     import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
   }, [user, authLoading, router]);
+
+  // 마운트 후 플랫폼 확정 — 이 시점이면 window.Capacitor 주입이 끝나 isApp 판정이 신뢰 가능.
+  // 강제 재렌더로 "웹 분기 멈춤/깜빡임"을 해소한다.
+  useEffect(() => { setPlatformReady(true); }, []);
 
   // 앱+RC: 오퍼링에서 월간·연간 상품의 로컬라이즈 가격(Play 실제가)을 가져와 표시.
   useEffect(() => {
@@ -378,6 +387,61 @@ export default function SubscriptionPage() {
     return t('subscription.cardFormat', { company, last4 }).trim();
   };
 
+  // 결제 옵션(Free·해지 후 재구독 공통) — 플랫폼 확정 전엔 스켈레톤, 확정 후 분기.
+  //   웹(!isApp)              → 토스 결제 UI (단건/정기/연간)
+  //   앱+RC(appRcBilling)     → RC 구매 버튼 (가격은 스토어 실제가, 로딩 전엔 회색바)
+  //   앱+RC 없음              → "구독 준비 중"
+  const renderSubscribeOptions = () => {
+    if (!platformReady) return <SubscribeSkeleton />;
+    if (!isApp) {
+      return (
+        <div className="space-y-2.5">
+          <PlanBtn onClick={() => setShowComingSoon(true)}
+            title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
+            sub={t('subscription.monthlyOnetimeSub')} />
+          <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
+            title={t('subscription.monthlyAutoTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
+            sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+          <PlanBtn onClick={() => setShowComingSoon(true)}
+            title={t('subscription.yearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+            priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
+            sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
+            badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
+        </div>
+      );
+    }
+    if (appRcBilling) {
+      return (
+        <div className="space-y-2.5">
+          <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
+            loading={processingProduct === 'plus_monthly'} loadingText={t('subscription.checkingStatus')}
+            title={t('subscription.subscribeMonthlyTitle')}
+            price={nativePrice || ''} priceLoading={!nativePrice}
+            sub={t('subscription.subscribeMonthlySub')} />
+          <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
+            loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
+            title={t('subscription.subscribeYearlyTitle')}
+            price={nativePriceYearly ? t('subscription.perYearWrap', { price: nativePriceYearly }) : ''} priceLoading={!nativePriceYearly}
+            sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+            badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
+          <div className="pt-1">
+            <button onClick={handleRestore} disabled={purchasing}
+              className="w-full text-center text-[11px] text-gray-400 underline disabled:opacity-50">
+              {t('subscription.restorePurchase')}
+            </button>
+            <p className="text-center text-[10px] text-gray-300 mt-0.5">{t('subscription.restoreHint')}</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-center">
+        <p className="text-sm font-semibold text-gray-500 mb-1">{t('subscription.preparingTitle')}</p>
+        <p className="text-[11px] text-gray-400 leading-relaxed">{t('subscription.preparingDesc')}</p>
+      </div>
+    );
+  };
+
   if (authLoading || loading) {
     return <LoadingScreen inMain />;
   }
@@ -437,51 +501,8 @@ export default function SubscriptionPage() {
         {!isPaid && !hasSub && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
-            {!isApp ? (
-            /* 웹: 토스 결제 (단건/정기/연간) */
-            <div className="space-y-2.5">
-              <PlanBtn onClick={() => setShowComingSoon(true)}
-                title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
-                sub={t('subscription.monthlyOnetimeSub')} />
-              <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
-                title={t('subscription.monthlyAutoTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
-                sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-              <PlanBtn onClick={() => setShowComingSoon(true)}
-                title={t('subscription.yearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
-                priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
-                sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
-                badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
-            </div>
-            ) : appRcBilling ? (
-              /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
-              <div className="space-y-2.5">
-                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
-                  loading={processingProduct === 'plus_monthly'} loadingText={t('subscription.checkingStatus')}
-                  title={t('subscription.subscribeMonthlyTitle')}
-                  price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
-                  sub={t('subscription.subscribeMonthlySub')} />
-                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
-                  loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
-                  title={t('subscription.subscribeYearlyTitle')}
-                  price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
-                  sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
-                  badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-                <div className="pt-1">
-                  <button onClick={handleRestore} disabled={purchasing}
-                    className="w-full text-center text-[11px] text-gray-400 underline disabled:opacity-50">
-                    {t('subscription.restorePurchase')}
-                  </button>
-                  <p className="text-center text-[10px] text-gray-300 mt-0.5">{t('subscription.restoreHint')}</p>
-                </div>
-              </div>
-            ) : (
-              /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-center">
-                <p className="text-sm font-semibold text-gray-500 mb-1">{t('subscription.preparingTitle')}</p>
-                <p className="text-[11px] text-gray-400 leading-relaxed">{t('subscription.preparingDesc')}</p>
-              </div>
-            )}
+              <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
+              {renderSubscribeOptions()}
             </div>
           </div>
         )}
@@ -561,51 +582,8 @@ export default function SubscriptionPage() {
         {isCanceled && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-            <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
-            {!isApp ? (
-            /* 웹: 토스 결제 (단건/정기/연간) */
-            <div className="space-y-2.5">
-              <PlanBtn onClick={() => setShowComingSoon(true)}
-                title={t('subscription.monthlyOnetimeTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_ONETIME.toLocaleString() })}
-                sub={t('subscription.monthlyOnetimeSub')} />
-              <PlanBtn onClick={() => isTrialActive() ? setTrialConfirmTarget('/payment/billing-auth?productId=plus_monthly') : router.push('/payment/billing-auth?productId=plus_monthly')}
-                title={t('subscription.monthlyAutoTitle')} price={t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
-                sub={t('subscription.monthlyAutoSub')} badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-              <PlanBtn onClick={() => setShowComingSoon(true)}
-                title={t('subscription.yearlyTitle')} price={t('subscription.priceMonthly', { price: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
-                priceSub={t('subscription.yearlyPriceSub', { price: YEARLY_PRICE.toLocaleString() })}
-                sub={t('subscription.yearlySub', { pct: YEARLY_DISCOUNT_PCT })}
-                badge={t('subscription.badgeLongCare')} badgeColor="bg-green-100 text-green-600" />
-            </div>
-            ) : appRcBilling ? (
-              /* 앱(Play Billing): 월간 RC 구독 단일 버튼 + 복원. 토스 노출 X. */
-              <div className="space-y-2.5">
-                <PlanBtn onClick={() => handleNativePurchase('plus_monthly')} disabled={purchasing}
-                  loading={processingProduct === 'plus_monthly'} loadingText={t('subscription.checkingStatus')}
-                  title={t('subscription.subscribeMonthlyTitle')}
-                  price={nativePrice || t('subscription.priceMonthly', { price: MONTHLY_AUTO.toLocaleString() })}
-                  sub={t('subscription.subscribeMonthlySub')} />
-                <PlanBtn onClick={() => handleNativePurchase('plus_yearly')} disabled={purchasing}
-                  loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
-                  title={t('subscription.subscribeYearlyTitle')}
-                  price={t('subscription.perYearWrap', { price: nativePriceYearly || t('subscription.amountWon', { amount: YEARLY_PRICE.toLocaleString() }) })}
-                  sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
-                  badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
-                <div className="pt-1">
-                  <button onClick={handleRestore} disabled={purchasing}
-                    className="w-full text-center text-[11px] text-gray-400 underline disabled:opacity-50">
-                    {t('subscription.restorePurchase')}
-                  </button>
-                  <p className="text-center text-[10px] text-gray-300 mt-0.5">{t('subscription.restoreHint')}</p>
-                </div>
-              </div>
-            ) : (
-              /* 앱 + RC 미설정: 토스 fallback 금지 — 구독 준비 중(비활성). */
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-center">
-                <p className="text-sm font-semibold text-gray-500 mb-1">{t('subscription.preparingTitle')}</p>
-                <p className="text-[11px] text-gray-400 leading-relaxed">{t('subscription.preparingDesc')}</p>
-              </div>
-            )}
+              <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
+              {renderSubscribeOptions()}
             </div>
           </div>
         )}
@@ -913,9 +891,29 @@ function ActionBtn({ children, onClick, variant = 'default' }: { children: React
   return <button onClick={onClick} className={`w-full py-3 rounded-2xl text-xs font-medium text-center transition-colors ${styles[variant]}`}>{children}</button>;
 }
 
-function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disabled, loading, loadingText }: {
+// 결제 옵션 분기 확정 전(플랫폼 미확정) 표시할 회색바 스켈레톤 — 잘못된 분기/폴백가 깜빡임 흡수.
+function SubscribeSkeleton() {
+  return (
+    <div className="space-y-2.5" aria-hidden>
+      {[0, 1].map((i) => (
+        <div key={i} className="w-full rounded-2xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="block h-3.5 w-24 rounded bg-gray-200 animate-pulse" />
+              <span className="block h-2.5 w-32 rounded bg-gray-100 animate-pulse" />
+            </div>
+            <span className="block h-4 w-16 rounded bg-gray-200 animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disabled, loading, loadingText, priceLoading }: {
   onClick: () => void; title: string; price: string; priceSub?: string; sub?: string;
   badge?: string; badgeColor?: string; disabled?: boolean; loading?: boolean; loadingText?: string;
+  priceLoading?: boolean; // 스토어 실제가 로딩 전 — 폴백 숫자 대신 회색바
 }) {
   return (
     <button onClick={onClick} disabled={disabled}
@@ -941,7 +939,11 @@ function PlanBtn({ onClick, title, price, priceSub, sub, badge, badgeColor, disa
             {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
           </div>
           <div className="text-right flex-shrink-0">
-            <span className="text-sm font-bold text-gray-900">{price}</span>
+            {priceLoading ? (
+              <span className="inline-block h-4 w-16 rounded bg-gray-200 animate-pulse align-middle" />
+            ) : (
+              <span className="text-sm font-bold text-gray-900">{price}</span>
+            )}
             {priceSub && <p className="text-[9px] text-gray-400 mt-0.5">{priceSub}</p>}
           </div>
         </div>
