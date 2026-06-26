@@ -611,20 +611,14 @@ export default function SubscriptionPage() {
         {isCanceled && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-              {isScheduledCancel && isApp ? (
-                <div className="space-y-3">
-                  <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4 text-center space-y-1">
-                    <p className="text-sm font-semibold text-gray-800">
-                      {t('subscription.scheduledCancelTitle', { date: subscription?.period_end ? fmtDate(subscription.period_end) : '' })}
-                    </p>
-                    <p className="text-[11px] text-gray-500 leading-relaxed">{t('subscription.scheduledCancelDesc')}</p>
-                  </div>
-                  {subscription?.store === 'apple' ? (
-                    <ActionBtn variant="blue" onClick={handleManageApple}>{t('subscription.scheduledCancelResume')}</ActionBtn>
-                  ) : subscription?.store === 'play' ? (
-                    <ActionBtn variant="blue" onClick={goManageInPlay}>{t('subscription.scheduledCancelResume')}</ActionBtn>
-                  ) : null}
-                </div>
+              {isScheduledCancel && isApp && (subscription?.store === 'apple' || subscription?.store === 'play') ? (
+                /* 해지예약+만료전: 상태는 상단 뱃지·구독정보에 이미 표시됨 → 재구매(이중결제) 버튼 숨기고
+                   스토어 자동갱신 재개 버튼만. (토스는 store가 apple/play 아니라 아래 기존 흐름으로) */
+                subscription?.store === 'apple' ? (
+                  <ActionBtn variant="blue" onClick={handleManageApple}>{t('subscription.scheduledCancelResume')}</ActionBtn>
+                ) : (
+                  <ActionBtn variant="blue" onClick={goManageInPlay}>{t('subscription.scheduledCancelResume')}</ActionBtn>
+                )
               ) : (
                 <>
                   <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
