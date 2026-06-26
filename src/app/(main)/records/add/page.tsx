@@ -678,7 +678,7 @@ export default function RecordAddPage() {
         <h1 className="text-sm font-semibold text-gray-700">{t('record.form.addTitle')}</h1>
       </header>
 
-      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-4">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-3">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
         )}
