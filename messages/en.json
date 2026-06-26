@@ -512,7 +512,7 @@
     "type": { "dog": "Dog", "cat": "Cat" }
   },
   "petForm": {
-    "hint": "💡 The more details you add,\nthe more accurate the AI symptom analysis",
+    "hint": "💡 Detailed info about your pet helps with AI reference analysis and health record management.",
     "name": "Name",
     "breed": "Breed (optional)",
     "birthDate": "Birth date (optional)",
