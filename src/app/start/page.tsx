@@ -63,7 +63,7 @@ export default function StartPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-512x512.png" alt="PawDex" className="h-24 w-24 rounded-[22%] shadow-lg" />
         <h1 className="mt-6 text-[36px] font-extrabold tracking-tight text-[#1e2a45]">PawDex</h1>
-        <p className="mt-3 text-[17px] font-normal leading-relaxed tracking-tight text-[#5a6478]">
+        <p className="mt-3 text-[15px] font-normal leading-relaxed tracking-tight text-[#5a6478]">
           오늘의 작은 기록이
           <br />
           내일의 우리 아이를 이해하는
