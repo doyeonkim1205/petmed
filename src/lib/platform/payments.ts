@@ -102,9 +102,10 @@ export const platformPayments = {
 
   /**
    * iOS 앱에서 StoreKit 네이티브 구독 관리 시트를 띄운다.
-   * ⚠️ 원격 WebView 에선 window.open('apps.apple.com/account/subscriptions') 가
-   *    WebView 안에서 로드되려다 "연결할 수 없습니다" 로 실패 → 네이티브 StoreKit 으로 우회.
-   * 반환: { ok } — false 면 호출부가 "설정 > Apple 계정 > 구독" 경로 안내로 폴백.
+   * window.open(apps.apple.com/account/subscriptions) 도 App Store 앱은 열리지만, Sandbox/
+   * TestFlight 환경에선 구독 페이지가 "연결할 수 없습니다"로 뜰 수 있다(실결제·운영에선 해소).
+   * StoreKit 시트는 인앱 + 샌드박스에서도 동작 → 가능하면 이쪽 우선.
+   * 반환: { ok } — false 면 호출부가 기존 App Store URL 열기로 폴백.
    * (네이티브 manageSubscriptions 미구현 시 reject → catch → ok:false)
    */
   async manageAppleSubscriptions(): Promise<{ ok: boolean; error?: string }> {
