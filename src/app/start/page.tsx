@@ -90,7 +90,6 @@ export default function StartPage() {
             href={APPSTORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={APPSTORE_URL === '#'}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-2.5 text-[#16213a] shadow-sm shadow-gray-200/60 transition active:scale-[0.98]"
           >
             <AppleIcon size={28} />
