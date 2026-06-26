@@ -678,7 +678,7 @@ export default function RecordAddPage() {
         <h1 className="text-sm font-semibold text-gray-700">{t('record.form.addTitle')}</h1>
       </header>
 
-      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-4">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
         )}
@@ -741,7 +741,7 @@ export default function RecordAddPage() {
                 autoComplete="off"
                 enterKeyHint="next"
                 name="record-title"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
               />
             </div>
             <div>
@@ -754,7 +754,7 @@ export default function RecordAddPage() {
                 onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={1000}
                 autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
               />
             </div>
           </>
@@ -775,7 +775,7 @@ export default function RecordAddPage() {
             autoComplete="off"
             enterKeyHint="next"
             name="record-title"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
         )}
@@ -805,7 +805,7 @@ export default function RecordAddPage() {
               data-1p-ignore="true"
               data-lpignore="true"
               name="record-weight-value"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
         )}
@@ -868,7 +868,7 @@ export default function RecordAddPage() {
               onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
               maxLength={700}
               autoComplete="off"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
             />
           </div>
         )}
@@ -892,7 +892,7 @@ export default function RecordAddPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 autoComplete="off"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
               />
             </div>
 
@@ -918,7 +918,7 @@ export default function RecordAddPage() {
                 data-1p-ignore="true"
                 data-lpignore="true"
                 name="record-weight-value"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -938,7 +938,7 @@ export default function RecordAddPage() {
                   autoComplete="off"
                   enterKeyHint="next"
                   name="hospital-name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -997,7 +997,7 @@ export default function RecordAddPage() {
                 data-1p-ignore="true"
                 data-lpignore="true"
                 name="record-cost-amount"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -1045,7 +1045,7 @@ export default function RecordAddPage() {
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-name-${i}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <input
                   type="search"
@@ -1056,7 +1056,7 @@ export default function RecordAddPage() {
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-dosage-${i}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">{t('record.form.frequency')}</label>
@@ -1083,7 +1083,7 @@ export default function RecordAddPage() {
                     <DatePicker
                       value={med.start_date}
                       onChange={(v) => { updateMedication(i, 'start_date', v); setIsDirty(true); }}
-                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                   <div>
@@ -1092,7 +1092,7 @@ export default function RecordAddPage() {
                       value={med.end_date}
                       onChange={(v) => { updateMedication(i, 'end_date', v); setIsDirty(true); }}
                       min={med.start_date}
-                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                 </div>
