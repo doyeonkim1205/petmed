@@ -356,7 +356,8 @@ export default function SubscriptionPage() {
   };
 
   // Google Play 구독 화면 딥링크 (변경·해지·환불은 여기서). 시스템 브라우저로 열림(Capacitor).
-  const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
+  // store='play' 명시 — 현재 기기가 iOS 여도 Play 구독은 항상 Play 로 (크로스플랫폼 오작동 방지).
+  const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl('play'), '_blank');
 
   // App Store 구독 관리 — StoreKit 네이티브 시트 우선, 실패(미구현 포함) 시 폴백.
   // window.open(apps.apple.com) 은 App Store 앱을 정상적으로 연다(핸드오프 OK). 다만 App Store
@@ -366,7 +367,8 @@ export default function SubscriptionPage() {
   const handleManageApple = async () => {
     const res = await platformPayments.manageAppleSubscriptions();
     if (!res.ok) {
-      window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
+      // store='apple' 명시 — 현재 기기가 Android 여도 Apple 구독은 항상 App Store 로.
+      window.open(platformPayments.manageSubscriptionsUrl('apple'), '_blank');
       setActionError(false);
       setActionMessage(t('subscription.manageAppleFallback'));
     }
@@ -602,12 +604,33 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {/* ── Re-subscribe buttons (canceled — after subscription info) ── */}
+        {/* ── Re-subscribe (canceled) ── */}
+        {/* 앱 + 해지예약 + 아직 만료 전(entitlement active) → 재구독(스토어 새 구매) 버튼 숨김.
+            아직 Plus 이용 중인데 구매 버튼을 띄우면 이중결제 위험 → 안내 + 스토어 자동갱신 재개만.
+            (웹/토스는 '재개=재구독' 이라 기존 흐름 유지. 만료된 canceled 는 재구독 버튼 정상 노출.) */}
         {isCanceled && (
           <div className="mb-5">
             <div className="border-t border-gray-100 pt-5">
-              <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
-              {renderSubscribeOptions()}
+              {isScheduledCancel && isApp ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4 text-center space-y-1">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {t('subscription.scheduledCancelTitle', { date: subscription?.period_end ? fmtDate(subscription.period_end) : '' })}
+                    </p>
+                    <p className="text-[11px] text-gray-500 leading-relaxed">{t('subscription.scheduledCancelDesc')}</p>
+                  </div>
+                  {subscription?.store === 'apple' ? (
+                    <ActionBtn variant="blue" onClick={handleManageApple}>{t('subscription.scheduledCancelResume')}</ActionBtn>
+                  ) : subscription?.store === 'play' ? (
+                    <ActionBtn variant="blue" onClick={goManageInPlay}>{t('subscription.scheduledCancelResume')}</ActionBtn>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-sm font-bold text-gray-800 mb-3 text-center">{t('subscription.paymentOptions')}</h2>
+                  {renderSubscribeOptions()}
+                </>
+              )}
             </div>
           </div>
         )}

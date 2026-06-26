@@ -93,9 +93,15 @@ export const platformPayments = {
     return isNativeApp() && !!activeApiKey();
   },
 
-  /** 구독 관리(해지) 딥링크 — iOS=App Store / 그 외=Google Play. 서버 강제해지 불가. */
-  manageSubscriptionsUrl(): string {
-    return isIOS()
+  /**
+   * 구독 관리(해지) 딥링크 — **구독을 결제한 스토어 기준**으로 연다.
+   * ⚠️ store 를 넘기지 않으면 현재 기기(isIOS) 로 추정하는데, 이러면 크로스플랫폼에서 틀린다
+   *    (Apple 구독을 Android 에서 열면 Play 로, 반대도 마찬가지). 호출부는 항상 subscription.store
+   *    ('apple'|'play')를 넘겨 결제처와 일치시킬 것. 서버 강제해지는 불가(스토어에서만).
+   */
+  manageSubscriptionsUrl(store?: 'apple' | 'play'): string {
+    const target = store ?? (isIOS() ? 'apple' : 'play');
+    return target === 'apple'
       ? 'https://apps.apple.com/account/subscriptions'
       : 'https://play.google.com/store/account/subscriptions';
   },
