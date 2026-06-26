@@ -358,15 +358,17 @@ export default function SubscriptionPage() {
   // Google Play 구독 화면 딥링크 (변경·해지·환불은 여기서). 시스템 브라우저로 열림(Capacitor).
   const goManageInPlay = () => window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
 
-  // App Store 구독 관리 — StoreKit 네이티브 시트 우선, 실패(미구현 포함) 시 기존 동작 폴백.
-  // window.open(apps.apple.com) 은 App Store 앱을 정상적으로 연다(핸드오프 OK). 다만 Sandbox/
-  // TestFlight 환경에선 App Store 구독 페이지가 "연결할 수 없습니다"로 뜰 수 있다(실결제·운영에선
-  // 자동 해소). StoreKit 시트는 인앱 + 샌드박스에서도 동작 → 구현되면 그쪽을 우선 사용.
+  // App Store 구독 관리 — StoreKit 네이티브 시트 우선, 실패(미구현 포함) 시 폴백.
+  // window.open(apps.apple.com) 은 App Store 앱을 정상적으로 연다(핸드오프 OK). 다만 App Store
+  // 구독 관리 페이지 자체가 "연결할 수 없습니다"로 실패할 수 있어(실결제에서도 관측됨) → 폴백 시
+  // App Store URL 을 열면서 동시에 "설정 > Apple 계정 > 구독" 경로 안내도 노출한다.
+  // StoreKit 시트가 구현되면(최종 iOS 빌드) 인앱에서 바로 떠 이 폴백을 안 타게 됨.
   const handleManageApple = async () => {
     const res = await platformPayments.manageAppleSubscriptions();
     if (!res.ok) {
-      // 네이티브 미구현/실패 → 기존 App Store URL 열기로 폴백 (운영 동작 보존).
       window.open(platformPayments.manageSubscriptionsUrl(), '_blank');
+      setActionError(false);
+      setActionMessage(t('subscription.manageAppleFallback'));
     }
   };
 
