@@ -15,8 +15,7 @@ export const metadata: Metadata = {
 
 const PLAY_URL =
   'https://play.google.com/store/apps/details?id=com.dylabs.pawdex&referrer=utm_source%3Dinstagram%26utm_medium%3Dbio';
-// TODO: App Store 승인 후 발급되는 숫자 ID 링크로 교체 (https://apps.apple.com/app/idXXXXXXXXX)
-const APPSTORE_URL = '#';
+const APPSTORE_URL = 'https://apps.apple.com/kr/iphone/search?term=pawdex';
 const INSTAGRAM_URL = 'https://www.instagram.com/pawdex_?igsh=Mm5lZzZnZHA5b3Vj';
 const THREADS_URL = 'https://www.threads.com/@pawdex_';
 
