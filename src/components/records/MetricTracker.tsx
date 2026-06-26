@@ -389,7 +389,7 @@ export function MetricTracker({
                   type="text" inputMode="numeric" value={servingDraft}
                   onChange={(e) => { const v = e.target.value; if (v === '' || /^\d{0,5}$/.test(v)) setServingDraft(v); }}
                   placeholder={metricType === 'food' ? t('metrics.servingHintFood') : t('metrics.servingHintFluid')} autoComplete="off"
-                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2" />
+                  className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2" />
                 <span className="text-xs text-gray-400 flex-shrink-0">{meta.unit}</span>
                 <button onClick={saveServing} disabled={!servingDraft} className="px-3 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-40 flex-shrink-0" style={{ background: meta.color }}>{t('common.save')}</button>
                 <button onClick={() => setServingEditing(false)} className="px-1.5 py-2 text-xs text-gray-400 flex-shrink-0">{t('common.cancel')}</button>

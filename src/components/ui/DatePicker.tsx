@@ -100,7 +100,7 @@ export function DatePicker({
         type="button"
         onClick={() => setOpen(true)}
         name={name}
-        className={`w-full text-left flex items-center justify-between ${inputClassName || 'px-4 py-3 border border-gray-200 rounded-lg outline-none text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'}`}
+        className={`w-full text-left flex items-center justify-between ${inputClassName || 'px-3 py-2.5 border border-gray-200 rounded-lg outline-none text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'}`}
       >
         <span className={value ? 'text-gray-900' : 'text-gray-400'}>
           {value || ph}

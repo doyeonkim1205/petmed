@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
+import { INACTIVE_RECORD_DAYS } from '@/lib/healthBriefing';
 
 // 나이 표시용 — formatAge(lib)는 AI 프롬프트(petContext)에서도 쓰여 한국어 고정이므로,
 // UI 는 locale-aware 로 별도 포맷. {unit, count} 만 뽑아 컴포넌트에서 t('home.age.*') 적용.
@@ -27,7 +28,7 @@ function ageParts(age: { years: number; months: number; days: number } | null) {
  * 동적 강조 (pickHighlight in lib):
  *   - 생일 당일 → 헤더 두 번째 줄 (rose)
  *   - 예약 D-3 이내 → "다음 예약" 메트릭 행 (amber + bold + "D-N · M/D")
- *   - 기록 7일 초과 → "마지막 기록" 메트릭 행 (blue + bold + "N일째 기록 없어요")
+ *   - 기록 N일 이상(INACTIVE_RECORD_DAYS) → "마지막 기록" 메트릭 행 (blue + bold + "N일째 기록 없어요")
  *   - 마지막 기록 0일 → "오늘 기록 완료" (green, 긍정 톤)
  */
 export function HealthBriefing() {
@@ -236,13 +237,13 @@ function BriefingCard({
 // 마지막 기록 행 — daysSinceLastRecord 만으로 독립 판단 (highlight 의존 X).
 // 카드 전체 톤 통일 (gray). 강조는 텍스트 메시지 + 아이콘 차별로.
 //   - 0일 (오늘): gray + bold + Check 아이콘 + "오늘 기록 완료" — 완료 의미 명확
-//   - 1~6일: gray normal + 말풍선 + "N일 전"
-//   - 7일+ (포함): gray normal + 말풍선 + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
+//   - 1 ~ (N-1)일: gray normal + 말풍선 + "N일 전"
+//   - N일+ (INACTIVE_RECORD_DAYS, 포함): gray normal + 말풍선 + "N일째 기록이 없어요 — 오늘 ... 어땠나요?"
 //   - 기록 없음: gray + "아직 기록 없음"
 function LastRecordRow({ briefing }: { briefing: PetBriefing }) {
   const t = useTranslations('home');
   const { daysSinceLastRecord, pet } = briefing;
-  if (daysSinceLastRecord !== null && daysSinceLastRecord >= 7) {
+  if (daysSinceLastRecord !== null && daysSinceLastRecord >= INACTIVE_RECORD_DAYS) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-gray-700">
         <MessageSquare size={13} className="text-gray-400 flex-shrink-0" />

@@ -65,7 +65,7 @@ export function PetSelectDropdown({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 border border-gray-200 rounded-lg bg-white text-sm hover:border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 border border-gray-200 rounded-lg bg-white text-sm hover:border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
       >
         {selected ? (
           <span className="text-gray-800">{selected.name}</span>

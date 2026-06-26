@@ -622,7 +622,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <h1 className="text-sm font-semibold text-gray-700">{t('record.form.editTitle')}</h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-5">
+      <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-3">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
         )}
@@ -662,7 +662,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 autoComplete="off"
                 enterKeyHint="next"
                 name="record-title"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
               />
             </div>
             <div>
@@ -675,7 +675,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={1000}
                 autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-h-[220px] resize-none"
               />
             </div>
           </>
@@ -694,7 +694,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             autoComplete="off"
             enterKeyHint="next"
             name="record-title"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
         )}
@@ -719,7 +719,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 const v = e.target.value;
                 if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setWeight(v);
               }}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
         )}
@@ -779,7 +779,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               onChange={(e) => setDescription(e.target.value)}
               onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
               maxLength={700}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[140px] resize-none"
             />
           </div>
         )}
@@ -803,7 +803,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 onChange={(e) => setDescription(e.target.value)}
                 onCompositionEnd={(e) => setDescription(e.currentTarget.value)}
                 maxLength={700}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[100px] resize-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[140px] resize-none"
               />
             </div>
 
@@ -830,7 +830,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 data-1p-ignore="true"
                 data-lpignore="true"
                 name="record-weight-value"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -850,7 +850,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   autoComplete="off"
                   enterKeyHint="next"
                   name="hospital-name"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {showHospitalSuggestions && hospitalSuggestions.filter(h => h.toLowerCase().includes(hospitalName.toLowerCase()) && h !== hospitalName).length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -908,7 +908,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 data-1p-ignore="true"
                 data-lpignore="true"
                 name="record-cost-amount"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -957,7 +957,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   autoComplete="off"
                   enterKeyHint="next"
                   name={`medication-name-${i}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <input
                   type="search"
@@ -968,7 +968,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                   name={`medication-dosage-${i}`}
                   value={med.dosage}
                   onChange={(e) => updateMedicationField(i, 'dosage', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white appearance-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 {/* Frequency selector */}
                 <div>
@@ -996,7 +996,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                     <DatePicker
                       value={med.start_date}
                       onChange={(v) => updateMedicationField(i, 'start_date', v)}
-                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                   <div>
@@ -1005,7 +1005,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                       value={med.end_date}
                       onChange={(v) => updateMedicationField(i, 'end_date', v)}
                       min={med.start_date}
-                      inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white"
                     />
                   </div>
                 </div>

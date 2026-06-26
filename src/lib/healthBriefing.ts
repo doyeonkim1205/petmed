@@ -123,10 +123,14 @@ export function daysBetween(date1: string, date2: string): number {
  * 우선순위:
  *   1. 생일 당일 → 헤더에 별도 두 번째 줄로 표시 (rose)
  *   2. 다음 예약 D-3 이내 → "다음 예약" 메트릭 행 색/볼드 (amber)
- *   3. 마지막 기록 7일 초과 → "마지막 기록" 메트릭 행 색/볼드 (blue)
+ *   3. 마지막 기록 N일 이상 → "마지막 기록" 메트릭 행 색/볼드 (blue)
  *   4. 없음 → 메트릭 2행 회색 (평소)
  */
 export type HighlightType = 'birthday' | 'appointment' | 'inactive' | null;
+
+// 마지막 기록 후 며칠부터 "N일째 기록이 없어요" 비활성 안내를 띄울지 (강조판정·배너표시 공유 기준).
+// ⚠️ HealthBriefing.tsx 의 배너 표시와 반드시 같은 값을 써야 함 → 드리프트 방지로 이 상수 1곳만.
+export const INACTIVE_RECORD_DAYS = 3;
 
 export interface Highlight {
   type: HighlightType;
@@ -143,7 +147,7 @@ export function pickHighlight(opts: {
   if (opts.daysUntilAppointment !== null && opts.daysUntilAppointment <= 3) {
     return { type: 'appointment', daysUntilAppointment: opts.daysUntilAppointment };
   }
-  if (opts.daysSinceLastRecord !== null && opts.daysSinceLastRecord >= 7) {
+  if (opts.daysSinceLastRecord !== null && opts.daysSinceLastRecord >= INACTIVE_RECORD_DAYS) {
     return { type: 'inactive', daysSinceLastRecord: opts.daysSinceLastRecord };
   }
   return { type: null };
