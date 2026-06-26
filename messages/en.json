@@ -876,6 +876,7 @@
     "manageInPlayDesc": "Change, cancel, or refund your subscription in the Google Play subscriptions screen.",
     "manageInAppStore": "Manage subscription in App Store",
     "manageInAppStoreDesc": "Change, cancel, or refund your subscription in the App Store.",
+    "manageAppleFallback": "Couldn't open the subscription screen directly. Go to the Settings app > your name (Apple Account) > Subscriptions to change or cancel.",
     "manageOnWeb": "This subscription was purchased on the web. Manage or cancel it at pawdex.store.",
     "purchaseSuccess": "Subscription complete. You can now use Plus features.",
     "purchaseError": "Couldn't complete the purchase. Please try again shortly.",
