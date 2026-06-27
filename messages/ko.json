@@ -336,6 +336,7 @@
       "foodAmount": "식사 {amount}{unit}",
       "water": "음수 {amount}{unit}",
       "fluid": "수액 {amount}{unit}",
+      "respiratory": "호흡수 {amount}{unit}",
       "daily": "일상 {count}"
     }
   },

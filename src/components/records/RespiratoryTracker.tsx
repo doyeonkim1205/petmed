@@ -32,31 +32,34 @@ const GRADE_COLOR: Record<string, string> = {
   low: '#64748b', normal: '#16a34a', watch: '#d97706', high: '#ea580c', vet: '#dc2626',
 };
 
-/** 간단 막대 차트 + 30회/분 참고선. */
+/** 점·선 차트(체중 차트 스타일) + 30회/분 참고선. */
 function RespChart({ data, locale }: { data: { d: string; v: number }[]; locale: string }) {
   if (data.length === 0) return null;
-  const W = 320, H = 170, PX = 8, PY = 16, PB = 22;
+  const W = 320, H = 170, PX = 26, PY = 16, PB = 22;
   const chartW = W - PX * 2, chartH = H - PY - PB;
-  const maxV = Math.max(REF_LINE + 10, ...data.map((d) => d.v)) * 1.1;
+  const maxV = Math.max(REF_LINE + 8, ...data.map((d) => d.v)) * 1.08;
   const yOf = (v: number) => PY + chartH - (v / maxV) * chartH;
-  const slot = chartW / data.length;
-  const bw = Math.min(slot * 0.55, 22);
-  const labelIdx = data.length <= 6 ? data.map((_, i) => i) : [0, Math.floor(data.length / 2), data.length - 1];
+  const xOf = (i: number) => data.length === 1 ? PX + chartW / 2 : PX + (i / (data.length - 1)) * chartW;
+  const pts = data.map((d, i) => ({ x: xOf(i), y: yOf(d.v) }));
+  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ');
+  const labelIdx = data.length <= 5
+    ? data.map((_, i) => i)
+    : Array.from({ length: 5 }, (_, i) => Math.round(i * (data.length - 1) / 4));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: '190px' }}>
       {/* 참고선 30회/분 */}
       <line x1={PX} y1={yOf(REF_LINE)} x2={W - PX} y2={yOf(REF_LINE)} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 3" />
-      <text x={W - PX} y={yOf(REF_LINE) - 3} textAnchor="end" fontSize="9" fill="#94a3b8">{REF_LINE}</text>
-      {data.map((d, i) => {
-        const cx = PX + slot * i + slot / 2;
-        const y = yOf(d.v);
-        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={ACCENT} opacity="0.85" />;
-      })}
+      <text x={PX - 5} y={yOf(REF_LINE) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{REF_LINE}</text>
+      {data.length >= 2 && (
+        <polyline points={polyline} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinejoin="round" />
+      )}
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={data.length > 20 ? 2 : 4} fill={ACCENT} stroke="#fff" strokeWidth={data.length > 20 ? 1 : 2} />
+      ))}
       {labelIdx.map((idx) => {
-        const cx = PX + slot * idx + slot / 2;
         const dt = new Date(data[idx].d);
         const lbl = dt.toLocaleDateString(locale, { month: 'numeric', day: 'numeric' });
-        return <text key={idx} x={cx} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{lbl}</text>;
+        return <text key={idx} x={xOf(idx)} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{lbl}</text>;
       })}
     </svg>
   );

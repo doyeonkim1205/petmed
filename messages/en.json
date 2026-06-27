@@ -336,6 +336,7 @@
       "foodAmount": "Food {amount}{unit}",
       "water": "Water {amount}{unit}",
       "fluid": "Fluid {amount}{unit}",
+      "respiratory": "Resp {amount}{unit}",
       "daily": "Daily {count}"
     }
   },
