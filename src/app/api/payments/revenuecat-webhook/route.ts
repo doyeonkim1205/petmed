@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
   const eventTxId = event.transaction_id ? String(event.transaction_id) : null;
   // 결제 금액(구매 통화 기준). KRW 면 정수(3900/40000). 없으면 0 → 기록 생략.
   const priceAmount = Number(event.price_in_purchased_currency ?? event.price ?? 0);
+  // 결제 환경 — PRODUCTION/SANDBOX. 결제 이력엔 둘 다 남기되 매출 집계는 production 만.
+  const environment = String(event.environment || '').toUpperCase() === 'SANDBOX' ? 'sandbox' : 'production';
 
   // 로그인 유저(Supabase uid)만 동기화. 익명/비정상 id 는 200 으로 흡수(재시도 폭주 방지).
   if (!UUID_RE.test(appUserId)) {
@@ -101,14 +103,35 @@ export async function POST(request: NextRequest) {
   const periodEnd = expirationMs ? new Date(expirationMs) : null;
 
   try {
-    // 멱등성 — 저장된 last_event_at 보다 오래된 이벤트면 무시 (순서 뒤바뀐 재전송 대비).
+    // 결제내역 기록 — ⚠️ stale 가드보다 먼저 실행(순서 꼬인 갱신 결제도 누락 없이 기록).
+    // 멱등: provider_payment_id 유니크 인덱스 → 재전송 중복은 23505 로 무시.
+    // 샌드박스도 이력엔 남기되 environment 로 구분(매출 집계에선 production 만 합산).
+    if (PAYMENT_TYPES.has(type) && priceAmount > 0) {
+      const providerPaymentId = `rc_${eventTxId || txId || 'na'}_${eventAtMs}`;
+      const { error: payErr } = await supabaseAdmin.from('payment_history').insert({
+        user_id: appUserId,
+        amount: Math.round(priceAmount),
+        status: 'done',
+        store,
+        environment,
+        provider_payment_id: providerPaymentId,
+      });
+      if (payErr && payErr.code !== '23505') {
+        Sentry.captureException(new Error(`payment_history insert failed: ${payErr.message}`), {
+          tags: { feature: 'payment', action: 'revenuecat-webhook-payment' },
+          extra: { type, appUserId, providerPaymentId },
+        });
+      }
+    }
+
+    // 멱등성 — 저장된 last_event_at 보다 오래된 이벤트면 (구독 상태 갱신만) 무시.
     const { data: existing } = await supabaseAdmin
       .from('subscriptions')
       .select('last_event_at, store')
       .eq('user_id', appUserId)
       .maybeSingle();
     if (existing?.last_event_at && new Date(existing.last_event_at) > eventAt) {
-      return NextResponse.json({ ok: true, skipped: 'stale event' });
+      return NextResponse.json({ ok: true, skipped: 'stale event (payment recorded)' });
     }
 
     if (GRANT_TYPES.has(type)) {
@@ -137,25 +160,7 @@ export async function POST(request: NextRequest) {
         });
       }
       await supabaseAdmin.from('profiles').update({ plan: 'plus' }).eq('id', appUserId);
-
-      // Play 결제내역 기록 — 실제 결제 이벤트 + 금액이 있을 때만. 멱등: provider_payment_id 유니크.
-      if (PAYMENT_TYPES.has(type) && priceAmount > 0) {
-        const providerPaymentId = `rc_${eventTxId || txId || 'na'}_${eventAtMs}`;
-        const { error: payErr } = await supabaseAdmin.from('payment_history').insert({
-          user_id: appUserId,
-          amount: Math.round(priceAmount),
-          status: 'done',
-          store,
-          provider_payment_id: providerPaymentId,
-        });
-        // 23505 = unique_violation(웹훅 재전송 중복) → 정상 무시. 그 외만 가시화.
-        if (payErr && payErr.code !== '23505') {
-          Sentry.captureException(new Error(`payment_history insert failed: ${payErr.message}`), {
-            tags: { feature: 'payment', action: 'revenuecat-webhook-payment' },
-            extra: { type, appUserId, providerPaymentId },
-          });
-        }
-      }
+      // (결제내역 insert 는 위에서 stale 가드 이전에 이미 처리함)
     } else if (REVOKE_TYPES.has(type)) {
       await supabaseAdmin.from('subscriptions').update({
         status: 'expired',

@@ -218,22 +218,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!mounted) return;
           if (isSignIn) {
             try { await ensureProfile(authUser); } catch {}
-            // 중복 방지: SIGNED_IN 은 멀티탭 / OAuth 콜백 / 탭 포커스 /
-            // 리프레시 등에서 여러 번 fire 됨. sessionStorage 는 탭마다
-            // 분리돼서 멀티탭 상황에 무용 → localStorage 로 변경.
-            // 키 = session 지문 (access_token 끝 24자) — 한 세션 = 한 번만.
-            // 새 세션이 시작되면 자동으로 새 키 → 다시 로깅.
+            // 중복 방지: SIGNED_IN 은 멀티탭 / OAuth 콜백 / 탭 포커스 / 리프레시 등에서
+            // 여러 번 fire 됨. 예전엔 access_token 끝자리로 dedup 했는데 토큰이 ~1시간마다
+            // 회전해서 재기록됐다 → "유저별 하루 1회"로 변경 (키=user.id, 값=오늘 날짜).
+            // 같은 날 재진입/갱신은 skip, 날짜 바뀌면 다시 기록.
             try {
-              const fingerprint = newSession.access_token?.slice(-24) ?? authUser.id;
-              const key = `authLoginLogged_${fingerprint}`;
-              if (!localStorage.getItem(key)) {
-                localStorage.setItem(key, String(Date.now()));
-                // 오래된 키 정리 (24시간 지난 것)
-                const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+              const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+              const key = `authLoginLogged_${authUser.id}`;
+              if (localStorage.getItem(key) !== today) {
+                localStorage.setItem(key, today);
+                // 옛 키 정리 (현재 키 제외, 오늘 날짜 아닌 것)
                 for (const k of Object.keys(localStorage)) {
-                  if (k.startsWith('authLoginLogged_')) {
-                    const ts = Number(localStorage.getItem(k) ?? 0);
-                    if (ts < cutoff) localStorage.removeItem(k);
+                  if (k.startsWith('authLoginLogged_') && k !== key && localStorage.getItem(k) !== today) {
+                    localStorage.removeItem(k);
                   }
                 }
                 const provider = authUser.app_metadata?.provider || 'unknown';

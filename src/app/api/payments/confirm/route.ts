@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
       toss_order_id: orderId,
       amount,
       status: 'done',
+      store: 'toss',
+      environment: 'production', // 토스는 실결제만
       receipt_url: tossResult.receipt?.url || null,
     });
 
