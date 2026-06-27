@@ -6,7 +6,7 @@ import { Plus, Wind, Timer, AlertTriangle } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
-import { todayLocalISO } from '@/lib/date';
+import { todayLocalISO, localDateKey } from '@/lib/date';
 import type { HealthMetric } from '@/lib/healthMetrics';
 
 const REF_LINE = 30; // 수면·안정 시 참고 기준(회/분) — 개·고양이 공통 모니터링 기준
@@ -20,15 +20,16 @@ function nowHHMM(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 분당 호흡수 단계 — 진단 아님, 수면·안정 시 참고 기준. */
-function grade(bpm: number): 'normal' | 'watch' | 'high' | 'vet' {
+/** 분당 호흡수 단계 — 진단 아님, 수면·안정 시 참고 기준. 너무 낮은 값(<12)은 측정 확인 권유. */
+function grade(bpm: number): 'low' | 'normal' | 'watch' | 'high' | 'vet' {
   if (bpm >= 40) return 'vet';
   if (bpm >= 35) return 'high';
   if (bpm >= 30) return 'watch';
+  if (bpm < 12) return 'low';
   return 'normal';
 }
 const GRADE_COLOR: Record<string, string> = {
-  normal: '#16a34a', watch: '#d97706', high: '#ea580c', vet: '#dc2626',
+  low: '#64748b', normal: '#16a34a', watch: '#d97706', high: '#ea580c', vet: '#dc2626',
 };
 
 /** 간단 막대 차트 + 30회/분 참고선. */
@@ -138,6 +139,23 @@ export function RespiratoryTracker({
       .map((l) => ({ d: l.measured_at, v: Number(l.value) }));
   }, [logs, startDate, endDate]);
 
+  // 최근 30건을 날짜별로 그룹 (식사/수액 리스트와 동일 포맷)
+  const grouped = useMemo(() => {
+    const recent = [...logs].reverse().slice(0, 30);
+    const out: { date: string; items: HealthMetric[] }[] = [];
+    const idx = new Map<string, { date: string; items: HealthMetric[] }>();
+    for (const l of recent) {
+      const k = localDateKey(String(l.measured_at));
+      let g = idx.get(k);
+      if (!g) { g = { date: k, items: [] }; idx.set(k, g); out.push(g); }
+      g.items.push(l);
+    }
+    return out;
+  }, [logs]);
+
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+  const fmtDate = (k: string) => new Date(k).toLocaleDateString(locale, { month: 'long', day: 'numeric' });
+
   const handleAdd = async () => {
     const v = Math.round(Number(value));
     if (!v || v < 1 || v > 120) return;
@@ -165,7 +183,7 @@ export function RespiratoryTracker({
       {/* 안내 + 참고 기준 */}
       <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
         <p className="text-[13px] font-bold text-indigo-800 flex items-center gap-1.5"><Wind size={14} /> {t('resp.refTitle')}</p>
-        <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep">{t('resp.refDesc')}</p>
+        <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep whitespace-pre-line">{t('resp.refDesc')}</p>
       </div>
 
       {/* 입력 토글 — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
@@ -238,9 +256,9 @@ export function RespiratoryTracker({
             </div>
           </div>
 
-          {/* 날짜·시간 */}
-          <div className="flex gap-2">
-            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1" inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+          {/* 날짜 → 시간 (세로) */}
+          <div className="flex flex-col gap-2">
+            <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
             <TimePicker value={newTime} onChange={setNewTime} />
           </div>
 
@@ -270,32 +288,35 @@ export function RespiratoryTracker({
           <p className="text-gray-400 text-sm">{t('resp.empty')}</p>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <p className="text-[11px] text-gray-400">{t('metrics.tapToDelete')}</p>
-          {[...logs].reverse().map((l) => {
-            const g = grade(Number(l.value));
-            const dt = new Date(l.measured_at);
-            const isSel = selectedId === l.id;
-            return (
-              <div key={l.id} onClick={() => setSelectedId(isSel ? null : l.id)}
-                className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${isSel ? 'bg-red-50' : 'bg-gray-50 active:bg-gray-100'}`}>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-base font-bold tabular-nums" style={{ color: GRADE_COLOR[g] }}>{Number(l.value)}</span>
-                  <span className="text-[11px] text-gray-400">{t('resp.unit')}</span>
-                  {l.memo && (CONDITIONS as readonly string[]).includes(l.memo) && (
-                    <span className="text-[11px] text-gray-400 truncate">· {t(`resp.condition.${l.memo}`)}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span className="text-[11px] text-gray-400">{dt.toLocaleDateString(locale, { month: 'numeric', day: 'numeric' })} {String(dt.getHours()).padStart(2, '0')}:{String(dt.getMinutes()).padStart(2, '0')}</span>
-                  {isSel && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
-                      className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0">{t('common.delete')}</button>
-                  )}
-                </div>
+        <div className="space-y-2.5">
+          <h2 className="text-sm font-bold text-gray-700">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
+          {grouped.map((g) => (
+            <div key={g.date}>
+              <p className="text-[11px] font-bold text-gray-400 mb-1">{fmtDate(g.date)}</p>
+              <div className="space-y-0.5">
+                {g.items.map((l) => {
+                  const gr = grade(Number(l.value));
+                  const isSel = selectedId === l.id;
+                  return (
+                    <div key={l.id} onClick={() => setSelectedId(isSel ? null : l.id)}
+                      className={`flex items-center justify-between py-2 px-2 rounded-lg transition-colors cursor-pointer ${isSel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(String(l.measured_at))}</span>
+                        <span className="text-sm font-semibold" style={{ color: GRADE_COLOR[gr] }}>{Number(l.value)}{t('resp.unit')}</span>
+                        {l.memo && (CONDITIONS as readonly string[]).includes(l.memo) && (
+                          <span className="text-[11px] text-gray-400 truncate">· {t(`resp.condition.${l.memo}`)}</span>
+                        )}
+                      </div>
+                      {isSel && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
+                          className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0 ml-2">{t('common.delete')}</button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
