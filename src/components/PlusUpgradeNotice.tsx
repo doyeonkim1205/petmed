@@ -44,7 +44,7 @@ export function PlusUpgradeNotice({
         <button
           type="button"
           onClick={() => router.push('/profile/subscription')}
-          className="mt-3 w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium transition active:scale-[0.99]"
+          className="mt-3 block w-fit mx-auto px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-semibold transition active:scale-[0.97]"
         >
           {t('upsell.viewPlans')}
         </button>

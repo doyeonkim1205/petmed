@@ -123,16 +123,16 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
         <div className="text-center py-2 break-keep break-words">
           <p className="text-xs text-gray-400">{maxFiles === 0 ? t('uploader.limitReachedZero') : t('uploader.limitReached', { max: maxFiles })}</p>
           {atLimitUpsell === 'free' && (
-            <p className="text-[11px] text-gray-400 mt-1">
-              {t('uploader.upsellFree')}{' '}
+            <>
+              <p className="text-[11px] text-gray-400 mt-1">{t('uploader.upsellFree')}</p>
               <button
                 type="button"
                 onClick={() => router.push('/profile/subscription')}
-                className="text-gray-500 underline underline-offset-2 font-medium"
+                className="mt-1 text-[11px] text-gray-500 underline underline-offset-2 font-medium"
               >
                 {t('upsell.viewPlans')}
               </button>
-            </p>
+            </>
           )}
           {atLimitUpsell !== 'none' && (
             <p className="text-[10px] text-gray-300 mt-0.5">{t('uploader.storageCheckHint')}</p>

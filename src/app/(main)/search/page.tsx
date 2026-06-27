@@ -944,7 +944,7 @@ function SearchContent() {
                     <p className="text-xs text-gray-500 mb-3">{t('upsell.features')}</p>
                     <button
                       onClick={() => window.location.href = '/profile/subscription'}
-                      className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                      className="block w-fit mx-auto px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-semibold"
                     >
                       {t('upsell.viewPlans')}
                     </button>
@@ -1361,7 +1361,7 @@ function SearchContent() {
                     <p className="text-xs text-gray-500 mb-3">{t('upsell.features')}</p>
                     <button
                       onClick={() => window.location.href = '/profile/subscription'}
-                      className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-medium"
+                      className="block w-fit mx-auto px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-xs font-semibold"
                     >
                       {t('upsell.viewPlans')}
                     </button>
