@@ -222,22 +222,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // 여러 번 fire 됨. 예전엔 access_token 끝자리로 dedup 했는데 토큰이 ~1시간마다
             // 회전해서 재기록됐다 → "유저별 하루 1회"로 변경 (키=user.id, 값=오늘 날짜).
             // 같은 날 재진입/갱신은 skip, 날짜 바뀌면 다시 기록.
+            // 3분류: 신규가입(auth.signup) / 진짜 재로그인(auth.login) / 앱실행·세션복원(app.open).
+            //   판별 = user.last_sign_in_at 이 방금(<90s)이면 "진짜 인증", 아니면 "앱실행(복원)".
+            //   진짜 인증 중 created_at≈last_sign_in_at(거의 동시) 이면 신규가입.
+            //   (토큰갱신은 last_sign_in_at 안 바꿈 → 자동으로 app.open 으로 분류됨)
             try {
-              const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-              const key = `authLoginLogged_${authUser.id}`;
-              if (localStorage.getItem(key) !== today) {
-                localStorage.setItem(key, today);
-                // 옛 키 정리 (현재 키 제외, 오늘 날짜 아닌 것)
-                for (const k of Object.keys(localStorage)) {
-                  if (k.startsWith('authLoginLogged_') && k !== key && localStorage.getItem(k) !== today) {
-                    localStorage.removeItem(k);
-                  }
+              const provider = authUser.app_metadata?.provider || 'unknown';
+              const now = Date.now();
+              const lastSignInAt = authUser.last_sign_in_at;
+              const createdAt = authUser.created_at;
+              const freshAuth = lastSignInAt ? (now - new Date(lastSignInAt).getTime() < 90_000) : false;
+
+              if (freshAuth && lastSignInAt) {
+                // 진짜 로그인/가입 — 한 인증당 SIGNED_IN 여러 번 fire → last_sign_in_at 값으로 dedup
+                const k = `authEventLogged_${authUser.id}`;
+                if (localStorage.getItem(k) !== lastSignInAt) {
+                  localStorage.setItem(k, lastSignInAt);
+                  const isSignup = !!createdAt && Math.abs(new Date(createdAt).getTime() - new Date(lastSignInAt).getTime()) < 10_000;
+                  logActivity(authUser.id, isSignup ? 'auth.signup' : 'auth.login', { details: { method: provider } });
                 }
-                const provider = authUser.app_metadata?.provider || 'unknown';
-                logActivity(authUser.id, 'auth.login', { details: { method: provider } });
+              } else {
+                // 기존 유저 앱 실행/세션 복원 — DAU, 하루 1회
+                const today = new Date().toISOString().slice(0, 10);
+                const k = `appOpenLogged_${authUser.id}`;
+                if (localStorage.getItem(k) !== today) {
+                  localStorage.setItem(k, today);
+                  logActivity(authUser.id, 'app.open', { details: { method: provider } });
+                }
+              }
+              // 구버전 키 정리
+              for (const kk of Object.keys(localStorage)) {
+                if (kk.startsWith('authLoginLogged_')) localStorage.removeItem(kk);
               }
             } catch {
-              // localStorage 접근 불가 (privacy mode 등) 시 기존대로
               const provider = authUser.app_metadata?.provider || 'unknown';
               logActivity(authUser.id, 'auth.login', { details: { method: provider } });
             }

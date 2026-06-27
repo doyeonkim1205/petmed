@@ -204,13 +204,16 @@ export default function SubscriptionsPage() {
                       <TableCell className="text-sm">{sub.profiles?.email}</TableCell>
                       <TableCell className="text-sm capitalize">{sub.plan}</TableCell>
                       <TableCell>
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          sub.status === 'active' ? 'bg-green-100 text-green-700' :
-                          sub.status === 'canceled' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {sub.status}
-                        </span>
+                        {(() => {
+                          // 해지예약 = canceled_at 있거나 status=canceled + 아직 만료 전. (apple/play 통일)
+                          const beforeEnd = sub.period_end ? Date.now() < new Date(sub.period_end).getTime() : true;
+                          const scheduled = sub.status !== 'expired' && beforeEnd && (sub.canceled_at || sub.status === 'canceled');
+                          const label = sub.status === 'expired' ? 'expired' : scheduled ? '해지예약' : sub.status === 'active' ? 'active' : sub.status;
+                          const cls = label === 'active' ? 'bg-green-100 text-green-700'
+                            : label === '해지예약' ? 'bg-orange-100 text-orange-700'
+                            : 'bg-gray-100 text-gray-600';
+                          return <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{label}</span>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-sm">
                         {sub.store === 'apple' ? 'iOS'

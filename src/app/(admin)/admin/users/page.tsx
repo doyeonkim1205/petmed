@@ -47,6 +47,7 @@ interface UserDetail {
     plan: string;
     status: string;
     period_end: string;
+    canceled_at?: string | null;
     billing_type?: string;
     product_id?: string;
     next_billing_at?: string;
@@ -349,13 +350,14 @@ export default function UsersPage() {
                   <span className="text-sm font-semibold text-gray-700">구독 정보</span>
                   <div className="grid grid-cols-2 gap-y-1.5 text-sm">
                     <span className="text-gray-500">상태</span>
-                    <span className={`font-medium ${
-                      selectedUser.subscription.status === 'active' ? 'text-green-600' :
-                      selectedUser.subscription.status === 'canceled' ? 'text-orange-500' : 'text-red-500'
-                    }`}>
-                      {selectedUser.subscription.status === 'active' ? '이용 중' :
-                       selectedUser.subscription.status === 'canceled' ? '해지됨' : '만료됨'}
-                    </span>
+                    {(() => {
+                      const sub = selectedUser.subscription!;
+                      const beforeEnd = sub.period_end ? Date.now() < new Date(sub.period_end).getTime() : true;
+                      const scheduled = sub.status !== 'expired' && beforeEnd && (sub.canceled_at || sub.status === 'canceled');
+                      const label = sub.status === 'expired' ? '만료됨' : scheduled ? '해지 예약' : sub.status === 'active' ? '이용 중' : '만료됨';
+                      const color = label === '이용 중' ? 'text-green-600' : label === '해지 예약' ? 'text-orange-500' : 'text-red-500';
+                      return <span className={`font-medium ${color}`}>{label}</span>;
+                    })()}
 
                     <span className="text-gray-500">결제 방식</span>
                     <span className="font-medium">
