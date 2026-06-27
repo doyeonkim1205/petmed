@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 import { getDeviceId } from './deviceId';
 import { isInClaimWindow } from './deviceClaimState';
-import { dlog } from './devlog';
 
 /**
  * fetch wrapper that automatically adds Supabase Authorization header
@@ -33,13 +32,15 @@ export async function authFetch(
 
   const response = await fetch(url, { ...options, headers });
 
-  // ⚠️ 진단 모드 — 어떤 403 도 signOut/redirect 하지 않고 로그만 (로그인 깨짐 방지).
+  // Handle session eviction (자동) — verify 는 skipAutoEviction 으로 끄고,
+  // claim 윈도우 중에는 조기 로그아웃 방지를 위해 스킵.
   if (response.status === 403 && !opts.skipAutoEviction && !isInClaimWindow()) {
     try {
       const clone = response.clone();
       const data = await clone.json();
       if (data.error === 'session_evicted') {
-        dlog(`authFetch 403 session_evicted @ ${url.replace(/^https?:\/\/[^/]+/, '')}  [정상모드면 여기서 로그아웃]`);
+        await supabase.auth.signOut({ scope: 'local' });
+        window.location.href = '/login?reason=session_evicted';
       }
     } catch {}
   }

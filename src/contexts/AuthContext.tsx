@@ -13,7 +13,6 @@ import { platformAuth } from '@/lib/platform';
 //   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
 import { isNativeApp } from '@/lib/platform/env';
 import { syncDeviceSession, markPendingClaim, clearPendingClaim } from '@/lib/deviceSession';
-import { dlog } from '@/lib/devlog';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -122,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 1) Quick check: is there a session in localStorage?
         const { data: { session: localSession } } = await supabase.auth.getSession();
-        dlog(`init: session=${!!localSession} lastSignIn=${localSession?.user?.last_sign_in_at?.slice(11, 19) ?? '-'}`);
         if (!localSession) {
           if (mounted) setLoading(false);
           return;
@@ -199,7 +197,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!mounted) return;
-        dlog(`authEvent: ${event} user=${!!newSession?.user} lastSignIn=${newSession?.user?.last_sign_in_at?.slice(11, 19) ?? '-'}`);
 
         // Synchronous state updates — safe, no Supabase calls
         setSession(newSession);
@@ -499,7 +496,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    dlog('signOut() called');
     // 다음 로그인이 깨끗하게 claim 하도록 잔여 pendingClaim 표시 해제.
     clearPendingClaim();
     // Log before clearing state — 서버측(/api/activity, service role)으로 기록.
@@ -518,13 +514,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { getDeviceId } = await import('@/lib/deviceId');
         const { authFetch } = await import('@/lib/authFetch');
-        const r = await authFetch('/api/sessions', {
+        await authFetch('/api/sessions', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ device_id: getDeviceId() }),
         });
-        dlog(`signOut DELETE session → ${r.status}`);
-      } catch (e) { dlog(`signOut DELETE ERROR ${(e as Error)?.message || e}`); }
+      } catch {}
 
       // 푸시 구독 해제 — 로그아웃한 기기에 이전 계정 알림이 계속 배달되는
       // 문제 방지. 브라우저 레벨에서 unsubscribe + DB row 삭제.
