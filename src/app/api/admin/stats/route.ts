@@ -26,7 +26,8 @@ export async function GET(request: Request) {
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).gte('created_at', today),
-    supabase.from('payment_history').select('amount').eq('status', 'done'),
+    // 매출 = 실결제(production)만. 샌드박스/테스트 결제는 이력엔 남아도 매출 합계 제외.
+    supabase.from('payment_history').select('amount').eq('status', 'done').eq('environment', 'production'),
     // 구독 지표는 행 수가 아니라 distinct user_id 로 센다(과거/중복 행 방지).
     //   상태별 분리: 자동갱신(active) vs 해지예정(canceled + 기간 미래).
     supabase.from('subscriptions').select('user_id, status, period_end'),

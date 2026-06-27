@@ -107,6 +107,8 @@ export async function GET(request: NextRequest) {
           toss_order_id: orderId,
           amount: charged.totalAmount,
           status: 'done',
+          store: 'toss',
+          environment: 'production',
           receipt_url: charged.receipt?.url || null,
         });
 
