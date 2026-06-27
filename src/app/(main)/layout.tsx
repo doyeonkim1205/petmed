@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -10,7 +10,6 @@ import { InAppBrowserHint } from '@/components/InAppBrowserHint';
 import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyDevice } from '@/lib/deviceSession';
 
 /**
  * (main) route group 공통 레이아웃.
@@ -28,39 +27,13 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { user, loading } = useAuth();
-  // verify 과도 호출 방지용 쓰로틀 — 직전 검증 후 일정 시간 내 재호출 스킵.
-  const lastVerifyRef = useRef(0);
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [loading, user, router]);
-
-  // DeviceGuard — 밀려난 기기 즉시 차단(읽기 전용 검증).
-  //   홈·기록 등 핵심 화면은 supabase 직접(RLS)이라 서버 기기체크를 안 타므로,
-  //   여기서 진입(마운트) + 탭 이동(라우트 변경) + 포그라운드 복귀 때 verify 를 호출해
-  //   막힌 기기를 끊는다. 클라 네비게이션은 레이아웃을 리마운트하지 않으므로
-  //   pathname 변경을 별도로 감지해야 "탭 누르면 로그아웃"이 동작한다.
-  //   verify 가 밀려남을 감지하면 authFetch 가 signOut + /login?reason=session_evicted.
-  //   (claim 은 하지 않음 — 핑퐁 방지. 네트워크 오류 시엔 로그아웃 안 함.)
-  useEffect(() => {
-    if (loading || !user) return;
-    const run = () => {
-      const now = Date.now();
-      if (now - lastVerifyRef.current < 4000) return; // 4s 쓰로틀
-      lastVerifyRef.current = now;
-      verifyDevice();
-    };
-    run(); // 마운트 + 라우트 변경(pathname dep)
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') run();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [loading, user, pathname]);
 
   // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
   // - loading 중: OAuth 콜백(/auth/callback)과 '동일한' 풀스크린 LoadingScreen(스피너만).
