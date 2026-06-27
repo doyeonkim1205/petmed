@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Megaphone } from 'lucide-react';
+import { ArrowLeft, Megaphone, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnnouncements, markAnnouncementsSeen, type Announcement } from '@/lib/announcements';
 
@@ -57,26 +57,26 @@ export default function AnnouncementsPage() {
       ) : (
         <div className="p-4 space-y-2.5">
           {items.map((a) => {
-            const long = a.body.length > 60; // 길면 미리보기 2줄 + 더보기/접기
             const isExp = expanded.has(a.id);
             return (
-              <div key={a.id} className="bg-white border border-gray-100 rounded-xl p-4">
-                <div className="flex items-center gap-1.5 mb-1">
+              <div key={a.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                {/* 제목만 보이고, 탭하면 본문 펼침(아코디언) */}
+                <button onClick={() => toggle(a.id)} className="w-full flex items-center gap-1.5 p-4 text-left">
                   {a.important && (
-                    <span className="text-[10px] font-bold text-red-500 bg-red-50 rounded px-1.5 py-0.5">{t('announcements.important')}</span>
+                    <span className="text-[10px] font-bold text-red-500 bg-red-50 rounded px-1.5 py-0.5 flex-shrink-0">{t('announcements.important')}</span>
                   )}
                   {isRecent(a) && (
                     <span className="text-[10px] font-bold text-blue-600 bg-blue-50 rounded px-1.5 py-0.5 flex-shrink-0">NEW</span>
                   )}
                   <h2 className="text-sm font-bold text-gray-800 break-keep flex-1">{a.title}</h2>
-                </div>
-                <p className={`text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep ${long && !isExp ? 'line-clamp-2' : ''}`}>{a.body}</p>
-                {long && (
-                  <button onClick={() => toggle(a.id)} className="text-[12px] font-medium text-blue-500 mt-1">
-                    {isExp ? t('announcements.less') : t('announcements.more')}
-                  </button>
+                  {isExp ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
+                </button>
+                {isExp && (
+                  <div className="px-4 pb-4 -mt-1">
+                    <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
+                    <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
                 )}
-                <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
             );
           })}
