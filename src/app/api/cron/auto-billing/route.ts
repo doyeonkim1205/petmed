@@ -125,8 +125,7 @@ export async function GET(request: NextRequest) {
         .eq('id', sub.id);
 
       // Log activity + subscription event
-      const { logActivity } = await import('@/lib/activityLog');
-      logActivity(sub.user_id, 'subscription.auto_billed', {
+      await logActivityServer(sub.user_id, 'subscription.auto_billed', {
         details: { plan: product.plan, productId: product.id, amount: charged.totalAmount },
       });
 
@@ -186,8 +185,7 @@ export async function GET(request: NextRequest) {
         // 무료 전환 → 약 알림·푸시 OFF 정리
         await disableAlarmsOnDowngrade(supabaseAdmin, sub.user_id);
 
-        const { logActivity } = await import('@/lib/activityLog');
-        logActivity(sub.user_id, 'subscription.expired', {
+        await logActivityServer(sub.user_id, 'subscription.expired', {
           details: { reason: 'billing_failed', code: e.code, attempts: newFailedCount },
         });
 
@@ -226,8 +224,7 @@ export async function GET(request: NextRequest) {
           })
           .eq('id', sub.id);
 
-        const { logActivity } = await import('@/lib/activityLog');
-        logActivity(sub.user_id, 'subscription.billing_failed', {
+        await logActivityServer(sub.user_id, 'subscription.billing_failed', {
           details: { code: e.code, attempt: newFailedCount, retryInDays: delayDays },
         });
 

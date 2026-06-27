@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
       .eq('id', sub.id);
 
     // 5) 활동/이벤트 로그
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.manual_retry', {
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.manual_retry', {
       details: { plan: product.plan, productId: product.id, amount: charged.totalAmount },
     });
 

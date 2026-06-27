@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', subscription.id);
 
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.enable_recurring', {
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.enable_recurring', {
       details: { plan: subscription.plan, productId: newProductId },
     });
 

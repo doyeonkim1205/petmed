@@ -40,6 +40,7 @@ const actionLabels: Record<string, string> = {
   'auth.delete_account': '회원 탈퇴',
   'pet.update': '반려동물 수정',
   'page.subscription': '구독 페이지 조회',
+  'page.stats': '건강통계 조회',
   'papers.analyze': 'AI 논문 분석',
   'disease.describe': 'AI 질병 설명',
   'subscription.expired': '구독 만료',
@@ -192,6 +193,7 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:file.upload', label: '파일 업로드' },
       { value: 'action:file.delete', label: '파일 삭제' },
       { value: 'action:page.subscription', label: '구독 페이지 조회' },
+      { value: 'action:page.stats', label: '건강통계 조회' },
     ],
   },
 ];

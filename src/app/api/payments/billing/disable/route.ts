@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', sub.id);
 
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.auto_renew_disabled', {});
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.auto_renew_disabled', {});
 
     return NextResponse.json({
       success: true,
