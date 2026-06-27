@@ -66,7 +66,7 @@ export default function AnnouncementsPage() {
                   <span className="text-[10px] font-bold text-red-500 bg-red-50 rounded px-1.5 py-0.5">{t('announcements.important')}</span>
                 )}
                 <h2 className="text-sm font-bold text-gray-800 break-keep flex-1">{a.title}</h2>
-                {isNew(a) && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
+                {isNew(a) && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
               </div>
               <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
               <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>

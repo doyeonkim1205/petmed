@@ -39,13 +39,15 @@ export function Header() {
         <Link
           href="/announcements"
           aria-label={t('announcements.title')}
-          className="absolute right-3 p-1.5 text-gray-500 active:scale-95 transition-transform"
-          style={{ top: 'calc(env(safe-area-inset-top) + 0.25rem)' }}
+          className="absolute right-2 h-12 flex items-center px-1.5 text-gray-500 active:scale-95 transition-transform"
+          style={{ top: 'env(safe-area-inset-top)' }}
         >
-          <Bell size={20} />
-          {unread > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
-          )}
+          <span className="relative">
+            <Bell size={20} />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" />
+            )}
+          </span>
         </Link>
       )}
     </header>
