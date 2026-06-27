@@ -41,7 +41,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     aiAnalysis: 'full',
     maxSavedAnalyses: 0,
     costStatsMonths: 3,
-    maxPets: 2,
+    maxPets: 5,
     attachmentsPerRecord: 1,
     maxDevices: 1,
     maxStorageMB: 50,
@@ -73,7 +73,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     costStatsMonths: 999,
     // 무제한 → 10 (악용 방어). 일반 가구 평균 1-3마리, 5마리 넘는 다묘 가구도 드뭄.
     // 한 사용자가 100마리 등록해서 storage/AI 컨텍스트 우회하는 케이스 차단.
-    maxPets: 10,
+    maxPets: 0, // 무제한
     attachmentsPerRecord: 5,
     maxDevices: 3,
     maxStorageMB: 1000,
