@@ -10,6 +10,7 @@ import { InAppBrowserHint } from '@/components/InAppBrowserHint';
 import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
+import { verifyDevice } from '@/lib/deviceSession';
 
 /**
  * (main) route group 공통 레이아웃.
@@ -34,6 +35,21 @@ export default function MainLayout({
       router.replace('/login');
     }
   }, [loading, user, router]);
+
+  // DeviceGuard — 밀려난 기기 즉시 차단(읽기 전용 검증).
+  //   홈·기록 등 핵심 화면은 supabase 직접(RLS)이라 서버 기기체크를 안 타므로,
+  //   여기서 진입(마운트) + 포그라운드 복귀 때 verify 를 호출해 막힌 기기를 끊는다.
+  //   verify 가 밀려남을 감지하면 authFetch 가 signOut + /login?reason=session_evicted.
+  //   (claim 은 하지 않음 — 핑퐁 방지. 네트워크 오류 시엔 로그아웃 안 함.)
+  useEffect(() => {
+    if (loading || !user) return;
+    verifyDevice();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') verifyDevice();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [loading, user]);
 
   // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
   // - loading 중: OAuth 콜백(/auth/callback)과 '동일한' 풀스크린 LoadingScreen(스피너만).
