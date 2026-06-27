@@ -389,6 +389,7 @@ export function MetricTracker({
                   type="text" inputMode="numeric" value={servingDraft}
                   onChange={(e) => { const v = e.target.value; if (v === '' || /^\d{0,5}$/.test(v)) setServingDraft(v); }}
                   placeholder={metricType === 'food' ? t('metrics.servingHintFood') : t('metrics.servingHintFluid')} autoComplete="off"
+                  style={{ ['--tw-ring-color' as string]: meta.color + '66' }}
                   className="flex-1 min-w-0 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2" />
                 <span className="text-xs text-gray-400 flex-shrink-0">{meta.unit}</span>
                 <button onClick={saveServing} disabled={!servingDraft} className="px-3 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-40 flex-shrink-0" style={{ background: meta.color }}>{t('common.save')}</button>
@@ -418,7 +419,8 @@ export function MetricTracker({
               <div className="grid grid-cols-5 gap-1.5">
                 {PCT_VALUES.map((p) => (
                   <button key={p} type="button" onClick={() => setNewPct(p)}
-                    className={`py-2.5 rounded-lg text-sm font-bold border transition-colors ${newPct === p ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
+                    className={`py-2.5 rounded-lg text-sm font-bold border transition-colors ${newPct === p ? '' : 'bg-white border-gray-200 text-gray-600'}`}
+                    style={newPct === p ? { background: meta.color + '14', color: meta.color, borderColor: meta.color + '59' } : undefined}>
                     {p}%
                   </button>
                 ))}
@@ -439,6 +441,7 @@ export function MetricTracker({
                 readOnly={isTouch}
                 onClick={() => { if (isTouch) setShowPad(true); }}
                 autoComplete="off"
+                style={{ ['--tw-ring-color' as string]: meta.color + '66' }}
                 className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 bg-white ${isTouch ? 'cursor-pointer' : ''}`}
               />
               {showPad && (
@@ -453,7 +456,8 @@ export function MetricTracker({
           <input
             type="search" placeholder={t('stats.memoPlaceholder')} value={newMemo}
             onChange={(e) => setNewMemo(e.target.value)} maxLength={100} autoComplete="off"
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+            style={{ ['--tw-ring-color' as string]: meta.color + '66' }}
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 [&::-webkit-search-cancel-button]:hidden" />
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.date')}</span>
             <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} className="flex-1 min-w-0"
@@ -496,7 +500,7 @@ export function MetricTracker({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 flex-shrink-0 tabular-nums">{fmtTime(String(log.measured_at))}</span>
-                          {log.input_pct != null && <span className="text-[11px] font-bold text-blue-600 flex-shrink-0">{log.input_pct}%</span>}
+                          {log.input_pct != null && <span className="text-[11px] font-bold flex-shrink-0" style={{ color: meta.color }}>{log.input_pct}%</span>}
                           <span className="text-sm font-semibold text-gray-700">{Number(log.value)}{log.unit}</span>
                         </div>
                         {log.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{log.memo}</span></p>}

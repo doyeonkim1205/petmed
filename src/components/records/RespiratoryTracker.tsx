@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Plus, Wind, Timer, X, AlertTriangle } from 'lucide-react';
+import { Plus, Wind, Timer, AlertTriangle } from 'lucide-react';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/TimePicker';
@@ -197,14 +197,14 @@ export function RespiratoryTracker({
             </div>
           )}
           {timerPhase === 'running' && (
-            <div className="rounded-lg p-4 text-center text-white" style={{ background: ACCENT }}>
-              <p className="text-[11px] opacity-90">{t('resp.timerHint')}</p>
-              <p className="text-3xl font-extrabold my-1 tabular-nums">{secLeft}s</p>
+            <div className="rounded-lg p-4 text-center bg-white border-2" style={{ borderColor: ACCENT }}>
+              <p className="text-[11px]" style={{ color: ACCENT }}>{t('resp.timerHint')}</p>
+              <p className="text-3xl font-extrabold my-1 tabular-nums" style={{ color: ACCENT }}>{secLeft}s</p>
               <button onClick={() => setTaps((c) => c + 1)}
-                className="w-full mt-1 py-4 rounded-xl bg-white/20 active:bg-white/35 text-white font-bold text-lg">
+                className="w-full mt-1 py-4 rounded-xl text-white font-bold text-lg active:opacity-90" style={{ background: ACCENT }}>
                 {t('resp.timerTap')} · {taps}
               </button>
-              <button onClick={stopTimer} className="text-[11px] opacity-80 mt-2 underline">{t('common.cancel')}</button>
+              <button onClick={stopTimer} className="text-[11px] text-gray-400 mt-2 underline">{t('common.cancel')}</button>
             </div>
           )}
 
@@ -214,7 +214,8 @@ export function RespiratoryTracker({
             <div className="flex items-center gap-2 mt-1">
               <input type="number" inputMode="numeric" min={1} max={120} value={value}
                 onChange={(e) => setValue(e.target.value)} placeholder={t('resp.placeholder')}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                style={{ ['--tw-ring-color' as string]: ACCENT + '66' }}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2" />
               <span className="text-sm text-gray-500">{t('resp.unit')}</span>
             </div>
             {previewGrade && (
@@ -274,23 +275,25 @@ export function RespiratoryTracker({
           {[...logs].reverse().map((l) => {
             const g = grade(Number(l.value));
             const dt = new Date(l.measured_at);
+            const isSel = selectedId === l.id;
             return (
-              <button key={l.id} onClick={() => setSelectedId(selectedId === l.id ? null : l.id)}
-                className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg text-left">
-                <div className="flex items-center gap-2.5">
+              <div key={l.id} onClick={() => setSelectedId(isSel ? null : l.id)}
+                className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${isSel ? 'bg-red-50' : 'bg-gray-50 active:bg-gray-100'}`}>
+                <div className="flex items-center gap-2.5 min-w-0">
                   <span className="text-base font-bold tabular-nums" style={{ color: GRADE_COLOR[g] }}>{Number(l.value)}</span>
                   <span className="text-[11px] text-gray-400">{t('resp.unit')}</span>
                   {l.memo && (CONDITIONS as readonly string[]).includes(l.memo) && (
-                    <span className="text-[11px] text-gray-400">· {t(`resp.condition.${l.memo}`)}</span>
+                    <span className="text-[11px] text-gray-400 truncate">· {t(`resp.condition.${l.memo}`)}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                   <span className="text-[11px] text-gray-400">{dt.toLocaleDateString(locale, { month: 'numeric', day: 'numeric' })} {String(dt.getHours()).padStart(2, '0')}:{String(dt.getMinutes()).padStart(2, '0')}</span>
-                  {selectedId === l.id && (
-                    <span onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }} className="p-1 text-red-400"><X size={15} /></span>
+                  {isSel && (
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
+                      className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium flex-shrink-0">{t('common.delete')}</button>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

@@ -184,7 +184,8 @@ export function ExcretionTracker({
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
                     <button key={o.id} type="button" onClick={() => setCondition(o.id)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? '' : 'bg-white border-gray-200 text-gray-600'}`}
+                      style={condition === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                       <span className="inline-flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{conditionLabel(kind, o.id, t)}
                       </span>
@@ -199,7 +200,8 @@ export function ExcretionTracker({
                 <div className="flex gap-1.5">
                   {AMOUNTS.map((o) => (
                     <button key={o.id} type="button" onClick={() => setAmount(amount === o.id ? '' : o.id)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${amount === o.id ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'}`}>
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${amount === o.id ? '' : 'bg-white border-gray-200 text-gray-500'}`}
+                      style={amount === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                       {amountLabelI18n(o.id, t)}
                     </button>
                   ))}
@@ -213,7 +215,8 @@ export function ExcretionTracker({
                   <div className="flex flex-wrap gap-1.5">
                     {POOP_COLORS.map((o) => (
                       <button key={o.id} type="button" onClick={() => setColor(color === o.id ? '' : o.id)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-500 bg-white'}`}>
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? '' : 'border-gray-200 text-gray-500 bg-white'}`}
+                        style={color === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: o.color }} />{colorLabelI18n(o.id, t)}
                         </span>
@@ -226,7 +229,8 @@ export function ExcretionTracker({
               {/* 메모 (선택) */}
               <input type="search" placeholder={t('stats.memoPlaceholder')} value={memo}
                 onChange={(e) => setMemo(e.target.value)} maxLength={100} autoComplete="off"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+                style={{ ['--tw-ring-color' as string]: accent + '66' }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 [&::-webkit-search-cancel-button]:hidden" />
 
               {/* 날짜 · 시간 (현재 시각 자동 채움 + 수정 가능) */}
               <div className="space-y-2">
