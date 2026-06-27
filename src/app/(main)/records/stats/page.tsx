@@ -756,6 +756,7 @@ export default function StatsPage() {
             <RespiratoryTracker
               userId={user.id}
               pet={selPet}
+              period={period}
               startDate={startDate}
               endDate={endDate}
             />

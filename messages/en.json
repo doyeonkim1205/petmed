@@ -507,6 +507,8 @@
       "vet": "Recorded high. If it repeats even at rest, please consult a vet soon"
     },
     "chartTitle": "Respiratory rate trend",
+    "chartNote": "Based on the max of resting logs (sleeping/resting)",
+    "chartEmpty": "Add a resting (sleeping/resting) log to see the trend",
     "empty": "No respiratory rate logged yet",
     "disclaimer": "Respiratory rate is a reference log only, not a diagnostic standard."
   },
@@ -536,6 +538,8 @@
     "addWeight": "Log weight",
     "history": "History",
     "tapToDelete": "Tap a record to delete",
+    "showMore": "Show more",
+    "futureTime": "You can't log a future time",
     "recordGeneric": "Record"
   },
   "pets": {

@@ -77,11 +77,14 @@ function RespChart({ data }: { data: { key: string; v: number }[] }) {
   );
 }
 
+type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
+
 export function RespiratoryTracker({
-  userId, pet, startDate, endDate,
+  userId, pet, period, startDate, endDate,
 }: {
   userId: string;
   pet: Pet;
+  period: Period;
   startDate: Date;
   endDate: Date;
 }) {
@@ -95,7 +98,9 @@ export function RespiratoryTracker({
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [newTime, setNewTime] = useState(nowHHMM());
   const [saving, setSaving] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30); // 리스트 "더보기" 30건씩
 
   // 타이머 측정 상태: idle(버튼) → ready(시작 대기) → running(카운트다운)
   const [timerPhase, setTimerPhase] = useState<'idle' | 'ready' | 'running'>('idle');
@@ -148,20 +153,30 @@ export function RespiratoryTracker({
     setTimerPhase('idle');
   };
 
-  // 기간 내, 같은 날 여러 번 입력하면 "최신값"만 점으로 (logs 는 measured_at 오름차순이라 마지막이 최신).
+  // 차트: 안정 시(자는중/쉬는중)만 대상 + 버킷별 "최고값(MAX)". 활동후·기타는 리스트엔 있지만 차트 제외.
+  //   구간: 1개월·3개월=일별 / 1년=주별 / 전체=월별 (대표일자 = 라벨용 YYYY-MM-DD).
   const chartData = useMemo(() => {
-    const byDay = new Map<string, number>();
+    const gran: 'day' | 'week' | 'month' = period === 'year' ? 'week' : period === 'all' ? 'month' : 'day';
+    const buckets = new Map<string, { key: string; v: number }>();
     for (const l of logs) {
+      if (l.memo !== 'sleeping' && l.memo !== 'resting') continue; // 안정 시만
       const dt = new Date(l.measured_at);
       if (dt < startDate || dt > endDate) continue;
-      byDay.set(localDateKey(String(l.measured_at)), Number(l.value));
+      const dk = localDateKey(String(l.measured_at));
+      let bkey: string, repDate: string;
+      if (gran === 'day') { bkey = dk; repDate = dk; }
+      else if (gran === 'week') { const d = new Date(`${dk}T00:00:00`); d.setDate(d.getDate() - d.getDay()); repDate = localDateKey(d.toISOString()); bkey = repDate; }
+      else { const [y, m] = dk.split('-'); repDate = `${y}-${m}-01`; bkey = `${y}-${m}`; }
+      const v = Number(l.value);
+      const cur = buckets.get(bkey);
+      if (!cur || v > cur.v) buckets.set(bkey, { key: repDate, v });
     }
-    return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([key, v]) => ({ key, v }));
-  }, [logs, startDate, endDate]);
+    return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
+  }, [logs, startDate, endDate, period]);
 
-  // 최근 30건을 날짜별로 그룹 (식사/수액 리스트와 동일 포맷)
+  // 리스트: 최근 visibleCount 건을 날짜별로 그룹 (식사/수액과 동일, "더보기" 30건씩). 모든 상태 표시.
   const grouped = useMemo(() => {
-    const recent = [...logs].reverse().slice(0, 30);
+    const recent = [...logs].reverse().slice(0, visibleCount);
     const out: { date: string; items: HealthMetric[] }[] = [];
     const idx = new Map<string, { date: string; items: HealthMetric[] }>();
     for (const l of recent) {
@@ -171,7 +186,7 @@ export function RespiratoryTracker({
       g.items.push(l);
     }
     return out;
-  }, [logs]);
+  }, [logs, visibleCount]);
 
   const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
   const fmtDate = (k: string) => new Date(k).toLocaleDateString(locale, { month: 'long', day: 'numeric' });
@@ -179,8 +194,12 @@ export function RespiratoryTracker({
   const handleAdd = async () => {
     const v = Math.round(Number(value));
     if (!v || v < 1 || v > 120) return;
+    const measuredDate = new Date(`${newDate}T${newTime || '00:00'}:00`);
+    // 미래 시각 저장 방지 — 대부분 "이미 한 측정"이므로 미래는 막는다.
+    if (measuredDate.getTime() > Date.now()) { setInputError(t('stats.futureTime')); return; }
+    setInputError(null);
     setSaving(true);
-    const measuredAt = new Date(`${newDate}T${newTime || '00:00'}:00`).toISOString();
+    const measuredAt = measuredDate.toISOString();
     await supabase.from('health_metrics').insert({
       user_id: userId, pet_id: pet.id, metric_type: 'respiratory',
       value: v, unit: t('resp.unit'), memo: condition, measured_at: measuredAt,
@@ -283,8 +302,9 @@ export function RespiratoryTracker({
             <TimePicker value={newTime} onChange={setNewTime} accentColor={ACCENT} />
           </div>
 
+          {inputError && <p className="text-[12px] text-red-500">{inputError}</p>}
           <div className="flex gap-2">
-            <button onClick={() => { setShowInput(false); stopTimer(); setValue(''); }}
+            <button onClick={() => { setShowInput(false); stopTimer(); setValue(''); setInputError(null); }}
               className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-lg text-sm font-medium">{t('common.cancel')}</button>
             <button onClick={handleAdd} disabled={saving || !value || Number(value) < 1}
               className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: ACCENT }}>{t('common.save')}</button>
@@ -292,13 +312,18 @@ export function RespiratoryTracker({
         </div>
       )}
 
-      {/* 차트 */}
-      {!loading && chartData.length > 0 && (
+      {/* 차트 — 안정 시(자는중/쉬는중) 기록만, 버킷별 최고값 */}
+      {!loading && (chartData.length > 0 ? (
         <div className="bg-white border border-gray-100 rounded-xl p-3">
           <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
           <RespChart data={chartData} />
+          <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
         </div>
-      )}
+      ) : logs.length > 0 ? (
+        <div className="bg-gray-50 rounded-xl p-4 text-center">
+          <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
+        </div>
+      ) : null)}
 
       {/* 최근 기록 리스트 */}
       {loading ? (
@@ -338,6 +363,12 @@ export function RespiratoryTracker({
               </div>
             </div>
           ))}
+          {logs.length > visibleCount && (
+            <button onClick={() => setVisibleCount((c) => c + 30)}
+              className="w-full py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg">
+              {t('stats.showMore')}
+            </button>
+          )}
         </div>
       )}
 
