@@ -324,7 +324,7 @@
     "label": {
       "hospitalization": "Hospitalization", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
       "preventive": "Preventive", "med": "Med", "poop": "Stool", "pee": "Urine",
-      "food": "Food", "water": "Water", "fluid": "Fluid", "weight": "Weight", "cost": "Cost"
+      "food": "Food", "water": "Water", "fluid": "Fluid", "respiratory": "Respiratory", "weight": "Weight", "cost": "Cost"
     },
     "medDose": "{name} dose",
     "medFallbackName": "Med",
@@ -499,11 +499,12 @@
     "conditionLabel": "Condition",
     "condition": { "sleeping": "Sleeping", "resting": "Resting", "afterActivity": "After activity", "other": "Other" },
     "grade": {
-      "low": "That's on the low side. Re-counting while asleep gives a more accurate reading",
+      "verylow": "That's quite low. Re-counting gives a more accurate reading",
+      "low": "On the low side. It can happen during deep sleep",
       "normal": "Within the resting reference range",
       "watch": "Slightly elevated. Try measuring again at rest",
       "high": "On the higher side. If it persists, consult a vet",
-      "vet": "40+ breaths/min. Please consult a vet as soon as possible"
+      "vet": "Recorded high. If it repeats even at rest, please consult a vet soon"
     },
     "chartTitle": "Respiratory rate trend",
     "empty": "No respiratory rate logged yet",

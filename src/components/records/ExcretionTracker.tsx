@@ -241,7 +241,7 @@ export function ExcretionTracker({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.time')}</span>
-                  <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+                  <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} accentColor={accent} /></div>
                 </div>
               </div>
 

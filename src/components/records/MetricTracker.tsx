@@ -465,7 +465,7 @@ export function MetricTracker({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.time')}</span>
-            <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+            <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} accentColor={meta.color} /></div>
           </div>
           <p className="text-[11px] text-gray-400 break-keep break-words">{t('metrics.sumHint')}</p>
           <div className="flex gap-2">

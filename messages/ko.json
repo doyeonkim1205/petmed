@@ -324,7 +324,7 @@
     "label": {
       "hospitalization": "입퇴원", "symptom": "증상", "visit": "진료", "daily": "일상",
       "preventive": "예방", "med": "약", "poop": "대변", "pee": "소변",
-      "food": "식사", "water": "음수", "fluid": "수액", "weight": "체중", "cost": "지출"
+      "food": "식사", "water": "음수", "fluid": "수액", "respiratory": "호흡수", "weight": "체중", "cost": "지출"
     },
     "medDose": "{name} 복용",
     "medFallbackName": "약",
@@ -499,11 +499,12 @@
     "conditionLabel": "측정 상태",
     "condition": { "sleeping": "자는 중", "resting": "쉬는 중", "afterActivity": "활동 후", "other": "기타" },
     "grade": {
-      "low": "측정값이 낮아요. 자는 동안 다시 세어보면 더 정확해요",
+      "verylow": "측정값이 낮아요. 다시 세어보면 더 정확해요",
+      "low": "낮은 편이에요. 깊게 자는 중이면 나올 수 있어요",
       "normal": "안정 시 참고 범위 안이에요",
       "watch": "약간 높아요. 안정된 상태에서 다시 측정해 보세요",
       "high": "다소 높은 편이에요. 반복되면 수의사 상담을 권해요",
-      "vet": "분당 40회 이상이에요. 가능한 빨리 수의사 상담을 권해요"
+      "vet": "높게 기록됐어요. 쉬는 중에도 반복되면 가능한 빨리 상담을 권해요"
     },
     "chartTitle": "호흡수 추이",
     "empty": "아직 기록된 호흡수가 없어요",

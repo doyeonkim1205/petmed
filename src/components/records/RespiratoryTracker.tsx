@@ -20,47 +20,59 @@ function nowHHMM(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 분당 호흡수 단계 — 진단 아님, 수면·안정 시 참고 기준. 너무 낮은 값(<12)은 측정 확인 권유. */
-function grade(bpm: number): 'low' | 'normal' | 'watch' | 'high' | 'vet' {
+/** 분당 호흡수 단계 — 진단 아님, 수면·안정 시 참고 기준.
+ *  <12 측정확인 / 12~14 낮은편 / 15~30 참고범위 / 31~34 약간높음 / 35~39 다소높음 / 40+ 상담권고 */
+function grade(bpm: number): 'verylow' | 'low' | 'normal' | 'watch' | 'high' | 'vet' {
   if (bpm >= 40) return 'vet';
   if (bpm >= 35) return 'high';
-  if (bpm >= 30) return 'watch';
-  if (bpm < 12) return 'low';
-  return 'normal';
+  if (bpm >= 31) return 'watch';
+  if (bpm >= 15) return 'normal';
+  if (bpm >= 12) return 'low';
+  return 'verylow';
 }
 const GRADE_COLOR: Record<string, string> = {
-  low: '#64748b', normal: '#16a34a', watch: '#d97706', high: '#ea580c', vet: '#dc2626',
+  verylow: '#64748b', low: '#64748b', normal: '#16a34a', watch: '#d97706', high: '#ea580c', vet: '#dc2626',
 };
 
-/** 점·선 차트(체중 차트 스타일) + 30회/분 참고선. */
-function RespChart({ data, locale }: { data: { d: string; v: number }[]; locale: string }) {
+/** 점·선 차트(체중 차트 스타일) — y축 값 라벨 + x축 날짜 + 30회/분 참고선. */
+function RespChart({ data }: { data: { key: string; v: number }[] }) {
   if (data.length === 0) return null;
-  const W = 320, H = 170, PX = 26, PY = 16, PB = 22;
+  const W = 320, H = 170, PX = 34, PY = 18, PB = 22;
   const chartW = W - PX * 2, chartH = H - PY - PB;
-  const maxV = Math.max(REF_LINE + 8, ...data.map((d) => d.v)) * 1.08;
-  const yOf = (v: number) => PY + chartH - (v / maxV) * chartH;
+  const vals = data.map((d) => d.v);
+  const minV = Math.min(...vals, REF_LINE);
+  const maxV = Math.max(...vals, REF_LINE);
+  const range = (maxV - minV) || 1;
+  const yOf = (v: number) => PY + chartH - ((v - minV) / range) * chartH;
   const xOf = (i: number) => data.length === 1 ? PX + chartW / 2 : PX + (i / (data.length - 1)) * chartW;
   const pts = data.map((d, i) => ({ x: xOf(i), y: yOf(d.v) }));
-  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ');
+  const fmtMD = (key: string) => { const p = key.split('-'); return `${+p[1]}/${+p[2]}`; };
   const labelIdx = data.length <= 5
     ? data.map((_, i) => i)
     : Array.from({ length: 5 }, (_, i) => Math.round(i * (data.length - 1) / 4));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: '190px' }}>
+      {/* y축 그리드 + 값 라벨 (min / mid / max) */}
+      {[0, 0.5, 1].map((r) => {
+        const y = PY + chartH - r * chartH;
+        return (
+          <g key={r}>
+            <line x1={PX} y1={y} x2={W - PX} y2={y} stroke="#f3f4f6" strokeWidth="1" />
+            <text x={PX - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(minV + r * range)}</text>
+          </g>
+        );
+      })}
       {/* 참고선 30회/분 */}
       <line x1={PX} y1={yOf(REF_LINE)} x2={W - PX} y2={yOf(REF_LINE)} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 3" />
-      <text x={PX - 5} y={yOf(REF_LINE) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{REF_LINE}</text>
       {data.length >= 2 && (
-        <polyline points={polyline} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinejoin="round" />
+        <polyline points={pts.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinejoin="round" />
       )}
       {pts.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r={data.length > 20 ? 2 : 4} fill={ACCENT} stroke="#fff" strokeWidth={data.length > 20 ? 1 : 2} />
       ))}
-      {labelIdx.map((idx) => {
-        const dt = new Date(data[idx].d);
-        const lbl = dt.toLocaleDateString(locale, { month: 'numeric', day: 'numeric' });
-        return <text key={idx} x={xOf(idx)} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{lbl}</text>;
-      })}
+      {labelIdx.map((idx) => (
+        <text key={idx} x={xOf(idx)} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{fmtMD(data[idx].key)}</text>
+      ))}
     </svg>
   );
 }
@@ -136,10 +148,15 @@ export function RespiratoryTracker({
     setTimerPhase('idle');
   };
 
+  // 기간 내, 같은 날 여러 번 입력하면 "최신값"만 점으로 (logs 는 measured_at 오름차순이라 마지막이 최신).
   const chartData = useMemo(() => {
-    return logs
-      .filter((l) => { const dt = new Date(l.measured_at); return dt >= startDate && dt <= endDate; })
-      .map((l) => ({ d: l.measured_at, v: Number(l.value) }));
+    const byDay = new Map<string, number>();
+    for (const l of logs) {
+      const dt = new Date(l.measured_at);
+      if (dt < startDate || dt > endDate) continue;
+      byDay.set(localDateKey(String(l.measured_at)), Number(l.value));
+    }
+    return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([key, v]) => ({ key, v }));
   }, [logs, startDate, endDate]);
 
   // 최근 30건을 날짜별로 그룹 (식사/수액 리스트와 동일 포맷)
@@ -262,7 +279,7 @@ export function RespiratoryTracker({
           {/* 날짜 → 시간 (세로) */}
           <div className="flex flex-col gap-2">
             <DatePicker value={newDate} onChange={setNewDate} max={todayLocalISO()} inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-            <TimePicker value={newTime} onChange={setNewTime} />
+            <TimePicker value={newTime} onChange={setNewTime} accentColor={ACCENT} />
           </div>
 
           <div className="flex gap-2">
@@ -278,7 +295,7 @@ export function RespiratoryTracker({
       {!loading && chartData.length > 0 && (
         <div className="bg-white border border-gray-100 rounded-xl p-3">
           <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
-          <RespChart data={chartData} locale={locale} />
+          <RespChart data={chartData} />
         </div>
       )}
 
