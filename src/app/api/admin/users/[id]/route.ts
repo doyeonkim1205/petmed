@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   ] = await Promise.all([
     supabase.from('subscriptions').select('*').eq('user_id', id).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('search_logs').select('*', { count: 'exact', head: true }).eq('user_id', id),
-    supabase.from('payment_history').select('id, amount, status, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(10),
+    supabase.from('payment_history').select('id, amount, status, created_at, store, environment').eq('user_id', id).order('created_at', { ascending: false }).limit(10),
     supabase.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
     supabase.from('pets').select('*', { count: 'exact', head: true }).eq('user_id', id),
     supabase.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', id),

@@ -35,7 +35,11 @@ interface Payment {
   amount: number;
   status: string;
   created_at: string;
+  store?: string | null;       // toss | play | apple
+  environment?: string | null; // production | sandbox
 }
+
+const STORE_LABEL: Record<string, string> = { toss: '토스', play: '구글', apple: '애플' };
 
 interface UserDetail {
   profile: User & { avatar_url?: string };
@@ -393,6 +397,14 @@ export default function UsersPage() {
                         p.status === 'done' ? 'bg-green-100 text-green-700' :
                         p.status === 'refunded' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'
                       }`}>{p.status === 'done' ? '완료' : p.status === 'refunded' ? '환불됨' : p.status}</span>
+                      {p.store && (
+                        <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">
+                          {STORE_LABEL[p.store] || p.store}
+                        </span>
+                      )}
+                      {p.environment === 'sandbox' && (
+                        <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">테스트</span>
+                      )}
                     </div>
                     {p.status === 'done' && (
                       <button onClick={() => refundPayment(p.id)} disabled={saving}
