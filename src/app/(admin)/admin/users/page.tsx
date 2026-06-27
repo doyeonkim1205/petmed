@@ -406,9 +406,13 @@ export default function UsersPage() {
                         <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">테스트</span>
                       )}
                     </div>
-                    {p.status === 'done' && (
+                    {/* 환불 버튼은 토스 결제만 (어드민 환불=토스 전용). apple/play 는 스토어에서 환불. */}
+                    {p.status === 'done' && p.store !== 'apple' && p.store !== 'play' && (
                       <button onClick={() => refundPayment(p.id)} disabled={saving}
                         className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50">환불</button>
+                    )}
+                    {p.status === 'done' && (p.store === 'apple' || p.store === 'play') && (
+                      <span className="text-[10px] text-gray-400">스토어에서 환불</span>
                     )}
                   </div>
                 ))}

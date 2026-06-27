@@ -1174,6 +1174,16 @@ export default function ProfilePage() {
   }, [anyModalOpen]);
 
   const handleLogout = async () => {
+    // 활동 로그(auth.logout) — 세션 정리/리로드 전에 valid 토큰으로 서버측 기록.
+    // ⚠️ 이 버튼이 실제 로그아웃 경로 (AuthContext.signOut 아님). 여기서 안 찍으면 0건.
+    try {
+      const { authFetch } = await import('@/lib/authFetch');
+      await authFetch('/api/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auth.logout' }),
+      });
+    } catch {}
     // Remove this device session from DB (maxDevices tracking)
     try {
       const { getDeviceId } = await import('@/lib/deviceId');
