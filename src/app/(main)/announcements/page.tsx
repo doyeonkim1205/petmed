@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, Megaphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchAnnouncements, markAnnouncementsSeen, getSeenAt, type Announcement } from '@/lib/announcements';
+import { fetchAnnouncements, markAnnouncementsSeen, type Announcement } from '@/lib/announcements';
+
+const RECENT_DAYS = 7; // 발행 7일 이내면 NEW 태그(읽음과 무관 — 최근성 기준)
 
 export default function AnnouncementsPage() {
   const t = useTranslations();
@@ -14,30 +16,23 @@ export default function AnnouncementsPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [prevSeenAt, setPrevSeenAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     let alive = true;
-    // 진입 시점의 "이전 본 시각"을 잡아 NEW 표시에 사용한 뒤, 읽음 처리.
-    setPrevSeenAt(getSeenAt(user.id));
     (async () => {
       const data = await fetchAnnouncements();
       if (!alive) return;
       setItems(data);
       setLoading(false);
-      markAnnouncementsSeen(user.id); // 들어오면 전체 읽음 → 헤더 뱃지 제거
+      markAnnouncementsSeen(user.id); // 들어오면 헤더 안읽음 뱃지 제거 (NEW 태그와는 별개)
     })();
     return () => { alive = false; };
   }, [user]);
 
-  const isNew = (a: Announcement) => {
-    const threshold = Math.max(
-      user?.created_at ? new Date(user.created_at).getTime() : 0,
-      prevSeenAt ? new Date(prevSeenAt).getTime() : 0,
-    );
-    return new Date(a.published_at).getTime() > threshold;
-  };
+  // NEW 태그 = 발행 7일 이내 (읽었어도 유지 → 나중에도 최근 글 식별).
+  const isRecent = (a: Announcement) =>
+    Date.now() - new Date(a.published_at).getTime() < RECENT_DAYS * 86400000;
 
   return (
     <div className="min-h-full bg-gray-50">
@@ -65,8 +60,10 @@ export default function AnnouncementsPage() {
                 {a.important && (
                   <span className="text-[10px] font-bold text-red-500 bg-red-50 rounded px-1.5 py-0.5">{t('announcements.important')}</span>
                 )}
+                {isRecent(a) && (
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 rounded px-1.5 py-0.5 flex-shrink-0">NEW</span>
+                )}
                 <h2 className="text-sm font-bold text-gray-800 break-keep flex-1">{a.title}</h2>
-                {isNew(a) && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
               </div>
               <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
               <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>

@@ -43,7 +43,7 @@ export function Header() {
           style={{ top: 'env(safe-area-inset-top)' }}
         >
           <span className="relative">
-            <Bell size={20} />
+            <Bell size={17} />
             {unread > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" />
             )}
