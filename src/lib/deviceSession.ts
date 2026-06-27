@@ -45,8 +45,8 @@ function hasPendingClaim(): boolean {
 export async function syncDeviceSession(user: { id: string } | null | undefined): Promise<void> {
   if (!user) return;
   if (hasPendingClaim()) {
+    beginClaim();        // 윈도우 먼저 켜고(동시 verify 차단) 그다음 플래그 소비
     clearPendingClaim();
-    beginClaim();
     try {
       await claimDevice();
     } finally {
@@ -78,6 +78,10 @@ export async function claimDevice(): Promise<void> {
  * - 네트워크 오류 시엔 로그아웃하지 않음(낙관적 유지)
  */
 export async function verifyDevice(): Promise<void> {
+  // claim 예정(pendingClaim) 또는 진행중/grace(claimWindow) 면 보류.
+  //   로그인 직후(특히 앱: 무세션 init 로 loading 이 이미 false) DeviceGuard 가
+  //   claim 보다 먼저 verify 를 쏴 not-yet-claimed 기기를 403 으로 쫓아내던 레이스 차단.
+  if (hasPendingClaim()) return;
   if (isInClaimWindow()) return;
   try {
     const { authFetch } = await import('./authFetch');
