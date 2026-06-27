@@ -9,6 +9,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') || '';
   const plan = searchParams.get('plan') || '';
+  const platform = searchParams.get('platform') || ''; // ios | android | web
+  const provider = searchParams.get('provider') || ''; // email | google | kakao | apple
   const page = parseInt(searchParams.get('page') || '1');
   const limit = 20;
   const offset = (page - 1) * limit;
@@ -18,9 +20,37 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // ── 플랫폼/가입 필터 — profiles 에 없는 값(active_sessions/auth.users)이라, 먼저 해당
+  //    user_id 집합을 구해 profiles 쿼리에 .in() 으로 교차. (현 규모용 — 유저 급증 시 비정규화 검토)
+  let restrictIds: string[] | null = null;
+  if (platform) {
+    const { data: sess } = await supabase.from('active_sessions').select('user_id').eq('platform', platform);
+    restrictIds = [...new Set((sess || []).map((s) => s.user_id))];
+  }
+  if (provider) {
+    const provSet = new Set<string>();
+    for (let p = 1; p <= 20; p++) {
+      const { data: pageData } = await supabase.auth.admin.listUsers({ page: p, perPage: 1000 });
+      const list = pageData?.users || [];
+      for (const u of list) {
+        if (((u.app_metadata?.provider as string) || 'email') === provider) provSet.add(u.id);
+      }
+      if (list.length < 1000) break;
+    }
+    restrictIds = restrictIds === null ? [...provSet] : restrictIds.filter((id) => provSet.has(id));
+  }
+  // 필터 결과가 빈 집합이면 즉시 빈 결과 (in([]) 대신 명시적 처리)
+  if (restrictIds !== null && restrictIds.length === 0) {
+    return NextResponse.json({ users: [], total: 0, page, totalPages: 0 });
+  }
+
   let query = supabase
     .from('profiles')
     .select('id, email, nickname, plan, role, created_at', { count: 'exact' });
+
+  if (restrictIds !== null) {
+    query = query.in('id', restrictIds);
+  }
 
   if (search) {
     // PostgREST or() 필터 구문에서 의미를 갖는 문자 제거 — `,` `(` `)` 는 조건 구분/그룹,
