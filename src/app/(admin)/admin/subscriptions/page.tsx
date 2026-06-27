@@ -13,6 +13,7 @@ type Tab = '' | 'active' | 'canceled' | 'expired';
 function eventTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     purchase: '결제',
+    uncancel: '재개',
     renew: '갱신',
     cancel: '해지',
     refund: '환불',
@@ -26,6 +27,7 @@ function eventTypeLabel(type: string): string {
 function eventTypeBadge(type: string): string {
   const badges: Record<string, string> = {
     purchase: 'bg-green-100 text-green-700',
+    uncancel: 'bg-teal-100 text-teal-700',
     renew: 'bg-blue-100 text-blue-700',
     cancel: 'bg-orange-100 text-orange-700',
     refund: 'bg-red-100 text-red-700',

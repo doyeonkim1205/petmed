@@ -5,7 +5,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export type SubscriptionEventType = 'purchase' | 'renew' | 'cancel' | 'refund' | 'expired' | 'downgrade' | 'upgrade';
+export type SubscriptionEventType = 'purchase' | 'renew' | 'cancel' | 'refund' | 'expired' | 'downgrade' | 'upgrade' | 'uncancel';
 
 export async function logSubscriptionEvent(
   userId: string,

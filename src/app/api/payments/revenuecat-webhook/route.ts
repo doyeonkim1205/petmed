@@ -186,7 +186,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 구독 이벤트 로그 (유효 type 만). BILLING_ISSUE/TRANSFER 등은 로깅 생략.
+    // ⚠️ UNCANCELLATION(재개)는 GRANT 묶음이지만 실결제가 아니므로 'purchase'가 아니라
+    //    별도 'uncancel'(구독 재개)로 분리. (payment_history 는 PAYMENT_TYPES 라 어차피 미기록)
     const evt = type === 'RENEWAL' ? 'renew'
+      : type === 'UNCANCELLATION' ? 'uncancel'
       : GRANT_TYPES.has(type) ? 'purchase'
       : type === 'EXPIRATION' ? 'expired'
       : type === 'REFUND' ? 'refund'
@@ -205,6 +208,7 @@ export async function POST(request: NextRequest) {
       // activity_logs 에도 기록 — 어드민 활동로그(필터)에서 RC(구글/애플) 구독 이벤트도 보이게.
       // (토스는 결제 라우트에서 이미 기록 / RC 는 그동안 누락이었음)
       const activityAction = evt === 'purchase' ? 'subscription.purchase'
+        : evt === 'uncancel' ? 'subscription.uncancel'
         : evt === 'cancel' ? 'subscription.cancel'
         : evt === 'expired' ? 'subscription.expired'
         : evt === 'refund' ? 'subscription.refund'
