@@ -8,9 +8,12 @@ import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
-// getPlatform 은 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
+// 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
-import { getPlatform, isNativeApp } from '@/lib/platform/env';
+//   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
+import { isNativeApp } from '@/lib/platform/env';
+import { syncDeviceSession, markPendingClaim, clearPendingClaim } from '@/lib/deviceSession';
+import { dlog } from '@/lib/devlog';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -119,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 1) Quick check: is there a session in localStorage?
         const { data: { session: localSession } } = await supabase.auth.getSession();
+        dlog(`init: session=${!!localSession} lastSignIn=${localSession?.user?.last_sign_in_at?.slice(11, 19) ?? '-'}`);
         if (!localSession) {
           if (mounted) setLoading(false);
           return;
@@ -134,17 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         //    세션 객체의 user.id 는 정상 케이스에서 getUser 결과와 100% 일치.
         //    (유저 A 세션에 유저 B 가 서버 측에서 붙는 시나리오는 Supabase
         //     보안 모델상 불가능)
+        // 기기 세션: 진짜 새 로그인이면 claim(슬롯 차지), 아니면(앱 복원/갱신) verify(읽기전용).
+        //   앱 로드마다 claim 하던 기존 동작이 핑퐁의 원인이라 복원 시엔 검증만 한다.
+        //   verify 가 밀려남(403)을 감지하면 authFetch 가 자동 로그아웃+리다이렉트.
         const [verifyResult, sessionsResult, profileResult] = await Promise.allSettled([
           supabase.auth.getUser(),
-          (async () => {
-            const { getDeviceId } = await import('@/lib/deviceId');
-            const { authFetch } = await import('@/lib/authFetch');
-            return authFetch('/api/sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
-            });
-          })(),
+          syncDeviceSession(localSession.user),
           fetchProfile(localSession.user.id),
         ]);
 
@@ -200,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!mounted) return;
+        dlog(`authEvent: ${event} user=${!!newSession?.user} lastSignIn=${newSession?.user?.last_sign_in_at?.slice(11, 19) ?? '-'}`);
 
         // Synchronous state updates — safe, no Supabase calls
         setSession(newSession);
@@ -259,16 +259,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               logActivity(authUser.id, 'auth.login', { details: { method: provider } });
             }
           }
-          // Always register device session first (prevents race with API calls)
-          try {
-            const { getDeviceId } = await import('@/lib/deviceId');
-            const { authFetch } = await import('@/lib/authFetch');
-            await authFetch('/api/sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
-            });
-          } catch {}
+          // 기기 세션: 진짜 새 로그인이면 claim(슬롯 차지+오래된 기기 evict),
+          //   아니면(세션 복원/토큰 갱신/탭 포커스) verify(읽기전용)만.
+          //   SIGNED_IN 은 복원·갱신에도 fire 되므로 여기서 매번 claim 하면 옛 기기가
+          //   슬롯을 도로 뺏는 핑퐁이 생긴다 → fresh 로그인일 때만 claim.
+          await syncDeviceSession(authUser);
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
             setProfile(profileData);
@@ -426,6 +421,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
+      markPendingClaim(); // 가입=첫 로그인 → 이 기기가 슬롯 claim
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
@@ -448,12 +444,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      markPendingClaim(); // 로그인 시도 → 다음 SIGNED_IN 에서 이 기기가 슬롯 claim
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       // 이 시점에 logActivity 호출하면 onAuthStateChange 의 SIGNED_IN 핸들러
@@ -462,38 +460,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void data;
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithGoogle();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithKakao = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithKakao();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithApple = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithApple();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signOut = async () => {
+    dlog('signOut() called');
+    // 다음 로그인이 깨끗하게 claim 하도록 잔여 pendingClaim 표시 해제.
+    clearPendingClaim();
     // Log before clearing state — 서버측(/api/activity, service role)으로 기록.
     // 클라 logActivity 는 signOut teardown(세션 정리)과 race 로 RLS insert 가 0건 됐음.
     // authFetch 로 아직 유효한 JWT 를 보내 서버에서 확실히 기록(await).
@@ -510,12 +518,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { getDeviceId } = await import('@/lib/deviceId');
         const { authFetch } = await import('@/lib/authFetch');
-        await authFetch('/api/sessions', {
+        const r = await authFetch('/api/sessions', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ device_id: getDeviceId() }),
         });
-      } catch {}
+        dlog(`signOut DELETE session → ${r.status}`);
+      } catch (e) { dlog(`signOut DELETE ERROR ${(e as Error)?.message || e}`); }
 
       // 푸시 구독 해제 — 로그아웃한 기기에 이전 계정 알림이 계속 배달되는
       // 문제 방지. 브라우저 레벨에서 unsubscribe + DB row 삭제.
