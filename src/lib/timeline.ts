@@ -7,7 +7,7 @@ import type { ExcretionKind, PreventiveCategory } from '@/lib/supabase';
 export type TLKind =
   | 'hospitalization' | 'symptom' | 'visit' | 'daily'
   | 'preventive' | 'med' | 'poop' | 'pee'
-  | 'food' | 'water' | 'fluid' | 'weight' | 'cost';
+  | 'food' | 'water' | 'fluid' | 'respiratory' | 'weight' | 'cost';
 
 // 라벨은 messages(timeline.label.*)로 분리 — buildTimeline 이 t 로 조합.
 
@@ -20,7 +20,7 @@ const TITLED_PRIORITY: Partial<Record<TLKind, number>> = {
 // 진료 > 입퇴원 > 증상 > 일상 > 예방 > 약(무시각) > 체중 > 지출.
 const DETAIL_RANK: Record<TLKind, number> = {
   visit: 0, hospitalization: 1, symptom: 2, daily: 3, preventive: 4, med: 5, weight: 6, cost: 7,
-  poop: 5, pee: 5, food: 5, water: 5, fluid: 5,
+  poop: 5, pee: 5, food: 5, water: 5, fluid: 5, respiratory: 5,
 };
 
 export interface TLEvent {
@@ -66,6 +66,7 @@ export function buildTimeline(t: TFn, input: {
     food: { sum: number; pcts: number[]; unit: string };
     water: { sum: number; unit: string };
     fluid: { sum: number; pcts: number[]; unit: string };
+    respiratory: { last: number; unit: string; n: number };
     weight: number | null;
     cost: number;
     daily: number;
@@ -76,6 +77,7 @@ export function buildTimeline(t: TFn, input: {
     if (!a) {
       a = { events: [], med: 0, poop: { n: 0, abn: false }, pee: { n: 0, abn: false },
         food: { sum: 0, pcts: [], unit: 'g' }, water: { sum: 0, unit: 'ml' }, fluid: { sum: 0, pcts: [], unit: 'ml' },
+        respiratory: { last: 0, unit: '회/분', n: 0 },
         weight: null, cost: 0, daily: 0 };
       map.set(dateKey, a);
     }
@@ -138,10 +140,16 @@ export function buildTimeline(t: TFn, input: {
     a.events.push({ id: `exc-${e.id}`, kind: k, timeMs: new Date(e.measured_at).getTime(), time: hhmm(e.measured_at), text: conditionLabel(e.kind as ExcretionKind, e.condition, t), abnormal: abn, href: '/records/stats?tab=excretion' });
   }
 
-  // 5) 지표 (음수/식사/수액)
+  // 5) 지표 (음수/식사/수액/호흡수)
   for (const m of input.metrics) {
     const dk = localDateKey(m.measured_at);
     const a = get(dk);
+    // 호흡수는 합산 X — 개별 측정값. 이벤트로만 표시 + 칩은 그날 마지막 값.
+    if (m.metric_type === 'respiratory') {
+      a.respiratory.last = Number(m.value); a.respiratory.unit = m.unit; a.respiratory.n += 1;
+      a.events.push({ id: `met-${m.id}`, kind: 'respiratory', timeMs: new Date(m.measured_at).getTime(), time: hhmm(m.measured_at), text: `${Number(m.value)}${m.unit}`, href: '/records/stats?tab=respiratory' });
+      continue;
+    }
     const kind = (m.metric_type === 'water' ? 'water' : m.metric_type === 'food' ? 'food' : 'fluid') as TLKind;
     if (kind === 'food') { a.food.sum += Number(m.value); a.food.unit = m.unit; if (m.input_pct != null) a.food.pcts.push(m.input_pct); }
     else if (kind === 'water') { a.water.sum += Number(m.value); a.water.unit = m.unit; }
@@ -183,6 +191,7 @@ export function buildTimeline(t: TFn, input: {
     }
     if (a.water.sum > 0) chips.push({ key: 'water', label: t('timeline.chip.water', { amount: Math.round(a.water.sum), unit: a.water.unit }) });
     if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: t('timeline.chip.fluid', { amount: Math.round(a.fluid.sum), unit: a.fluid.unit }) });
+    if (a.respiratory.n > 0) chips.push({ key: 'respiratory', label: t('timeline.chip.respiratory', { amount: a.respiratory.last, unit: a.respiratory.unit }) });
     if (a.weight != null) chips.push({ key: 'weight', label: `${a.weight}kg` });
     if (a.daily > 0) chips.push({ key: 'daily', label: t('timeline.chip.daily', { count: a.daily }) });
     if (a.cost > 0) chips.push({ key: 'cost', label: t('record.money', { value: a.cost.toLocaleString() }) });

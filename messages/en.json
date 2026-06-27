@@ -324,7 +324,7 @@
     "label": {
       "hospitalization": "Hospitalization", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
       "preventive": "Preventive", "med": "Med", "poop": "Stool", "pee": "Urine",
-      "food": "Food", "water": "Water", "fluid": "Fluid", "weight": "Weight", "cost": "Cost"
+      "food": "Food", "water": "Water", "fluid": "Fluid", "respiratory": "Respiratory", "weight": "Weight", "cost": "Cost"
     },
     "medDose": "{name} dose",
     "medFallbackName": "Med",
@@ -336,6 +336,7 @@
       "foodAmount": "Food {amount}{unit}",
       "water": "Water {amount}{unit}",
       "fluid": "Fluid {amount}{unit}",
+      "respiratory": "Resp {amount}{unit}",
       "daily": "Daily {count}"
     }
   },
@@ -483,8 +484,36 @@
     "amount": "Amount",
     "addExpense": "Add expense"
   },
+  "resp": {
+    "unit": "/min",
+    "refTitle": "Resting/sleeping respiratory rate reference",
+    "refDesc": "At rest, 30 breaths/min or fewer is the usual reference.\nCount one chest or belly rise-and-fall as one breath.",
+    "add": "Log respiratory rate",
+    "timerStart": "Measure with {sec}s timer",
+    "timerReady": "Tap Start when ready. Tap the button on each breath for {sec}s and we'll calculate breaths per minute.",
+    "timerStartNow": "Start",
+    "timerHint": "Tap the button on each breath",
+    "timerTap": "Breath",
+    "valueLabel": "Breaths per minute",
+    "placeholder": "e.g. 24",
+    "conditionLabel": "Condition",
+    "condition": { "sleeping": "Sleeping", "resting": "Resting", "afterActivity": "After activity", "other": "Other" },
+    "grade": {
+      "verylow": "That's quite low. Re-counting gives a more accurate reading",
+      "low": "On the low side. It can happen during deep sleep",
+      "normal": "Within the resting reference range",
+      "watch": "Slightly elevated. Try measuring again at rest",
+      "high": "On the higher side. If it persists, consult a vet",
+      "vet": "Recorded high. If it repeats even at rest, please consult a vet soon"
+    },
+    "chartTitle": "Respiratory rate trend",
+    "chartNote": "Based on the max of resting logs (sleeping/resting)",
+    "chartEmpty": "Add a resting (sleeping/resting) log to see the trend",
+    "empty": "No respiratory rate logged yet",
+    "disclaimer": "Respiratory rate is a reference log only, not a diagnostic standard."
+  },
   "stats": {
-    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion" },
+    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion", "respiratory": "Respiratory" },
     "tabSettingsLabel": "Metric display settings",
     "filterHint": "Choose the metrics you want to see here,\nand reorder them too.",
     "editMetrics": "Edit metrics",
@@ -509,6 +538,8 @@
     "addWeight": "Log weight",
     "history": "History",
     "tapToDelete": "Tap a record to delete",
+    "showMore": "Show more",
+    "futureTime": "You can't log a future time",
     "recordGeneric": "Record"
   },
   "pets": {

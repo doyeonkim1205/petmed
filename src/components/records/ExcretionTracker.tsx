@@ -102,8 +102,12 @@ export function ExcretionTracker({
   // 마지막 기록 (logs 는 시간 오름차순 → 맨 뒤가 최신)
   const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
 
+  // 미래 시각 여부 — 안내 + 저장 비활성화용.
+  const mDate = newDate > todayStr ? todayStr : newDate;
+  const isFutureTime = !!newTime && new Date(buildMeasuredAt(mDate, newTime)).getTime() > Date.now();
+
   const handleAdd = async () => {
-    if (!condition) return;
+    if (!condition || isFutureTime) return;
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
     await supabase.from('excretion_logs').insert({
@@ -184,7 +188,8 @@ export function ExcretionTracker({
                 <div className="flex flex-wrap gap-1.5">
                   {conds.map((o) => (
                     <button key={o.id} type="button" onClick={() => setCondition(o.id)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white border-gray-200 text-gray-600'}`}>
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${condition === o.id ? '' : 'bg-white border-gray-200 text-gray-600'}`}
+                      style={condition === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                       <span className="inline-flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />{conditionLabel(kind, o.id, t)}
                       </span>
@@ -199,7 +204,8 @@ export function ExcretionTracker({
                 <div className="flex gap-1.5">
                   {AMOUNTS.map((o) => (
                     <button key={o.id} type="button" onClick={() => setAmount(amount === o.id ? '' : o.id)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${amount === o.id ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-white border border-gray-200 text-gray-500'}`}>
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${amount === o.id ? '' : 'bg-white border-gray-200 text-gray-500'}`}
+                      style={amount === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                       {amountLabelI18n(o.id, t)}
                     </button>
                   ))}
@@ -213,7 +219,8 @@ export function ExcretionTracker({
                   <div className="flex flex-wrap gap-1.5">
                     {POOP_COLORS.map((o) => (
                       <button key={o.id} type="button" onClick={() => setColor(color === o.id ? '' : o.id)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-500 bg-white'}`}>
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${color === o.id ? '' : 'border-gray-200 text-gray-500 bg-white'}`}
+                        style={color === o.id ? { background: accent + '14', color: accent, borderColor: accent + '59' } : undefined}>
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: o.color }} />{colorLabelI18n(o.id, t)}
                         </span>
@@ -226,7 +233,8 @@ export function ExcretionTracker({
               {/* 메모 (선택) */}
               <input type="search" placeholder={t('stats.memoPlaceholder')} value={memo}
                 onChange={(e) => setMemo(e.target.value)} maxLength={100} autoComplete="off"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 focus:ring-gray-300 [&::-webkit-search-cancel-button]:hidden" />
+                style={{ ['--tw-ring-color' as string]: accent + '66' }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white appearance-none outline-none focus:ring-2 [&::-webkit-search-cancel-button]:hidden" />
 
               {/* 날짜 · 시간 (현재 시각 자동 채움 + 수정 가능) */}
               <div className="space-y-2">
@@ -237,13 +245,14 @@ export function ExcretionTracker({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 w-8 flex-shrink-0">{t('common.time')}</span>
-                  <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} /></div>
+                  <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} accentColor={accent} /></div>
                 </div>
               </div>
 
+              {isFutureTime && <p className="text-[11px] text-red-500">{t('stats.futureTime')}</p>}
               <div className="flex gap-2">
                 <button onClick={() => { setShowInput(false); resetInput(); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
-                <button onClick={handleAdd} disabled={!condition || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: accent }}>
+                <button onClick={handleAdd} disabled={!condition || saving || isFutureTime} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: accent }}>
                   {saving ? t('record.form.saving') : t('common.save')}
                 </button>
               </div>

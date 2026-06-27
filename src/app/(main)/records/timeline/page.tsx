@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import {
   ArrowLeft, ChevronDown, History,
   Building2, AlertTriangle, Stethoscope, PawPrint, ShieldCheck, Pill,
-  CircleDot, Droplet, Utensils, GlassWater, Syringe, Scale, Wallet,
+  CircleDot, Droplet, Utensils, GlassWater, Syringe, Scale, Wallet, Wind,
   type LucideIcon,
 } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
@@ -20,14 +20,14 @@ import { buildTimeline, type TLDay, type TLKind } from '@/lib/timeline';
 const TL_ICON: Record<TLKind, LucideIcon> = {
   hospitalization: Building2, symptom: AlertTriangle, visit: Stethoscope, daily: PawPrint,
   preventive: ShieldCheck, med: Pill, poop: CircleDot, pee: Droplet,
-  food: Utensils, water: GlassWater, fluid: Syringe, weight: Scale, cost: Wallet,
+  food: Utensils, water: GlassWater, fluid: Syringe, respiratory: Wind, weight: Scale, cost: Wallet,
 };
 
 // 아이콘 색 — 앱 색 연상에 맞춤. 텍스트·칩 배경은 회색 유지, 아이콘만 색 포인트.
 const TL_COLOR: Record<TLKind, string> = {
   hospitalization: 'text-emerald-500', symptom: 'text-orange-500', visit: 'text-blue-500', daily: 'text-purple-500',
   preventive: 'text-sky-500', med: 'text-rose-500', poop: 'text-amber-600', pee: 'text-yellow-500',
-  food: 'text-orange-400', water: 'text-cyan-500', fluid: 'text-indigo-500', weight: 'text-slate-500', cost: 'text-teal-600',
+  food: 'text-orange-400', water: 'text-cyan-500', fluid: 'text-indigo-500', respiratory: 'text-indigo-400', weight: 'text-slate-500', cost: 'text-teal-600',
 };
 
 // label 은 messages(timeline.period.*)로 분리 — id 로 참조.

@@ -67,6 +67,8 @@ export interface PetContext {
   intake?: { water?: IntakeSummary; food?: IntakeSummary; fluid?: FluidSummary };
   /** 최근 14일 대소변(대변/소변) 요약. 기록 있을 때만. */
   excretion?: { poop?: ExcretionKindSummary; pee?: ExcretionKindSummary };
+  /** 최근 14일 호흡수(분당) 요약 — 최근값·평균·기록일수. 기록 있을 때만. 참고용(비진단). */
+  respiratory?: { last: number; avg: number; daysLogged: number; lastDate: string };
 }
 
 /** 생년월일 → 만 나이(년). NULL/잘못된 형식/음수면 null. */
@@ -150,7 +152,7 @@ export async function fetchPetContext(
     .select('metric_type, value, measured_at')
     .eq('user_id', userId)
     .eq('pet_id', petId)
-    .in('metric_type', ['water', 'food', 'fluid'])
+    .in('metric_type', ['water', 'food', 'fluid', 'respiratory'])
     .gte('measured_at', ymd(since14));
 
   const intake: { water?: IntakeSummary; food?: IntakeSummary; fluid?: FluidSummary } = {};
@@ -176,6 +178,27 @@ export async function fetchPetContext(
     const fdates = fluidRows.map((r) => String(r.measured_at).split('T')[0]).sort();
     const total = fluidRows.reduce((s, r) => s + (Number(r.value) || 0), 0);
     intake.fluid = { count: fluidRows.length, lastDate: fdates[fdates.length - 1], ...(total > 0 ? { total: Math.round(total) } : {}) };
+  }
+
+  // 호흡수 — 최근 14일 분당 호흡수. 하루 여러 번이면 그날 "최신값"(쿼리 순서 무관, ts 비교) 기준.
+  const respByDay = new Map<string, { v: number; ts: number }>();
+  for (const r of (metricRows || [])) {
+    if (r.metric_type !== 'respiratory') continue;
+    const day = String(r.measured_at).split('T')[0];
+    const ts = new Date(r.measured_at).getTime();
+    const cur = respByDay.get(day);
+    if (!cur || ts >= cur.ts) respByDay.set(day, { v: Number(r.value), ts });
+  }
+  let respiratory: { last: number; avg: number; daysLogged: number; lastDate: string } | undefined;
+  if (respByDay.size > 0) {
+    const days = [...respByDay.keys()].sort();
+    const dayVals = days.map((d) => respByDay.get(d)!.v);
+    respiratory = {
+      last: dayVals[dayVals.length - 1],
+      avg: Math.round(dayVals.reduce((s, v) => s + v, 0) / dayVals.length),
+      daysLogged: days.length,
+      lastDate: days[days.length - 1],
+    };
   }
 
   // 4. 최근 14일 대소변 — 횟수 + 이상 상태별 집계 (소화기·비뇨기 신호).
@@ -204,6 +227,7 @@ export async function fetchPetContext(
     recentRecords,
     ...(intake.water || intake.food || intake.fluid ? { intake } : {}),
     ...(excretion.poop || excretion.pee ? { excretion } : {}),
+    ...(respiratory ? { respiratory } : {}),
   };
 }
 
@@ -303,6 +327,14 @@ function buildPetContextPromptKo(ctx: PetContext): string {
     }
   }
 
+  // 최근 14일 호흡수 — 참고용(비진단). 안정 시 30회/분 이하가 일반적 참고선.
+  if (ctx.respiratory) {
+    const r = ctx.respiratory;
+    lines.push('');
+    lines.push('[최근 호흡수 참고 기록]');
+    lines.push(`- 분당 호흡수: 최근값 ${r.last}회/분, 14일 중 ${r.daysLogged}일 기록 평균 ${r.avg}회/분, 마지막 ${r.lastDate} (보호자 수동 측정, 참고용·비진단)`);
+  }
+
   // 공통 지침 — 미제공 항목을 증상으로 추정하지 않도록.
   lines.push('');
   lines.push('※ 제공되지 않은 기록은 입력되지 않았거나 충분하지 않은 정보일 수 있으므로, 제공되지 않은 항목을 증상으로 추정하지 마세요.');
@@ -393,6 +425,14 @@ function buildPetContextPromptEn(ctx: PetContext): string {
       const a = exc.pee.abnormal.length ? ` (${exc.pee.abnormal.map((x) => `${x.label} x${x.n}`).join(' · ')})` : ' (all normal)';
       lines.push(`- Urine: ${exc.pee.total} times in 14 days${a}, last ${exc.pee.lastDate}`);
     }
+  }
+
+  // Respiratory rate (last 14 days) — reference only, not diagnostic. <=30/min at rest is a common reference.
+  if (ctx.respiratory) {
+    const r = ctx.respiratory;
+    lines.push('');
+    lines.push('[Recent respiratory rate reference]');
+    lines.push(`- Breaths/min: latest ${r.last}/min, avg ${r.avg}/min over ${r.daysLogged} days in 14d, last ${r.lastDate} (owner-measured, reference only, not diagnostic)`);
   }
 
   lines.push('');

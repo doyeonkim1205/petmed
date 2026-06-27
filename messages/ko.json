@@ -324,7 +324,7 @@
     "label": {
       "hospitalization": "입퇴원", "symptom": "증상", "visit": "진료", "daily": "일상",
       "preventive": "예방", "med": "약", "poop": "대변", "pee": "소변",
-      "food": "식사", "water": "음수", "fluid": "수액", "weight": "체중", "cost": "지출"
+      "food": "식사", "water": "음수", "fluid": "수액", "respiratory": "호흡수", "weight": "체중", "cost": "지출"
     },
     "medDose": "{name} 복용",
     "medFallbackName": "약",
@@ -336,6 +336,7 @@
       "foodAmount": "식사 {amount}{unit}",
       "water": "음수 {amount}{unit}",
       "fluid": "수액 {amount}{unit}",
+      "respiratory": "호흡수 {amount}{unit}",
       "daily": "일상 {count}"
     }
   },
@@ -483,8 +484,36 @@
     "amount": "금액",
     "addExpense": "지출 추가"
   },
+  "resp": {
+    "unit": "회/분",
+    "refTitle": "수면·휴식 중 호흡수 참고 기준",
+    "refDesc": "보통 안정 시에는 30회/분 이하를 참고해요.\n가슴이나 배가 올라갔다 내려오면 1회로 세면 돼요.",
+    "add": "호흡수 기록",
+    "timerStart": "{sec}초 타이머로 측정",
+    "timerReady": "준비되면 시작을 누르세요. {sec}초 동안 호흡할 때마다 버튼을 탭하면 분당 호흡수가 자동 계산돼요.",
+    "timerStartNow": "시작",
+    "timerHint": "숨 쉴 때마다 아래 버튼을 누르세요",
+    "timerTap": "호흡 1회",
+    "valueLabel": "분당 호흡수",
+    "placeholder": "예: 24",
+    "conditionLabel": "측정 상태",
+    "condition": { "sleeping": "수면 중", "resting": "휴식 중", "afterActivity": "활동 후", "other": "기타" },
+    "grade": {
+      "verylow": "측정값이 낮아요. 다시 세어보면 더 정확해요",
+      "low": "낮은 편이에요. 깊게 잠든 상태면 나올 수 있어요",
+      "normal": "안정 시 참고 범위 안이에요",
+      "watch": "약간 높아요. 안정된 상태에서 다시 측정해 보세요",
+      "high": "다소 높은 편이에요. 반복되면 수의사 상담을 권해요",
+      "vet": "높게 기록됐어요. 쉬는 중에도 반복되면 가능한 빨리 상담을 권해요"
+    },
+    "chartTitle": "호흡수 추이",
+    "chartNote": "수면·휴식 중 기록의 최고값 기준",
+    "chartEmpty": "수면 중·휴식 중 기록이 있어야 추이가 표시돼요",
+    "empty": "아직 기록된 호흡수가 없어요",
+    "disclaimer": "호흡수는 참고용 기록이며 진단 기준은 아니에요."
+  },
   "stats": {
-    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변" },
+    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변", "respiratory": "호흡수" },
     "tabSettingsLabel": "표시 지표 설정",
     "filterHint": "여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요.",
     "editMetrics": "지표 편집",
@@ -509,6 +538,8 @@
     "addWeight": "체중 기록",
     "history": "기록 내역",
     "tapToDelete": "기록을 눌러 삭제",
+    "showMore": "더보기",
+    "futureTime": "현재 시간 이후로는 기록할 수 없어요",
     "recordGeneric": "기록"
   },
   "pets": {

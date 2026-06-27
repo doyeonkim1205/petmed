@@ -9,6 +9,7 @@ interface Props {
   onChange: (v: string) => void;
   minuteStep?: number;     // 분 단위 (기본 1 = 자유 입력, 15 = 투약 프리셋 버튼)
   className?: string;
+  accentColor?: string;    // AM/PM 선택색·증감 강조색 (기본 파랑). 지표별 톤 통일용.
 }
 
 /**
@@ -26,7 +27,7 @@ interface Props {
  *     먹히지 않고 커서도 엉키는 버그가 있었음.
  *   - blur / 증감 버튼 / AM-PM 토글에서만 emit 하도록 분리.
  */
-export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: Props) {
+export function TimePicker({ value, onChange, minuteStep = 1, className = '', accentColor }: Props) {
   const t = useTranslations();
   const parsed = parse24h(value);
   const [ampm, setAmpm] = useState<'AM' | 'PM'>(parsed.ampm);
@@ -158,14 +159,16 @@ export function TimePicker({ value, onChange, minuteStep = 1, className = '' }: 
         <button
           type="button"
           onClick={() => { setAmpm('AM'); emit('AM', hour, minute); }}
-          className={`px-3 py-2 text-xs font-medium ${ampm === 'AM' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}
+          className={`px-3 py-2 text-xs font-medium ${ampm === 'AM' ? (accentColor ? 'text-white' : 'bg-blue-600 text-white') : 'text-gray-500'}`}
+          style={ampm === 'AM' && accentColor ? { background: accentColor } : undefined}
         >
           {t('common.am')}
         </button>
         <button
           type="button"
           onClick={() => { setAmpm('PM'); emit('PM', hour, minute); }}
-          className={`px-3 py-2 text-xs font-medium ${ampm === 'PM' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}
+          className={`px-3 py-2 text-xs font-medium ${ampm === 'PM' ? (accentColor ? 'text-white' : 'bg-blue-600 text-white') : 'text-gray-500'}`}
+          style={ampm === 'PM' && accentColor ? { background: accentColor } : undefined}
         >
           {t('common.pm')}
         </button>
