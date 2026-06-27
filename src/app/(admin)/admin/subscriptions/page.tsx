@@ -259,6 +259,7 @@ export default function SubscriptionsPage() {
               <TableRow>
                 <TableHead>이메일</TableHead>
                 <TableHead>금액</TableHead>
+                <TableHead>스토어</TableHead>
                 <TableHead>상태</TableHead>
                 <TableHead>결제일</TableHead>
                 <TableHead className="text-right">환불</TableHead>
@@ -269,6 +270,14 @@ export default function SubscriptionsPage() {
                 <TableRow key={pay.id}>
                   <TableCell className="text-sm">{pay.profiles?.email}</TableCell>
                   <TableCell className="text-sm font-medium">₩{pay.amount?.toLocaleString()}</TableCell>
+                  <TableCell className="text-sm">
+                    <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-xs">
+                      {pay.store === 'apple' ? '애플' : pay.store === 'play' ? '구글' : pay.store === 'toss' ? '토스' : (pay.store || '-')}
+                    </span>
+                    {pay.environment === 'sandbox' && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">테스트</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                       pay.status === 'done' ? 'bg-green-100 text-green-700' :
@@ -283,7 +292,7 @@ export default function SubscriptionsPage() {
                     {new Date(pay.created_at).toLocaleDateString('ko-KR')}
                   </TableCell>
                   <TableCell className="text-right">
-                    {pay.status === 'done' ? (
+                    {pay.status === 'done' && pay.store !== 'apple' && pay.store !== 'play' ? (
                       <button
                         onClick={() => handleRefund(pay)}
                         disabled={refundingId === pay.id}
@@ -292,6 +301,8 @@ export default function SubscriptionsPage() {
                         {refundingId === pay.id ? <Loader2 size={12} className="animate-spin" /> : null}
                         환불
                       </button>
+                    ) : pay.status === 'done' ? (
+                      <span className="text-[10px] text-gray-400">스토어 환불</span>
                     ) : (
                       <span className="text-xs text-gray-300">-</span>
                     )}
@@ -300,7 +311,7 @@ export default function SubscriptionsPage() {
               ))}
               {(data?.payments || []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-400 py-8">결제 이력이 없습니다.</TableCell>
+                  <TableCell colSpan={6} className="text-center text-gray-400 py-8">결제 이력이 없습니다.</TableCell>
                 </TableRow>
               )}
             </TableBody>

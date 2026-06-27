@@ -31,6 +31,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: '환불 가능한 결제를 찾을 수 없습니다.' }, { status: 404 });
     }
 
+    // 어드민 환불은 토스 전용(toss_payment_key 필요). Apple/Google 결제는 스토어에서 환불해야 함.
+    if (payment.store === 'apple' || payment.store === 'play' || !payment.toss_payment_key) {
+      return NextResponse.json(
+        { error: '이 결제는 토스 환불 대상이 아니에요. App Store/Google Play(또는 RevenueCat)에서 환불해 주세요.' },
+        { status: 400 },
+      );
+    }
+
     // Check if billing payment (need billing secret key)
     const { data: sub } = await supabaseAdmin
       .from('subscriptions')
