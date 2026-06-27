@@ -17,8 +17,10 @@ export function Header() {
     if (!user) { setUnread(0); return; }
     let alive = true;
     (async () => {
-      const items = await fetchAnnouncements();
-      if (alive) setUnread(countUnread(items, user.created_at, getSeenAt(user.id)));
+      try {
+        const items = await fetchAnnouncements();
+        if (alive) setUnread(countUnread(items, user.created_at, getSeenAt(user.id)));
+      } catch { /* 네트워크 오류 — 뱃지 갱신 생략 */ }
     })();
     // 새소식 페이지에서 읽음 처리하면 즉시 뱃지 제거.
     const onSeen = () => { if (alive) setUnread(0); };

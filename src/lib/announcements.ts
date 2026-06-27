@@ -8,13 +8,14 @@ export interface Announcement {
   published_at: string;
 }
 
-/** 활성 공지 — 최신순. */
+/** 활성 공지 — 최신순. 실패 시 throw (호출부가 "성공일 때만 읽음 처리" 하도록). */
 export async function fetchAnnouncements(): Promise<Announcement[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('announcements')
     .select('id, title, body, important, published_at')
     .eq('is_active', true)
     .order('published_at', { ascending: false });
+  if (error) throw error;
   return (data as Announcement[]) || [];
 }
 

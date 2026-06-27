@@ -76,10 +76,19 @@ export default function MainLayout({
     return <div className="min-h-screen bg-white" />;
   }
 
+  // 자체 헤더(뒤로가기+제목)가 있는 페이지에선 전역 헤더(로고+종) 숨김 → 이중 헤더 제거.
+  //   /records/*(목록 /records 제외), /profile/*(메인 제외), /search/*(메인 제외), /announcements.
+  //   홈·records목록·profile메인·search메인·map·payment 는 자체 헤더가 없어 전역 헤더 유지.
+  const hideGlobalHeader =
+    pathname.startsWith('/records/') ||
+    pathname.startsWith('/profile/') ||
+    pathname.startsWith('/search/') ||
+    pathname.startsWith('/announcements');
+
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center">
       <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
-        <Header />
+        {!hideGlobalHeader && <Header />}
         <main className="flex-1" style={{ paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
           {children}
         </main>

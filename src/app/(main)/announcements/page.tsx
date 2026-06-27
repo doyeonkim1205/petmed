@@ -23,11 +23,15 @@ export default function AnnouncementsPage() {
     if (!user) return;
     let alive = true;
     (async () => {
-      const data = await fetchAnnouncements();
-      if (!alive) return;
-      setItems(data);
-      setLoading(false);
-      markAnnouncementsSeen(user.id); // 들어오면 헤더 안읽음 뱃지 제거 (NEW 태그와는 별개)
+      try {
+        const data = await fetchAnnouncements();
+        if (!alive) return;
+        setItems(data);
+        setLoading(false);
+        markAnnouncementsSeen(user.id); // 성공해서 화면에 띄운 경우에만 읽음 처리(헤더 뱃지 제거)
+      } catch {
+        if (alive) setLoading(false); // 네트워크 오류 → 읽음 처리 안 함(뱃지 유지, 다음에 재시도)
+      }
     })();
     return () => { alive = false; };
   }, [user]);
