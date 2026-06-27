@@ -278,7 +278,7 @@
       "alarmUpsellApp": "앱 설치 후 Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.",
       "alarmUpsellWeb": "Plus 플랜을 이용하면 잊기 쉬운 일정을 알림으로 챙길 수 있어요.",
       "alarmUpsellDesc": "투약 시간, 예약일, 퇴원일에 맞춰 푸시 알림을 보내드려요.",
-      "viewPlans": "요금제 보기",
+      "viewPlans": "Plus 보기",
       "leaveTitle": "저장하지 않고 나갈까요?",
       "leaveMessage": "저장되지 않은 변경사항이 있습니다.",
       "leave": "나가기",
@@ -718,9 +718,8 @@
   "upsell": {
     "title": "우리 아이 건강, 빈틈없이 케어하기",
     "features": "AI 맞춤 분석 · 더 많은 검색 · 푸시 알림 · 논문 보관",
-    "viewPlans": "요금제 보기",
-    "plusUpgrade": "Plus 업그레이드",
-    "viewPlus": "Plus 보기"
+    "viewPlans": "Plus 보기",
+    "plusUpgrade": "Plus 업그레이드"
   },
   "errors": {
     "illustAlt": "에러 일러스트",

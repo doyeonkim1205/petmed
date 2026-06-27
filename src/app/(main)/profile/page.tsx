@@ -375,7 +375,7 @@ function PetModal({
         open={limitMsg !== null}
         title={t('profile.pet.limitTitle')}
         message={limitMsg}
-        confirmLabel={limitIsFree ? t('upsell.viewPlus') : t('common.confirm')}
+        confirmLabel={limitIsFree ? t('upsell.viewPlans') : t('common.confirm')}
         cancelLabel={t('common.close')}
         hideCancel={!limitIsFree}
         onConfirm={() => {

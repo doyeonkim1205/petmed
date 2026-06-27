@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { X, FileText, Image as ImageIcon, AlertCircle, Camera, ArrowRight } from 'lucide-react';
+import { X, FileText, Image as ImageIcon, AlertCircle, Camera } from 'lucide-react';
 
 interface FileUploaderProps {
   files: File[];
@@ -123,16 +123,16 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
         <div className="text-center py-2 break-keep break-words">
           <p className="text-xs text-gray-400">{maxFiles === 0 ? t('uploader.limitReachedZero') : t('uploader.limitReached', { max: maxFiles })}</p>
           {atLimitUpsell === 'free' && (
-            <>
-              <p className="text-[11px] text-gray-400 mt-1">{t('uploader.upsellFree')}</p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {t('uploader.upsellFree')}{' '}
               <button
                 type="button"
                 onClick={() => router.push('/profile/subscription')}
-                className="mt-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1.5 text-[11px] font-bold text-white transition active:scale-[0.98]"
+                className="text-gray-500 underline underline-offset-2 font-medium"
               >
-                {t('upsell.viewPlus')} <ArrowRight size={12} />
+                {t('upsell.viewPlans')}
               </button>
-            </>
+            </p>
           )}
           {atLimitUpsell !== 'none' && (
             <p className="text-[10px] text-gray-300 mt-0.5">{t('uploader.storageCheckHint')}</p>

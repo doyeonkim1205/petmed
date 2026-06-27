@@ -278,7 +278,7 @@
       "alarmUpsellApp": "Install the app and upgrade to Plus to get reminders for easily-forgotten schedules.",
       "alarmUpsellWeb": "Upgrade to Plus to get reminders for easily-forgotten schedules.",
       "alarmUpsellDesc": "We send push reminders for medication times, appointments, and discharge dates.",
-      "viewPlans": "View plans",
+      "viewPlans": "See Plus",
       "leaveTitle": "Leave without saving?",
       "leaveMessage": "You have unsaved changes.",
       "leave": "Leave",
@@ -718,9 +718,8 @@
   "upsell": {
     "title": "Care for your pet's health, with nothing missed",
     "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
-    "viewPlans": "View plans",
-    "plusUpgrade": "Plus upgrade",
-    "viewPlus": "See Plus"
+    "viewPlans": "See Plus",
+    "plusUpgrade": "Plus upgrade"
   },
   "errors": {
     "illustAlt": "Error illustration",
