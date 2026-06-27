@@ -12,6 +12,7 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet, WeightLog } from '@/lib/supabase';
+import { syncPetWeightCache } from '@/lib/petWeight';
 import { todayLocalISO } from '@/lib/date';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -374,6 +375,7 @@ export default function StatsPage() {
     const date = newWeightDate > today ? today : newWeightDate;
     setWeightSaving(true);
     await supabase.from('weight_logs').insert({ user_id: user.id, pet_id: selectedPetId, weight: w, measured_at: date, memo: newWeightMemo.trim() || null });
+    await syncPetWeightCache(selectedPetId); // pets.weight 캐시 최신화
     setNewWeight('');
     setNewWeightMemo('');
     setShowWeightInput(false);
@@ -383,6 +385,7 @@ export default function StatsPage() {
 
   const handleDeleteWeight = async (id: string) => {
     await supabase.from('weight_logs').delete().eq('id', id);
+    if (selectedPetId) await syncPetWeightCache(selectedPetId); // 최신 로그 삭제 시 캐시 재계산
     fetchWeightLogs();
   };
 
