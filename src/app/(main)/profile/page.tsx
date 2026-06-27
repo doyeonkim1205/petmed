@@ -28,6 +28,7 @@ import { PetFormFields } from '@/components/pets/PetFormFields';
 import {
   PetFormState, EMPTY_PET_FORM, petToForm, formToPayload, validatePetForm,
 } from '@/lib/petForm';
+import { addWeightLog, upsertTodayWeightLog, syncPetWeightCache } from '@/lib/petWeight';
 
 // ─── Nickname Edit Modal ───────────────────────────────────
 function NicknameModal({
@@ -215,6 +216,12 @@ function PetModal({
           return;
         }
         logActivity(userId, 'pet.update', { resourceType: 'pet', resourceId: editingPetId });
+        // 무게가 바뀌었으면 히스토리(weight_logs)에 오늘자 기록 + pets.weight 캐시 동기화.
+        const origWeight = pets.find((p) => p.id === editingPetId)?.weight ?? null;
+        if (payload.weight && payload.weight !== origWeight) {
+          await upsertTodayWeightLog(userId, editingPetId, payload.weight);
+          await syncPetWeightCache(editingPetId);
+        }
         // 홈 브리핑 캐시 무효화 — 펫 이름/생일/체중 변경이 헤더 표시에 영향
         const { invalidateHealthBriefing } = await import('@/lib/swrCache');
         invalidateHealthBriefing(userId);
@@ -252,6 +259,11 @@ function PetModal({
         return;
       }
       if (data) logActivity(userId, 'pet.create', { resourceType: 'pet', resourceId: data.id });
+      // 등록 무게를 히스토리(weight_logs) 첫 기록으로 보존 + pets.weight 캐시 동기화.
+      if (data && payload.weight) {
+        await addWeightLog(userId, data.id, payload.weight);
+        await syncPetWeightCache(data.id);
+      }
       // 홈 브리핑 캐시 무효화 — 새 펫이 즉시 카드에 반영되도록.
       {
         const { invalidateHealthBriefing } = await import('@/lib/swrCache');

@@ -15,6 +15,7 @@ import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
+import { addWeightLog, syncPetWeightCache } from '@/lib/petWeight';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'daily';
@@ -89,10 +90,16 @@ export default function RecordsPage() {
     setPetFormError(null);
     setSavingPet(true);
     try {
-      await supabase.from('pets').insert({
+      const payload = formToPayload(newPet);
+      const { data: created } = await supabase.from('pets').insert({
         user_id: user.id,
-        ...formToPayload(newPet),
-      });
+        ...payload,
+      }).select('id').single();
+      // 등록 무게를 히스토리(weight_logs) 첫 기록으로 보존 + pets.weight 캐시 동기화.
+      if (created && payload.weight) {
+        await addWeightLog(user.id, created.id, payload.weight);
+        await syncPetWeightCache(created.id);
+      }
       setNewPet(EMPTY_PET_FORM);
       setPetRefreshKey(k => k + 1);
     } catch (err) {
