@@ -489,6 +489,8 @@
     "refDesc": "Respiratory rate is most accurate while your pet sleeps or rests. Count one chest rise-and-fall as one breath.",
     "add": "Log respiratory rate",
     "timerStart": "Measure with {sec}s timer",
+    "timerReady": "Tap Start when ready. Tap the button on each breath for {sec}s and we'll calculate breaths per minute.",
+    "timerStartNow": "Start",
     "timerHint": "Tap the button on each breath",
     "timerTap": "Breath",
     "valueLabel": "Breaths per minute",

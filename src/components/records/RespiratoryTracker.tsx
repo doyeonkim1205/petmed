@@ -9,10 +9,11 @@ import { TimePicker } from '@/components/TimePicker';
 import { todayLocalISO } from '@/lib/date';
 import type { HealthMetric } from '@/lib/healthMetrics';
 
-const REF_LINE = 30; // 수면·안정 시 참고 기준(회/분)
+const REF_LINE = 30; // 수면·안정 시 참고 기준(회/분) — 개·고양이 공통 모니터링 기준
 const CONDITIONS = ['sleeping', 'resting', 'afterActivity', 'other'] as const;
 type Condition = (typeof CONDITIONS)[number];
 const TIMER_SECONDS = 30; // 30초 카운트 × 2 = 분당 호흡수
+const ACCENT = '#818CF8'; // 인디고 블루 (indigo-400)
 
 function nowHHMM(): string {
   const d = new Date();
@@ -48,7 +49,7 @@ function RespChart({ data, locale }: { data: { d: string; v: number }[]; locale:
       {data.map((d, i) => {
         const cx = PX + slot * i + slot / 2;
         const y = yOf(d.v);
-        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={GRADE_COLOR[grade(d.v)]} opacity="0.85" />;
+        return <rect key={i} x={cx - bw / 2} y={y} width={bw} height={Math.max(PY + chartH - y, 0)} rx="2" fill={ACCENT} opacity="0.85" />;
       })}
       {labelIdx.map((idx) => {
         const cx = PX + slot * idx + slot / 2;
@@ -80,8 +81,8 @@ export function RespiratoryTracker({
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // 타이머 측정 상태
-  const [timerOn, setTimerOn] = useState(false);
+  // 타이머 측정 상태: idle(버튼) → ready(시작 대기) → running(카운트다운)
+  const [timerPhase, setTimerPhase] = useState<'idle' | 'ready' | 'running'>('idle');
   const [secLeft, setSecLeft] = useState(TIMER_SECONDS);
   const [taps, setTaps] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -103,16 +104,21 @@ export function RespiratoryTracker({
   // 타이머 정리
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
+  const openTimer = () => {
+    setTaps(0);
+    setSecLeft(TIMER_SECONDS);
+    setTimerPhase('ready');
+  };
   const startTimer = () => {
     setTaps(0);
     setSecLeft(TIMER_SECONDS);
-    setTimerOn(true);
+    setTimerPhase('running');
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setSecLeft((s) => {
         if (s <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          setTimerOn(false);
+          setTimerPhase('idle');
           // 30초 카운트 × 2 = 분당 호흡수. 최신 taps 는 콜백 밖에서 반영.
           setTaps((tc) => { setValue(String(Math.min(tc * 2, 120))); return tc; });
           return 0;
@@ -123,7 +129,7 @@ export function RespiratoryTracker({
   };
   const stopTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    setTimerOn(false);
+    setTimerPhase('idle');
   };
 
   const chartData = useMemo(() => {
@@ -157,36 +163,48 @@ export function RespiratoryTracker({
   return (
     <div className="space-y-4">
       {/* 안내 + 참고 기준 */}
-      <div className="bg-sky-50 border border-sky-100 rounded-xl p-3">
-        <p className="text-[13px] font-bold text-sky-800 flex items-center gap-1.5"><Wind size={14} /> {t('resp.refTitle')}</p>
-        <p className="text-[11px] text-sky-700/80 mt-1 leading-relaxed break-keep">{t('resp.refDesc')}</p>
+      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+        <p className="text-[13px] font-bold text-indigo-800 flex items-center gap-1.5"><Wind size={14} /> {t('resp.refTitle')}</p>
+        <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep">{t('resp.refDesc')}</p>
       </div>
 
-      {/* 입력 토글 */}
+      {/* 입력 토글 — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
       {!showInput && (
         <button onClick={() => setShowInput(true)}
-          className="w-full py-2.5 rounded-xl border border-sky-200 text-sky-600 text-sm font-medium flex items-center justify-center gap-1.5">
+          className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
+          style={{ borderColor: ACCENT + '66', color: ACCENT }}>
           <Plus size={16} /> {t('resp.add')}
         </button>
       )}
 
       {showInput && (
         <div className="border border-gray-200 rounded-xl p-3.5 space-y-3">
-          {/* 타이머 측정 */}
-          {!timerOn ? (
-            <button onClick={startTimer}
-              className="w-full py-2.5 rounded-lg bg-sky-100 text-sky-700 text-sm font-bold flex items-center justify-center gap-1.5">
+          {/* 타이머 측정 — idle: 버튼 / ready: 시작 대기 / running: 카운트다운 */}
+          {timerPhase === 'idle' && (
+            <button onClick={openTimer}
+              className="w-full py-2.5 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold flex items-center justify-center gap-1.5">
               <Timer size={16} /> {t('resp.timerStart', { sec: TIMER_SECONDS })}
             </button>
-          ) : (
-            <div className="rounded-lg bg-sky-600 p-4 text-center text-white">
-              <p className="text-[11px] opacity-80">{t('resp.timerHint')}</p>
+          )}
+          {timerPhase === 'ready' && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center">
+              <p className="text-[12px] text-indigo-700 leading-relaxed break-keep">{t('resp.timerReady', { sec: TIMER_SECONDS })}</p>
+              <button onClick={startTimer}
+                className="w-full mt-3 py-3 rounded-xl text-white font-bold text-sm" style={{ background: ACCENT }}>
+                {t('resp.timerStartNow')}
+              </button>
+              <button onClick={stopTimer} className="text-[11px] text-gray-400 mt-2 underline">{t('common.cancel')}</button>
+            </div>
+          )}
+          {timerPhase === 'running' && (
+            <div className="rounded-lg p-4 text-center text-white" style={{ background: ACCENT }}>
+              <p className="text-[11px] opacity-90">{t('resp.timerHint')}</p>
               <p className="text-3xl font-extrabold my-1 tabular-nums">{secLeft}s</p>
               <button onClick={() => setTaps((c) => c + 1)}
-                className="w-full mt-1 py-4 rounded-xl bg-white/15 active:bg-white/30 text-white font-bold text-lg">
+                className="w-full mt-1 py-4 rounded-xl bg-white/20 active:bg-white/35 text-white font-bold text-lg">
                 {t('resp.timerTap')} · {taps}
               </button>
-              <button onClick={stopTimer} className="text-[11px] opacity-70 mt-2 underline">{t('common.cancel')}</button>
+              <button onClick={stopTimer} className="text-[11px] opacity-80 mt-2 underline">{t('common.cancel')}</button>
             </div>
           )}
 
@@ -212,7 +230,7 @@ export function RespiratoryTracker({
             <div className="flex flex-wrap gap-1.5 mt-1">
               {CONDITIONS.map((c) => (
                 <button key={c} onClick={() => setCondition(c)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-sky-50 border-sky-300 text-sky-700' : 'border-gray-200 text-gray-500'}`}>
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
                   {t(`resp.condition.${c}`)}
                 </button>
               ))}
@@ -229,7 +247,7 @@ export function RespiratoryTracker({
             <button onClick={() => { setShowInput(false); stopTimer(); setValue(''); }}
               className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-lg text-sm font-medium">{t('common.cancel')}</button>
             <button onClick={handleAdd} disabled={saving || !value || Number(value) < 1}
-              className="flex-1 py-2.5 bg-sky-600 text-white rounded-lg text-sm font-medium disabled:opacity-40">{t('common.save')}</button>
+              className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: ACCENT }}>{t('common.save')}</button>
           </div>
         </div>
       )}
