@@ -102,8 +102,12 @@ export function ExcretionTracker({
   // 마지막 기록 (logs 는 시간 오름차순 → 맨 뒤가 최신)
   const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
 
+  // 미래 시각 여부 — 안내 + 저장 비활성화용.
+  const mDate = newDate > todayStr ? todayStr : newDate;
+  const isFutureTime = !!newTime && new Date(buildMeasuredAt(mDate, newTime)).getTime() > Date.now();
+
   const handleAdd = async () => {
-    if (!condition) return;
+    if (!condition || isFutureTime) return;
     const date = newDate > todayStr ? todayStr : newDate;
     setSaving(true);
     await supabase.from('excretion_logs').insert({
@@ -245,9 +249,10 @@ export function ExcretionTracker({
                 </div>
               </div>
 
+              {isFutureTime && <p className="text-[11px] text-red-500">{t('stats.futureTime')}</p>}
               <div className="flex gap-2">
                 <button onClick={() => { setShowInput(false); resetInput(); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
-                <button onClick={handleAdd} disabled={!condition || saving} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: accent }}>
+                <button onClick={handleAdd} disabled={!condition || saving || isFutureTime} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: accent }}>
                   {saving ? t('record.form.saving') : t('common.save')}
                 </button>
               </div>

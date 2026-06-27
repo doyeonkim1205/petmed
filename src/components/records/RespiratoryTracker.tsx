@@ -98,7 +98,6 @@ export function RespiratoryTracker({
   const [newDate, setNewDate] = useState(todayLocalISO());
   const [newTime, setNewTime] = useState(nowHHMM());
   const [saving, setSaving] = useState(false);
-  const [inputError, setInputError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30); // 리스트 "더보기" 30건씩
 
@@ -191,13 +190,14 @@ export function RespiratoryTracker({
   const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
   const fmtDate = (k: string) => new Date(k).toLocaleDateString(locale, { month: 'long', day: 'numeric' });
 
+  // 미래 시각 여부 — 안내 + 저장 비활성화용 (미래는 "아직 안 한 측정"이라 막음).
+  const isFutureTime = !!newDate && !!newTime && new Date(`${newDate}T${newTime}:00`).getTime() > Date.now();
+
   const handleAdd = async () => {
     const v = Math.round(Number(value));
     if (!v || v < 1 || v > 120) return;
     const measuredDate = new Date(`${newDate}T${newTime || '00:00'}:00`);
-    // 미래 시각 저장 방지 — 대부분 "이미 한 측정"이므로 미래는 막는다.
-    if (measuredDate.getTime() > Date.now()) { setInputError(t('stats.futureTime')); return; }
-    setInputError(null);
+    if (measuredDate.getTime() > Date.now()) return; // 백스톱 (버튼은 이미 비활성)
     setSaving(true);
     const measuredAt = measuredDate.toISOString();
     await supabase.from('health_metrics').insert({
@@ -302,11 +302,11 @@ export function RespiratoryTracker({
             <TimePicker value={newTime} onChange={setNewTime} accentColor={ACCENT} />
           </div>
 
-          {inputError && <p className="text-[12px] text-red-500">{inputError}</p>}
+          {isFutureTime && <p className="text-[12px] text-red-500">{t('stats.futureTime')}</p>}
           <div className="flex gap-2">
-            <button onClick={() => { setShowInput(false); stopTimer(); setValue(''); setInputError(null); }}
+            <button onClick={() => { setShowInput(false); stopTimer(); setValue(''); }}
               className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-lg text-sm font-medium">{t('common.cancel')}</button>
-            <button onClick={handleAdd} disabled={saving || !value || Number(value) < 1}
+            <button onClick={handleAdd} disabled={saving || !value || Number(value) < 1 || isFutureTime}
               className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: ACCENT }}>{t('common.save')}</button>
           </div>
         </div>

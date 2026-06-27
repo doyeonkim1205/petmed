@@ -267,7 +267,12 @@ export function MetricTracker({
   const isPctMode = supportsServing && serving != null && !directMode;
   const pctQuestion = metricType === 'food' ? t('metrics.askFood') : t('metrics.askFluid');
 
+  // 미래 시각 여부 — 안내 + 저장 비활성화용.
+  const mDate = newDate > todayStr ? todayStr : newDate;
+  const isFutureTime = !!newTime && new Date(buildMeasuredAt(mDate, newTime)).getTime() > Date.now();
+
   const handleAdd = async () => {
+    if (isFutureTime) return; // 백스톱 (버튼은 이미 비활성)
     let v: number;
     let input_pct: number | null = null;
     let serving_snapshot: number | null = null;
@@ -468,9 +473,10 @@ export function MetricTracker({
             <div className="flex-1 min-w-0"><TimePicker value={newTime} onChange={setNewTime} minuteStep={1} accentColor={meta.color} /></div>
           </div>
           <p className="text-[11px] text-gray-400 break-keep break-words">{t('metrics.sumHint')}</p>
+          {isFutureTime && <p className="text-[11px] text-red-500">{t('stats.futureTime')}</p>}
           <div className="flex gap-2">
             <button onClick={() => { setShowInput(false); setNewMemo(''); setNewPct(null); }} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-white">{t('common.cancel')}</button>
-            <button onClick={handleAdd} disabled={saving || (isPctMode ? newPct == null : !newValue)} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
+            <button onClick={handleAdd} disabled={saving || (isPctMode ? newPct == null : !newValue) || isFutureTime} className="flex-1 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: meta.color }}>
               {saving ? t('record.form.saving') : t('common.save')}
             </button>
           </div>
