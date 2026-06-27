@@ -515,7 +515,9 @@
   "announcements": {
     "title": "What's new",
     "empty": "No news yet",
-    "important": "Important"
+    "important": "Important",
+    "more": "Show more",
+    "less": "Show less"
   },
   "stats": {
     "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion", "respiratory": "Respiratory" },
