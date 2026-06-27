@@ -420,7 +420,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('profiles')
           .insert({ id: data.user.id, email, nickname });
         if (profileError) throw profileError;
-        logActivity(data.user.id, 'auth.signup');
+        // await — 직후 register 페이지가 이동하면 fire-and-forget insert 가 중단돼 0건 → 보장.
+        await logActivity(data.user.id, 'auth.signup');
       }
 
       return { error: null };
@@ -471,9 +472,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Log before clearing state
+    // Log before clearing state — await 로 세션 정리/화면 전환 전에 insert 완료 보장
+    // (fire-and-forget 이면 signOut teardown 과 race 로 0건 됨)
     if (user) {
-      logActivity(user.id, 'auth.logout');
+      await logActivity(user.id, 'auth.logout');
       // Remove device session
       try {
         const { getDeviceId } = await import('@/lib/deviceId');

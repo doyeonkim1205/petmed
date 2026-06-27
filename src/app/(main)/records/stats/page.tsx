@@ -222,6 +222,12 @@ export default function StatsPage() {
   const [isTouch, setIsTouch] = useState(false);
   const [showWeightPad, setShowWeightPad] = useState(false);
 
+  // 건강통계 조회 추적 — 기기당 하루 1회만 (노이즈 방지, 참여도 파악용)
+  useEffect(() => {
+    if (!user) return;
+    import('@/lib/trackEvent').then(({ trackPageViewDaily }) => trackPageViewDaily('page.stats'));
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     supabase.from('pets').select('*').eq('user_id', user.id)

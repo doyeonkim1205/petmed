@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .eq('status', 'active');
 
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.cancel', {
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.cancel', {
       details: { plan: subscription.plan, refunded: refundedAmount, reason: cancelReason },
     });
 

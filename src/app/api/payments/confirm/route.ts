@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
     // Update profile plan
     await supabaseAdmin.from('profiles').update({ plan: product.plan }).eq('id', userId);
 
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.purchase', { details: { plan: product.plan, productId: product.id, amount } });
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.purchase', { details: { plan: product.plan, productId: product.id, amount } });
 
     const { logSubscriptionEvent } = await import('@/lib/subscriptionEvents');
     await logSubscriptionEvent(userId, 'purchase', product.plan, amount, '신규 결제');

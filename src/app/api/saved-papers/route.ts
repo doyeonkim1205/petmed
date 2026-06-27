@@ -57,8 +57,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
-  const { logActivity } = await import('@/lib/activityLog');
-  logActivity(auth.user!.id, 'paper.delete', { resourceId: id });
+  const { logActivityServer } = await import('@/lib/activityLogServer');
+  await logActivityServer(auth.user!.id, 'paper.delete', { resourceId: id });
 
   return NextResponse.json({ success: true });
 }

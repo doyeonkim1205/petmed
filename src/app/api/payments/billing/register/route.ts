@@ -134,8 +134,8 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from('profiles').update({ plan: product.plan }).eq('id', userId);
 
     // 7) Activity + subscription event logs
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.purchase', {
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.purchase', {
       details: { plan: product.plan, productId: product.id, amount: charged.totalAmount, billingType: 'recurring' },
     });
 

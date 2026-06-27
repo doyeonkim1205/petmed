@@ -210,8 +210,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { logActivity } = await import('@/lib/activityLog');
-  logActivity(userId, 'analysis.save', { details: { query, petType, paperCount: savedPaperCount } });
+  // 액션만 — 검색어(query)는 내용이라 제외, 비식별 메타만.
+  const { logActivityServer } = await import('@/lib/activityLogServer');
+  await logActivityServer(userId, 'analysis.save', { details: { petType, paperCount: savedPaperCount } });
 
   return NextResponse.json({ ...data, savedPaperCount });
 }
@@ -236,8 +237,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 
-  const { logActivity } = await import('@/lib/activityLog');
-  logActivity(auth.user!.id, 'analysis.delete', { resourceId: id });
+  const { logActivityServer } = await import('@/lib/activityLogServer');
+  await logActivityServer(auth.user!.id, 'analysis.delete', { resourceId: id });
 
   return NextResponse.json({ success: true });
 }

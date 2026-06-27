@@ -136,8 +136,8 @@ export async function POST(request: NextRequest) {
     await disableAlarmsOnDowngrade(supabaseAdmin, userId);
 
     // 8. Log activity
-    const { logActivity } = await import('@/lib/activityLog');
-    logActivity(userId, 'subscription.refund', {
+    const { logActivityServer } = await import('@/lib/activityLogServer');
+    await logActivityServer(userId, 'subscription.refund', {
       details: { plan: subscription.plan, amount: payment.amount },
     });
 

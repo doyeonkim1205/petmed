@@ -170,7 +170,7 @@ export default function SubscriptionPage() {
     if (!user) { router.push('/login'); return; }
     fetchData();
     // Track page view
-    import('@/lib/trackEvent').then(({ trackEvent }) => trackEvent('page.subscription'));
+    import('@/lib/trackEvent').then(({ trackPageViewDaily }) => trackPageViewDaily('page.subscription'));
   }, [user, authLoading, router]);
 
   // 마운트 후 플랫폼 확정 — 이 시점이면 window.Capacitor 주입이 끝나 isApp 판정이 신뢰 가능.
