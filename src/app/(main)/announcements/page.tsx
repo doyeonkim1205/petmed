@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Bell, Megaphone } from 'lucide-react';
+import { ArrowLeft, Megaphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnnouncements, markAnnouncementsSeen, getSeenAt, type Announcement } from '@/lib/announcements';
 
@@ -41,13 +41,13 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className="sticky top-0 bg-white border-b border-gray-100 flex items-center px-2 h-12 z-10">
-        <button onClick={() => router.back()} className="p-2 text-gray-500" aria-label={t('common.back')}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-          <Bell size={15} className="text-blue-500" /> {t('announcements.title')}
-        </h1>
+      <div className="sticky top-0 z-30 bg-white">
+        <header className="relative flex items-center justify-center px-4 h-[60px]">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-sm font-semibold text-gray-700">{t('announcements.title')}</h1>
+        </header>
       </div>
 
       {loading ? (
