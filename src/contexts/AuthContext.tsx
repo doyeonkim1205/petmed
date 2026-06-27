@@ -8,9 +8,11 @@ import { cleanupOldCache } from '@/lib/cacheCleanup';
 import { logActivity } from '@/lib/activityLog';
 import { getEffectivePlan } from '@/lib/plans';
 import { platformAuth } from '@/lib/platform';
-// getPlatform 은 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
+// 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
-import { getPlatform, isNativeApp } from '@/lib/platform/env';
+//   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
+import { isNativeApp } from '@/lib/platform/env';
+import { syncDeviceSession } from '@/lib/deviceSession';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -134,17 +136,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         //    세션 객체의 user.id 는 정상 케이스에서 getUser 결과와 100% 일치.
         //    (유저 A 세션에 유저 B 가 서버 측에서 붙는 시나리오는 Supabase
         //     보안 모델상 불가능)
+        // 기기 세션: 진짜 새 로그인이면 claim(슬롯 차지), 아니면(앱 복원/갱신) verify(읽기전용).
+        //   앱 로드마다 claim 하던 기존 동작이 핑퐁의 원인이라 복원 시엔 검증만 한다.
+        //   verify 가 밀려남(403)을 감지하면 authFetch 가 자동 로그아웃+리다이렉트.
         const [verifyResult, sessionsResult, profileResult] = await Promise.allSettled([
           supabase.auth.getUser(),
-          (async () => {
-            const { getDeviceId } = await import('@/lib/deviceId');
-            const { authFetch } = await import('@/lib/authFetch');
-            return authFetch('/api/sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
-            });
-          })(),
+          syncDeviceSession(localSession.user),
           fetchProfile(localSession.user.id),
         ]);
 
@@ -259,16 +256,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               logActivity(authUser.id, 'auth.login', { details: { method: provider } });
             }
           }
-          // Always register device session first (prevents race with API calls)
-          try {
-            const { getDeviceId } = await import('@/lib/deviceId');
-            const { authFetch } = await import('@/lib/authFetch');
-            await authFetch('/api/sessions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
-            });
-          } catch {}
+          // 기기 세션: 진짜 새 로그인이면 claim(슬롯 차지+오래된 기기 evict),
+          //   아니면(세션 복원/토큰 갱신/탭 포커스) verify(읽기전용)만.
+          //   SIGNED_IN 은 복원·갱신에도 fire 되므로 여기서 매번 claim 하면 옛 기기가
+          //   슬롯을 도로 뺏는 핑퐁이 생긴다 → fresh 로그인일 때만 claim.
+          await syncDeviceSession(authUser);
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
             setProfile(profileData);
