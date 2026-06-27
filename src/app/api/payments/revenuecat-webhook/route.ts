@@ -201,6 +201,22 @@ export async function POST(request: NextRequest) {
         undefined,
         `RevenueCat: ${type}`,
       ).catch(() => {});
+
+      // activity_logs 에도 기록 — 어드민 활동로그(필터)에서 RC(구글/애플) 구독 이벤트도 보이게.
+      // (토스는 결제 라우트에서 이미 기록 / RC 는 그동안 누락이었음)
+      const activityAction = evt === 'purchase' ? 'subscription.purchase'
+        : evt === 'cancel' ? 'subscription.cancel'
+        : evt === 'expired' ? 'subscription.expired'
+        : evt === 'refund' ? 'subscription.refund'
+        : evt === 'renew' ? 'subscription.auto_billed'
+        : null;
+      if (activityAction) {
+        const { logActivityServer } = await import('@/lib/activityLogServer');
+        await logActivityServer(appUserId, activityAction, {
+          resourceType: 'subscription',
+          details: { store, source: 'revenuecat', type },
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ ok: true, type });
