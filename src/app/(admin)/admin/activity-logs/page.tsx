@@ -36,6 +36,30 @@ const actionLabels: Record<string, string> = {
   'cron.push_notifications': '자동 푸시 알림 cron',
   'cron.expire_subscriptions': '자동 구독 만료 cron',
   'cron.auto_billing': '자동 결제 cron',
+  // 그동안 emit 되지만 라벨이 없어 raw 로 뜨던 것들 보강
+  'auth.delete_account': '회원 탈퇴',
+  'pet.update': '반려동물 수정',
+  'page.subscription': '구독 페이지 조회',
+  'papers.analyze': 'AI 논문 분석',
+  'disease.describe': 'AI 질병 설명',
+  'subscription.expired': '구독 만료',
+  'subscription.auto_billed': '자동 갱신 결제',
+  'subscription.billing_failed': '결제 실패',
+  'subscription.auto_renew_disabled': '자동 갱신 해제',
+  'subscription.enable_recurring': '자동 결제 전환',
+  'subscription.manual_retry': '결제 재시도',
+  'admin.refund': '관리자 환불',
+  'admin.delete_user': '관리자 유저 삭제',
+  // 복약·예방·지출 — 액션만(내용 X)
+  'medication.create': '복약 추가',
+  'medication.update': '복약 수정',
+  'medication.delete': '복약 삭제',
+  'preventive.create': '예방 추가',
+  'preventive.update': '예방 수정',
+  'preventive.complete': '예방 완료',
+  'preventive.delete': '예방 삭제',
+  'expense.create': '지출 추가',
+  'expense.delete': '지출 삭제',
   // 참고: symptom.search / symptom.refine 은 search_logs 테이블로 이동.
   //      검색 로그 페이지에서 확인 가능.
 };
@@ -73,7 +97,7 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:admin.role_change', label: '역할 변경' },
       { value: 'action:admin.push_send', label: '알림 발송' },
       { value: 'action:admin.refund', label: '환불' },
-      { value: 'action:admin.delete-user', label: '유저 삭제' },
+      { value: 'action:admin.delete_user', label: '유저 삭제' },
     ],
   },
   {
@@ -110,7 +134,22 @@ const filterGroups: FilterGroup[] = [
     options: [
       { value: 'category:pet', label: '▸ 반려동물 전체' },
       { value: 'action:pet.create', label: '추가' },
+      { value: 'action:pet.update', label: '수정' },
       { value: 'action:pet.delete', label: '삭제' },
+    ],
+  },
+  {
+    label: '건강 (복약/예방/지출)',
+    options: [
+      { value: 'action:medication.create', label: '복약 추가' },
+      { value: 'action:medication.update', label: '복약 수정' },
+      { value: 'action:medication.delete', label: '복약 삭제' },
+      { value: 'action:preventive.create', label: '예방 추가' },
+      { value: 'action:preventive.update', label: '예방 수정' },
+      { value: 'action:preventive.complete', label: '예방 완료' },
+      { value: 'action:preventive.delete', label: '예방 삭제' },
+      { value: 'action:expense.create', label: '지출 추가' },
+      { value: 'action:expense.delete', label: '지출 삭제' },
     ],
   },
   {
@@ -124,6 +163,8 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:subscription.auto_billed', label: '자동 갱신' },
       { value: 'action:subscription.auto_renew_disabled', label: '자동 갱신 해제' },
       { value: 'action:subscription.enable_recurring', label: '자동 결제 전환' },
+      { value: 'action:subscription.billing_failed', label: '결제 실패' },
+      { value: 'action:subscription.manual_retry', label: '결제 재시도' },
     ],
   },
   {
@@ -150,7 +191,7 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:profile.update', label: '프로필 수정' },
       { value: 'action:file.upload', label: '파일 업로드' },
       { value: 'action:file.delete', label: '파일 삭제' },
-      { value: 'action:page.subscription', label: '구독 페이지 방문' },
+      { value: 'action:page.subscription', label: '구독 페이지 조회' },
     ],
   },
 ];

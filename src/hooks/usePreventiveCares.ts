@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 import type { PreventiveCare, PreventiveCategory } from '@/lib/supabase';
 import { addInterval } from '@/lib/preventiveCare';
 
@@ -73,6 +74,8 @@ export function usePreventiveCares() {
       .single();
     if (error) throw error;
     notifyScheduleUpdated();
+    // 액션만 기록(내용 X).
+    logActivity(user.id, 'preventive.create', { resourceType: 'preventive_care', resourceId: (data as PreventiveCare).id });
     return data as PreventiveCare;
   };
 
@@ -106,6 +109,7 @@ export function usePreventiveCares() {
       .eq('user_id', user.id);
     if (error) throw error;
     notifyScheduleUpdated();
+    logActivity(user.id, 'preventive.update', { resourceType: 'preventive_care', resourceId: id });
   };
 
   // "완료" — 시행 완료 처리. 마지막 시행일=완료일(기본 오늘), 다음 예정일 주기만큼 롤.
@@ -119,6 +123,7 @@ export function usePreventiveCares() {
       .eq('user_id', user.id);
     if (error) throw error;
     notifyScheduleUpdated();
+    logActivity(user.id, 'preventive.complete', { resourceType: 'preventive_care', resourceId: id });
   };
 
   const deleteCare = async (id: string) => {
@@ -130,6 +135,7 @@ export function usePreventiveCares() {
       .eq('user_id', user.id);
     if (error) throw error;
     notifyScheduleUpdated();
+    logActivity(user.id, 'preventive.delete', { resourceType: 'preventive_care', resourceId: id });
   };
 
   return { loading, getByPet, getUpcoming, addCare, updateCare, markDone, deleteCare };
