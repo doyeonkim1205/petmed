@@ -23,6 +23,7 @@ const actionLabels: Record<string, string> = {
   'analysis.delete': '분석 삭제',
   'paper.delete': '논문 삭제',
   'subscription.purchase': '구독 결제',
+  'subscription.uncancel': '구독 재개',
   'subscription.cancel': '구독 해지',
   'symptom.search': '증상 검색',
   'symptom.refine': '증상 재분석',
@@ -160,6 +161,7 @@ const filterGroups: FilterGroup[] = [
     options: [
       { value: 'category:subscription', label: '▸ 구독 전체' },
       { value: 'action:subscription.purchase', label: '결제' },
+      { value: 'action:subscription.uncancel', label: '재개' },
       { value: 'action:subscription.cancel', label: '해지' },
       { value: 'action:subscription.refund', label: '환불' },
       { value: 'action:subscription.expired', label: '만료' },
