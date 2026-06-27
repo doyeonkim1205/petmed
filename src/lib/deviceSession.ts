@@ -27,8 +27,8 @@ export async function syncDeviceSession(user: { id: string } | null | undefined)
   const inWin = isInClaimWindow();
   dlog(`sync: dev=${getDeviceId().slice(0, 8)} pending=${pending} claimWin=${inWin}`);
   if (pending) {
+    beginClaim();        // 윈도우 먼저 켜고(verify 차단) 그다음 플래그 소비
     clearPendingClaim();
-    beginClaim();
     try {
       await claimDevice();
     } finally {
@@ -60,6 +60,10 @@ export async function claimDevice(): Promise<void> {
  * ⚠️ 진단 모드: 403(밀려남)이어도 signOut/redirect 안 함 — 결과만 로그.
  */
 export async function verifyDevice(): Promise<void> {
+  // claim 예정(pendingClaim) 또는 진행중/grace(claimWindow) 면 verify 보류.
+  //   로그인 직후 DeviceGuard 가 claim 보다 먼저 verify 를 쏴 not-yet-claimed 기기를
+  //   403 으로 쫓아내던 레이스 차단.
+  if (hasPendingClaim()) { dlog('verify: pendingClaim → skip'); return; }
   if (isInClaimWindow()) { dlog('verify: in claim window → skip'); return; }
   try {
     const { authFetch } = await import('./authFetch');
