@@ -251,7 +251,8 @@ export function RespiratoryTracker({
             <label className="text-[11px] text-gray-400">{t('resp.valueLabel')}</label>
             <div className="flex items-center gap-2 mt-1">
               <input type="number" inputMode="numeric" min={1} max={120} value={value}
-                onChange={(e) => setValue(e.target.value)} placeholder={t('resp.placeholder')}
+                onChange={(e) => { const v = e.target.value; if (v === '' || /^\d{0,4}$/.test(v)) setValue(v); }}
+                placeholder={t('resp.placeholder')}
                 style={{ ['--tw-ring-color' as string]: ACCENT + '66' }}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2" />
               <span className="text-sm text-gray-500">{t('resp.unit')}</span>

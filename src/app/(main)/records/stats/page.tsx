@@ -56,7 +56,9 @@ function getStartDate(period: Period, customStart?: string): Date {
 
 function getEndDate(period: Period, customEnd?: string): Date {
   if (period === 'custom' && customEnd) { const d = new Date(customEnd); d.setHours(23, 59, 59, 999); return d; }
-  return new Date();
+  // "오늘 끝"으로 — 페이지 렌더 시각(now)에 고정되면 그 이후 추가한 기록이 차트 범위 밖으로
+  //   걸러져 즉시 반영 안 되던 문제 방지. 같은 날 기록은 시각 상관없이 포함.
+  const d = new Date(); d.setHours(23, 59, 59, 999); return d;
 }
 
 
