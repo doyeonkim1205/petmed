@@ -12,7 +12,7 @@ import { platformAuth } from '@/lib/platform';
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
 //   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
 import { isNativeApp } from '@/lib/platform/env';
-import { syncDeviceSession } from '@/lib/deviceSession';
+import { syncDeviceSession, markPendingClaim, clearPendingClaim } from '@/lib/deviceSession';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -418,6 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, nickname: string) => {
     try {
+      markPendingClaim(); // 가입=첫 로그인 → 이 기기가 슬롯 claim
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
@@ -440,12 +441,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      markPendingClaim(); // 로그인 시도 → 다음 SIGNED_IN 에서 이 기기가 슬롯 claim
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       // 이 시점에 logActivity 호출하면 onAuthStateChange 의 SIGNED_IN 핸들러
@@ -454,38 +457,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void data;
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithGoogle();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithKakao = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithKakao();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signInWithApple = async () => {
     try {
+      markPendingClaim();
       await platformAuth.loginWithApple();
       return { error: null };
     } catch (error) {
+      clearPendingClaim();
       return { error: error as Error };
     }
   };
 
   const signOut = async () => {
+    // 다음 로그인이 깨끗하게 claim 하도록 잔여 pendingClaim 표시 해제.
+    clearPendingClaim();
     // Log before clearing state — 서버측(/api/activity, service role)으로 기록.
     // 클라 logActivity 는 signOut teardown(세션 정리)과 race 로 RLS insert 가 0건 됐음.
     // authFetch 로 아직 유효한 JWT 를 보내 서버에서 확실히 기록(await).
