@@ -17,11 +17,40 @@ import { getPlatform } from './platform/env';
  * ⚠️ verify 는 절대 슬롯을 차지/갱신/evict 하지 않는다 (핑퐁 방지).
  */
 
-/** last_sign_in_at 이 방금(<90s)이면 "진짜 새 로그인" — claim 대상. 아니면 복원/갱신 → verify. */
-export function isFreshLogin(user: User | null | undefined): boolean {
+/**
+ * "이 로그인에 대해 아직 claim 안 했나" — fresh(<90s) AND 이 last_sign_in_at 값으로
+ * 아직 claim 한 적 없을 때만 true.
+ *
+ * ⚠️ 핑퐁 방지의 핵심. fresh 만 보면 last_sign_in_at 이 90초간 계속 true 라,
+ * 그 사이 포그라운드 복귀/SIGNED_IN 재발생마다 다시 claim 해서 두 기기가 서로
+ * 슬롯을 뺏는다. last_sign_in_at "값"으로 dedup 해 로그인 1회당 claim 1회만 보장.
+ */
+function isUnclaimedLogin(user: User | null | undefined): boolean {
   const ts = user?.last_sign_in_at;
   if (!ts) return false;
-  return Date.now() - new Date(ts).getTime() < 90_000;
+  if (Date.now() - new Date(ts).getTime() >= 90_000) return false;
+  try {
+    return localStorage.getItem(`deviceClaimedSignIn_${user!.id}`) !== ts;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 기기 세션 동기화 — claim/verify 자동 선택.
+ *   진짜 새 로그인(아직 claim 안 함) → claimDevice (슬롯 차지)
+ *   그 외(앱 복원·토큰 갱신·탭 포커스·이미 claim한 로그인) → verifyDevice (읽기전용)
+ * init·onAuthStateChange 양쪽에서 이걸 쓰면 규칙이 한 곳에 통일되고 핑퐁이 없다.
+ */
+export async function syncDeviceSession(user: User | null | undefined): Promise<void> {
+  if (!user) return;
+  if (isUnclaimedLogin(user)) {
+    // claim 전에 먼저 마킹(동시 이벤트 중복 claim 차단). 값=이번 로그인 timestamp.
+    try { localStorage.setItem(`deviceClaimedSignIn_${user.id}`, user.last_sign_in_at!); } catch {}
+    await claimDevice();
+  } else {
+    await verifyDevice();
+  }
 }
 
 export async function claimDevice(): Promise<void> {

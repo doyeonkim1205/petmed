@@ -12,7 +12,7 @@ import { platformAuth } from '@/lib/platform';
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
 //   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
 import { isNativeApp } from '@/lib/platform/env';
-import { claimDevice, verifyDevice, isFreshLogin } from '@/lib/deviceSession';
+import { syncDeviceSession } from '@/lib/deviceSession';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
 interface AuthContextType {
@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         //   verify 가 밀려남(403)을 감지하면 authFetch 가 자동 로그아웃+리다이렉트.
         const [verifyResult, sessionsResult, profileResult] = await Promise.allSettled([
           supabase.auth.getUser(),
-          isFreshLogin(localSession.user) ? claimDevice() : verifyDevice(),
+          syncDeviceSession(localSession.user),
           fetchProfile(localSession.user.id),
         ]);
 
@@ -260,11 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           //   아니면(세션 복원/토큰 갱신/탭 포커스) verify(읽기전용)만.
           //   SIGNED_IN 은 복원·갱신에도 fire 되므로 여기서 매번 claim 하면 옛 기기가
           //   슬롯을 도로 뺏는 핑퐁이 생긴다 → fresh 로그인일 때만 claim.
-          if (isFreshLogin(authUser)) {
-            await claimDevice();
-          } else {
-            await verifyDevice();
-          }
+          await syncDeviceSession(authUser);
           const profileData = await fetchProfile(authUser.id);
           if (mounted) {
             setProfile(profileData);
