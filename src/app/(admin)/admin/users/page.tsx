@@ -68,6 +68,8 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -81,6 +83,8 @@ export default function UsersPage() {
     const params = new URLSearchParams({ page: String(page) });
     if (search) params.set('search', search);
     if (planFilter) params.set('plan', planFilter);
+    if (platformFilter) params.set('platform', platformFilter);
+    if (providerFilter) params.set('provider', providerFilter);
 
     const res = await authFetch(`/api/admin/users?${params}`);
     const data = await res.json();
@@ -88,7 +92,7 @@ export default function UsersPage() {
     setTotal(data.total);
     setTotalPages(data.totalPages);
     setLoading(false);
-  }, [page, search, planFilter]);
+  }, [page, search, planFilter, platformFilter, providerFilter]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -203,6 +207,27 @@ export default function UsersPage() {
               <option value="">전체 플랜</option>
               <option value="free">Free</option>
               <option value="plus">Plus</option>
+            </select>
+            <select
+              value={platformFilter}
+              onChange={(e) => { setPlatformFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border rounded-lg text-sm"
+            >
+              <option value="">전체 플랫폼</option>
+              <option value="ios">iOS</option>
+              <option value="android">Android</option>
+              <option value="web">웹</option>
+            </select>
+            <select
+              value={providerFilter}
+              onChange={(e) => { setProviderFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border rounded-lg text-sm"
+            >
+              <option value="">전체 가입</option>
+              <option value="email">이메일</option>
+              <option value="google">구글</option>
+              <option value="kakao">카카오</option>
+              <option value="apple">애플</option>
             </select>
             <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700">
               검색
