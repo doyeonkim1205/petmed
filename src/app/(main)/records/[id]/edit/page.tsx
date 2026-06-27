@@ -10,6 +10,7 @@ import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
+import { PlusUpgradeNotice } from '@/components/PlusUpgradeNotice';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
 import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -102,6 +103,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // 저장 용량 초과 — 무료 사용자에겐 Plus 업셀 카드로 안내 (유료는 일반 에러). 값=한도 MB.
+  const [storageFullMb, setStorageFullMb] = useState<number | null>(null);
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
   const [subscribingIdx, setSubscribingIdx] = useState<number>(-1);
@@ -414,6 +417,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user) return;
+    setStorageFullMb(null);
     const showError = (msg: string) => {
       setError(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -456,11 +460,13 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         if (token) {
           const storage = await checkStorageLimit(token);
           if (!storage.canUpload) {
-            showError(
-              getEffectivePlan(profile?.plan) === 'plus'
-                ? t('record.form.error.storageFullApp', { mb: storage.limitMB })
-                : t('record.form.error.storageFullWeb', { mb: storage.limitMB }),
-            );
+            if (getEffectivePlan(profile?.plan) === 'plus') {
+              showError(t('record.form.error.storageFullApp', { mb: storage.limitMB }));
+            } else {
+              setError('');
+              setStorageFullMb(storage.limitMB);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             setSaving(false);
             return;
           }
@@ -625,6 +631,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       <form onSubmit={handleSubmit} className="flex-1 px-4 pb-4 space-y-3">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
+        )}
+        {storageFullMb !== null && (
+          <PlusUpgradeNotice
+            message={t('record.form.error.storageFullFree', { mb: storageFullMb })}
+          />
         )}
 
         {/* ── 섹션 헤더 — 일상은 "일상 기록", 그 외는 "기본 정보" ── */}

@@ -75,6 +75,8 @@
     "googleSignIn": "Continue with Google",
     "appleSignIn": "Continue with Apple",
     "sessionEvicted": "You were signed out because this account signed in on another device. Please sign in again.",
+    "sessionEvictedTitle": "You were signed out because you signed in on another device.",
+    "sessionEvictedSub": "The Free plan can be used on 1 device, and Plus supports up to 3 devices at the same time.",
     "signInFailed": "Sign-in failed",
     "loginCancelled": "Sign-in was cancelled.",
     "loginError": "Sign-in error: {error}",
@@ -276,7 +278,7 @@
       "alarmUpsellApp": "Install the app and upgrade to Plus to get reminders for easily-forgotten schedules.",
       "alarmUpsellWeb": "Upgrade to Plus to get reminders for easily-forgotten schedules.",
       "alarmUpsellDesc": "We send push reminders for medication times, appointments, and discharge dates.",
-      "viewPlans": "View plans",
+      "viewPlans": "See Plus",
       "leaveTitle": "Leave without saving?",
       "leaveMessage": "You have unsaved changes.",
       "leave": "Leave",
@@ -303,6 +305,7 @@
         "medEndAfterStart": "End date must be after the start date. ({name})",
         "storageFullApp": "Storage is full ({mb}MB). Contact us if you need more space.",
         "storageFullWeb": "Storage is full ({mb}MB). Upgrade to Plus to increase your space!",
+        "storageFullFree": "Storage is full (Free {mb}MB). Upgrade to Plus to increase your space!",
         "saveFailed": "Failed to save the record.",
         "editFailed": "Failed to update the record."
       },
@@ -715,7 +718,8 @@
   "upsell": {
     "title": "Care for your pet's health, with nothing missed",
     "features": "AI personalized analysis · More searches · Push reminders · Saved papers",
-    "viewPlans": "View plans"
+    "viewPlans": "See Plus",
+    "plusUpgrade": "Plus upgrade"
   },
   "errors": {
     "illustAlt": "Error illustration",
@@ -934,7 +938,7 @@
       "healthStats": "Health stats",
       "expenseStats": "Expense stats",
       "push": "Push reminders",
-      "pushSub": "(meds·appointments·discharge)",
+      "pushSub": "(meds·preventive·appointments·discharge)",
       "savedAnalyses": "Library",
       "savedAnalysesSub": "(saved paper searches)",
       "devices": "Logged-in devices",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { X, FileText, Image as ImageIcon, AlertCircle, Camera } from 'lucide-react';
 
@@ -25,6 +26,7 @@ function formatStorageMB(mb: number): string {
 
 export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, storageUsage, atLimitUpsell = 'none' }: FileUploaderProps) {
   const t = useTranslations();
+  const router = useRouter();
   // 기본 안내문구("여기를 눌러…")는 촬영·파일선택 버튼과 중복이라 생략.
   //   일상 '한 컷' 등 의미있는 커스텀 placeholder 가 넘어올 때만 표시.
   const ph = placeholder ?? null;
@@ -121,7 +123,16 @@ export function FileUploader({ files, onFilesChange, maxFiles = 3, placeholder, 
         <div className="text-center py-2 break-keep break-words">
           <p className="text-xs text-gray-400">{maxFiles === 0 ? t('uploader.limitReachedZero') : t('uploader.limitReached', { max: maxFiles })}</p>
           {atLimitUpsell === 'free' && (
-            <p className="text-[11px] text-gray-400 mt-1">{t('uploader.upsellFree')}</p>
+            <>
+              <p className="text-[11px] text-gray-400 mt-1">{t('uploader.upsellFree')}</p>
+              <button
+                type="button"
+                onClick={() => router.push('/profile/subscription')}
+                className="mt-1 text-[11px] text-gray-500 underline underline-offset-2 font-medium"
+              >
+                {t('upsell.viewPlans')}
+              </button>
+            </>
           )}
           {atLimitUpsell !== 'none' && (
             <p className="text-[10px] text-gray-300 mt-0.5">{t('uploader.storageCheckHint')}</p>

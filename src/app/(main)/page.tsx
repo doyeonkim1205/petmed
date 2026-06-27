@@ -65,7 +65,7 @@ function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }
 export default function HomePage() {
   const t = useTranslations('home.section');
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-3rem)] pb-6">
+    <div className="bg-gray-50 min-h-full pb-6">
       <TrialBanner />
       <SamsungBrowserHint />
 

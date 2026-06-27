@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { isNativeApp, isIOS } from '@/lib/platform';
+import { PlusUpgradeNotice } from '@/components/PlusUpgradeNotice';
 
 function isInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -54,6 +55,8 @@ function isUserCancelled(msg?: string): boolean {
 export default function LoginPage() {
   const t = useTranslations();
   const [error, setError] = useState('');
+  // 다른 기기 로그인으로 밀려난 경우 — 이유+플랜 안내 카드 (구독 페이지는 로그아웃 상태라 버튼 X).
+  const [evicted, setEvicted] = useState(false);
   const [inApp, setInApp] = useState(false);
   const [devLogin, setDevLogin] = useState(false);
   const [devEmail, setDevEmail] = useState('');
@@ -77,7 +80,7 @@ export default function LoginPage() {
     setShowApple(isIOS());
     const params = new URLSearchParams(window.location.search);
     if (params.get('reason') === 'session_evicted') {
-      setError(t('auth.sessionEvicted'));
+      setEvicted(true);
     }
   }, []);
 
@@ -158,6 +161,14 @@ export default function LoginPage() {
 
           {/* [하반부 1/3] 에러 + 로그인 버튼 — 위쪽 정렬 → 2/3 지점에서 시작 */}
           <div className="flex-[1] flex flex-col items-center justify-start w-full">
+            {evicted && (
+              <PlusUpgradeNotice
+                message={t('auth.sessionEvictedTitle')}
+                subMessage={t('auth.sessionEvictedSub')}
+                hideButton
+                className="w-full mb-4"
+              />
+            )}
             {error && (
               <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
