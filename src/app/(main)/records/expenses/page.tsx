@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
@@ -212,13 +213,16 @@ export default function ExpensesPage() {
     const today = todayLocalISO();
     const date = newDate > today ? today : newDate;
     setSaving(true);
-    await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date });
+    const { data: exp } = await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date }).select('id').single();
+    // 액션만 기록(금액·사유 등 내용 X).
+    if (exp) logActivity(user.id, 'expense.create', { resourceType: 'expense', resourceId: exp.id });
     setNewReason(''); setNewAmount(''); setShowAddInput(false); setSaving(false);
     fetchExpenses();
   };
 
   const handleDeleteExpense = async (id: string) => {
     await supabase.from('expenses').delete().eq('id', id);
+    if (user) logActivity(user.id, 'expense.delete', { resourceType: 'expense', resourceId: id });
     setSelectedExpenseId(null);
     fetchExpenses();
   };

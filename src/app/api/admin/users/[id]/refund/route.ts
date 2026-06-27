@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { logActivityServer } from '@/lib/activityLogServer';
 import { cancelPaymentAutoKey } from '@/lib/toss';
 import { disableAlarmsOnDowngrade } from '@/lib/disableAlarmsOnDowngrade';
 
@@ -11,7 +12,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await verifyAdmin(request);
+  const { user: admin, error } = await verifyAdmin(request);
   if (error) return error;
 
   const { id: userId } = await params;
@@ -47,6 +48,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }).eq('user_id', userId).in('status', ['active', 'canceled']);
     await supabaseAdmin.from('profiles').update({ plan: 'free' }).eq('id', userId);
     await disableAlarmsOnDowngrade(supabaseAdmin, userId);
+
+    // 감사 로그 — 관리자 환불 (금액만, 카드/영수증 등 상세 X)
+    await logActivityServer(admin?.id ?? null, 'admin.refund', {
+      resourceType: 'user',
+      resourceId: userId,
+      details: { targetUserId: userId, amount: payment.amount },
+    });
 
     return NextResponse.json({
       success: true,

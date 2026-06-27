@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 
 // 복약/예방 변경 시 홈 위젯이 즉시 재조회하도록 알림 (홈 위젯이 listen).
 function notifyScheduleUpdated() {
@@ -37,6 +38,8 @@ export function useMedications() {
 
     if (error) throw error;
     notifyScheduleUpdated();
+    // 액션만 기록(내용 X) — 약 이름·용량 등은 절대 남기지 않음.
+    logActivity(user.id, 'medication.create', { resourceType: 'medication', resourceId: data.id });
     return data;
   };
 
@@ -61,6 +64,7 @@ export function useMedications() {
 
     if (error) throw error;
     notifyScheduleUpdated();
+    logActivity(user.id, 'medication.update', { resourceType: 'medication', resourceId: id });
   };
 
   const deleteMedication = async (id: string) => {
@@ -74,6 +78,7 @@ export function useMedications() {
 
     if (error) throw error;
     notifyScheduleUpdated();
+    logActivity(user.id, 'medication.delete', { resourceType: 'medication', resourceId: id });
   };
 
   const getTodayMedications = useCallback(async (petId?: string, date?: string) => {

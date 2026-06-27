@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { logActivityServer } from '@/lib/activityLogServer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await verifyAdmin(request);
+  const { user: admin, error } = await verifyAdmin(request);
   if (error) return error;
 
   const { id: userId } = await params;
@@ -71,6 +72,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     // Delete auth user
     await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    // 감사 로그 — 관리자 유저 삭제 (대상 uuid 만, 이메일 등 식별정보 X)
+    await logActivityServer(admin?.id ?? null, 'admin.delete_user', {
+      resourceType: 'user',
+      resourceId: userId,
+      details: { targetUserId: userId },
+    });
 
     return NextResponse.json({ success: true, message: `${profile.email} 계정이 삭제되었습니다.` });
   } catch (err) {
