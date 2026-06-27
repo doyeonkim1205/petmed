@@ -483,8 +483,30 @@
     "amount": "Amount",
     "addExpense": "Add expense"
   },
+  "resp": {
+    "unit": "/min",
+    "refTitle": "Reference: 30 breaths/min (resting/sleeping)",
+    "refDesc": "Respiratory rate is most accurate while your pet sleeps or rests. Count one chest rise-and-fall as one breath.",
+    "add": "Log respiratory rate",
+    "timerStart": "Measure with {sec}s timer",
+    "timerHint": "Tap the button on each breath",
+    "timerTap": "Breath",
+    "valueLabel": "Breaths per minute",
+    "placeholder": "e.g. 24",
+    "conditionLabel": "Condition",
+    "condition": { "sleeping": "Sleeping", "resting": "Resting", "afterActivity": "After activity", "other": "Other" },
+    "grade": {
+      "normal": "Within normal range (resting/sleeping)",
+      "watch": "Slightly elevated. Try measuring again at rest",
+      "high": "On the higher side. If it persists, consult a vet",
+      "vet": "40+ breaths/min. Please consult a vet as soon as possible"
+    },
+    "chartTitle": "Respiratory rate trend",
+    "empty": "No respiratory rate logged yet",
+    "disclaimer": "Respiratory rate is most accurate when measured at rest or asleep. This is for reference only and is not a diagnosis."
+  },
   "stats": {
-    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion" },
+    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion", "respiratory": "Respiratory" },
     "tabSettingsLabel": "Metric display settings",
     "filterHint": "Choose the metrics you want to see here,\nand reorder them too.",
     "editMetrics": "Edit metrics",

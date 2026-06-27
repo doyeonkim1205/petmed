@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, X } from 'lucide-react';
+import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, X, Wind } from 'lucide-react';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
+import { RespiratoryTracker } from '@/components/records/RespiratoryTracker';
 import type { MetricType } from '@/lib/healthMetrics';
 import { getEnabledStatsTabs, setEnabledStatsTabs, ALL_METRIC_TABS, STATS_TAB_LABELS, type MetricTabId } from '@/lib/statsTabPrefs';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -19,11 +20,11 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { OnboardHint } from '@/components/ui/OnboardHint';
 import { NumberPad } from '@/components/ui/NumberPad';
 
-type StatsTab = 'weight' | 'water' | 'food' | 'fluid' | 'excretion';
+type StatsTab = 'weight' | 'water' | 'food' | 'fluid' | 'excretion' | 'respiratory';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
 // 탭 아이콘 (라벨은 STATS_TAB_LABELS). 탭 바·설정은 enabledTabs(사용자 순서)를 그대로 렌더.
 const TAB_ICON: Record<MetricTabId, ComponentType<{ size?: number; className?: string }>> = {
-  weight: Scale, water: Droplet, food: Utensils, fluid: Syringe, excretion: CircleDot,
+  weight: Scale, water: Droplet, food: Utensils, fluid: Syringe, excretion: CircleDot, respiratory: Wind,
 };
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
@@ -732,6 +733,27 @@ export default function StatsPage() {
               userId={user.id}
               pet={selPet}
               period={period}
+              startDate={startDate}
+              endDate={endDate}
+            />
+          );
+        })()}
+
+        {/* ═══ 호흡수 탭 ═══ */}
+        {tab === 'respiratory' && enabledTabs.includes('respiratory') && user && (() => {
+          const selPet = selectedPetId ? pets.find((p) => p.id === selectedPetId) : (pets.length === 1 ? pets[0] : null);
+          if (!selPet) {
+            return (
+              <div className="text-center py-16">
+                <Wind size={40} className="mx-auto mb-3 text-gray-200" />
+                <p className="text-gray-400 text-sm">{noPets ? t('common.registerPetFirst') : t('common.selectPet')}</p>
+              </div>
+            );
+          }
+          return (
+            <RespiratoryTracker
+              userId={user.id}
+              pet={selPet}
               startDate={startDate}
               endDate={endDate}
             />

@@ -483,8 +483,30 @@
     "amount": "금액",
     "addExpense": "지출 추가"
   },
+  "resp": {
+    "unit": "회/분",
+    "refTitle": "수면·안정 시 참고 기준 30회/분",
+    "refDesc": "호흡수는 잠자거나 편히 쉴 때 가장 정확해요. 가슴이 한 번 부풀었다 꺼지는 걸 1회로 세요.",
+    "add": "호흡수 기록하기",
+    "timerStart": "{sec}초 타이머로 측정",
+    "timerHint": "숨 쉴 때마다 아래 버튼을 누르세요",
+    "timerTap": "호흡 1회",
+    "valueLabel": "분당 호흡수",
+    "placeholder": "예: 24",
+    "conditionLabel": "측정 상태",
+    "condition": { "sleeping": "자는 중", "resting": "쉬는 중", "afterActivity": "활동 후", "other": "기타" },
+    "grade": {
+      "normal": "정상 범위예요 (수면·안정 시 기준)",
+      "watch": "약간 높아요. 안정된 상태에서 다시 측정해 보세요",
+      "high": "다소 높은 편이에요. 반복되면 수의사 상담을 권해요",
+      "vet": "분당 40회 이상이에요. 가능한 빨리 수의사 상담을 권해요"
+    },
+    "chartTitle": "호흡수 추이",
+    "empty": "아직 기록된 호흡수가 없어요",
+    "disclaimer": "호흡수는 잠자거나 안정된 상태에서 측정할 때 가장 정확해요. 이 정보는 참고용이며 진단이 아니에요."
+  },
   "stats": {
-    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변" },
+    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변", "respiratory": "호흡수" },
     "tabSettingsLabel": "표시 지표 설정",
     "filterHint": "여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요.",
     "editMetrics": "지표 편집",

@@ -1,11 +1,11 @@
 // 건강 통계 표시 지표 토글 — 사용자가 보고 싶은 지표만 노출 (localStorage 경량 저장).
 // 기본: 체중·음수·식사 ON / 수액 OFF (수액은 니치). 전부 on/off 가능.
 
-export type MetricTabId = 'weight' | 'water' | 'food' | 'fluid' | 'excretion';
+export type MetricTabId = 'weight' | 'water' | 'food' | 'fluid' | 'excretion' | 'respiratory';
 
 const KEY = 'pawdex_stats_tabs';
-export const ALL_METRIC_TABS: MetricTabId[] = ['weight', 'water', 'food', 'fluid', 'excretion'];
-// 기본: 체중·음수·식사 ON / 수액·대소변 OFF (니치 — 필요한 사람만 켬, 기존 유저 화면 유지)
+export const ALL_METRIC_TABS: MetricTabId[] = ['weight', 'water', 'food', 'fluid', 'excretion', 'respiratory'];
+// 기본: 체중·음수·식사 ON / 수액·대소변·호흡수 OFF (니치 — 필요한 사람만 켬, 기존 유저 화면 유지)
 const DEFAULT: MetricTabId[] = ['weight', 'water', 'food'];
 
 export const STATS_TAB_LABELS: Record<MetricTabId, string> = {
@@ -14,6 +14,7 @@ export const STATS_TAB_LABELS: Record<MetricTabId, string> = {
   food: '식사',
   fluid: '수액',
   excretion: '대소변',
+  respiratory: '호흡수',
 };
 
 // 유효 id 만, 중복 제거, 입력 순서 보존.
