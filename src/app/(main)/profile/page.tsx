@@ -131,6 +131,9 @@ function PetModal({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   // 등록 한도 초과 안내 모달 (기존 native alert 대체)
   const [limitMsg, setLimitMsg] = useState<React.ReactNode | null>(null);
+  // 무료(전환 유도 대상)인지 — 무료면 "Plus 보기" 버튼, 유료(상한 도달)면 확인만.
+  const [limitIsFree, setLimitIsFree] = useState(false);
+  const router = useRouter();
 
   const fetchPets = useCallback(async () => {
     setLoading(true);
@@ -229,6 +232,7 @@ function PetModal({
       const effectivePlan = getEffectivePlan(profile?.plan);
       const config = getPlanConfig(effectivePlan);
       if (config.maxPets > 0 && pets.length >= config.maxPets) {
+        setLimitIsFree(effectivePlan === 'free');
         setLimitMsg(
           effectivePlan !== 'free'
             ? t.rich('profile.pet.limitPaid', { max: config.maxPets, br: () => <br /> })
@@ -371,9 +375,13 @@ function PetModal({
         open={limitMsg !== null}
         title={t('profile.pet.limitTitle')}
         message={limitMsg}
-        confirmLabel={t('common.confirm')}
-        hideCancel
-        onConfirm={() => setLimitMsg(null)}
+        confirmLabel={limitIsFree ? t('upsell.viewPlus') : t('common.confirm')}
+        cancelLabel={t('common.close')}
+        hideCancel={!limitIsFree}
+        onConfirm={() => {
+          setLimitMsg(null);
+          if (limitIsFree) router.push('/profile/subscription');
+        }}
         onCancel={() => setLimitMsg(null)}
       />
     </div>

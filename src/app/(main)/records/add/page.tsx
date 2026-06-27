@@ -11,6 +11,7 @@ import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
+import { PlusUpgradeNotice } from '@/components/PlusUpgradeNotice';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
@@ -102,6 +103,8 @@ export default function RecordAddPage() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const guardPushedRef = useRef(false);
   const [error, setError] = useState('');
+  // 저장 용량 초과 — 무료 사용자에겐 Plus 업셀 카드로 안내 (유료는 일반 에러). 값=한도 MB.
+  const [storageFullMb, setStorageFullMb] = useState<number | null>(null);
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
   // 브라우저 알림 권한 상태: 'default' (미결정), 'granted' (허용), 'denied' (차단), null (미지원)
@@ -466,6 +469,7 @@ export default function RecordAddPage() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!user) { router.push('/login'); return; }
+    setStorageFullMb(null);
     const showError = (msg: string) => {
       setError(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -509,11 +513,14 @@ export default function RecordAddPage() {
         if (token) {
           const storage = await checkStorageLimit(token);
           if (!storage.canUpload) {
-            showError(
-              isPaidUser
-                ? t('record.form.error.storageFullApp', { mb: storage.limitMB })
-                : t('record.form.error.storageFullWeb', { mb: storage.limitMB }),
-            );
+            if (isPaidUser) {
+              showError(t('record.form.error.storageFullApp', { mb: storage.limitMB }));
+            } else {
+              // 무료 → Plus 업셀 카드로 안내 (일반 에러 배너 대신)
+              setError('');
+              setStorageFullMb(storage.limitMB);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             setSaving(false);
             return;
           }
@@ -681,6 +688,11 @@ export default function RecordAddPage() {
       <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 px-4 pb-4 space-y-3">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm break-keep break-words">{error}</div>
+        )}
+        {storageFullMb !== null && (
+          <PlusUpgradeNotice
+            message={t('record.form.error.storageFullFree', { mb: storageFullMb })}
+          />
         )}
 
         {/* Record Type Selection — 2×2 그리드 (증상·일상 / 진료·입퇴원) */}
