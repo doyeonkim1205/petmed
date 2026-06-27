@@ -514,7 +514,7 @@
   },
   "announcements": {
     "title": "새 소식",
-    "empty": "아직 새소식이 없어요",
+    "empty": "아직 새 소식이 없어요",
     "important": "중요",
     "more": "더보기",
     "less": "접기"
