@@ -417,8 +417,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from('profiles')
           .insert({ id: data.user.id, email, nickname });
         if (profileError) throw profileError;
-        // await — 직후 register 페이지가 이동하면 fire-and-forget insert 가 중단돼 0건 → 보장.
-        await logActivity(data.user.id, 'auth.signup');
+        // 서버측(/api/activity, service role)으로 기록 — 클라 insert 는 직후 화면 이동/세션
+        // 타이밍과 race 로 0건 됐었음. authFetch 로 검증 세션 + await 보장.
+        try {
+          const { authFetch } = await import('@/lib/authFetch');
+          await authFetch('/api/activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'auth.signup' }),
+          });
+        } catch {}
       }
 
       return { error: null };
@@ -469,10 +477,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Log before clearing state — await 로 세션 정리/화면 전환 전에 insert 완료 보장
-    // (fire-and-forget 이면 signOut teardown 과 race 로 0건 됨)
+    // Log before clearing state — 서버측(/api/activity, service role)으로 기록.
+    // 클라 logActivity 는 signOut teardown(세션 정리)과 race 로 RLS insert 가 0건 됐음.
+    // authFetch 로 아직 유효한 JWT 를 보내 서버에서 확실히 기록(await).
     if (user) {
-      await logActivity(user.id, 'auth.logout');
+      try {
+        const { authFetch } = await import('@/lib/authFetch');
+        await authFetch('/api/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'auth.logout' }),
+        });
+      } catch {}
       // Remove device session
       try {
         const { getDeviceId } = await import('@/lib/deviceId');
