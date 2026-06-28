@@ -279,7 +279,7 @@ export function RespiratoryTracker({
               <p className="text-[11px] text-indigo-800">{t('resp.timerHint')}</p>
               <p className="text-3xl font-extrabold my-1 tabular-nums" style={{ color: '#3730a3' }}>{secLeft}s</p>
               <button onClick={() => setTaps((c) => c + 1)}
-                className="w-full mt-1 py-4 rounded-xl text-white font-bold text-lg active:opacity-90" style={{ background: ACCENT }}>
+                className="w-full mt-1 py-4 rounded-xl text-white font-bold text-3xl active:opacity-90" style={{ background: ACCENT }}>
                 {t('resp.timerTap')} · {t('resp.timerCount', { n: taps })}
               </button>
               <button onClick={stopTimer} className="text-[11px] text-gray-400 mt-2 underline">{t('common.cancel')}</button>
