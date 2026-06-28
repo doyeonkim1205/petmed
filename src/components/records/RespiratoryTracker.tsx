@@ -225,11 +225,32 @@ export function RespiratoryTracker({
         <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep whitespace-pre-line">{t('resp.refDesc')}</p>
       </div>
 
-      {/* 입력 토글 — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
+      {/* 그래프/빈 상태 — 항상 테두리 박스 (수액 등 다른 지표와 동일) */}
+      {loading ? (
+        <div className="rounded-xl border border-gray-100 py-8 text-center"><Wind size={32} className="mx-auto text-gray-200 animate-pulse" /></div>
+      ) : chartData.length > 0 ? (
+        <div className="bg-white border border-gray-100 rounded-xl p-3">
+          <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
+          <RespChart data={chartData} />
+          <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
+        </div>
+      ) : logs.length > 0 ? (
+        <div className="rounded-xl border border-gray-100 py-8 text-center">
+          <Wind size={32} className="mx-auto text-gray-300 mb-1.5" />
+          <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-100 py-8 text-center">
+          <Wind size={32} className="mx-auto text-gray-300 mb-1.5" />
+          <p className="text-sm text-gray-400">{t('resp.empty')}</p>
+        </div>
+      )}
+
+      {/* 입력(그래프 아래) — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
       {!showInput && (
         <button onClick={() => setShowInput(true)}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
-          style={{ borderColor: ACCENT + '66', color: ACCENT }}>
+          style={{ borderColor: '#3730a366', color: '#3730a3' }}>
           <Plus size={16} /> {t('resp.add')}
         </button>
       )}
@@ -239,13 +260,13 @@ export function RespiratoryTracker({
           {/* 타이머 측정 — idle: 버튼 / ready: 시작 대기 / running: 카운트다운 */}
           {timerPhase === 'idle' && (
             <button onClick={openTimer}
-              className="w-full py-2.5 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold flex items-center justify-center gap-1.5">
+              className="w-full py-2.5 rounded-lg bg-indigo-50 text-indigo-800 text-sm font-bold flex items-center justify-center gap-1.5">
               <Timer size={16} /> {t('resp.timerStart', { sec: TIMER_SECONDS })}
             </button>
           )}
           {timerPhase === 'ready' && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center">
-              <p className="text-[12px] text-indigo-700 leading-relaxed break-keep">{t('resp.timerReady', { sec: TIMER_SECONDS })}</p>
+              <p className="text-[12px] text-indigo-800 leading-relaxed break-keep">{t('resp.timerReady', { sec: TIMER_SECONDS })}</p>
               <button onClick={startTimer}
                 className="w-full mt-3 py-3 rounded-xl text-white font-bold text-sm" style={{ background: ACCENT }}>
                 {t('resp.timerStartNow')}
@@ -255,7 +276,7 @@ export function RespiratoryTracker({
           )}
           {timerPhase === 'running' && (
             <div className="rounded-lg p-4 text-center bg-white border-2" style={{ borderColor: ACCENT }}>
-              <p className="text-[11px]" style={{ color: ACCENT }}>{t('resp.timerHint')}</p>
+              <p className="text-[11px] text-indigo-800">{t('resp.timerHint')}</p>
               <p className="text-3xl font-extrabold my-1 tabular-nums" style={{ color: ACCENT }}>{secLeft}s</p>
               <button onClick={() => setTaps((c) => c + 1)}
                 className="w-full mt-1 py-4 rounded-xl text-white font-bold text-lg active:opacity-90" style={{ background: ACCENT }}>
@@ -289,7 +310,7 @@ export function RespiratoryTracker({
             <div className="flex flex-wrap gap-1.5 mt-1">
               {CONDITIONS.map((c) => (
                 <button key={c} onClick={() => setCondition(c)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'border-gray-200 text-gray-500'}`}>
                   {t(`resp.condition.${c}`)}
                 </button>
               ))}
@@ -312,28 +333,8 @@ export function RespiratoryTracker({
         </div>
       )}
 
-      {/* 차트 — 안정 시(자는중/쉬는중) 기록만, 버킷별 최고값 */}
-      {!loading && (chartData.length > 0 ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-3">
-          <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
-          <RespChart data={chartData} />
-          <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
-        </div>
-      ) : logs.length > 0 ? (
-        <div className="bg-gray-50 rounded-xl p-4 text-center">
-          <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
-        </div>
-      ) : null)}
-
-      {/* 최근 기록 리스트 */}
-      {loading ? (
-        <div className="space-y-2 py-4">{[1, 2, 3].map((i) => <div key={i} className="h-12 bg-gray-50 rounded-lg animate-pulse" />)}</div>
-      ) : logs.length === 0 ? (
-        <div className="text-center py-12">
-          <Wind size={36} className="mx-auto mb-2 text-gray-200" />
-          <p className="text-gray-400 text-sm">{t('resp.empty')}</p>
-        </div>
-      ) : (
+      {/* 최근 기록 리스트 — 기록 있을 때만 (빈 상태는 위 그래프 박스에서 안내) */}
+      {!loading && logs.length > 0 && (
         <div className="space-y-2.5">
           <h2 className="text-sm font-bold text-gray-700">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
           {grouped.map((g) => (

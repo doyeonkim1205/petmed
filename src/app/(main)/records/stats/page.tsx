@@ -537,7 +537,7 @@ export default function StatsPage() {
               <>
                 {/* Current weight summary */}
                 {latestWeight ? (
-                  <div className="rounded-xl bg-blue-50 p-4 flex items-center justify-between">
+                  <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 flex items-center justify-between">
                     <div>
                       <p className="text-[11px] text-blue-400 font-medium">
                         {t('stats.petWeight', { name: pets.find(p => p.id === selectedPetId)?.name || t('stats.current') })}
