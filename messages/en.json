@@ -289,7 +289,7 @@
       "draftLoad": "Load",
       "draftNew": "Start fresh",
       "softPromptTitle": "Turn on notifications?",
-      "softPromptMsg1": "We'll send push reminders so you don't forget medication · preventive care · appointments · discharge!",
+      "softPromptMsg1": "We'll send push reminders so you don't forget medication · preventive care · appointments · discharge",
       "softPromptMsg2": "Tap [Allow] and the system permission dialog will appear",
       "allow": "Allow",
       "later": "Later",
