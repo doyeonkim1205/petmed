@@ -245,7 +245,7 @@ export function RespiratoryTracker({
           )}
           {timerPhase === 'ready' && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center">
-              <p className="text-[12px] text-indigo-700 leading-relaxed break-keep">{t('resp.timerReady', { sec: TIMER_SECONDS })}</p>
+              <p className="text-[12px] text-indigo-800 leading-relaxed break-keep">{t('resp.timerReady', { sec: TIMER_SECONDS })}</p>
               <button onClick={startTimer}
                 className="w-full mt-3 py-3 rounded-xl text-white font-bold text-sm" style={{ background: ACCENT }}>
                 {t('resp.timerStartNow')}
@@ -255,7 +255,7 @@ export function RespiratoryTracker({
           )}
           {timerPhase === 'running' && (
             <div className="rounded-lg p-4 text-center bg-white border-2" style={{ borderColor: ACCENT }}>
-              <p className="text-[11px]" style={{ color: ACCENT }}>{t('resp.timerHint')}</p>
+              <p className="text-[11px] text-indigo-800">{t('resp.timerHint')}</p>
               <p className="text-3xl font-extrabold my-1 tabular-nums" style={{ color: ACCENT }}>{secLeft}s</p>
               <button onClick={() => setTaps((c) => c + 1)}
                 className="w-full mt-1 py-4 rounded-xl text-white font-bold text-lg active:opacity-90" style={{ background: ACCENT }}>
