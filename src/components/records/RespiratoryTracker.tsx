@@ -225,18 +225,26 @@ export function RespiratoryTracker({
         <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep whitespace-pre-line">{t('resp.refDesc')}</p>
       </div>
 
-      {/* 차트 — 안정 시(수면·휴식 중) 기록만, 버킷별 최고값 */}
-      {!loading && (chartData.length > 0 ? (
+      {/* 그래프/빈 상태 — 항상 테두리 박스 (수액 등 다른 지표와 동일) */}
+      {loading ? (
+        <div className="rounded-xl border border-gray-100 py-8 text-center"><Wind size={32} className="mx-auto text-gray-200 animate-pulse" /></div>
+      ) : chartData.length > 0 ? (
         <div className="bg-white border border-gray-100 rounded-xl p-3">
           <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
           <RespChart data={chartData} />
           <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
         </div>
       ) : logs.length > 0 ? (
-        <div className="bg-gray-50 rounded-xl p-4 text-center">
+        <div className="rounded-xl border border-gray-100 py-8 text-center">
+          <Wind size={32} className="mx-auto text-gray-300 mb-1.5" />
           <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
         </div>
-      ) : null)}
+      ) : (
+        <div className="rounded-xl border border-gray-100 py-8 text-center">
+          <Wind size={32} className="mx-auto text-gray-300 mb-1.5" />
+          <p className="text-sm text-gray-400">{t('resp.empty')}</p>
+        </div>
+      )}
 
       {/* 입력(그래프 아래) — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
       {!showInput && (
@@ -325,15 +333,8 @@ export function RespiratoryTracker({
         </div>
       )}
 
-      {/* 최근 기록 리스트 */}
-      {loading ? (
-        <div className="space-y-2 py-4">{[1, 2, 3].map((i) => <div key={i} className="h-12 bg-gray-50 rounded-lg animate-pulse" />)}</div>
-      ) : logs.length === 0 ? (
-        <div className="text-center py-12">
-          <Wind size={36} className="mx-auto mb-2 text-gray-200" />
-          <p className="text-gray-400 text-sm">{t('resp.empty')}</p>
-        </div>
-      ) : (
+      {/* 최근 기록 리스트 — 기록 있을 때만 (빈 상태는 위 그래프 박스에서 안내) */}
+      {!loading && logs.length > 0 && (
         <div className="space-y-2.5">
           <h2 className="text-sm font-bold text-gray-700">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
           {grouped.map((g) => (
