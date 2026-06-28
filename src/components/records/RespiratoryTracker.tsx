@@ -221,7 +221,7 @@ export function RespiratoryTracker({
     <div className="space-y-4">
       {/* 안내 + 참고 기준 */}
       <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-        <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: ACCENT }}><Wind size={14} /> {t('resp.refTitle')}</p>
+        <p className="text-[13px] font-bold text-indigo-800 flex items-center gap-1.5"><Wind size={14} /> {t('resp.refTitle')}</p>
         <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep whitespace-pre-line">{t('resp.refDesc')}</p>
       </div>
 
@@ -229,7 +229,7 @@ export function RespiratoryTracker({
       {!showInput && (
         <button onClick={() => setShowInput(true)}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
-          style={{ borderColor: ACCENT + '66', color: ACCENT }}>
+          style={{ borderColor: '#3730a366', color: '#3730a3' }}>
           <Plus size={16} /> {t('resp.add')}
         </button>
       )}
@@ -239,7 +239,7 @@ export function RespiratoryTracker({
           {/* 타이머 측정 — idle: 버튼 / ready: 시작 대기 / running: 카운트다운 */}
           {timerPhase === 'idle' && (
             <button onClick={openTimer}
-              className="w-full py-2.5 rounded-lg bg-indigo-50 text-sm font-bold flex items-center justify-center gap-1.5" style={{ color: ACCENT }}>
+              className="w-full py-2.5 rounded-lg bg-indigo-50 text-indigo-800 text-sm font-bold flex items-center justify-center gap-1.5">
               <Timer size={16} /> {t('resp.timerStart', { sec: TIMER_SECONDS })}
             </button>
           )}
