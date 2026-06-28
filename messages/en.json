@@ -277,7 +277,7 @@
       "alarmFeatureTitle": "Reminders",
       "alarmUpsellApp": "Install the app and upgrade to Plus to get reminders for easily-forgotten schedules.",
       "alarmUpsellWeb": "Upgrade to Plus to get reminders for easily-forgotten schedules.",
-      "alarmUpsellDesc": "We send push reminders for medication times, appointments, and discharge dates.",
+      "alarmUpsellDesc": "We send push reminders for medication, preventive care, appointments, and discharge",
       "viewPlans": "See Plus",
       "leaveTitle": "Leave without saving?",
       "leaveMessage": "You have unsaved changes.",
@@ -289,7 +289,7 @@
       "draftLoad": "Load",
       "draftNew": "Start fresh",
       "softPromptTitle": "Turn on notifications?",
-      "softPromptMsg1": "We'll send push reminders so you don't forget medication times / appointments / discharge dates!",
+      "softPromptMsg1": "We'll send push reminders so you don't forget medication · preventive care · appointments · discharge!",
       "softPromptMsg2": "Tap [Allow] and the system permission dialog will appear",
       "allow": "Allow",
       "later": "Later",
@@ -487,7 +487,7 @@
   "resp": {
     "unit": "/min",
     "refTitle": "Resting/sleeping respiratory rate reference",
-    "refDesc": "At rest, 30 breaths/min or fewer is the usual reference.\nCount one chest or belly rise-and-fall as one breath.",
+    "refDesc": "When your pet is resting comfortably, 30 breaths/min or fewer is the usual reference.\nCount one chest or belly rise-and-fall as one breath.",
     "add": "Log respiratory rate",
     "timerStart": "Measure with {sec}s timer",
     "timerReady": "Tap Start when ready. Tap the button on each breath for {sec}s and we'll calculate breaths per minute.",
@@ -610,9 +610,9 @@
       "title": "Notification settings",
       "push": "Push notifications",
       "settingUp": "Setting up...",
-      "descOn": "You'll get medication, appointment, and discharge reminders",
+      "descOn": "You'll get medication, preventive care, appointment, and discharge reminders",
       "descOff": "Notifications are off",
-      "hint": "Turn on notifications to get push reminders for medication times, appointments, and discharge dates.",
+      "hint": "Turn on notifications to get push reminders for medication, preventive care, appointments, and discharge",
       "unsupported": "This browser doesn't support push notifications.<br></br>Install the PWA to receive them.",
       "iosTitle": "Install the app to receive notifications",
       "iosDesc": "On iOS, push notifications work only after you add the app to your home screen.",
@@ -667,7 +667,7 @@
       "needAppPlus": "Install the app and upgrade to Plus to use notifications.",
       "needApp": "Install the app to use notifications. Add it to your home screen.",
       "needPlus": "Upgrade to Plus to use notifications.",
-      "subDesc": "We send push reminders for medication times, appointments, and discharge dates."
+      "subDesc": "We send push reminders for medication, preventive care, appointments, and discharge"
     },
     "business": {
       "line1": "DYLabs | CEO: 김도연",

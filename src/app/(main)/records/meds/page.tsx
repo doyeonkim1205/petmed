@@ -579,34 +579,23 @@ export default function MedsPage() {
       />
 
       {/* 알림 기능 업그레이드 안내 — 기록장(진료/입퇴원 추가)과 동일한 문구·디자인 */}
-      {showAlarmUpgrade && (
-        <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Bell size={18} className="text-blue-500" />
-              <h3 className="text-sm font-bold text-gray-800">{t('record.form.alarmFeatureTitle')}</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-1 break-keep break-words">
+      <ConfirmModal
+        open={showAlarmUpgrade}
+        icon={<Bell size={16} className="text-blue-500" />}
+        title={t('record.form.alarmFeatureTitle')}
+        message={
+          <>
+            <span className="block text-gray-600">
               {!isPWA ? t('record.form.alarmUpsellApp') : t('record.form.alarmUpsellWeb')}
-            </p>
-            <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('record.form.alarmUpsellDesc')}</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAlarmUpgrade(false)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
-              >
-                {t('common.close')}
-              </button>
-              <button
-                onClick={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-              >
-                {t('record.form.viewPlans')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </span>
+            <span className="block text-gray-400 mt-1">{t('record.form.alarmUpsellDesc')}</span>
+          </>
+        }
+        cancelLabel={t('common.close')}
+        confirmLabel={t('record.form.viewPlans')}
+        onConfirm={() => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); }}
+        onCancel={() => setShowAlarmUpgrade(false)}
+      />
 
       {/* 종료/삭제 — 진료 기록에 딸린 약은 '복용 종료'(보존) 우선, 독립 약은 바로 삭제 */}
       {actionTarget && (() => {
