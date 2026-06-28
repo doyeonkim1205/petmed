@@ -225,7 +225,20 @@ export function RespiratoryTracker({
         <p className="text-[11px] text-indigo-700/80 mt-1 leading-relaxed break-keep whitespace-pre-line">{t('resp.refDesc')}</p>
       </div>
 
-      {/* 입력 토글 — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
+      {/* 차트 — 안정 시(수면·휴식 중) 기록만, 버킷별 최고값 */}
+      {!loading && (chartData.length > 0 ? (
+        <div className="bg-white border border-gray-100 rounded-xl p-3">
+          <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
+          <RespChart data={chartData} />
+          <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
+        </div>
+      ) : logs.length > 0 ? (
+        <div className="bg-gray-50 rounded-xl p-4 text-center">
+          <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
+        </div>
+      ) : null)}
+
+      {/* 입력(그래프 아래) — 다른 지표 추가 버튼과 동일한 점선 스타일 */}
       {!showInput && (
         <button onClick={() => setShowInput(true)}
           className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors"
@@ -311,19 +324,6 @@ export function RespiratoryTracker({
           </div>
         </div>
       )}
-
-      {/* 차트 — 안정 시(자는중/쉬는중) 기록만, 버킷별 최고값 */}
-      {!loading && (chartData.length > 0 ? (
-        <div className="bg-white border border-gray-100 rounded-xl p-3">
-          <h2 className="text-sm font-bold text-gray-700 mb-1">{t('resp.chartTitle')}</h2>
-          <RespChart data={chartData} />
-          <p className="text-[10px] text-gray-300 mt-1">{t('resp.chartNote')}</p>
-        </div>
-      ) : logs.length > 0 ? (
-        <div className="bg-gray-50 rounded-xl p-4 text-center">
-          <p className="text-[12px] text-gray-400 break-keep">{t('resp.chartEmpty')}</p>
-        </div>
-      ) : null)}
 
       {/* 최근 기록 리스트 */}
       {loading ? (
