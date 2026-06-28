@@ -493,7 +493,7 @@
     "timerReady": "Tap Start when ready. Tap the button on each breath for {sec}s and we'll calculate breaths per minute.",
     "timerStartNow": "Start",
     "timerHint": "Tap the button on each breath",
-    "timerTap": "Count breaths",
+    "timerTap": "Breath",
     "timerCount": "{n}",
     "valueLabel": "Breaths per minute",
     "placeholder": "e.g. 24",

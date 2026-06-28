@@ -493,7 +493,7 @@
     "timerReady": "준비되면 시작을 눌러주세요! {sec}초 동안 호흡할 때마다 버튼을 탭하면 분당 호흡수가 자동 계산돼요",
     "timerStartNow": "시작",
     "timerHint": "숨 쉴 때마다 아래 버튼을 누르세요",
-    "timerTap": "호흡 세기",
+    "timerTap": "호흡",
     "timerCount": "{n}회",
     "valueLabel": "분당 호흡수",
     "placeholder": "예: 24",
