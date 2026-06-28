@@ -652,7 +652,7 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
                 onChange={handleTogglePush}
               />
               {!pushEnabled && !pushLoading && (
-                <p className="text-[11px] text-gray-400 -mt-2 pl-1">
+                <p className="text-[11px] text-gray-400 -mt-2">
                   {t('profile.notif.hint')}
                 </p>
               )}
