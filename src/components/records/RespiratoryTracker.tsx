@@ -302,7 +302,7 @@ export function RespiratoryTracker({
             <div className="flex flex-wrap gap-1.5 mt-1">
               {CONDITIONS.map((c) => (
                 <button key={c} onClick={() => setCondition(c)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${condition === c ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'border-gray-200 text-gray-500'}`}>
                   {t(`resp.condition.${c}`)}
                 </button>
               ))}
