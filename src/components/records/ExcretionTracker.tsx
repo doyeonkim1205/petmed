@@ -147,15 +147,19 @@ export function ExcretionTracker({
 
   return (
     <div className="space-y-5">
-      {/* 대변 / 소변 토글 — 활성 탭은 흰 배경 + 종류 색(대변 갈색·소변 노랑) 텍스트 */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-full">
-        {(['poop', 'pee'] as ExcretionKind[]).map((k) => (
+      {/* 대변 / 소변 토글 — 회색 트랙 제거, 칩형(선택 시 종류색 채움+테두리, 측정상태 칩과 통일) */}
+      <div className="flex gap-2">
+        {(['poop', 'pee'] as ExcretionKind[]).map((k) => {
+          const sel = kind === k;
+          const c = k === 'poop' ? '#A16207' : '#CA8A04';
+          return (
           <button key={k} onClick={() => setKind(k)}
-            className={`flex-1 py-2 rounded-full text-sm font-bold transition-colors ${kind === k ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-            style={kind === k ? { color: k === 'poop' ? '#A16207' : '#CA8A04' } : undefined}>
+            className={`flex-1 py-2 rounded-full text-sm font-bold border transition-colors ${sel ? '' : 'border-gray-200 text-gray-400'}`}
+            style={sel ? { background: c + '14', borderColor: c + '59', color: c } : undefined}>
             {t(`excretion.kindLabel.${k}`)}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {loading ? (
