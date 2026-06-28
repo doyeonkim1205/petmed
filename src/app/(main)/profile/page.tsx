@@ -636,7 +636,10 @@ function NotificationModal({ open, onClose }: { open: boolean; onClose: () => vo
     <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-bold text-gray-700">{t('profile.notif.title')}</h3>
+          <div className="flex items-center gap-2">
+            <Bell size={16} className="text-blue-500" />
+            <h3 className="text-sm font-bold text-gray-800">{t('profile.notif.title')}</h3>
+          </div>
           <button onClick={onClose} className="p-1 text-gray-300 hover:text-gray-500"><X size={16} /></button>
         </div>
         <div className="space-y-4">
@@ -1438,45 +1441,31 @@ export default function ProfilePage() {
         const isFree = getEffectivePlan(profile?.plan) === 'free';
         const needApp = !isPWA;
         const needPlus = isFree;
+        // Plus 업그레이드 유도가 필요한 경우(=무료)에만 [Plus 보기] CTA, 그 외엔 단순 안내(확인 1개).
+        const upsell = needPlus;
 
         let message = '';
-        let buttonLabel = '';
-        let buttonAction = () => { setShowAlarmUpgrade(false); };
-
-        if (needApp && needPlus) {
-          message = t('profile.alarm.needAppPlus');
-          buttonLabel = t('subscription.title');
-          buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
-        } else if (needApp && !needPlus) {
-          message = t('profile.alarm.needApp');
-          buttonLabel = t('common.confirm');
-        } else if (!needApp && needPlus) {
-          message = t('profile.alarm.needPlus');
-          buttonLabel = t('subscription.title');
-          buttonAction = () => { setShowAlarmUpgrade(false); router.push('/profile/subscription'); };
-        }
+        if (needApp && needPlus) message = t('profile.alarm.needAppPlus');
+        else if (needApp && !needPlus) message = t('profile.alarm.needApp');
+        else if (!needApp && needPlus) message = t('profile.alarm.needPlus');
 
         return (
-          <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <Bell size={18} className="text-blue-500" />
-                <h3 className="text-sm font-bold text-gray-800">{t('profile.alarm.title')}</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-1 break-keep break-words">{message}</p>
-              <p className="text-xs text-gray-400 mb-4 break-keep break-words">{t('profile.alarm.subDesc')}</p>
-              <div className="flex gap-2">
-                <button onClick={() => setShowAlarmUpgrade(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
-                  {t('common.close')}
-                </button>
-                <button onClick={buttonAction}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                  {buttonLabel}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmModal
+            open
+            icon={<Bell size={16} className="text-blue-500" />}
+            title={t('profile.alarm.title')}
+            message={
+              <>
+                <span className="block text-gray-600">{message}</span>
+                <span className="block text-gray-400 mt-1">{t('profile.alarm.subDesc')}</span>
+              </>
+            }
+            hideCancel={!upsell}
+            cancelLabel={t('common.close')}
+            confirmLabel={upsell ? t('upsell.viewPlans') : t('common.confirm')}
+            onConfirm={() => { setShowAlarmUpgrade(false); if (upsell) router.push('/profile/subscription'); }}
+            onCancel={() => setShowAlarmUpgrade(false)}
+          />
         );
       })()}
     </div>
