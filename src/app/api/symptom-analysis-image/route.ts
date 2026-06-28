@@ -525,6 +525,10 @@ ${safeHint
           main_category: typeof parsed.main_category === 'string' ? parsed.main_category : 'Other',
           ai_confidence: typeof parsed.ai_confidence === 'string' ? parsed.ai_confidence : 'medium',
           is_valid_photo: parsed.is_valid_photo !== false,
+          // 관찰 모드(차단 X) — 기기/플랫폼/펫등록여부.
+          device_id: request.headers.get('x-device-id') || null,
+          platform: request.headers.get('x-platform') || null,
+          has_pet: !!petContext,
         },
       });
       if (insertError) {

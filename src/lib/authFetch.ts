@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { getDeviceId } from './deviceId';
+import { getPlatform } from './platform/env';
 import { isInClaimWindow } from './deviceClaimState';
 
 /**
@@ -29,6 +30,8 @@ export async function authFetch(
   if (deviceId) {
     headers.set('X-Device-Id', deviceId);
   }
+  // 관찰용 — 분석 로그(search_logs.result_summary)에 기기 환경 기록.
+  headers.set('X-Platform', getPlatform());
 
   const response = await fetch(url, { ...options, headers });
 

@@ -11,7 +11,8 @@ import { platformAuth } from '@/lib/platform';
 // 배럴(auth/push/billing/location re-export) 말고 env 직접 import.
 //   로그인은 모든 유저가 타는 핵심 경로라 네이티브 어댑터 코드를 끌어오지 않게 한다.
 //   (getPlatform 은 deviceSession.claimDevice 내부로 이동)
-import { isNativeApp } from '@/lib/platform/env';
+import { isNativeApp, getPlatform } from '@/lib/platform/env';
+import { getFirstTouch } from '@/lib/attribution';
 import { syncDeviceSession, markPendingClaim, clearPendingClaim } from '@/lib/deviceSession';
 import { LOCALE_COOKIE } from '@/i18n/config';
 
@@ -236,7 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (localStorage.getItem(k) !== lastSignInAt) {
                   localStorage.setItem(k, lastSignInAt);
                   const isSignup = !!createdAt && Math.abs(new Date(createdAt).getTime() - new Date(lastSignInAt).getTime()) < 10_000;
-                  logActivity(authUser.id, isSignup ? 'auth.signup' : 'auth.login', { details: { method: provider } });
+                  // method=인증수단(provider), platform=기기(android/ios/web). 신규가입이면 first-touch 유입정보도 첨부.
+                  const details: Record<string, unknown> = { method: provider, platform: getPlatform() };
+                  if (isSignup) Object.assign(details, getFirstTouch());
+                  logActivity(authUser.id, isSignup ? 'auth.signup' : 'auth.login', { details });
                 }
               } else {
                 // 기존 유저 앱 실행/세션 복원 — DAU, 하루 1회
@@ -434,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await authFetch('/api/activity', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'auth.signup' }),
+            body: JSON.stringify({ action: 'auth.signup', details: { method: 'email', platform: getPlatform(), ...getFirstTouch() } }),
           });
         } catch {}
       }

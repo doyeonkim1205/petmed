@@ -116,6 +116,12 @@ export async function POST(request: NextRequest) {
       query: query || '',
       pet_type: petType || 'dog',
       kind: 'disease',
+      // 관찰 모드(차단 X) — 기기/플랫폼/입력길이.
+      result_summary: {
+        device_id: request.headers.get('x-device-id') || null,
+        platform: request.headers.get('x-platform') || null,
+        text_length: typeof query === 'string' ? query.length : null,
+      },
     });
   }
 
