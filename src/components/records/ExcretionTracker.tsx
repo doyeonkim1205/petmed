@@ -154,8 +154,8 @@ export function ExcretionTracker({
           const c = k === 'poop' ? '#A16207' : '#CA8A04';
           return (
           <button key={k} onClick={() => setKind(k)}
-            className={`flex-1 py-2 rounded-full text-sm font-bold transition-colors ${sel ? 'shadow-sm' : 'text-gray-400'}`}
-            style={sel ? { background: c + '26', color: c } : undefined}>
+            className={`flex-1 py-2 rounded-full text-sm font-bold transition-colors ${sel ? 'bg-white shadow-sm' : 'text-gray-400'}`}
+            style={sel ? { color: c } : undefined}>
             {t(`excretion.kindLabel.${k}`)}
           </button>
           );
