@@ -533,6 +533,13 @@ type 사용 가이드:
         query: symptoms,
         pet_type: effectivePetType,
         kind,
+        // 관찰 모드(차단 X) — 기기/플랫폼/펫등록여부/입력길이. 어뷰징·테스트성 패턴 사후 분석용.
+        result_summary: {
+          device_id: request.headers.get('x-device-id') || null,
+          platform: request.headers.get('x-platform') || null,
+          has_pet: !!petContext,
+          text_length: typeof symptoms === 'string' ? symptoms.length : null,
+        },
       });
     }
 
