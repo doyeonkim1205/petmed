@@ -512,6 +512,13 @@
     "empty": "아직 기록된 호흡수가 없어요",
     "disclaimer": "호흡수는 참고용 기록이며 진단 기준은 아니에요."
   },
+  "announcements": {
+    "title": "새 소식",
+    "empty": "아직 새 소식이 없어요",
+    "important": "중요",
+    "more": "더보기",
+    "less": "접기"
+  },
   "stats": {
     "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변", "respiratory": "호흡수" },
     "tabSettingsLabel": "표시 지표 설정",

@@ -76,10 +76,17 @@ export default function MainLayout({
     return <div className="min-h-screen bg-white" />;
   }
 
+  // 자체 헤더가 있는 페이지 중 전역 헤더(로고+종) 숨길 곳: /records/*(목록 제외)·/profile/saved.
+  //   유지(사용자 요청): 구독(/profile/subscription)·사진분석(/search/photo)·새소식(/announcements).
+  //   그 외 홈·목록·메인탭·지도·결제도 유지.
+  const hideGlobalHeader =
+    pathname.startsWith('/records/') ||
+    pathname === '/profile/saved';
+
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center">
       <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
-        <Header />
+        {!hideGlobalHeader && <Header />}
         <main className="flex-1" style={{ paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
           {children}
         </main>

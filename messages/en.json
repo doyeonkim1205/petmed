@@ -512,6 +512,13 @@
     "empty": "No respiratory rate logged yet",
     "disclaimer": "Respiratory rate is a reference log only, not a diagnostic standard."
   },
+  "announcements": {
+    "title": "What's new",
+    "empty": "No news yet",
+    "important": "Important",
+    "more": "Show more",
+    "less": "Show less"
+  },
   "stats": {
     "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion", "respiratory": "Respiratory" },
     "tabSettingsLabel": "Metric display settings",
