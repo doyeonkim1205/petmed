@@ -20,6 +20,11 @@ interface MergedLog {
   kind: LogKind;
   created_at: string;
   profile: { email: string; nickname: string | null } | null;
+  // 관찰 모드 필드 (result_summary) — 옛 로그는 null.
+  device_id: string | null;
+  platform: string | null;
+  has_pet: boolean | null;
+  text_length: number | null;
 }
 
 const kindConfig: Record<LogKind, { label: string; className: string }> = {
@@ -190,6 +195,7 @@ export default function SearchLogsPage() {
                     <TableHead>종류</TableHead>
                     <TableHead>검색어</TableHead>
                     <TableHead>동물</TableHead>
+                    <TableHead>관찰</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -238,12 +244,39 @@ export default function SearchLogsPage() {
                             <span className="text-xs text-gray-400">-</span>
                           )}
                         </TableCell>
+                        <TableCell className="text-sm">
+                          <div className="flex flex-wrap items-center gap-1">
+                            {log.platform && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                log.platform === 'web' ? 'bg-gray-100 text-gray-600'
+                                  : log.platform === 'ios' ? 'bg-blue-50 text-blue-600'
+                                  : 'bg-green-50 text-green-600'
+                              }`}>{log.platform}</span>
+                            )}
+                            {log.has_pet !== null && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                log.has_pet ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                              }`}>{log.has_pet ? '펫O' : '펫X'}</span>
+                            )}
+                            {log.text_length !== null && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-50 text-gray-500">{log.text_length}자</span>
+                            )}
+                            {log.device_id && (
+                              <span className="font-mono text-[10px] text-gray-400" title={log.device_id}>
+                                {log.device_id.slice(0, 6)}
+                              </span>
+                            )}
+                            {!log.platform && !log.device_id && log.has_pet === null && log.text_length === null && (
+                              <span className="text-xs text-gray-300">-</span>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
                   {logs.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                      <TableCell colSpan={6} className="text-center text-gray-400 py-8">
                         로그가 없습니다.
                       </TableCell>
                     </TableRow>

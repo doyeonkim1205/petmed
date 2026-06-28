@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('search_logs')
-    .select('id, user_id, query, pet_type, kind, created_at', { count: 'exact' });
+    .select('id, user_id, query, pet_type, kind, created_at, result_summary', { count: 'exact' });
 
   // 날짜 필터는 KST 달력 날짜 → UTC 경계로 변환 (안 하면 9시간 어긋남).
   if (from) {
@@ -102,6 +102,8 @@ export async function GET(request: Request) {
 
   const logs = rows.map((r) => {
     const petType = r.pet_type?.toLowerCase?.().trim?.();
+    // 관찰 모드 필드(result_summary jsonb) — 없으면 null. 사진분석은 input_type 등도 같이 들어있음.
+    const rs = (r.result_summary && typeof r.result_summary === 'object' ? r.result_summary : {}) as Record<string, unknown>;
     return {
       id: r.id,
       user_id: r.user_id,
@@ -110,6 +112,10 @@ export async function GET(request: Request) {
       kind: r.kind as LogKind,
       created_at: r.created_at,
       profile: r.user_id ? profileMap.get(r.user_id) ?? null : null,
+      device_id: typeof rs.device_id === 'string' ? rs.device_id : null,
+      platform: typeof rs.platform === 'string' ? rs.platform : null,
+      has_pet: typeof rs.has_pet === 'boolean' ? rs.has_pet : null,
+      text_length: typeof rs.text_length === 'number' ? rs.text_length : null,
     };
   });
 
