@@ -94,6 +94,8 @@ export default function TimelinePage() {
   const [days, setDays] = useState<TLDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // 리스트 "더보기" — 날짜 30일씩 노출 ('전체'/'1년' 시 DOM 폭증 방지, 호흡수와 동일 패턴).
+  const [visibleDays, setVisibleDays] = useState(30);
 
   const todayStr = todayLocalISO();
   const yesterdayStr = daysAgoISO(1);
@@ -273,8 +275,9 @@ export default function TimelinePage() {
             <p className="text-gray-300 text-xs mt-1">{t('timeline.emptyHint')}</p>
           </div>
         ) : (
+          <>
           <div className="space-y-2.5">
-            {days.map((d) => {
+            {days.slice(0, visibleDays).map((d) => {
               const open = expanded.has(d.date);
               return (
                 <div key={d.date} className="border border-gray-100 rounded-2xl p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
@@ -331,6 +334,13 @@ export default function TimelinePage() {
               );
             })}
           </div>
+          {days.length > visibleDays && (
+            <button onClick={() => setVisibleDays((c) => c + 30)}
+              className="w-full mt-2.5 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg active:bg-gray-50">
+              {t('stats.showMore')}
+            </button>
+          )}
+          </>
         )}
       </div>
     </div>
