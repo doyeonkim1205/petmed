@@ -105,6 +105,7 @@ export function MetricTracker({
   const MetricIcon = metricType === 'water' ? Droplet : metricType === 'food' ? Utensils : Syringe;
   const [logs, setLogs] = useState<HealthMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(30); // 리스트 "더보기" 30건씩
   const [showInput, setShowInput] = useState(false);
   const [newValue, setNewValue] = useState('');
   const [newMemo, setNewMemo] = useState('');
@@ -310,9 +311,9 @@ export function MetricTracker({
     fetchLogs();
   };
 
-  // 최근 30건을 날짜별로 묶음 (날짜·시간 내림차순)
+  // 최근 visibleCount 건을 날짜별로 묶음 (날짜·시간 내림차순, "더보기" 30건씩)
   const grouped = useMemo(() => {
-    const recent = [...logs].reverse().slice(0, 30);
+    const recent = [...logs].reverse().slice(0, visibleCount);
     const out: { date: string; items: HealthMetric[] }[] = [];
     const idx = new Map<string, { date: string; items: HealthMetric[] }>();
     for (const l of recent) {
@@ -322,7 +323,7 @@ export function MetricTracker({
       g.items.push(l);
     }
     return out;
-  }, [logs]);
+  }, [logs, visibleCount]);
 
   if (loading) {
     return <div className="py-10 text-center text-sm text-gray-400">{t('metrics.loading')}</div>;
@@ -521,6 +522,12 @@ export function MetricTracker({
               </div>
             </div>
           ))}
+          {logs.length > visibleCount && (
+            <button onClick={() => setVisibleCount((c) => c + 30)}
+              className="w-full py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg active:bg-gray-50">
+              {t('stats.showMore')}
+            </button>
+          )}
         </div>
       )}
     </div>

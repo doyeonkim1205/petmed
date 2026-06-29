@@ -394,6 +394,7 @@ export default function StatsPage() {
   };
 
   const [selectedWeightId, setSelectedWeightId] = useState<string | null>(null);
+  const [visibleWeightCount, setVisibleWeightCount] = useState(30); // 체중 내역 "더보기" 30건씩
 
   const needPetSelect = tab === 'weight' && !selectedPetId && pets.length > 1;
   const noPets = petsLoaded && pets.length === 0;
@@ -632,7 +633,7 @@ export default function StatsPage() {
                 {weightData.length > 0 && (
                   <div className="space-y-1">
                     <h2 className="text-sm font-bold text-gray-700 mb-2">{t('stats.history')} <span className="text-[11px] font-normal text-gray-400">· {t('stats.tapToDelete')}</span></h2>
-                    {[...weightData].reverse().map((item) => {
+                    {[...weightData].reverse().slice(0, visibleWeightCount).map((item) => {
                       const key = `${item.source}-${item.id}-${item.date}`;
                       const isSelected = selectedWeightId === key && item.source === 'log';
                       return (
@@ -671,6 +672,12 @@ export default function StatsPage() {
                         </div>
                       );
                     })}
+                    {weightData.length > visibleWeightCount && (
+                      <button onClick={() => setVisibleWeightCount((c) => c + 30)}
+                        className="w-full py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg active:bg-gray-50">
+                        {t('stats.showMore')}
+                      </button>
+                    )}
                   </div>
                 )}
               </>
