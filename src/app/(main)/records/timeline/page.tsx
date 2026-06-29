@@ -12,9 +12,11 @@ import {
 import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
 import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { buildTimeline, type TLDay, type TLKind } from '@/lib/timeline';
 
 // 이벤트 종류 → lucide 아이콘 (앱 톤 통일). 음수=GlassWater·소변=Droplet, 예방=ShieldCheck·수액=Syringe 로 겹침 정리.
@@ -31,17 +33,37 @@ const TL_COLOR: Record<TLKind, string> = {
   food: 'text-orange-400', water: 'text-cyan-500', fluid: 'text-indigo-500', respiratory: 'text-indigo-400', weight: 'text-slate-500', cost: 'text-teal-600',
 };
 
-// label 은 messages(timeline.period.*)로 분리 — id 로 참조.
-const PERIODS: { id: string; days: number }[] = [
-  { id: 'week', days: 7 },
-  { id: 'month', days: 30 },
-  { id: '3month', days: 90 },
+// 기간 — 건강통계·지출과 동일 어휘(expenses.period.*)로 통일. months 기반 + 플랜 게이팅.
+type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
+const allPeriodOptions: { id: Period; months: number }[] = [
+  { id: 'month', months: 1 },
+  { id: '3month', months: 3 },
+  { id: 'year', months: 12 },
+  // "전체"·"직접 선택" 은 큰 값 → Free(3) 에선 자물쇠, Plus 에선 사용 가능.
+  { id: 'all', months: 200 },
+  { id: 'custom', months: 200 },
 ];
+
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function daysAgoISO(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return ymd(d);
+}
+
+// 기간 → 시작일(YYYY-MM-DD). 지출 페이지 getStartDate 와 동일 규칙. 상한(custom end)은 호출부에서 클라 필터.
+function startISOFor(period: Period, customStart: string): string {
+  const now = new Date();
+  switch (period) {
+    case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); return ymd(d); }
+    case '3month': return ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+    case 'year': return ymd(new Date(now.getFullYear(), now.getMonth() - 11, 1));
+    case 'all': return '2000-01-01';
+    case 'custom': return customStart || ymd(new Date(now.getFullYear(), now.getMonth(), 1));
+  }
 }
 
 function fmtDateHeader(dateK: string, todayStr: string, yesterdayStr: string, t: (k: string) => string, locale: string): string {
@@ -56,12 +78,18 @@ export default function TimelinePage() {
   const locale = useLocale();
   // buildTimeline(lib)용 느슨한 t 래퍼 — next-intl 의 좁은 키 타입 우회.
   const tl = (key: string, values?: Record<string, string | number>) => t(key as never, values as never);
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
+  const maxMonths = getPlanConfig(getEffectivePlan(profile?.plan)).costStatsMonths;
+  const periodOptions = allPeriodOptions.filter((p) => p.months <= maxMonths);
+  const lockedOptions = allPeriodOptions.filter((p) => p.months > maxMonths);
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [petsLoaded, setPetsLoaded] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
-  const [period, setPeriod] = useState('week');
+  // 건강통계와 동일 — 기본 1개월(가장 가벼운 범위, 첫 화면 스크롤 최소).
+  const [period, setPeriod] = useState<Period>('month');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [showFilter, setShowFilter] = useState(false);
   const [days, setDays] = useState<TLDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +118,7 @@ export default function TimelinePage() {
     if (!user || !selectedPetId) { setDays([]); setLoading(false); return; }
     setLoading(true);
     try {
-      const startISO = daysAgoISO(PERIODS.find((p) => p.id === period)?.days ?? 7);
+      const startISO = startISOFor(period, customStart);
       const pid = selectedPetId;
       const [recs, meds, prevs, exc, mets, wts, exps] = await Promise.all([
         supabase.from('health_records').select('id, record_type, title, visit_date').eq('pet_id', pid).gte('visit_date', startISO),
@@ -117,7 +145,7 @@ export default function TimelinePage() {
         checks = (ck || []).filter((c: { medication_id: string }) => medIds.has(c.medication_id));
       }
 
-      setDays(buildTimeline(tl, {
+      let built = buildTimeline(tl, {
         records: recs.data || [],
         medMeta,
         checks,
@@ -126,13 +154,16 @@ export default function TimelinePage() {
         metrics: mets.data || [],
         weights: wts.data || [],
         expenses: exps.data || [],
-      }));
+      });
+      // 직접 선택 상한(customEnd)은 over-fetch 후 클라에서 자름 (타임스탬프/날짜 컬럼 혼재·'오늘 끝' 이슈 회피).
+      if (period === 'custom' && customEnd) built = built.filter((d) => d.date <= customEnd);
+      setDays(built);
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'timeline', action: 'load' }, extra: { userId: user?.id } });
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPetId, period]);
+  }, [user, selectedPetId, period, customStart, customEnd]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -187,14 +218,25 @@ export default function TimelinePage() {
         )}
       </div>
 
-      {/* 필터 바텀시트 — 기간 */}
+      {/* 필터 바텀시트 — 기간 (건강통계·지출과 동일 어휘) */}
       <FilterSheet open={showFilter} title={t('common.filter')} closeLabel={t('common.close')} doneLabel={t('common.done')} onClose={() => setShowFilter(false)}>
         <PeriodSection
           label={t('common.period')}
           value={period}
-          onChange={setPeriod}
-          options={PERIODS.map((p) => ({ id: p.id, label: t(`timeline.period.${p.id}`) }))}
+          onChange={(id) => setPeriod(id as Period)}
+          options={periodOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
+          lockedOptions={lockedOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
+          onLockedClick={() => router.push('/profile/subscription')}
         />
+        {period === 'custom' && (
+          <div className="mt-3 flex gap-2 items-center">
+            <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+            <span className="text-gray-400 text-sm">~</span>
+            <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+          </div>
+        )}
       </FilterSheet>
 
       <div className="max-w-sm mx-auto px-4 pt-2">
