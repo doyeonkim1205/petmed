@@ -173,6 +173,23 @@ export default function TimelinePage() {
     else setExpanded(new Set());
   }, [days, todayStr]);
 
+  // #5 — 종료일이 시작일보다 과거가 되면 보정 (종료 먼저 고른 뒤 시작을 뒤로 옮긴 경우).
+  useEffect(() => {
+    if (customStart && customEnd && customEnd < customStart) setCustomEnd(customStart);
+  }, [customStart, customEnd]);
+
+  // #4 — '직접 선택'을 누르는 순간 날짜 칸을 채워(시작=이번 달 1일, 종료=오늘),
+  //   값이 빈 채로 '이번 달 데이터'가 조회돼 헷갈리는 것 방지. 화면 값 = 실제 조회.
+  const handlePeriodChange = (id: string) => {
+    const p = id as Period;
+    if (p === 'custom') {
+      const now = new Date();
+      if (!customStart) setCustomStart(ymd(new Date(now.getFullYear(), now.getMonth(), 1)));
+      if (!customEnd) setCustomEnd(todayLocalISO());
+    }
+    setPeriod(p);
+  };
+
   const toggle = (date: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -223,7 +240,7 @@ export default function TimelinePage() {
         <PeriodSection
           label={t('common.period')}
           value={period}
-          onChange={(id) => setPeriod(id as Period)}
+          onChange={handlePeriodChange}
           options={periodOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
           lockedOptions={lockedOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
           onLockedClick={() => router.push('/profile/subscription')}
