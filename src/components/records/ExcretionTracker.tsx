@@ -42,7 +42,7 @@ export function ExcretionTracker({
   const [kind, setKind] = useState<ExcretionKind>('poop');
   const [logs, setLogs] = useState<ExcretionLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(40); // 리스트 "더보기" 40건씩
+  const [visibleCount, setVisibleCount] = useState(30); // 리스트 "더보기" 30건씩
 
   const [showInput, setShowInput] = useState(false);
   const [condition, setCondition] = useState<string>('');
@@ -72,7 +72,7 @@ export function ExcretionTracker({
 
   // 입력 폼 초기화 (kind 바뀌면 상태/색 리셋 — 옵션이 다름)
   const resetInput = () => { setCondition(''); setAmount(''); setColor(''); setMemo(''); setNewDate(todayLocalISO()); setNewTime(nowHHMM()); };
-  useEffect(() => { setShowInput(false); resetInput(); }, [kind]);
+  useEffect(() => { setShowInput(false); resetInput(); setVisibleCount(30); }, [kind]);
 
   const todayStr = todayLocalISO();
   const yesterdayStr = useMemo(() => {
@@ -131,7 +131,7 @@ export function ExcretionTracker({
     fetchLogs();
   };
 
-  // 최근 visibleCount 건을 날짜별로 묶음 (날짜 내림차순, 같은 날 안에서도 최신순, "더보기" 40건씩)
+  // 최근 visibleCount 건을 날짜별로 묶음 (날짜 내림차순, 같은 날 안에서도 최신순, "더보기" 30건씩)
   const grouped = useMemo(() => {
     const recent = [...logs].reverse().slice(0, visibleCount);
     const out: { date: string; items: ExcretionLog[] }[] = [];
@@ -315,7 +315,7 @@ export function ExcretionTracker({
                 </div>
               ))}
               {logs.length > visibleCount && (
-                <button onClick={() => setVisibleCount((c) => c + 40)}
+                <button onClick={() => setVisibleCount((c) => c + 30)}
                   className="w-full py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg active:bg-gray-50">
                   {t('stats.showMore')}
                 </button>
