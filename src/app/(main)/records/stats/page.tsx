@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Lock, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, X, Wind } from 'lucide-react';
+import { ArrowLeft, Scale, Plus, ArrowUpRight, ArrowDownRight, Minus, Droplet, Utensils, Syringe, SlidersHorizontal, CircleDot, ChevronUp, ChevronDown, StickyNote, Wind } from 'lucide-react';
+import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { MetricTracker } from '@/components/records/MetricTracker';
 import { ExcretionTracker } from '@/components/records/ExcretionTracker';
 import { RespiratoryTracker } from '@/components/records/RespiratoryTracker';
@@ -418,51 +419,65 @@ export default function StatsPage() {
             text={t('stats.filterHint')} />
         </div>
 
-        {/* 지표 편집 바텀시트 — 배경 락 + 큰 ↑↓ 순서 변경 + 표시 토글 */}
-        {showTabSettings && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowTabSettings(false)}>
-            <div className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowTabSettings(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600" aria-label={t('common.close')}><X size={20} /></button>
-              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
-              <h3 className="text-base font-bold text-gray-900 text-center mb-1">{t('stats.editMetrics')}</h3>
-              <p className="text-xs text-gray-400 text-center mb-4 break-keep break-words">{t('stats.editMetricsDesc')}</p>
-
-              <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.shown')}</p>
-              {enabledTabs.map((id, i) => (
-                <div key={id} className="flex items-center gap-2 py-2.5">
-                  <span className="flex-1 text-sm font-medium text-gray-800">{t(`stats.tab.${id}`)}</span>
-                  <button onClick={() => moveTab(id, 'up')} disabled={i <= 0}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveUp')}><ChevronUp size={18} /></button>
-                  <button onClick={() => moveTab(id, 'down')} disabled={i >= enabledTabs.length - 1}
-                    className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveDown')}><ChevronDown size={18} /></button>
-                  <button onClick={() => toggleStatTab(id)} aria-label={t('stats.hideMetric')}
-                    className={`relative w-10 h-6 rounded-full flex-shrink-0 transition-colors ${enabledTabs.length === 1 ? 'bg-blue-300' : 'bg-blue-600'}`}>
-                    <span className="absolute top-0.5 left-[18px] w-5 h-5 rounded-full bg-white transition-all" />
-                  </button>
-                </div>
-              ))}
-
-              {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).length > 0 && (
-                <>
-                  <div className="border-t border-dashed border-gray-200 my-3" />
-                  <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.hidden')}</p>
-                  {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).map((id) => (
-                    <div key={id} className="flex items-center gap-2 py-2.5">
-                      <span className="flex-1 text-sm font-medium text-gray-400">{t(`stats.tab.${id}`)}</span>
-                      <button onClick={() => toggleStatTab(id)} aria-label={t('stats.showMetric')}
-                        className="relative w-10 h-6 rounded-full flex-shrink-0 bg-gray-300 transition-colors">
-                        <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all" />
-                      </button>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              <button onClick={() => setShowTabSettings(false)}
-                className="w-full h-11 mt-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">{t('common.done')}</button>
+        {/* 필터 바텀시트 — 기간 + 표시할 지표(순서/토글) */}
+        <FilterSheet open={showTabSettings} title={t('common.filter')} closeLabel={t('common.close')} doneLabel={t('common.done')} onClose={() => setShowTabSettings(false)}>
+          <PeriodSection
+            label={t('common.period')}
+            value={period}
+            onChange={(id) => setPeriod(id as Period)}
+            options={periodOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
+            lockedOptions={lockedOptions.map((p) => ({ id: p.id, label: t(`expenses.period.${p.id}`) }))}
+            onLockedClick={() => router.push('/profile/subscription')}
+          />
+          {period === 'custom' && (
+            <div className="mt-3">
+              <div className="flex gap-2 items-center">
+                <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                <span className="text-gray-400 text-sm">~</span>
+                <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
+                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">{t('stats.customDateHint')}</p>
             </div>
+          )}
+
+          <div className="border-t border-gray-100 mt-4 pt-4">
+            <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.editMetrics')}</p>
+            <p className="text-xs text-gray-400 mb-3 break-keep break-words">{t('stats.editMetricsDesc')}</p>
+
+            <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.shown')}</p>
+            {enabledTabs.map((id, i) => (
+              <div key={id} className="flex items-center gap-2 py-2.5">
+                <span className="flex-1 text-sm font-medium text-gray-800">{t(`stats.tab.${id}`)}</span>
+                <button onClick={() => moveTab(id, 'up')} disabled={i <= 0}
+                  className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveUp')}><ChevronUp size={18} /></button>
+                <button onClick={() => moveTab(id, 'down')} disabled={i >= enabledTabs.length - 1}
+                  className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:text-gray-200 disabled:border-gray-100" aria-label={t('stats.moveDown')}><ChevronDown size={18} /></button>
+                <button onClick={() => toggleStatTab(id)} aria-label={t('stats.hideMetric')}
+                  className={`relative w-10 h-6 rounded-full flex-shrink-0 transition-colors ${enabledTabs.length === 1 ? 'bg-blue-300' : 'bg-blue-600'}`}>
+                  <span className="absolute top-0.5 left-[18px] w-5 h-5 rounded-full bg-white transition-all" />
+                </button>
+              </div>
+            ))}
+
+            {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).length > 0 && (
+              <>
+                <div className="border-t border-dashed border-gray-200 my-3" />
+                <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.hidden')}</p>
+                {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).map((id) => (
+                  <div key={id} className="flex items-center gap-2 py-2.5">
+                    <span className="flex-1 text-sm font-medium text-gray-400">{t(`stats.tab.${id}`)}</span>
+                    <button onClick={() => toggleStatTab(id)} aria-label={t('stats.showMetric')}
+                      className="relative w-10 h-6 rounded-full flex-shrink-0 bg-gray-300 transition-colors">
+                      <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all" />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
-        )}
+        </FilterSheet>
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
             {pets.map((pet) => (
@@ -487,36 +502,6 @@ export default function StatsPage() {
       </div>
 
       <div className="max-w-sm mx-auto px-4 py-4 space-y-5">
-        {/* Period selector (chips) */}
-        <div className="flex gap-1.5 overflow-x-auto">
-          {periodOptions.map((p) => (
-            <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t(`expenses.period.${p.id}`)}</button>
-          ))}
-          {lockedOptions.map((p) => (
-            <button key={p.id} onClick={() => router.push('/profile/subscription')}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-              <Lock size={11} />{t(`expenses.period.${p.id}`)}
-            </button>
-          ))}
-        </div>
-
-        {period === 'custom' && (
-          <div>
-            <div className="flex gap-2 items-center">
-              <DatePicker value={customStart} onChange={setCustomStart}
-                className="flex-1 min-w-0"
-                inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-              <span className="text-gray-400 text-sm">~</span>
-              <DatePicker value={customEnd} onChange={setCustomEnd}
-                min={customStart}
-                className="flex-1 min-w-0"
-                inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1">{t('stats.customDateHint')}</p>
-          </div>
-        )}
-
         {enabledTabs.length === 0 && (
           <div className="rounded-xl border border-gray-100 py-10 text-center text-sm text-gray-400 break-keep break-words">
             {t('stats.noMetrics')}

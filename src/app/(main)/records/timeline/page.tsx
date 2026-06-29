@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import {
-  ArrowLeft, ChevronDown, History,
+  ArrowLeft, ChevronDown, History, SlidersHorizontal,
   Building2, AlertTriangle, Stethoscope, PawPrint, ShieldCheck, Pill,
   CircleDot, Droplet, Utensils, GlassWater, Syringe, Scale, Wallet, Wind,
   type LucideIcon,
 } from 'lucide-react';
+import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, Pet } from '@/lib/supabase';
@@ -61,6 +62,7 @@ export default function TimelinePage() {
   const [petsLoaded, setPetsLoaded] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
   const [period, setPeriod] = useState('week');
+  const [showFilter, setShowFilter] = useState(false);
   const [days, setDays] = useState<TLDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -169,6 +171,9 @@ export default function TimelinePage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-sm font-semibold text-gray-700">{t('timeline.title')}</h1>
+          <button onClick={() => setShowFilter(true)} className="absolute right-2 p-2 text-gray-400" aria-label={t('common.filter')}>
+            <SlidersHorizontal size={16} />
+          </button>
         </header>
         {pets.length > 1 && (
           <div className={`flex gap-1.5 overflow-x-auto max-w-sm mx-auto px-4 pt-1 pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
@@ -180,16 +185,17 @@ export default function TimelinePage() {
             ))}
           </div>
         )}
-        {/* 기간 필터 */}
-        <div className="flex gap-1.5 max-w-sm mx-auto px-4 pb-2">
-          {PERIODS.map((p) => (
-            <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === p.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-              {t(`timeline.period.${p.id}`)}
-            </button>
-          ))}
-        </div>
       </div>
+
+      {/* 필터 바텀시트 — 기간 */}
+      <FilterSheet open={showFilter} title={t('common.filter')} closeLabel={t('common.close')} doneLabel={t('common.done')} onClose={() => setShowFilter(false)}>
+        <PeriodSection
+          label={t('common.period')}
+          value={period}
+          onChange={setPeriod}
+          options={PERIODS.map((p) => ({ id: p.id, label: t(`timeline.period.${p.id}`) }))}
+        />
+      </FilterSheet>
 
       <div className="max-w-sm mx-auto px-4 pt-2">
         {noPets ? (

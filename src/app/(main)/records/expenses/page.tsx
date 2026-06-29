@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import {
-  ArrowLeft, Wallet, Lock, Plus, ChevronDown, ChevronUp, X,
+  ArrowLeft, Wallet, Plus, ChevronDown, ChevronUp, X, SlidersHorizontal,
   Stethoscope, Package, Cookie, ShieldCheck, Gamepad2, Scissors, Tag,
   type LucideIcon,
 } from 'lucide-react';
+import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
@@ -104,6 +105,7 @@ export default function ExpensesPage() {
   // 카테고리 필터(범례 탭) + 범례 펼침
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
 
   // 직접 입력 지출
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -235,12 +237,36 @@ export default function ExpensesPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-sm font-semibold text-gray-700">{t('record.module.expenses')}</h1>
+          <button onClick={() => setShowFilter(true)} className="absolute right-2 p-2 text-gray-400" aria-label={t('common.filter')}>
+            <SlidersHorizontal size={16} />
+          </button>
         </header>
         <div className="absolute left-1/2 top-[50px] z-20 w-64 max-w-[88%] -translate-x-1/2">
           <OnboardHint storageKey="hint_expense_record_v2" pointer="center"
             text={t('expenses.hint', { category: t('expenses.category.medical') })} />
         </div>
       </div>
+
+      {/* 필터 바텀시트 — 기간 */}
+      <FilterSheet open={showFilter} title={t('common.filter')} closeLabel={t('common.close')} doneLabel={t('common.done')} onClose={() => setShowFilter(false)}>
+        <PeriodSection
+          label={t('common.period')}
+          value={period}
+          onChange={(id) => setPeriod(id as Period)}
+          options={periodOptions.map((opt) => ({ id: opt.id, label: t(`expenses.period.${opt.id}`) }))}
+          lockedOptions={lockedOptions.map((opt) => ({ id: opt.id, label: t(`expenses.period.${opt.id}`) }))}
+          onLockedClick={() => router.push('/profile/subscription')}
+        />
+        {period === 'custom' && (
+          <div className="mt-3 flex gap-2 items-center">
+            <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+            <span className="text-gray-400 text-sm">~</span>
+            <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
+              inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+          </div>
+        )}
+      </FilterSheet>
 
       {/* Pet filter */}
       {pets.length > 1 && (
@@ -314,28 +340,6 @@ export default function ExpensesPage() {
               </div>
             )}
 
-            {/* Period selector — 지출 추가 위 */}
-            <div className="flex gap-1.5 overflow-x-auto">
-              {periodOptions.map((opt) => (
-                <button key={opt.id} onClick={() => setPeriod(opt.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${period === opt.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t(`expenses.period.${opt.id}`)}</button>
-              ))}
-              {lockedOptions.map((opt) => (
-                <button key={opt.id} onClick={() => router.push('/profile/subscription')}
-                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-300 flex items-center gap-1">
-                  <Lock size={11} />{t(`expenses.period.${opt.id}`)}
-                </button>
-              ))}
-            </div>
-            {period === 'custom' && (
-              <div className="flex gap-2 items-center">
-                <DatePicker value={customStart} onChange={setCustomStart} className="flex-1 min-w-0"
-                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-                <span className="text-gray-400 text-sm">~</span>
-                <DatePicker value={customEnd} onChange={setCustomEnd} min={customStart} className="flex-1 min-w-0"
-                  inputClassName="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
-              </div>
-            )}
 
             {/* 지출 직접 추가 */}
             {showAddInput ? (
