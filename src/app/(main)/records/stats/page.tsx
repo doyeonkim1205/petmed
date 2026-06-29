@@ -446,7 +446,6 @@ export default function StatsPage() {
             <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.editMetrics')}</p>
             <p className="text-xs text-gray-400 mb-3 break-keep break-words">{t('stats.editMetricsDesc')}</p>
 
-            <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.shown')}</p>
             {enabledTabs.map((id, i) => (
               <div key={id} className="flex items-center gap-2 py-2.5">
                 <span className="flex-1 text-sm font-medium text-gray-800">{t(`stats.tab.${id}`)}</span>
@@ -464,7 +463,6 @@ export default function StatsPage() {
             {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).length > 0 && (
               <>
                 <div className="border-t border-dashed border-gray-200 my-3" />
-                <p className="text-[11px] font-bold text-gray-400 mb-1">{t('stats.hidden')}</p>
                 {ALL_METRIC_TABS.filter((x) => !enabledTabs.includes(x)).map((id) => (
                   <div key={id} className="flex items-center gap-2 py-2.5">
                     <span className="flex-1 text-sm font-medium text-gray-400">{t(`stats.tab.${id}`)}</span>
