@@ -491,7 +491,9 @@ export async function GET(request: NextRequest) {
   type SendTask = {
     userId: string;
     notification: { title: string; body: string; url: string; category?: string; tag: string };
-    afterSend?: () => Promise<void>;
+    // 발송 전 예약(claim) 훅. true=발송 진행 / false=이미 예약됨(스킵).
+    // notification_logs 유니크 제약으로 동시 실행 이중발송을 원천 차단할 때 사용.
+    reserve?: () => Promise<boolean>;
   };
   const tasks: SendTask[] = [];
 
@@ -676,17 +678,20 @@ export async function GET(request: NextRequest) {
       tasks.push({
         userId: sub.user_id,
         notification,
-        afterSend: async () => {
+        // 발송 전 예약(claim): insert 성공 → 이번 실행이 발송 소유권 획득 → 발송 진행.
+        //   23505(유니크 위반) → 다른 동시 실행/이전 실행이 이미 예약 → 발송 스킵(이중발송 차단).
+        //   그 외 에러 → 멱등성 보장 불가하지만 발송은 막지 않음(fail-open) + Sentry.
+        reserve: async () => {
           const { error } = await supabaseAdmin
             .from('notification_logs')
             .insert({ user_id: sub.user_id, type: SUB_EXPIRY_3DAY_TYPE, dedup_key: dedupKey });
-          // 23505 = 유니크 위반(동시 실행 등으로 이미 기록됨) → 정상, 무시.
-          if (error && error.code !== '23505') {
-            Sentry.captureException(new Error(`notification_logs insert failed: ${error.message}`), {
-              tags: { feature: 'cron', action: 'notif-log-insert' },
-              extra: { userId: sub.user_id, type: SUB_EXPIRY_3DAY_TYPE, dedupKey },
-            });
-          }
+          if (!error) return true;
+          if (error.code === '23505') return false;
+          Sentry.captureException(new Error(`notification_logs reserve failed: ${error.message}`), {
+            tags: { feature: 'cron', action: 'notif-log-reserve' },
+            extra: { userId: sub.user_id, type: SUB_EXPIRY_3DAY_TYPE, dedupKey },
+          });
+          return true;
         },
       });
     }
@@ -694,8 +699,9 @@ export async function GET(request: NextRequest) {
 
   // 병렬 발송 (동시성 제한). 각 task 는 한 유저의 모든 기기에 발송.
   const results = await runWithConcurrency(tasks, PUSH_CONCURRENCY, async (task) => {
+    // 예약(claim) 실패 = 이미 발송됨 → 발송 스킵(이중발송 방지).
+    if (task.reserve && !(await task.reserve())) return { sent: 0, failed: 0 };
     const result = await sendPushToUser(task.userId, task.notification);
-    if (task.afterSend) await task.afterSend();
     return result;
   });
   for (const r of results) {
