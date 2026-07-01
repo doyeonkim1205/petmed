@@ -120,8 +120,6 @@ export async function GET(request: NextRequest) {
           billing_failed_count: 0,
           last_billing_failure_at: null,
           last_billing_failure_reason: null,
-          // Reset reminder so we can fire it again next cycle
-          reminder_3day_sent_at: null,
           updated_at: now.toISOString(),
         })
         .eq('id', sub.id);

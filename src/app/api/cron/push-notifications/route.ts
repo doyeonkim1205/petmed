@@ -58,6 +58,10 @@ const supabaseAdmin = createClient(
 // 10 이면 유저 1000명×2기기 = 2000콜이 ~200 청크로 나눠져 실행.
 const PUSH_CONCURRENCY = 10;
 
+// 3일 전 구독 만료/결제 리마인더의 멱등성 키 type (notification_logs.type).
+// dedup_key = period_end 날짜 → 주기마다 키가 바뀌어 리셋 없이 다음 주기에 다시 발송.
+const SUB_EXPIRY_3DAY_TYPE = 'sub_expiry_3day';
+
 // 알림 메시지 글자수 제한 (한글 기준).
 // title: 20자 이하 (이모지 포함) → 잠금화면 안 잘림
 // body : 45자 이하 → 한 줄 내
@@ -347,8 +351,7 @@ export async function GET(request: NextRequest) {
         .select('id, user_id, plan, status, period_end, billing_type, product_id, store, canceled_at')
         .in('status', ['active', 'canceled'])
         .gte('period_end', new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString())
-        .lt('period_end', new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString())
-        .is('reminder_3day_sent_at', null),
+        .lt('period_end', new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString()),
     ]);
 
     for (const r of apptsToday2.data || []) {
@@ -598,6 +601,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 3일 전 리마인더 멱등성 — notification_logs 로 (user_id, type, dedup_key) 중복 방지.
+    // dedup_key = period_end 날짜(YYYY-MM-DD). 주기가 넘어가면 period_end 가 이동해 키도 바뀌므로
+    // 별도 리셋 없이 다음 주기에 자연히 다시 발송된다(과거 reminder_3day_sent_at 리셋 패턴 대체).
+    const subReminderKey = (s: { period_end: string }) =>
+      new Date(s.period_end).toISOString().slice(0, 10);
+    const alreadyRemindedSet = new Set<string>();
+    {
+      const { data: logs } = await supabaseAdmin
+        .from('notification_logs')
+        .select('user_id, dedup_key')
+        .eq('type', SUB_EXPIRY_3DAY_TYPE)
+        .in('user_id', expiringSoon.map((s) => s.user_id))
+        .in('dedup_key', expiringSoon.map(subReminderKey));
+      for (const l of logs || []) alreadyRemindedSet.add(`${l.user_id}|${l.dedup_key}`);
+    }
+
     for (const sub of expiringSoon) {
       if (sub.plan === 'free') continue;
       if (!paidSet.has(sub.user_id)) continue;
@@ -609,6 +628,10 @@ export async function GET(request: NextRequest) {
       const isCanceled = sub.status === 'canceled' || !!sub.canceled_at;
       const isStoreManaged = sub.store === 'play' || sub.store === 'apple';
       if (isStoreManaged && !isCanceled) continue;
+
+      // 이번 주기(period_end)에 이미 리마인더를 보냈으면 스킵 (멱등성).
+      const dedupKey = subReminderKey(sub);
+      if (alreadyRemindedSet.has(`${sub.user_id}|${dedupKey}`)) continue;
 
       let notification: { title: string; body: string; url: string; category: string; tag: string };
       // tag = sub-3day-{sub.id} — 구독 1건당 1개 알림이라 record id 기반.
@@ -654,10 +677,16 @@ export async function GET(request: NextRequest) {
         userId: sub.user_id,
         notification,
         afterSend: async () => {
-          await supabaseAdmin
-            .from('subscriptions')
-            .update({ reminder_3day_sent_at: new Date().toISOString() })
-            .eq('id', sub.id);
+          const { error } = await supabaseAdmin
+            .from('notification_logs')
+            .insert({ user_id: sub.user_id, type: SUB_EXPIRY_3DAY_TYPE, dedup_key: dedupKey });
+          // 23505 = 유니크 위반(동시 실행 등으로 이미 기록됨) → 정상, 무시.
+          if (error && error.code !== '23505') {
+            Sentry.captureException(new Error(`notification_logs insert failed: ${error.message}`), {
+              tags: { feature: 'cron', action: 'notif-log-insert' },
+              extra: { userId: sub.user_id, type: SUB_EXPIRY_3DAY_TYPE, dedupKey },
+            });
+          }
         },
       });
     }
