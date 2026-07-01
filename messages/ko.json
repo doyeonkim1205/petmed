@@ -112,7 +112,7 @@
     "noAppointment": "예약 없음",
     "noRecordsYet": "아직 기록 없음",
     "recordedToday": "오늘 기록 완료",
-    "birthday": "{name}의 소중한 생일을 축하해요",
+    "birthday": "{name}의 생일을 축하합니다",
     "noRecordSince": "{count}일째 기록이 없어요 — 오늘 {name}는 어땠나요?",
     "lastRecordAgo": "마지막 기록 <b>{count}일 전</b>",
     "appointmentSoon": "예약 {dLabel} · {date}",

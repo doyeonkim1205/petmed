@@ -548,7 +548,7 @@ export async function GET(request: NextRequest) {
         notification: {
           title,
           body,
-          url: '/records',
+          url: '/',
           category,
           tag: `schedule-${userId}-${petId}-${todayKST.replace(/-/g, '')}`,
         },
