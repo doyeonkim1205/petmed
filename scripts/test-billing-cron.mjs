@@ -212,7 +212,6 @@ async function test_reminderBranchRecurring() {
     const sub = await insertSub(userId, {
       period_end: periodEnd.toISOString(),
       next_billing_at: periodEnd.toISOString(),
-      reminder_3day_sent_at: null,
     });
 
     // The reminder logic only runs at 9 AM KST, so calling the cron at any
@@ -220,7 +219,7 @@ async function test_reminderBranchRecurring() {
     // verify the query is correct by reading the rows that the cron WOULD
     // process. The branching itself is a pure code path covered by build.
     const rows = await rest('GET',
-      `/subscriptions?select=id,billing_type,status&id=eq.${sub.id}&period_end=gte.${new Date(Date.now() + 3 * 86400e3).toISOString()}&period_end=lt.${new Date(Date.now() + 4 * 86400e3).toISOString()}&reminder_3day_sent_at=is.null`,
+      `/subscriptions?select=id,billing_type,status&id=eq.${sub.id}&period_end=gte.${new Date(Date.now() + 3 * 86400e3).toISOString()}&period_end=lt.${new Date(Date.now() + 4 * 86400e3).toISOString()}`,
     );
     assert('row matches reminder window query', rows.length === 1);
     assert('billing_type = recurring → recurring branch', rows[0]?.billing_type === 'recurring');
@@ -239,11 +238,10 @@ async function test_reminderBranchOneTime() {
       toss_billing_key: null,
       next_billing_at: null,
       period_end: periodEnd.toISOString(),
-      reminder_3day_sent_at: null,
     });
 
     const rows = await rest('GET',
-      `/subscriptions?select=id,billing_type&id=eq.${sub.id}&period_end=gte.${new Date(Date.now() + 3 * 86400e3).toISOString()}&period_end=lt.${new Date(Date.now() + 4 * 86400e3).toISOString()}&reminder_3day_sent_at=is.null`,
+      `/subscriptions?select=id,billing_type&id=eq.${sub.id}&period_end=gte.${new Date(Date.now() + 3 * 86400e3).toISOString()}&period_end=lt.${new Date(Date.now() + 4 * 86400e3).toISOString()}`,
     );
     assert('row matches reminder window query', rows.length === 1);
     assert('billing_type = one_time → one_time branch', rows[0]?.billing_type === 'one_time');

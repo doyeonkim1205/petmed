@@ -31,8 +31,6 @@ alter table public.notification_logs enable row level security;
 comment on table public.notification_logs is
   'Idempotency log for one-shot server notifications (e.g. sub_expiry_3day). dedup via (user_id, type, dedup_key).';
 
--- ── 후속 정리(TODO) ──────────────────────────────────────────────
--- subscriptions.reminder_3day_sent_at 는 현재 코드 참조 0(dead)이나,
--- scripts/*reminder*.mjs · scripts/test-billing-cron.mjs 가 아직 참조한다.
--- 그 스크립트 정리 후 아래를 별도 마이그레이션으로 실행:
---   alter table public.subscriptions drop column if exists reminder_3day_sent_at;
+-- ── 후속 정리(완료) ──────────────────────────────────────────────
+-- subscriptions.reminder_3day_sent_at(dead 컬럼) 는 스크립트 정리 후
+-- 2026-07-01_drop_reminder_3day_sent_at.sql 에서 DROP 완료.
