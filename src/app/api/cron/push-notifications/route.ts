@@ -571,7 +571,7 @@ export async function GET(request: NextRequest) {
         notification: {
           title,
           body,
-          url: '/records/preventive',
+          url: '/',
           // 예방 알림은 병원 아이콘(hos.webp) 사용 — sw.js 가 category 로 분기.
           category: 'hospitalization',
           tag: `preventive-${userId}-${petId}-${todayKST.replace(/-/g, '')}`,
