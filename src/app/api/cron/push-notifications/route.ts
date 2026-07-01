@@ -328,6 +328,8 @@ export async function GET(request: NextRequest) {
     period_end: string;
     billing_type: string | null;
     product_id: string | null;
+    store: string | null;
+    canceled_at: string | null;
   }> = [];
 
   if (currentHour === '07' && currentMinute === 0) {
@@ -342,7 +344,7 @@ export async function GET(request: NextRequest) {
         .eq('discharge_date', todayKST),
       supabaseAdmin
         .from('subscriptions')
-        .select('id, user_id, plan, status, period_end, billing_type, product_id')
+        .select('id, user_id, plan, status, period_end, billing_type, product_id, store, canceled_at')
         .in('status', ['active', 'canceled'])
         .gte('period_end', new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString())
         .lt('period_end', new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString())
@@ -600,12 +602,20 @@ export async function GET(request: NextRequest) {
       if (sub.plan === 'free') continue;
       if (!paidSet.has(sub.user_id)) continue;
 
+      // 스토어별 분기: 구글/애플(play·apple)은 스토어가 갱신·결제·실패를 자체 처리·안내하므로
+      // 활성·미해지 구독엔 우리 결제예정 푸시를 보내지 않는다(중복·오안내 방지).
+      // 해지 예정(status='canceled' 또는 canceled_at)이면 "곧 만료" 넛지는 전 스토어 공통 발송.
+      // 가격이 들어간 "정기결제 예정" 안내는 우리가 직접 청구하는 토스에서만 도달.
+      const isCanceled = sub.status === 'canceled' || !!sub.canceled_at;
+      const isStoreManaged = sub.store === 'play' || sub.store === 'apple';
+      if (isStoreManaged && !isCanceled) continue;
+
       let notification: { title: string; body: string; url: string; category: string; tag: string };
       // tag = sub-3day-{sub.id} — 구독 1건당 1개 알림이라 record id 기반.
       const tag = `sub-3day-${sub.id}`;
       const en = userLang(sub.user_id) === 'en';
       // category 'subscription' → sw.js 에서 오른쪽 alarm.webp 아이콘 분기.
-      if (sub.status === 'canceled') {
+      if (isCanceled) {
         notification = {
           title: en ? '📢 Plus subscription ending' : '📢 Plus 구독 기간 만료 안내',
           body: en

@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
     const cardNumber = issued.cardNumber || issued.card?.number || null;
 
     // Product ID 전환 규칙:
-    //   plus_monthly_onetime (3,900원 단건) → plus_monthly (3,500원 자동결제 할인가)
-    //   그 외는 유지. 유저가 "자동 결제로 전환하면 할인가 적용" 을 기대하므로.
+    //   plus_monthly_onetime (3,900원 단건) → plus_monthly (3,900원 자동결제)
+    //   가격은 동일하고 차이는 "자동 갱신" 편의. 그 외 product_id 는 유지.
     const newProductId =
       subscription.product_id === 'plus_monthly_onetime'
         ? 'plus_monthly'

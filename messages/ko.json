@@ -936,7 +936,7 @@
     "monthlyOnetimeTitle": "월간 단건 결제",
     "monthlyOnetimeSub": "한번만 결제하고 30일 동안 이용",
     "monthlyAutoTitle": "월간 정기 결제",
-    "monthlyAutoSub": "월간 단건 대비 10.3% 할인",
+    "monthlyAutoSub": "매달 자동 결제로 끊김 없이 이용",
     "yearlyTitle": "연간 결제",
     "yearlySub": "월간 단건 대비 {pct}% 할인",
     "yearlyPriceSub": "연 {price}원 일시 결제",
