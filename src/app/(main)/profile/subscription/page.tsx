@@ -94,7 +94,7 @@ function buildFeatureGroups(t: TFn): { title: string; features: FeatureItem[] }[
 }
 
 const MONTHLY_ONETIME = 3900;  // 1회 결제 (기준가)
-const MONTHLY_AUTO = 3500;     // 자동 결제 (10.3% 할인)
+const MONTHLY_AUTO = 3900;     // 자동 결제 (단건과 동일가 — 차이는 자동 갱신 편의)
 const YEARLY_PRICE = 40000;    // 연간 (14.5% 할인)
 // 연간 결제 표시용 — 월 환산 + 할인율. 가격 상수 변경 시 자동 반영.
 const YEARLY_MONTHLY_EQUIV = Math.round(YEARLY_PRICE / 12);                                        // 3333

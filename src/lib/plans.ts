@@ -52,7 +52,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   plus: {
     name: 'Plus',
     nameKo: '플러스',
-    price: 3900, // 1회 결제 기준가. 자동 결제 3500, 연간 40000은 payment_products DB에서 관리
+    price: 3900, // 월간 기준가(단건=자동 동일 3900). 연간 40000은 payment_products DB에서 관리
     maxRecords: 0,
     searchPerDay: 10,
     symptomSearchPerDay: 10,
