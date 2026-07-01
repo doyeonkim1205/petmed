@@ -16,6 +16,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
 import { addWeightLog, syncPetWeightCache } from '@/lib/petWeight';
+import { readDefaultPetId } from '@/lib/petSort';
 
 type Tab = 'records' | 'calendar';
 type RecordFilter = 'all' | 'symptom' | 'visit' | 'hospitalization' | 'daily';
@@ -38,13 +39,20 @@ const QUICK_LINKS = [
   { icon: Pill, key: 'meds', color: 'text-pink-500', href: '/records/meds' },
 ] as const;
 
+// 기록장 펫 필터 — 앱 실행 중(모듈 생존 동안)에만 유지되는 메모리 상태.
+// localStorage 를 쓰지 않아 앱을 완전히 새로 시작(full reload/콜드스타트)하면 모듈이
+// 재평가되며 리셋 → 초기값은 기본 반려동물(defaultPetId).
+// 효과: "앱 켜면 기본펫, 쓰는 동안 마지막 선택 유지"(다른 페이지 갔다 와도 유지).
+// undefined = 이번 세션에 아직 선택 안 함(→ 기본펫 사용), null = 명시적 '전체'.
+let sessionSelectedPetId: string | null | undefined = undefined;
+
 export default function RecordsPage() {
   const t = useTranslations();
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('lastSelectedPetId') || localStorage.getItem('defaultPetId') || null;
-    }
-    return null;
+    if (typeof window === 'undefined') return null;
+    // 세션 중 마지막 선택(메모리) 우선, 이번 세션 첫 진입이면 기본펫으로 시작.
+    if (sessionSelectedPetId !== undefined) return sessionSelectedPetId;
+    return readDefaultPetId();
   });
   const [activeTab, setActiveTab] = useState<Tab>('records');
   // 정적 프리렌더 컴포넌트에선 useState lazy initializer 의 window/URL 접근이 빌드 시점
@@ -115,11 +123,8 @@ export default function RecordsPage() {
 
   const handlePetSelect = (petId: string | null) => {
     setSelectedPetId(petId);
-    if (petId) {
-      localStorage.setItem('lastSelectedPetId', petId);
-    } else {
-      localStorage.removeItem('lastSelectedPetId');
-    }
+    // 메모리에만 유지(localStorage 안 씀) → 앱 새 시작 시 기본펫으로 리셋.
+    sessionSelectedPetId = petId;
   };
 
   const handleTabChange = (tab: Tab) => {
