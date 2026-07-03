@@ -100,7 +100,11 @@ export function useMedications() {
           pets:pet_id (id, name, type)
         `)
         .eq('user_id', user.id)
-        .lte('start_date', targetDate);
+        .lte('start_date', targetDate)
+        // 안정 정렬 — DB 반환 순서(무보장)로 인한 리로드마다 순서 흔들림 방지.
+        // 홈 위젯은 이 위에서 다시 시각순으로 평탄화·재정렬하지만, 기록장 목록(약 단위)엔 이 순서가 그대로 쓰임.
+        .order('start_date', { ascending: true })
+        .order('id', { ascending: true });
 
       const { data, error } = await query;
       if (error) throw error;
