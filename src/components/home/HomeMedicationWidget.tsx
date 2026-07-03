@@ -119,8 +119,9 @@ export function HomeMedicationWidget() {
       doseIndex: di,
       time: times ? times[di] : null,
       hasTime: !!times,
-      // 시각 없는 다회차만 "N회차"로 구분(시각 있으면 시각이 곧 구분). 단회+무알람은 라벨 없음.
-      ordinal: !times && doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null,
+      // 시각 없는 다회차만 "N회"로 구분(시각 있으면 시각이 곧 구분). 단회+무알람은 라벨 없음.
+      // 홈 전용 키(회) — 편집기·기록장은 빈도와 겹침 방지 위해 "회차" 유지.
+      ordinal: !times && doseCount > 1 ? t('home.medWidget.doseN', { n: di + 1 }) : null,
       petName: med.pets?.name,
       medName: med.name,
     }));

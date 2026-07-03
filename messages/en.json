@@ -140,7 +140,8 @@
       "allDone": "All meds done for today",
       "remaining": "{name} remaining",
       "remainingMore": "{name} +{count} more remaining",
-      "dose": "Dose"
+      "dose": "Dose",
+      "doseN": "Dose {n}"
     }
   },
   "record": {
