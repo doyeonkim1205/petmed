@@ -104,6 +104,38 @@ export function HomeMedicationWidget() {
       ? t('home.medWidget.remaining', { name: remaining[0]?.name ?? '' })
       : t('home.medWidget.remainingMore', { name: remaining[0].name, count: remaining.length - 1 });
 
+  // "오늘의 시간표" — 회차 단위로 평탄화 후 시각순 정렬 (홈 위젯 전용).
+  // 회차 수의 진실원은 doseCount(빈도)라 alarm_times 가 아니라 doseCount 로 펼침 → 알람 OFF 약도
+  // 회차만큼 남아 맨 아래로 가고, 체크(dose_number 0..n-1) 무결성도 유지됨.
+  type DoseItem = { medId: string; doseIndex: number; time: string | null; hasTime: boolean; ordinal: string | null; petName?: string; medName: string };
+  const todayDoses: DoseItem[] = meds.flatMap((med) => {
+    const doseCount = parseDoseCount(med.frequency);
+    const times =
+      med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
+        ? med.alarm_times
+        : null;
+    return Array.from({ length: doseCount }, (_, di) => ({
+      medId: med.id,
+      doseIndex: di,
+      time: times ? times[di] : null,
+      hasTime: !!times,
+      // 시각 없는 다회차만 "N회차"로 구분(시각 있으면 시각이 곧 구분). 단회+무알람은 라벨 없음.
+      ordinal: !times && doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null,
+      petName: med.pets?.name,
+      medName: med.name,
+    }));
+  });
+  // 시각 있는 회차(시간 오름차순) → 시각 없는 약(맨 아래). 동률은 펫이름 → 약이름 → 회차 순 안정 정렬.
+  todayDoses.sort((a, b) => {
+    if (a.hasTime !== b.hasTime) return a.hasTime ? -1 : 1;
+    if (a.time && b.time && a.time !== b.time) return a.time < b.time ? -1 : 1;
+    const p = (a.petName ?? '').localeCompare(b.petName ?? '');
+    if (p) return p;
+    const n = a.medName.localeCompare(b.medName);
+    if (n) return n;
+    return a.doseIndex - b.doseIndex;
+  });
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100">
       {/* 접힌 상태 (V5) — 한 줄 요약 */}
@@ -128,37 +160,28 @@ export function HomeMedicationWidget() {
             <div className="h-full bg-rose-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
           <div className="space-y-1.5">
-            {meds.map((med) => {
-              const doseCount = parseDoseCount(med.frequency);
-              // 알람 ON + 시각 개수가 횟수와 맞으면 회차별 실제 시각 사용, 아니면 시각 없음(빈배열=알람 OFF).
-              const times =
-                med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
-                  ? med.alarm_times
-                  : null;
-              const petName = med.pets?.name;
-              return Array.from({ length: doseCount }, (_, di) => {
-                const isChecked = checks.some((c) => c.medication_id === med.id && c.dose_number === di && c.checked);
-                // 라벨: 시각 있으면 시각(1일 1회 포함), 없고 다회차면 "N회차", 단회+알람없음이면 라벨 없음.
-                const label = times ? times[di] : doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null;
-                return (
-                  <button
-                    key={`${med.id}-${di}`}
-                    onClick={() => handleToggle(med.id, di)}
-                    className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors ${isChecked ? 'bg-green-50' : 'hover:bg-gray-50'}`}
-                  >
-                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${isChecked ? 'bg-green-500 border-green-500 text-[#fff]' : 'border-gray-300'}`}>
-                      {isChecked && <Check size={12} />}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                        {med.name}
-                        {label ? <span className="text-gray-400 font-normal"> {label}</span> : null}
-                        {petName ? <span className="text-gray-400 font-normal"> · {petName}</span> : null}
-                      </p>
-                    </div>
-                  </button>
-                );
-              });
+            {todayDoses.map((dose) => {
+              const isChecked = checks.some((c) => c.medication_id === dose.medId && c.dose_number === dose.doseIndex && c.checked);
+              return (
+                <button
+                  key={`${dose.medId}-${dose.doseIndex}`}
+                  onClick={() => handleToggle(dose.medId, dose.doseIndex)}
+                  className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors ${isChecked ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+                >
+                  <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${isChecked ? 'bg-green-500 border-green-500 text-[#fff]' : 'border-gray-300'}`}>
+                    {isChecked && <Check size={12} />}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                      {/* 시각을 앞에 둬 "오늘의 시간표"로 스캔되게. 시각은 잘림에서도 살아남음(앞쪽). */}
+                      {dose.time ? <span className="text-gray-400 font-normal tabular-nums">{dose.time} </span> : null}
+                      {dose.medName}
+                      {dose.ordinal ? <span className="text-gray-400 font-normal"> {dose.ordinal}</span> : null}
+                      {dose.petName ? <span className="text-gray-400 font-normal"> · {dose.petName}</span> : null}
+                    </p>
+                  </div>
+                </button>
+              );
             })}
           </div>
           <button
