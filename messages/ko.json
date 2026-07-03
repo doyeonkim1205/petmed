@@ -140,7 +140,8 @@
       "allDone": "오늘 약을 모두 챙겼어요",
       "remaining": "{name} 남았어요",
       "remainingMore": "{name} 외 {count}개 남았어요",
-      "dose": "복용"
+      "dose": "복용",
+      "doseN": "{n}회"
     }
   },
   "record": {
