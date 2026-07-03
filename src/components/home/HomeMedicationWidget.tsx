@@ -8,8 +8,6 @@ import { Pill, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
 
-type TFn = (key: string, values?: Record<string, string | number>) => string;
-
 // 홈 "오늘의 복약" 위젯 — 평소엔 V5(한 줄 요약), 탭하면 V1(체크 리스트)로 펼침.
 // 체크는 medication_checks 에 저장되어 캘린더와 동일 데이터(같은 테이블) 공유.
 // 복용 중인 약이 없으면 null 반환 → 홈에서 자동 숨김.
@@ -18,14 +16,6 @@ function parseDoseCount(frequency: string): number {
   if (frequency.includes('3회')) return 3;
   if (frequency.includes('2회')) return 2;
   return 1;
-}
-
-function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }, t: TFn): string[] {
-  const count = parseDoseCount(med.frequency);
-  const times = med.alarm_times;
-  if (times && times.length === count) return times;
-  if (count === 1) return [t('home.medWidget.dose')];
-  return Array.from({ length: count }, (_, i) => t('record.form.doseNth', { n: i + 1 }));
 }
 
 function localTodayISO(): string {
@@ -140,10 +130,16 @@ export function HomeMedicationWidget() {
           <div className="space-y-1.5">
             {meds.map((med) => {
               const doseCount = parseDoseCount(med.frequency);
-              const labels = getDoseLabels(med, t);
+              // 알람 ON + 시각 개수가 횟수와 맞으면 회차별 실제 시각 사용, 아니면 시각 없음(빈배열=알람 OFF).
+              const times =
+                med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
+                  ? med.alarm_times
+                  : null;
               const petName = med.pets?.name;
-              return labels.map((label, di) => {
+              return Array.from({ length: doseCount }, (_, di) => {
                 const isChecked = checks.some((c) => c.medication_id === med.id && c.dose_number === di && c.checked);
+                // 라벨: 시각 있으면 시각(1일 1회 포함), 없고 다회차면 "N회차", 단회+알람없음이면 라벨 없음.
+                const label = times ? times[di] : doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null;
                 return (
                   <button
                     key={`${med.id}-${di}`}
@@ -154,15 +150,11 @@ export function HomeMedicationWidget() {
                       {isChecked && <Check size={12} />}
                     </span>
                     <div className="flex-1 min-w-0">
-                      {doseCount === 1 ? (
-                        <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                          {med.name}{petName ? ` · ${petName}` : ''}
-                        </p>
-                      ) : (
-                        <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                          {med.name} <span className="text-gray-400 font-normal">{label}</span>{petName ? <span className="text-gray-400 font-normal"> · {petName}</span> : null}
-                        </p>
-                      )}
+                      <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                        {med.name}
+                        {label ? <span className="text-gray-400 font-normal"> {label}</span> : null}
+                        {petName ? <span className="text-gray-400 font-normal"> · {petName}</span> : null}
+                      </p>
                     </div>
                   </button>
                 );
