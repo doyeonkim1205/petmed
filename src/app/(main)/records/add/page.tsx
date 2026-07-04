@@ -26,13 +26,13 @@ import { sortPetsWithDefault } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
 
-// 2×2 그리드 배치 순서: [증상 · 일상] / [진료 · 입퇴원]
-// 라벨은 messages 로 분리(labelKey) — 입퇴원은 그리드 공간상 숏폼 사용.
+// 한 줄 4버튼 배치 순서: 증상 · 진료 · 입퇴원 · 일상 (의료성 기록 먼저, 일상 맨 뒤)
+// 라벨은 typeShort(증상/진료/입퇴원/일상) 사용 — "기록" 중복 제거 + 좁은 4버튼에 맞춰 통일.
 const recordTypes = [
-  { id: 'symptom' as RecordType, labelKey: 'record.type.symptom', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
-  { id: 'daily' as RecordType, labelKey: 'record.type.daily', icon: PawPrint, color: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300' },
-  { id: 'visit' as RecordType, labelKey: 'record.type.visit', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+  { id: 'symptom' as RecordType, labelKey: 'record.typeShort.symptom', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
+  { id: 'visit' as RecordType, labelKey: 'record.typeShort.visit', icon: Stethoscope, color: 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   { id: 'hospitalization' as RecordType, labelKey: 'record.typeShort.hospitalization', icon: Building2, color: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+  { id: 'daily' as RecordType, labelKey: 'record.typeShort.daily', icon: PawPrint, color: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300' },
 ];
 
 
@@ -695,9 +695,9 @@ export default function RecordAddPage() {
           />
         )}
 
-        {/* Record Type Selection — 2×2 그리드 (증상·일상 / 진료·입퇴원) */}
+        {/* Record Type Selection — 한 줄 4버튼 (증상·일상·진료·입퇴원), 아이콘 위·라벨 아래 */}
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {recordTypes.map((type) => {
               const Icon = type.icon;
               return (
@@ -705,7 +705,7 @@ export default function RecordAddPage() {
                   key={type.id}
                   type="button"
                   onClick={() => handleTypeChange(type.id)}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-xs font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
