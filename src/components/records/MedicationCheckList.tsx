@@ -7,20 +7,10 @@ import { Pill, Check } from 'lucide-react';
 import { useMedications } from '@/hooks/useMedications';
 import { MedicationCheck } from '@/lib/supabase';
 
-type TFn = ReturnType<typeof useTranslations>;
-
 interface MedicationCheckListProps {
   petId?: string;
   date?: string;
   card?: boolean;   // 홈에서 흰 카드로 감싸 노출 (복약 있을 때만 — 빈 경우 null 반환이라 카드도 안 뜸)
-}
-
-function getDoseLabels(med: { frequency: string; alarm_times?: string[] | null }, t: TFn): string[] {
-  const count = parseDoseCount(med.frequency);
-  const times = med.alarm_times;
-  if (times && times.length === count) return times;
-  if (count === 1) return [t('home.medWidget.dose')];
-  return Array.from({ length: count }, (_, i) => t('record.form.doseNth', { n: i + 1 }));
 }
 
 function parseDoseCount(frequency: string): number {
@@ -94,13 +84,50 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
 
   if (medications.length === 0) return null;
 
-  // Total dose slots and checked count
+  // 회차 단위로 평탄화 후 시각순 정렬 (홈 위젯과 동일한 "시간표"). 색점으로 약을 구분.
+  // 회차 수의 진실원은 doseCount(빈도)라 alarm_times 가 아니라 doseCount 로 펼침 → 알람 OFF 약도
+  // 회차만큼 남아 맨 아래로 가고, 체크(dose_number 0..n-1) 무결성도 유지됨.
+  type DoseItem = {
+    medId: string; doseIndex: number; time: string | null; hasTime: boolean;
+    ordinal: string | null; freqHint: string | null; color: string; petName?: string; medName: string;
+  };
+  const doses: DoseItem[] = medications.flatMap((med) => {
+    const doseCount = parseDoseCount(med.frequency);
+    const times =
+      med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
+        ? med.alarm_times
+        : null;
+    return Array.from({ length: doseCount }, (_, di) => ({
+      medId: med.id,
+      doseIndex: di,
+      time: times ? times[di] : null,
+      hasTime: !!times,
+      // 시각 없는 다회차 → "N회차"(기록장은 편집기와 맞춰 '회차' 유지). 시각 없는 1회차 → 빈도 힌트.
+      ordinal: !times && doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null,
+      freqHint: !times && doseCount === 1 ? med.frequency : null,
+      color: med.color || '#3B82F6',
+      petName: med.pets?.name,
+      medName: med.name,
+    }));
+  });
+  // 시각 있는 회차(시간 오름차순) → 시각 없는 회차(맨 아래). 동률은 펫 → 약이름 → 회차 순 안정 정렬.
+  doses.sort((a, b) => {
+    if (a.hasTime !== b.hasTime) return a.hasTime ? -1 : 1;
+    if (a.time && b.time && a.time !== b.time) return a.time < b.time ? -1 : 1;
+    const p = (a.petName ?? '').localeCompare(b.petName ?? '');
+    if (p) return p;
+    const n = a.medName.localeCompare(b.medName);
+    if (n) return n;
+    return a.doseIndex - b.doseIndex;
+  });
+
   const totalDoses = medications.reduce((sum, med) => sum + parseDoseCount(med.frequency), 0);
   const checkedCount = checks.filter((c) => c.checked).length;
+  const pct = totalDoses ? Math.round((checkedCount / totalDoses) * 100) : 0;
 
   return (
     <div className={card ? 'bg-white rounded-2xl border border-gray-100 px-4 py-3' : 'px-4 py-3'}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Pill size={18} className="text-blue-600" />
           <h4 className="font-semibold text-sm text-gray-900">
@@ -118,76 +145,45 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
         </span>
       </div>
 
-      <div className="space-y-2">
-        {medications.map((med) => {
-          const doseCount = parseDoseCount(med.frequency);
-          const labels = getDoseLabels(med, t);
-          const petName = med.pets?.name;
-          // 알람 ON + 회차 수와 시각 수가 일치할 때만 실제 시각. 1일 1회도 여기 포함돼 시간이 뜸.
-          const times =
-            med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
-              ? med.alarm_times
-              : null;
+      {/* 진행바 — 완료 비율(체크된 회차 / 전체 회차). 체크 색(초록)과 통일. */}
+      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-2.5">
+        <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+      </div>
 
+      {/* 회차 단위 한 줄 시간표 — 체크 · 색점 · 시각 · 약이름 · 펫 (모든 줄 동일 형식) */}
+      <div className="space-y-1.5">
+        {doses.map((dose) => {
+          const isChecked = checks.some(
+            (c) => c.medication_id === dose.medId && c.dose_number === dose.doseIndex && c.checked
+          );
           return (
-            <div key={med.id} className="space-y-1.5">
-              {/* Medication name header (only if multi-dose) */}
-              {doseCount > 1 && (
-                <div className="flex items-center gap-2 px-1">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: med.color || '#3B82F6' }} />
-                  <span className="text-xs font-medium text-gray-500">
-                    {med.name}
-                    {med.dosage && ` ${med.dosage}`}
-                    {petName && ` - ${petName}`}
-                  </span>
-                </div>
-              )}
-              {labels.map((label, doseIdx) => {
-                const isChecked = checks.some(
-                  (c) => c.medication_id === med.id && c.dose_number === doseIdx && c.checked
-                );
-                return (
-                  <button
-                    key={`${med.id}-${doseIdx}`}
-                    onClick={() => handleToggle(med.id, doseIdx)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
-                      isChecked
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                        isChecked
-                          ? 'bg-green-500 border-green-500 text-[#fff]'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {isChecked && <Check size={14} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {doseCount === 1 ? (
-                        <>
-                          <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                            {times ? <span className="text-gray-400 font-normal tabular-nums">{times[0]} </span> : null}
-                            {med.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {med.dosage && `${med.dosage} `}
-                            {med.frequency}
-                            {petName && ` - ${petName}`}
-                          </p>
-                        </>
-                      ) : (
-                        <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
-                          {label}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              key={`${dose.medId}-${dose.doseIndex}`}
+              onClick={() => handleToggle(dose.medId, dose.doseIndex)}
+              className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg transition-colors text-left ${
+                isChecked
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
+              }`}
+            >
+              <span
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
+                  isChecked ? 'bg-green-500 border-green-500 text-[#fff]' : 'border-gray-300'
+                }`}
+              >
+                {isChecked && <Check size={12} />}
+              </span>
+              <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: dose.color }} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-[13px] font-medium truncate ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                  {dose.time ? <span className="text-gray-400 font-normal tabular-nums">{dose.time} </span> : null}
+                  {dose.medName}
+                  {dose.ordinal ? <span className="text-gray-400 font-normal"> {dose.ordinal}</span> : null}
+                  {dose.petName ? <span className="text-gray-400 font-normal"> · {dose.petName}</span> : null}
+                  {dose.freqHint ? <span className="text-gray-400 font-normal"> · {dose.freqHint}</span> : null}
+                </p>
+              </div>
+            </button>
           );
         })}
       </div>
