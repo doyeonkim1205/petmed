@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock, ChevronRight } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
+import { getEffectivePlan } from '@/lib/plans';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { supabase } from '@/lib/supabase';
 import { PetSelector } from '@/components/records/PetSelector';
@@ -76,7 +77,8 @@ export default function RecordsPage() {
   const [newPet, setNewPet] = useState<PetFormState>(EMPTY_PET_FORM);
   const [petFormError, setPetFormError] = useState<string | null>(null);
   const [savingPet, setSavingPet] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
+  const isPlus = getEffectivePlan(profile?.plan) === 'plus';
   const router = useRouter();
   const { records, loading, error, fetchRecords, deleteRecords } = useHealthRecords(selectedPetId || undefined);
   const [selectMode, setSelectMode] = useState(false);
@@ -397,6 +399,28 @@ export default function RecordsPage() {
                   );
                 })}
               </div>
+
+              {/* 검사 수치 (Plus 전용) — 시안. 그리드 밖 별도 카드. TODO: /records/labs 연결 + i18n */}
+              <button
+                onClick={() => router.push('/profile/subscription')}
+                className="w-full mb-2 flex items-center gap-3 p-3.5 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-blue-50 text-left active:scale-[0.99] transition-transform"
+              >
+                <span className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <FlaskConical size={20} className="text-indigo-500" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-bold text-gray-900">검사 수치</p>
+                    {!isPlus && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">
+                        <Lock size={9} /> Plus 전용
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-0.5 truncate">BUN·크레아티닌·간수치 추이 관리</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+              </button>
               {records.length === 0 ? (
                 <div className="text-center py-16">
                   <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
