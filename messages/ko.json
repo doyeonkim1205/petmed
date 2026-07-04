@@ -160,7 +160,6 @@
       "manual": "수동"
     },
     "tab": { "records": "기록", "calendar": "캘린더" },
-    "filterTypeLabel": "기록 종류",
     "module": {
       "stats": "건강 통계",
       "expenses": "지출 관리",

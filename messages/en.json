@@ -160,7 +160,6 @@
       "manual": "Manual"
     },
     "tab": { "records": "Records", "calendar": "Calendar" },
-    "filterTypeLabel": "Record type",
     "module": {
       "stats": "Health Stats",
       "expenses": "Expenses",
