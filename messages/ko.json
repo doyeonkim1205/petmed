@@ -199,7 +199,8 @@
     },
     "section": {
       "basicInfo": "기본 정보",
-      "visitInfo": "진료 정보",
+      "visitDetail": "진료 상세",
+      "hospitalizationDetail": "입퇴원 상세",
       "medicationInfo": "투약 정보"
     },
     "field": {

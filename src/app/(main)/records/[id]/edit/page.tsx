@@ -801,7 +801,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           <>
             <div className="flex items-center gap-2 mt-1 py-2 bg-blue-50 -mx-4 px-4">
               <Stethoscope size={16} className="text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">{t('record.section.visitInfo')}</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{recordType === 'hospitalization' ? t('record.section.hospitalizationDetail') : t('record.section.visitDetail')}</h3>
             </div>
 
             {/* Description (진료/입퇴원 → 진료정보에) */}
