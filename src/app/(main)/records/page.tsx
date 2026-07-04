@@ -91,6 +91,8 @@ export default function RecordsPage() {
   const [showQuickBar, setShowQuickBar] = useState(false);
   // 2단 고정: 필터(검사 아래 선+칩)의 sticky top = 글로벌헤더(48) + 기록헤더(펫+탭) 높이. 아래 effect에서 실측.
   const [stickyTop, setStickyTop] = useState(88);
+  // 검사 수치 카드 = 기능 미완성 → 프로덕션(pawdex.store)에선 숨김, 프리뷰/로컬에서만 시안 노출.
+  const [showLabCard, setShowLabCard] = useState(false);
 
   const handleAddPet = async () => {
     if (!user) return;
@@ -220,6 +222,11 @@ export default function RecordsPage() {
     return () => obs.disconnect();
   }, [activeTab, loading, error, selectMode, petCount]);
 
+  // 검사 수치 시안: 프로덕션 도메인(pawdex.store)에선 숨기고, 프리뷰/로컬에서만 노출(기능 미완성).
+  useEffect(() => {
+    setShowLabCard(window.location.hostname !== 'pawdex.store');
+  }, []);
+
   if (authLoading) {
     return (
       <div className="bg-white min-h-[calc(100vh-8rem)] animate-pulse p-4 max-w-sm mx-auto">
@@ -291,7 +298,7 @@ export default function RecordsPage() {
           </div>
         </div>
       ) : activeTab === 'records' ? (
-        <div className="flex flex-col gap-2 p-4 max-w-sm mx-auto">
+        <div className="flex flex-col gap-2 px-4 pt-2.5 pb-4 max-w-sm mx-auto">
           {loading ? (
             <div className="py-20 space-y-3">
               {[1, 2, 3].map((i) => (
@@ -330,10 +337,11 @@ export default function RecordsPage() {
                 })}
               </div>
 
-              {/* 검사 수치 (Plus 전용) — 시안. 그리드 밖 별도 카드(그리드셀 높이에 맞춤). TODO: /records/labs 연결 + i18n */}
+              {/* 검사 수치 (Plus 전용) — 시안. 프로덕션(pawdex.store)에선 숨김(기능 미완성), 프리뷰에서만 노출. TODO: /records/labs 연결 + i18n */}
+              {showLabCard && (
               <button
                 onClick={() => router.push('/profile/subscription')}
-                className={`w-full mb-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
+                className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
                   isPlus ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50'
                 }`}
               >
@@ -345,6 +353,7 @@ export default function RecordsPage() {
                   </span>
                 )}
               </button>
+              )}
 
               {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
               <div className="sticky z-20 bg-white -mx-4 px-4" style={{ top: stickyTop }}>
