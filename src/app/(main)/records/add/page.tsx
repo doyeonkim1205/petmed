@@ -486,8 +486,8 @@ export default function RecordAddPage() {
       if (dischargeDate && dischargeDate < visitDate) {
         showError(t('record.form.error.dischargeAfterAdmission')); return;
       }
-      if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-        showError(recordType === 'hospitalization' ? t('record.form.error.appointmentAfterAdmission') : t('record.form.error.appointmentAfterVisit')); return;
+      if (recordType === 'visit' && nextAppointmentDate && nextAppointmentDate < visitDate) {
+        showError(t('record.form.error.appointmentAfterVisit')); return;
       }
       const emptyNameMed = medications.find(m => !m.name.trim());
       if (emptyNameMed) {
@@ -550,8 +550,9 @@ export default function RecordAddPage() {
           cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
           color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
           discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
-          next_appointment_date: nextAppointmentDate || undefined,
-          next_appointment_color: nextAppointmentDate ? nextAppointmentColor : undefined,
+          // 다음 예약은 진료만 — 입퇴원에서 유형 전환 등으로 상태가 남아도 저장 안 되게 가드.
+          next_appointment_date: recordType === 'visit' && nextAppointmentDate ? nextAppointmentDate : undefined,
+          next_appointment_color: recordType === 'visit' && nextAppointmentDate ? nextAppointmentColor : undefined,
           symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
           weight: weight ? Number(weight) : undefined,
         });
@@ -705,7 +706,7 @@ export default function RecordAddPage() {
                   key={type.id}
                   type="button"
                   onClick={() => handleTypeChange(type.id)}
-                  className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-xs font-medium ${
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-sm font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
@@ -1013,6 +1014,8 @@ export default function RecordAddPage() {
               />
             </div>
 
+            {/* 다음 예약일 — 진료만. 입퇴원은 입원~퇴원 타임라인이 핵심이라 다음 예약은 별도 진료 기록으로. */}
+            {recordType === 'visit' && (
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 {t('record.field.nextAppointment')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
@@ -1029,6 +1032,7 @@ export default function RecordAddPage() {
                 </div>
               )}
             </div>
+            )}
           </>
         )}
 
