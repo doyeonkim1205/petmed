@@ -461,7 +461,7 @@ export default function PreventivePage() {
                 )}
                 <input
                   type="search"
-                  placeholder={form.category === 'other' ? t('preventive.otherNamePlaceholder') : t('preventive.productPlaceholder')}
+                  placeholder={t('preventive.productPlaceholder')}
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   maxLength={24}
