@@ -433,8 +433,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       if (dischargeDate && dischargeDate < visitDate) {
         showError(t('record.form.error.dischargeAfterAdmission')); return;
       }
-      if (nextAppointmentDate && nextAppointmentDate < visitDate) {
-        showError(recordType === 'hospitalization' ? t('record.form.error.appointmentAfterAdmission') : t('record.form.error.appointmentAfterVisit')); return;
+      if (recordType === 'visit' && nextAppointmentDate && nextAppointmentDate < visitDate) {
+        showError(t('record.form.error.appointmentAfterVisit')); return;
       }
       const emptyNameMed = medications.find(m => !m.name.trim());
       if (emptyNameMed) {
@@ -490,8 +490,9 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
           color: recordColor,
           discharge_date: dischargeDate || null,
-          next_appointment_date: nextAppointmentDate || null,
-          next_appointment_color: nextAppointmentDate ? nextAppointmentColor : null,
+          // 다음 예약은 진료만 — 입퇴원 기록엔 저장 안 함(유형 전환/기존 상태 잔존 방지).
+          next_appointment_date: recordType === 'visit' && nextAppointmentDate ? nextAppointmentDate : null,
+          next_appointment_color: recordType === 'visit' && nextAppointmentDate ? nextAppointmentColor : null,
           symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
           weight: weight ? Number(weight) : null,
         } as any);
@@ -923,7 +924,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
               />
             </div>
 
-            {/* Next Appointment Date */}
+            {/* Next Appointment Date — 진료만. 입퇴원은 입원~퇴원 타임라인이 핵심이라 제외. */}
+            {recordType === 'visit' && (
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 {t('record.field.nextAppointment')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
@@ -940,6 +942,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 </div>
               )}
             </div>
+            )}
           </>
         )}
 
