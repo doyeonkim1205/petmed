@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock, SlidersHorizontal } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getEffectivePlan } from '@/lib/plans';
@@ -13,6 +13,7 @@ import { PetSelector } from '@/components/records/PetSelector';
 import { RecordCard } from '@/components/records/RecordCard';
 import { CalendarView } from '@/components/records/CalendarView';
 import { MedicationCheckList } from '@/components/records/MedicationCheckList';
+import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
@@ -79,6 +80,7 @@ export default function RecordsPage() {
   const [savingPet, setSavingPet] = useState(false);
   const { user, profile, loading: authLoading } = useAuth();
   const isPlus = getEffectivePlan(profile?.plan) === 'plus';
+  const [showTypeFilter, setShowTypeFilter] = useState(false);
   const router = useRouter();
   const { records, loading, error, fetchRecords, deleteRecords } = useHealthRecords(selectedPetId || undefined);
   const [selectMode, setSelectMode] = useState(false);
@@ -293,28 +295,28 @@ export default function RecordsPage() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-4 py-2 overflow-x-auto max-w-sm mx-auto">
-              {filterOptions.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => handleFilterChange(f.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    recordFilter === f.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  {f.id === 'all' ? t('common.all') : t(`record.typeShort.${f.id}`)}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
-                </button>
-              ))}
-              {filteredRecords.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-2 max-w-sm mx-auto">
+              {/* 좌: 선택(일괄) 진입 — 기록 있을 때만 (지금 '전체' 자리) */}
+              {filteredRecords.length > 0 ? (
                 <button
                   onClick={() => setSelectMode(true)}
-                  className="flex-shrink-0 ml-auto px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
                 >
                   {t('record.select.enter')}
                 </button>
-              )}
+              ) : <span />}
+              {/* 우: 활성 필터(개수) + 필터 아이콘 (지금 '선택' 자리). 반려동물은 상단 칩 유지 → 여기선 기록 종류만 */}
+              <button
+                onClick={() => setShowTypeFilter(true)}
+                className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  recordFilter !== 'all' ? 'text-blue-600 bg-blue-50' : 'text-gray-500 bg-gray-100'
+                }`}>
+                  {recordFilter === 'all' ? t('common.all') : t(`record.typeShort.${recordFilter}`)} {filterCounts[recordFilter]}
+                </span>
+                <SlidersHorizontal size={16} className={recordFilter !== 'all' ? 'text-blue-600' : 'text-gray-400'} />
+              </button>
             </div>
           )
         )}
@@ -500,6 +502,25 @@ export default function RecordsPage() {
         onConfirm={() => setDeleteError(null)}
         onCancel={() => setDeleteError(null)}
       />
+
+      {/* 기록 종류 필터 시트 (건강통계·타임라인과 동일 FilterSheet). 개수는 라벨에 포함. */}
+      <FilterSheet
+        open={showTypeFilter}
+        title={t('common.filter')}
+        closeLabel={t('common.close')}
+        doneLabel={t('common.done')}
+        onClose={() => setShowTypeFilter(false)}
+      >
+        <PeriodSection
+          label={t('record.filterTypeLabel')}
+          value={recordFilter}
+          onChange={(id) => handleFilterChange(id as RecordFilter)}
+          options={filterOptions.map((f) => ({
+            id: f.id,
+            label: `${f.id === 'all' ? t('common.all') : t(`record.typeShort.${f.id}`)} ${filterCounts[f.id]}`,
+          }))}
+        />
+      </FilterSheet>
     </div>
   );
 }
