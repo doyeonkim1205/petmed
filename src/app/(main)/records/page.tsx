@@ -89,6 +89,8 @@ export default function RecordsPage() {
   const headerRef = useRef<HTMLDivElement>(null);
   const quickRef = useRef<HTMLDivElement>(null);
   const [showQuickBar, setShowQuickBar] = useState(false);
+  // 2단 고정: 필터(검사 아래 선+칩)의 sticky top = 글로벌헤더(48) + 기록헤더(펫+탭) 높이. 아래 effect에서 실측.
+  const [stickyTop, setStickyTop] = useState(88);
 
   const handleAddPet = async () => {
     if (!user) return;
@@ -209,6 +211,7 @@ export default function RecordsPage() {
     const el = quickRef.current;
     if (!el) { setShowQuickBar(false); return; }
     const headerH = headerRef.current?.offsetHeight ?? 0;
+    setStickyTop(48 + headerH); // 필터 tier2 가 기록헤더(펫+탭) 밑에 딱 걸리도록
     const obs = new IntersectionObserver(
       ([entry]) => setShowQuickBar(!entry.isIntersecting),
       { rootMargin: `-${48 + headerH}px 0px 0px 0px`, threshold: 0 },
@@ -262,80 +265,7 @@ export default function RecordsPage() {
             );
           })}
         </div>
-        {activeTab === 'records' && (
-          selectMode ? (
-            <div className="flex items-center justify-between px-4 py-2 max-w-sm mx-auto">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleSelectAll}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    filteredRecords.length > 0 && selectedIds.size === filteredRecords.length
-                      ? 'border-blue-600 bg-blue-600'
-                      : 'border-gray-300'
-                  }`}
-                >
-                  {filteredRecords.length > 0 && selectedIds.size === filteredRecords.length && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </button>
-                <span className="text-sm text-gray-600">
-                  {selectedIds.size > 0 ? t('record.select.count', { count: selectedIds.size }) : t('record.select.all')}
-                </span>
-              </div>
-              <button
-                onClick={exitSelectMode}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
-              >
-                <X size={14} />
-                {t('common.cancel')}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-4 py-2 overflow-x-auto max-w-sm mx-auto">
-              {filterOptions.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => handleFilterChange(f.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    recordFilter === f.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  {f.id === 'all' ? t('common.all') : t(`record.typeShort.${f.id}`)}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
-                </button>
-              ))}
-              {filteredRecords.length > 0 && (
-                <button
-                  onClick={() => setSelectMode(true)}
-                  className="flex-shrink-0 ml-auto px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
-                >
-                  {t('record.select.enter')}
-                </button>
-              )}
-            </div>
-          )
-        )}
         </div>
-        {activeTab === 'records' && !selectMode && showQuickBar && (
-          <div className="flex gap-1.5 px-4 pb-2 pt-1.5 max-w-sm mx-auto border-t border-gray-50">
-            {QUICK_LINKS.map((q) => {
-              const Icon = q.icon;
-              return (
-                <button
-                  key={q.href}
-                  onClick={() => router.push(q.href)}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-white border border-gray-200 active:bg-gray-50 transition-colors"
-                >
-                  <Icon size={13} className={`${q.color} flex-shrink-0`} />
-                  <span className="text-[11px] font-bold text-gray-600">{t(`record.moduleShort.${q.key}`)}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {petCount === 0 ? (
@@ -415,6 +345,82 @@ export default function RecordsPage() {
                   </span>
                 )}
               </button>
+
+              {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
+              <div className="sticky z-20 bg-white -mx-4 px-4" style={{ top: stickyTop }}>
+                {!selectMode && showQuickBar && (
+                  <div className="flex gap-1.5 pt-1 pb-2 max-w-sm mx-auto">
+                    {QUICK_LINKS.map((q) => {
+                      const Icon = q.icon;
+                      return (
+                        <button
+                          key={q.href}
+                          onClick={() => router.push(q.href)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-white border border-gray-200 active:bg-gray-50 transition-colors"
+                        >
+                          <Icon size={13} className={`${q.color} flex-shrink-0`} />
+                          <span className="text-[11px] font-bold text-gray-600">{t(`record.moduleShort.${q.key}`)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="border-t border-gray-100 max-w-sm mx-auto" />
+                {selectMode ? (
+                  <div className="flex items-center justify-between py-2 max-w-sm mx-auto">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={toggleSelectAll}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          filteredRecords.length > 0 && selectedIds.size === filteredRecords.length
+                            ? 'border-blue-600 bg-blue-600'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {filteredRecords.length > 0 && selectedIds.size === filteredRecords.length && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        {selectedIds.size > 0 ? t('record.select.count', { count: selectedIds.size }) : t('record.select.all')}
+                      </span>
+                    </div>
+                    <button
+                      onClick={exitSelectMode}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                    >
+                      <X size={14} />
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 py-2 overflow-x-auto max-w-sm mx-auto">
+                    {filterOptions.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => handleFilterChange(f.id)}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          recordFilter === f.id
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {f.id === 'all' ? t('common.all') : t(`record.typeShort.${f.id}`)}{recordFilter === f.id ? ` ${filterCounts[f.id]}` : ''}
+                      </button>
+                    ))}
+                    {filteredRecords.length > 0 && (
+                      <button
+                        onClick={() => setSelectMode(true)}
+                        className="flex-shrink-0 ml-auto px-3 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                      >
+                        {t('record.select.enter')}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               {records.length === 0 ? (
                 <div className="text-center py-16">
                   <ClipboardList size={40} className="mx-auto mb-3 text-gray-200" />
