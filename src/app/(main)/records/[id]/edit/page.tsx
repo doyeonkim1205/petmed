@@ -442,11 +442,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
       const noEndMed = medications.find(m => m.name.trim() && !m.end_date);
       if (noEndMed) {
-        showError(t('record.form.error.medEndRequired', { name: noEndMed.name })); return;
+        showError(t('record.form.error.medEndRequired')); return;
       }
       const badMed = medications.find(m => m.end_date && m.end_date < m.start_date);
       if (badMed) {
-        showError(t('record.form.error.medEndAfterStart', { name: badMed.name })); return;
+        showError(t('record.form.error.medEndAfterStart')); return;
       }
     }
 
