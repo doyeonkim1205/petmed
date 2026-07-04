@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     supabase.from('payment_history').select('amount').eq('status', 'done').eq('environment', 'production'),
     // 구독 지표는 행 수가 아니라 distinct user_id 로 센다(과거/중복 행 방지).
     //   상태별 분리: 자동갱신(active) vs 해지예정(canceled + 기간 미래).
-    supabase.from('subscriptions').select('user_id, status, period_end'),
+    supabase.from('subscriptions').select('user_id, status, period_end, canceled_at'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
     supabase.from('profiles').select('plan'),
   ]);
@@ -44,14 +44,20 @@ export async function GET(request: Request) {
   // 구독 지표 — "활성 구독자" 단일 숫자(status='active' 행 수)는 해지했지만 기간 남은
   //   유저를 놓치고 행 중복도 못 거른다. 그래서 셋으로 분리해 distinct user_id 로 집계:
   //   - plusUsers     : profiles.plan='plus' = 현재 Plus 권한 보유자(앱이 실제로 보는 값)
-  //   - autoRenewing  : status='active'           = 자동갱신 중
-  //   - canceling     : status='canceled' & 기간 미래 = 해지했지만 아직 이용 가능(해지 예정)
+  //   - autoRenewing  : status='active' & canceled_at 없음 & 기간 미래 = 자동갱신 중
+  //   - canceling     : (status='canceled' or canceled_at 있음) & 기간 미래 = 해지 예정(만료까지 이용)
+  // ⚠️ 해지 판정을 status 만으로 하면 안 된다 — 스토어(구글/애플) 해지는 status='active' 를 유지한 채
+  //    canceled_at 만 찍는다(자동갱신 OFF). status='canceled' 는 토스 직접해지에서만 세팅됨.
+  //    따라서 canceled_at 도 함께 봐야 자동갱신/해지예정이 실제와 일치한다(푸시 크론과 동일 기준).
   const nowIso = new Date().toISOString();
   const autoRenewSet = new Set<string>();
   const cancelingSet = new Set<string>();
-  for (const s of (subsRows || []) as { user_id: string; status: string; period_end: string | null }[]) {
-    if (s.status === 'active') autoRenewSet.add(s.user_id);
-    else if (s.status === 'canceled' && s.period_end && s.period_end > nowIso) cancelingSet.add(s.user_id);
+  for (const s of (subsRows || []) as { user_id: string; status: string; period_end: string | null; canceled_at: string | null }[]) {
+    const inPeriod = !!s.period_end && s.period_end > nowIso;
+    if (!inPeriod) continue; // 만료 행은 자동갱신도 해지예정도 아님
+    const isCanceled = s.status === 'canceled' || !!s.canceled_at;
+    if (isCanceled) cancelingSet.add(s.user_id);
+    else if (s.status === 'active') autoRenewSet.add(s.user_id);
   }
   const plusUsers = counts['plus'] || 0;
   const autoRenewing = autoRenewSet.size;

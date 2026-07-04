@@ -26,8 +26,8 @@ import { sortPetsWithDefault } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
 
-// 2×2 그리드 배치 순서: [증상 · 일상] / [진료 · 입퇴원]
-// 라벨은 messages 로 분리(labelKey) — 입퇴원은 그리드 공간상 숏폼 사용.
+// 한 줄 4버튼 배치 순서: 증상 · 일상 · 진료 · 입퇴원
+// 라벨은 messages 로 분리(labelKey) — 입퇴원은 좁은 버튼 공간상 숏폼 사용.
 const recordTypes = [
   { id: 'symptom' as RecordType, labelKey: 'record.type.symptom', icon: AlertCircle, color: 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300' },
   { id: 'daily' as RecordType, labelKey: 'record.type.daily', icon: PawPrint, color: 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300' },
@@ -695,9 +695,9 @@ export default function RecordAddPage() {
           />
         )}
 
-        {/* Record Type Selection — 2×2 그리드 (증상·일상 / 진료·입퇴원) */}
+        {/* Record Type Selection — 한 줄 4버튼 (증상·일상·진료·입퇴원), 아이콘 위·라벨 아래 */}
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {recordTypes.map((type) => {
               const Icon = type.icon;
               return (
@@ -705,7 +705,7 @@ export default function RecordAddPage() {
                   key={type.id}
                   type="button"
                   onClick={() => handleTypeChange(type.id)}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-xs font-medium ${
                     recordType === type.id ? type.color : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >

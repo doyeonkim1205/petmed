@@ -93,17 +93,19 @@ export async function GET(request: Request) {
   };
   const { data: liveRows } = await supabase
     .from('subscriptions')
-    .select('user_id, store, status, period_end')
+    .select('user_id, store, status, period_end, canceled_at')
     .order('period_end', { ascending: false }); // 가장 늦은 만료일 먼저
   const userPlatform = new Map<string, 'ios' | 'android' | 'web'>();
   const autoRenewSet = new Set<string>();
   const cancelingSet = new Set<string>();
-  for (const r of (liveRows || []) as { user_id: string; store: string | null; status: string; period_end: string | null }[]) {
-    const isActive = r.status === 'active';
-    const isCancelingValid = r.status === 'canceled' && !!r.period_end && r.period_end > nowIso;
-    if (!isActive && !isCancelingValid) continue; // 만료/완전해지는 제외
-    if (isActive) autoRenewSet.add(r.user_id);
-    if (isCancelingValid) cancelingSet.add(r.user_id);
+  for (const r of (liveRows || []) as { user_id: string; store: string | null; status: string; period_end: string | null; canceled_at: string | null }[]) {
+    const inPeriod = !!r.period_end && r.period_end > nowIso;
+    if (!inPeriod) continue; // 만료/완전해지는 제외
+    // 스토어(구글/애플) 해지는 status='active'+canceled_at 라 canceled_at 도 봐야 함(stats route 와 동일 기준).
+    const isCanceled = r.status === 'canceled' || !!r.canceled_at;
+    if (isCanceled) cancelingSet.add(r.user_id);
+    else if (r.status === 'active') autoRenewSet.add(r.user_id);
+    else continue; // active/canceled 아닌 기타 상태는 집계·플랫폼 카운트에서 제외
     if (!userPlatform.has(r.user_id)) {
       const p = storeToPlatform(r.store);
       if (p) userPlatform.set(r.user_id, p);
