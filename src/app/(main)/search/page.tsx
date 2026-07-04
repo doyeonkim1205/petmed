@@ -859,21 +859,24 @@ function SearchContent() {
           </div>
         </form>
         {/* Usage count badge (+ symptom 모드 글자수). 한 줄에 왼쪽 카운트 · 오른쪽 글자수 배치로 헤더 세로공간 절약. */}
-        {searchMode === 'disease' && usageInfo && (() => {
+        {searchMode === 'disease' && (() => {
           // Optimistic 표시: logSearch POST 가 비행 중이면 +1 즉시 반영.
           // 서버 응답이 오면 useEffect [lastLogResult] 가 usageInfo.used 를 확정값으로 덮어씀.
-          const displayUsed = usageInfo.used + (pubmed.pendingCount ? 1 : 0);
+          const displayUsed = (usageInfo?.used ?? 0) + (pubmed.pendingCount ? 1 : 0);
           return (
-            <div className="max-w-sm mx-auto mt-2 flex justify-center">
-              <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
-                isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
-              }`}>
-                {isPaid ? (
-                  <><Sparkles size={10} /> Plus {displayUsed}/{usageInfo.limit}</>
-                ) : (
-                  <>Free {displayUsed}/{usageInfo.limit}</>
-                )}
-              </span>
+            // 증상분석 배지와 동일 래퍼(min-h 로 공간 예약) — usageInfo 로딩 중에도 하단(최근 검색어)이 위로 안 당겨짐.
+            <div className="relative max-w-sm mx-auto mt-2 flex justify-center items-center px-1 min-h-[22px]">
+              {usageInfo && (
+                <span className={`flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-medium ${
+                  isPaid ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400'
+                }`}>
+                  {isPaid ? (
+                    <><Sparkles size={10} /> Plus {displayUsed}/{usageInfo.limit}</>
+                  ) : (
+                    <>Free {displayUsed}/{usageInfo.limit}</>
+                  )}
+                </span>
+              )}
             </div>
           );
         })()}
