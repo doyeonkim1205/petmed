@@ -459,7 +459,7 @@
     "activeCount": "복용 중 {count}",
     "endedCount": "종료 {count}",
     "addTitle": "약 추가",
-    "editTitle": "복약 수정",
+    "editTitle": "약 수정",
     "typeLabel": "종류",
     "namePlaceholder": "약·영양제 이름",
     "softPromptTitle": "투약 알림을 받을까요?",
