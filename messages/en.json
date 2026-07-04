@@ -199,7 +199,8 @@
     },
     "section": {
       "basicInfo": "Basic info",
-      "visitInfo": "Visit info",
+      "visitDetail": "Visit details",
+      "hospitalizationDetail": "Hospitalization details",
       "medicationInfo": "Medication info"
     },
     "field": {
