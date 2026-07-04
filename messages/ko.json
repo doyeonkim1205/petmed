@@ -246,7 +246,7 @@
       "editTitle": "기록 수정",
       "title": "제목",
       "memo": "메모",
-      "description": "설명",
+      "description": "내용",
       "titleLabel": { "symptom": "증상명", "hospitalization": "입원 사유", "visit": "진료 사유" },
       "titlePlaceholder": { "symptom": "예: 구토, 설사", "hospitalization": "예: 슬개골 수술, 장염 치료", "visit": "예: 건강검진, 예방접종" },
       "dateLabel": { "symptom": "발생일", "hospitalization": "입원일", "visit": "진료일" },
