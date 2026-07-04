@@ -294,6 +294,9 @@ export default function PreventivePage() {
   const CareCard = ({ c }: { c: PreventiveCare }) => {
     const meta = categoryMeta(c.category);
     const st = careStatus(c.next_due_date);
+    // '기타' 예방은 카테고리명("기타") 대신 입력한 이름을 제목으로 승격 — 지출(reason)·복약(name)과 통일.
+    const isOther = c.category === 'other';
+    const title = isOther && c.name?.trim() ? c.name : categoryLabel(c.category, t);
     return (
       <div className={`w-full flex items-center gap-3 p-3 rounded-xl border bg-white ${
         st === 'overdue' ? 'border-red-100' : st === 'soon' ? 'border-amber-100' : 'border-gray-100'
@@ -302,8 +305,8 @@ export default function PreventivePage() {
           <span className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 text-lg">{meta.emoji}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-gray-900 truncate">{categoryLabel(c.category, t)}</span>
-              {c.name && c.name !== meta.label && <span className="text-[11px] text-gray-400 truncate">{c.name}</span>}
+              <span className="text-sm font-semibold text-gray-900 truncate">{title}</span>
+              {c.name && c.name !== title && c.name !== meta.label && <span className="text-[11px] text-gray-400 truncate">{c.name}</span>}
               {c.alarm_enabled && <Bell size={11} className="flex-shrink-0 text-blue-500" />}
             </div>
             <p className="text-[11px] text-gray-400 mt-0.5 truncate">
@@ -458,7 +461,7 @@ export default function PreventivePage() {
                 )}
                 <input
                   type="search"
-                  placeholder={t('preventive.productPlaceholder')}
+                  placeholder={form.category === 'other' ? t('preventive.otherNamePlaceholder') : t('preventive.productPlaceholder')}
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   maxLength={24}

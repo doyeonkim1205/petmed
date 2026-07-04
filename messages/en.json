@@ -365,6 +365,7 @@
     "categoryLabel": "Category",
     "product": "Product",
     "productPlaceholder": "Enter product/item name (e.g. Heartgard)",
+    "otherNamePlaceholder": "What is it? (e.g. Deworming, Scaling)",
     "cycleLabel": "Interval",
     "lastDone": "Last done date",
     "nextDueCalc": "→ Next due <b>{date}</b> (auto-calculated)",

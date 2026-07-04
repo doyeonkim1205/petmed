@@ -365,6 +365,7 @@
     "categoryLabel": "카테고리",
     "product": "제품",
     "productPlaceholder": "제품·항목명 직접 입력 (예: 하트가드)",
+    "otherNamePlaceholder": "어떤 예방인지 입력 (예: 구충, 스케일링)",
     "cycleLabel": "주기",
     "lastDone": "마지막 시행일",
     "nextDueCalc": "→ 다음 예정일 <b>{date}</b> 로 자동 계산",
