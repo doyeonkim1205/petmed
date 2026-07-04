@@ -363,7 +363,7 @@
     "addTitle": "Add preventive care item",
     "editTitle": "Edit preventive care item",
     "categoryLabel": "Category",
-    "product": "Product",
+    "product": "Product/Item name",
     "productPlaceholder": "Enter product/item name (e.g. Heartgard)",
     "cycleLabel": "Interval",
     "lastDone": "Last done date",

@@ -363,7 +363,7 @@
     "addTitle": "예방 항목 추가",
     "editTitle": "예방 항목 수정",
     "categoryLabel": "카테고리",
-    "product": "제품",
+    "product": "제품명/항목명",
     "productPlaceholder": "제품·항목명 직접 입력 (예: 하트가드)",
     "cycleLabel": "주기",
     "lastDone": "마지막 시행일",
