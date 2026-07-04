@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock, ChevronRight } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getEffectivePlan } from '@/lib/plans';
@@ -403,7 +403,7 @@ export default function RecordsPage() {
               {/* 검사 수치 (Plus 전용) — 시안. 그리드 밖 별도 카드(그리드셀 높이에 맞춤). TODO: /records/labs 연결 + i18n */}
               <button
                 onClick={() => router.push('/profile/subscription')}
-                className={`w-full mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-left active:scale-[0.98] transition-transform ${
+                className={`w-full mb-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
                   isPlus ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50'
                 }`}
               >
@@ -414,7 +414,6 @@ export default function RecordsPage() {
                     <Lock size={9} /> Plus 전용
                   </span>
                 )}
-                <ChevronRight size={15} className="text-gray-300 flex-shrink-0 ml-auto" />
               </button>
               {records.length === 0 ? (
                 <div className="text-center py-16">
