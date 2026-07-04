@@ -426,9 +426,9 @@ export default function MedsPage() {
             className="w-full max-w-sm bg-white rounded-2xl max-h-[85vh] overflow-y-auto scroll-visible"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="sticky top-0 bg-white relative flex items-center justify-center px-4 py-3 border-b border-gray-100">
               <h2 className="text-base font-bold text-gray-900">{form.id ? t('meds.editTitle') : t('meds.addTitle')}</h2>
-              <button onClick={closeEditor} className="p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
+              <button onClick={closeEditor} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
             </div>
 
             <div className="p-4 space-y-3">
@@ -548,7 +548,7 @@ export default function MedsPage() {
                 disabled={saving || !form.name.trim()}
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors"
               >
-                {saving ? t('record.form.saving') : form.id ? t('common.edit') : t('common.add')}
+                {saving ? t('record.form.saving') : form.id ? t('common.save') : t('common.add')}
               </button>
 
               {form.id && (
