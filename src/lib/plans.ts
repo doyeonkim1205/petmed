@@ -32,8 +32,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     price: 0,
     maxRecords: 0, // 무제한 — 기록은 retention(데이터 묶어두기)용, 수익화 레버 아님. 저장용량(maxStorageMB)으로 비용 방어.
     // 아래 searchPerDay/symptomSearchPerDay 는 limitWindow='month' 라 "월 한도"로 해석됨.
-    searchPerDay: 10,        // 논문 검색 10회/월
-    symptomSearchPerDay: 10, // 증상 분석 10회/월
+    searchPerDay: 5,        // 논문 검색 5회/월 (Plus 대비 optics ↑, 실측상 무료 유저 최대 사용 1~2회라 영향 0)
+    symptomSearchPerDay: 5, // 증상 분석 5회/월
     symptomRefinePerDay: 1,  // 재분석은 일일 1회 (limitWindow 무관, 항상 일일)
     photoAnalysisPerDay: 0,
     // Free 유저는 평생 1회 사진 분석 체험 가능 — 가치 검증 후 Plus 전환 유도.
