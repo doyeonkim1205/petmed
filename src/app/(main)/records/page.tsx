@@ -340,7 +340,7 @@ export default function RecordsPage() {
               {/* 검사 수치 (Plus 전용) — 시안. 프로덕션(pawdex.store)에선 숨김(기능 미완성), 프리뷰에서만 노출. TODO: /records/labs 연결 + i18n */}
               {showLabCard && (
               <button
-                onClick={() => router.push('/profile/subscription')}
+                onClick={() => router.push('/records/labs')}
                 className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
                   isPlus ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50'
                 }`}
