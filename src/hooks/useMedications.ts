@@ -101,9 +101,9 @@ export function useMedications() {
         `)
         .eq('user_id', user.id)
         .lte('start_date', targetDate)
-        // 안정 정렬 — DB 반환 순서(무보장)로 인한 리로드마다 순서 흔들림 방지.
-        // 홈 위젯은 이 위에서 다시 시각순으로 평탄화·재정렬하지만, 기록장 목록(약 단위)엔 이 순서가 그대로 쓰임.
-        .order('start_date', { ascending: true })
+        // 입력한 순서대로(먼저 등록한 약이 위) — 캘린더 탭의 날짜별 약 목록이 이 순서를 그대로 씀.
+        // id 는 UUID(랜덤)라 입력순이 아니므로 created_at 로 정렬. 홈 위젯은 이 위에서 다시 시각순으로 재정렬함.
+        .order('created_at', { ascending: true })
         .order('id', { ascending: true });
 
       const { data, error } = await query;

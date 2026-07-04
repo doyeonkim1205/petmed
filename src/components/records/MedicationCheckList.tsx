@@ -123,6 +123,11 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
           const doseCount = parseDoseCount(med.frequency);
           const labels = getDoseLabels(med, t);
           const petName = med.pets?.name;
+          // 알람 ON + 회차 수와 시각 수가 일치할 때만 실제 시각. 1일 1회도 여기 포함돼 시간이 뜸.
+          const times =
+            med.alarm_enabled && Array.isArray(med.alarm_times) && med.alarm_times.length === doseCount
+              ? med.alarm_times
+              : null;
 
           return (
             <div key={med.id} className="space-y-1.5">
@@ -164,6 +169,7 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
                       {doseCount === 1 ? (
                         <>
                           <p className={`text-sm font-medium ${isChecked ? 'text-green-700 line-through' : 'text-gray-900'}`}>
+                            {times ? <span className="text-gray-400 font-normal tabular-nums">{times[0]} </span> : null}
                             {med.name}
                           </p>
                           <p className="text-xs text-gray-400">
