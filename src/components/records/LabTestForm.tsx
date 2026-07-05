@@ -485,9 +485,8 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           )}
         </div>
 
-        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.</p>
         {hasInherited && (
-          <p className="text-[11px] text-gray-400">지난 검사에서 입력한 단위와 참고범위를 불러왔어요. 결과지와 다르면 수정해 주세요.</p>
+          <p className="text-[11px] text-gray-400 pt-1">지난 검사에서 입력한 단위와 참고범위를 불러왔어요. 결과지와 다르면 수정해 주세요.</p>
         )}
 
         {/* 기본 참고범위 불러오기 — 활성 항목 중 기본값 있는 게 있을 때만. 배너 아닌 조용한 버튼 + 회색 캡션. */}
@@ -503,6 +502,8 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           </div>
         )}
 
+        {/* 항목 선택 안내 — 검사 항목(혈액검사…) 바로 위 고정 위치. */}
+        <p className="text-[11px] text-gray-400">결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.</p>
         <div className="space-y-2">
           {sections.map(({ tpl, analytes }) => {
             const isOpen = open.has(tpl.key);
