@@ -8,8 +8,8 @@ import { useLabTests } from '@/hooks/useLabTests';
 type Pt = { date: string; value: number; unit: string };
 const RECENT_N = 8;
 
-function MiniLineChart({ data, showValueLabels, dateStride }: { data: Pt[]; showValueLabels: boolean; dateStride: number }) {
-  const W = 300, H = 150, padX = 16, padTop = 22, padBottom = 26;
+function MiniLineChart({ data, showValueLabels, dateStride, width, scroll }: { data: Pt[]; showValueLabels: boolean; dateStride: number; width: number; scroll: boolean }) {
+  const W = width, H = 150, padX = 16, padTop = 22, padBottom = 26;
   const vals = data.map((d) => d.value);
   const min = Math.min(...vals), max = Math.max(...vals);
   const range = max - min || 1;
@@ -23,7 +23,7 @@ function MiniLineChart({ data, showValueLabels, dateStride }: { data: Pt[]; show
   const mmdd = (s: string) => { const [, m, dd] = s.split('-'); return `${Number(m)}/${Number(dd)}`; };
   const lastIdx = pts.length - 1;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 170 }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={scroll ? W : undefined} height={scroll ? H : undefined} className={scroll ? 'block' : 'w-full'} style={{ maxHeight: 170 }}>
       <path d={path} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
         <g key={i}>
@@ -50,6 +50,11 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
   const shown = range === 'recent' ? series.slice(-RECENT_N) : series;
   const showValueLabels = shown.length <= 6;         // 7개 이상이면 값 라벨 숨김
   const dateStride = shown.length <= 9 ? 1 : Math.ceil(shown.length / 6); // 10개 이상이면 날짜 일부만
+
+  // 점이 촘촘해지면(≈13개+) 가로 스크롤 — 점당 최소 22px 보장해 회차 구분 유지. 최근뷰(8개)는 안 걸림.
+  const MIN_STEP = 22, USABLE = 268, PADX = 16;
+  const scroll = shown.length > 1 && (shown.length - 1) * MIN_STEP > USABLE;
+  const chartW = scroll ? PADX * 2 + (shown.length - 1) * MIN_STEP : 300;
 
   const round = (n: number) => Math.round(n * 100) / 100;
   const latest = series.length ? series[series.length - 1].value : null;
@@ -84,7 +89,10 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
             </div>
           )}
 
-          <MiniLineChart data={shown} showValueLabels={showValueLabels} dateStride={dateStride} />
+          <div className={scroll ? 'overflow-x-auto' : ''}>
+            <MiniLineChart data={shown} showValueLabels={showValueLabels} dateStride={dateStride} width={chartW} scroll={scroll} />
+          </div>
+          {scroll && <p className="text-[10px] text-gray-300 text-center mt-0.5">← 좌우로 넘겨서 전체 보기</p>}
 
           <p className="text-[11px] text-gray-400 text-center mt-1">단위 {latestUnit || '-'} · 같은 단위 기록만 표시</p>
           {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-0.5">단위가 다른 기록 {excluded}건은 제외됐어요.</p>}

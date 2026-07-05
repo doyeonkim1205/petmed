@@ -322,7 +322,7 @@ export default function RecordsPage() {
             <>
               {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
                   타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
-              <div ref={quickRef} className="grid grid-cols-4 gap-2 mb-1">
+              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-1`}>
                 {QUICK_LINKS.map((q) => {
                   const Icon = q.icon;
                   return (
@@ -338,25 +338,24 @@ export default function RecordsPage() {
                     </button>
                   );
                 })}
-              </div>
-
-              {/* 검사 수치 (Plus 전용) — 시안. 프로덕션(pawdex.store)에선 숨김(기능 미완성), 프리뷰에서만 노출. TODO: /records/labs 연결 + i18n */}
-              {showLabCard && (
-              <button
-                onClick={() => router.push('/records/labs')}
-                className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
-                  isPlus ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50'
-                }`}
-              >
-                <FlaskConical size={15} className="text-indigo-500 flex-shrink-0" />
-                <p className="text-[13px] font-bold text-gray-700">검사 수치</p>
-                {!isPlus && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">
-                    <Lock size={9} /> Plus 전용
-                  </span>
+                {/* 검사 수치 (Plus 전용) — 복약 옆 5번째 모듈. 프로덕션에선 숨김(기능 미완성), 프리뷰만. Free 는 자물쇠 힌트 후 랜딩에서 전환 유도. TODO: i18n */}
+                {showLabCard && (
+                  <button
+                    onClick={() => router.push('/records/labs')}
+                    className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
+                  >
+                    <span className="relative w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
+                      <FlaskConical size={22} className="text-indigo-500" />
+                      {!isPlus && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white">
+                          <Lock size={9} className="text-white" />
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 수치</span>
+                  </button>
                 )}
-              </button>
-              )}
+              </div>
 
               {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
               <div className="sticky z-20 bg-white -mx-4 px-4" style={{ top: stickyTop }}>
