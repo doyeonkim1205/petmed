@@ -24,7 +24,7 @@ export interface LabFormInitial {
 const SEMI_OPTS = ['음성', 'trace', '+', '++', '+++'];
 const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
 
-export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabFormInitial }) {
+export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; initial?: LabFormInitial; backOnSave?: boolean }) {
   const router = useRouter();
   const { createLabTest, updateLabTest, getLastAnalyteKeys } = useLabTests();
   const isEdit = !!initial;
@@ -142,7 +142,14 @@ export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabF
         await createLabTest({ pet_id: petId!, test_date: testDate, hospital_name: hospital, categories: [...cats], memo, values: vals });
       }
       if (hospital.trim()) authFetch('/api/recent-hospitals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: hospital.trim() }) }).catch(() => {});
-      router.replace(isEdit ? `/records/labs/${initial!.id}` : '/records/labs');
+      if (isEdit) {
+        // 상세→수정으로 들어온 경우: 스택에 이미 있는 상세로 back() → 뒤로가기 한 번에 목록. 상세는 popstate 로 재조회.
+        if (backOnSave) { sessionStorage.setItem('lab_updated_id', initial!.id); router.back(); }
+        else router.replace(`/records/labs/${initial!.id}`);
+      } else {
+        // 저장한 펫이 목록에서 선택되도록 pet 전달.
+        router.replace(`/records/labs?pet=${petId}`);
+      }
     } catch (e) {
       Sentry.captureException(e, { tags: { feature: 'labs', action: isEdit ? 'update' : 'create' } });
       setError('저장에 실패했어요. 다시 시도해주세요.');

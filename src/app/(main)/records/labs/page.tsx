@@ -16,6 +16,9 @@ import { LAB_TEMPLATES } from '@/lib/labCatalog';
 
 const catLabel = (key: string) => LAB_TEMPLATES.find((t) => t.key === key)?.labelKo ?? key;
 
+// 세션 중 마지막 선택 펫(메모리) — 다른 페이지 갔다 와도 유지. 기록장 sessionSelectedPetId 와 동일 패턴.
+let sessionLabPetId: string | undefined = undefined;
+
 export default function LabsPage() {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
@@ -34,7 +37,11 @@ export default function LabsPage() {
       if (data) {
         const sorted = sortPetsWithDefault(data, readDefaultPetId());
         setPets(sorted);
-        if (sorted.length >= 1) setSelectedPetId(sorted[0].id);
+        // 우선순위: URL ?pet= > 세션 마지막선택 > 기본펫(정렬 첫). 저장 후 그 펫이 선택되도록.
+        const petParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('pet') || undefined : undefined;
+        const valid = (id?: string) => !!id && sorted.some((p) => p.id === id);
+        const initial = valid(petParam) ? petParam : valid(sessionLabPetId) ? sessionLabPetId : sorted[0]?.id;
+        if (initial) { setSelectedPetId(initial); sessionLabPetId = initial; }
       }
       setPetsLoaded(true);
     });
@@ -81,7 +88,7 @@ export default function LabsPage() {
           {pets.length > 1 && (
             <div className={`flex gap-1.5 overflow-x-auto pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
               {pets.map((p) => (
-                <button key={p.id} onClick={() => setSelectedPetId(p.id)}
+                <button key={p.id} onClick={() => { setSelectedPetId(p.id); sessionLabPetId = p.id; }}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === p.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}>
                   {p.name}
                 </button>

@@ -33,5 +33,7 @@ export default function EditLabPage() {
     </div>
   );
   if (!initial) return <div className="bg-white min-h-full" />;
-  return <LabTestForm initial={initial} />;
+  // 상세에서 들어왔으면(back 대상 있음) 저장 후 back(). 직접 진입이면 replace 로 상세로.
+  const backOnSave = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('from') === 'detail';
+  return <LabTestForm initial={initial} backOnSave={backOnSave} />;
 }
