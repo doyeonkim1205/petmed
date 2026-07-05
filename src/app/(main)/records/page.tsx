@@ -369,7 +369,7 @@ export default function RecordsPage() {
                 )}
                 <div className="border-t border-gray-100 max-w-sm mx-auto" />
                 {selectMode ? (
-                  <div className="flex items-center justify-between pt-3 pb-2 max-w-sm mx-auto">
+                  <div className="flex items-center justify-between pt-3 pb-1 max-w-sm mx-auto">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={toggleSelectAll}
@@ -398,7 +398,7 @@ export default function RecordsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 pt-3 pb-2 overflow-x-auto max-w-sm mx-auto">
+                  <div className="flex items-center gap-1.5 pt-3 pb-1 overflow-x-auto max-w-sm mx-auto">
                     {filterOptions.map((f) => (
                       <button
                         key={f.id}
