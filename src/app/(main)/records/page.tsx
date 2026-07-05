@@ -149,7 +149,7 @@ export default function RecordsPage() {
     return (
       <button key={q.href} onClick={() => router.push(q.href)}
         className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform">
-        <Icon size={24} className={q.color} />
+        <Icon size={22} className={q.color} />
         <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
       </button>
     );
@@ -338,7 +338,7 @@ export default function RecordsPage() {
                     onClick={() => router.push('/records/labs')}
                     className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                   >
-                    <FlaskConical size={24} className="text-indigo-500" />
+                    <FlaskConical size={22} className="text-indigo-500" />
                     <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t('record.module.labs')}</span>
                   </button>
                 )}
