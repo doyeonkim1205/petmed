@@ -98,8 +98,7 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
           {band && (
             <p className="text-[11px] text-gray-400 text-center mt-1">입력한 참고범위 <span className="tabular-nums">{band.low}–{band.high}</span> (최근 기준)</p>
           )}
-          <p className="text-[11px] text-gray-400 text-center mt-1">단위 {latestUnit || '-'} · 같은 단위 기록만 표시</p>
-          {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-0.5">단위가 다른 기록 {excluded}건은 제외됐어요.</p>}
+          {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-1.5">단위가 다른 기록 {excluded}건은 제외됐어요.</p>}
         </>
       )}
     </FilterSheet>
