@@ -329,7 +329,7 @@ export default function RecordsPage() {
                     <button
                       key={q.href}
                       onClick={() => router.push(q.href)}
-                      className="py-1 flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
+                      className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                     >
                       <Icon size={24} className={q.color} />
                       <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
@@ -340,7 +340,7 @@ export default function RecordsPage() {
                 {showLabCard && (
                   <button
                     onClick={() => router.push('/records/labs')}
-                    className="py-1 flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
+                    className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                   >
                     <FlaskConical size={24} className="text-indigo-500" />
                     <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 수치</span>
