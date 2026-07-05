@@ -1285,7 +1285,7 @@
       "catMore": "{first} 외 {n}개",
       "emptyNoPet": "반려동물을 먼저 등록해주세요",
       "emptyNoTest": "아직 등록한 검사 결과가 없어요",
-      "emptyHint": "+ 버튼으로 검사 결과지와 수치를 기록해보세요",
+      "emptyHint": "+ 버튼을 눌러 검사 결과를 추가해 보세요",
       "valueCount": "수치 {count}개",
       "addAria": "검사 추가"
     },
