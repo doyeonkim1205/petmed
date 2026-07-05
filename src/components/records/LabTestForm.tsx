@@ -149,6 +149,11 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     return { ...prev, [key]: next };
   });
   const toggleRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  // 행별 ✕ = 그 참고범위 값 삭제 + 닫힘(접기만 하면 값이 남아 저장되는 혼란 방지).
+  const clearRef = (key: string) => {
+    setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), refLow: '', refHigh: '', refText: '' } }));
+    setRefOpen((prev) => { const n = new Set(prev); n.delete(key); return n; });
+  };
 
   const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
@@ -327,7 +332,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <input type="text" inputMode="decimal" value={values[akey]?.refHigh ?? ''} onChange={(e) => setRef(akey, 'refHigh', e.target.value)} placeholder="27"
                 className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
               {hasUnit && <span className="text-[11px] text-gray-400">{values[akey]?.unit || unitDefault}</span>}
-              <button type="button" onClick={() => toggleRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고범위 닫기"><X size={12} /></button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고범위 지우기"><X size={12} /></button>
             </div>
           ) : (
             <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고범위 입력</button>
@@ -351,7 +356,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <span className="text-[11px] text-gray-400 flex-shrink-0">참고값</span>
               <input type="text" value={values[akey]?.refText ?? ''} onChange={(e) => setRef(akey, 'refText', e.target.value)} placeholder="음성"
                 className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-[12px] bg-white outline-none focus:ring-1 focus:ring-blue-400" />
-              <button type="button" onClick={() => toggleRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고값 닫기"><X size={12} /></button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고값 지우기"><X size={12} /></button>
             </div>
           ) : (
             <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고값 입력</button>
@@ -429,14 +434,15 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
 
         <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값이 입력된 항목만 저장돼요.</p>
 
-        {/* 종·나이 기준 예시 참고범위 자동 채우기 — 활성 항목 중 기본값 있는 게 있을 때만. */}
+        {/* 기본 참고범위 불러오기 — 활성 항목 중 기본값 있는 게 있을 때만. 배너 아닌 조용한 버튼 + 회색 캡션. */}
         {applicableKeys.length > 0 && (
-          <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2">
-            <button type="button" onClick={fillDefaults} className="flex items-center gap-1 text-[12px] font-semibold text-indigo-600">
-              <Sparkles size={13} /> 종·나이 기준 참고범위 채우기
+          <div>
+            <button type="button" onClick={fillDefaults}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] font-medium text-gray-600 active:bg-gray-50 transition-colors">
+              <Sparkles size={13} className="text-indigo-400" /> 기본 참고범위 불러오기
             </button>
-            <p className="text-[11px] text-indigo-400 mt-1 leading-relaxed">
-              {refFillNote ?? '종·나이 기준 기본 참고범위를 불러와요. 결과지 기준으로 언제나 수정할 수 있어요.'}
+            <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
+              {refFillNote ?? '반려동물의 종과 나이를 기준으로 참고범위를 채워요. 결과지와 다르면 수정해 주세요.'}
             </p>
           </div>
         )}
