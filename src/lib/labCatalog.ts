@@ -19,7 +19,8 @@ export type LabTemplateKey =
   | 'electrolyte'
   | 'endocrine'
   | 'pancreas_gi'
-  | 'cardio_inflammation'
+  | 'cardiac'
+  | 'inflammation'
   | 'custom';
 
 export type LabValueType = 'numeric' | 'semi_quantitative' | 'text';
@@ -44,16 +45,17 @@ export interface LabAnalyte {
   aliases?: string[];
 }
 
-// 기본 노출 5개(cbc·liver·kidney·urine·electrolyte) + 접힘 3개(endocrine·pancreas_gi·cardio_inflammation) + 직접추가.
+// 기본 노출 5개(cbc·liver·kidney·urine·electrolyte) + 접힘 4개(endocrine·pancreas_gi·cardiac·inflammation) + 직접추가.
 export const LAB_TEMPLATES: LabTemplate[] = [
   { key: 'cbc',                 labelKo: '혈액검사',      labelEn: 'CBC',              emoji: '🩸', defaultOpen: true },
   { key: 'liver',               labelKo: '간 수치',        labelEn: 'Liver',            emoji: '🫀', defaultOpen: true },
   { key: 'kidney',              labelKo: '신장 수치',      labelEn: 'Kidney',           emoji: '🫘', defaultOpen: true },
   { key: 'urine',               labelKo: '소변검사',       labelEn: 'Urinalysis',       emoji: '💧', defaultOpen: true },
   { key: 'electrolyte',         labelKo: '전해질',         labelEn: 'Electrolytes',     emoji: '🧂', defaultOpen: true },
-  { key: 'endocrine',           labelKo: '당·호르몬',      labelEn: 'Endocrine',        emoji: '🍬', defaultOpen: false },
+  { key: 'endocrine',           labelKo: '혈당·호르몬',    labelEn: 'Endocrine',        emoji: '🍬', defaultOpen: false },
   { key: 'pancreas_gi',         labelKo: '췌장·소화기',    labelEn: 'Pancreas/GI',      emoji: '🥞', defaultOpen: false },
-  { key: 'cardio_inflammation', labelKo: '심장·염증 지표', labelEn: 'Cardiac/Inflam.',  emoji: '❤️‍🔥', defaultOpen: false },
+  { key: 'cardiac',             labelKo: '심장 지표',      labelEn: 'Cardiac',          emoji: '❤️', defaultOpen: false },
+  { key: 'inflammation',        labelKo: '염증 지표',      labelEn: 'Inflammation',     emoji: '🔥', defaultOpen: false },
   { key: 'custom',              labelKo: '직접 추가',      labelEn: 'Custom',           emoji: '➕', defaultOpen: false },
 ];
 
@@ -64,8 +66,8 @@ const TXT: LabValueType = 'text';
 // ⚠️ 기본단위는 검수 대상(랩마다 다를 수 있음). 사용자가 수정 가능하도록 defaultUnit 은 어디까지나 기본값.
 export const LAB_ANALYTES: LabAnalyte[] = [
   // ── A. 혈액검사 CBC ──
-  { key: 'WBC',   labelKo: '백혈구',        labelEn: 'WBC',        defaultUnit: 'K/µL', templates: ['cbc', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['White Blood Cell'] },
-  { key: 'NEU',   labelKo: '호중구',        labelEn: 'NEU',        defaultUnit: 'K/µL', templates: ['cbc', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['Neutrophil', 'Neutrophils', 'SEG'] },
+  { key: 'WBC',   labelKo: '백혈구',        labelEn: 'WBC',        defaultUnit: 'K/µL', templates: ['cbc', 'inflammation'], valueType: N, graphable: true, aliases: ['White Blood Cell'] },
+  { key: 'NEU',   labelKo: '호중구',        labelEn: 'NEU',        defaultUnit: 'K/µL', templates: ['cbc', 'inflammation'], valueType: N, graphable: true, aliases: ['Neutrophil', 'Neutrophils', 'SEG'] },
   { key: 'LYM',   labelKo: '림프구',        labelEn: 'LYM',        defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Lymphocyte', 'Lymphocytes'] },
   { key: 'MONO',  labelKo: '단핵구',        labelEn: 'MONO',       defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Monocyte', 'Monocytes'] },
   { key: 'EOS',   labelKo: '호산구',        labelEn: 'EOS',        defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Eosinophil', 'Eosinophils'] },
@@ -99,7 +101,7 @@ export const LAB_ANALYTES: LabAnalyte[] = [
   { key: 'CL',    labelKo: '염소',      labelEn: 'Cl',            defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Chloride'] },
   { key: 'USG',   labelKo: '요비중',    labelEn: 'USG',           defaultUnit: '',       templates: ['kidney', 'urine'], valueType: N, graphable: true, aliases: ['Specific Gravity', 'SG'] },
   { key: 'UPC',   labelKo: '요단백/크레아티닌비', labelEn: 'UPC', defaultUnit: '',       templates: ['kidney', 'urine'], valueType: N, graphable: true, aliases: ['UPCR', 'Protein/Creatinine'] },
-  { key: 'BP',    labelKo: '혈압',      labelEn: 'BP',            defaultUnit: 'mmHg',  templates: ['kidney', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['Blood Pressure', 'SBP'] },
+  { key: 'BP',    labelKo: '혈압',      labelEn: 'BP',            defaultUnit: 'mmHg',  templates: ['kidney', 'cardiac'], valueType: N, graphable: true, aliases: ['Blood Pressure', 'SBP'] },
 
   // ── D. 소변검사 ── (USG·UPC 는 위에서 공유)
   { key: 'URINE_PH',      labelKo: 'pH',       labelEn: 'pH',        defaultUnit: '',   templates: ['urine'], valueType: N,   graphable: true },
@@ -138,12 +140,12 @@ export const LAB_ANALYTES: LabAnalyte[] = [
   { key: 'CORT',  labelKo: '코르티솔',     labelEn: 'Cortisol',      defaultUnit: 'µg/dL',   templates: ['endocrine'], valueType: N, graphable: true },
 
   // ── H. 심장·염증 지표 ── (WBC·NEU·BP 는 위에서 공유)
-  { key: 'NTPROBNP', labelKo: 'NT-proBNP', labelEn: 'NT-proBNP',    defaultUnit: 'pmol/L', templates: ['cardio_inflammation'], valueType: N, graphable: true, aliases: ['proBNP'] },
-  { key: 'TROPI',    labelKo: '트로포닌 I',  labelEn: 'Troponin I',  defaultUnit: 'ng/mL',  templates: ['cardio_inflammation'], valueType: N, graphable: true, aliases: ['cTnI'] },
-  { key: 'HR',       labelKo: '심박수',     labelEn: 'Heart Rate',   defaultUnit: 'bpm',    templates: ['cardio_inflammation'], valueType: N, graphable: true },
-  { key: 'CRP',      labelKo: 'CRP',       labelEn: 'CRP',          defaultUnit: 'mg/L',   templates: ['cardio_inflammation'], valueType: N, graphable: true },
-  { key: 'SAA',      labelKo: 'SAA',       labelEn: 'SAA',          defaultUnit: 'µg/mL',  templates: ['cardio_inflammation'], valueType: N, graphable: true },
-  { key: 'FIB',      labelKo: '피브리노겐',  labelEn: 'Fibrinogen',   defaultUnit: 'mg/dL',  templates: ['cardio_inflammation'], valueType: N, graphable: true },
+  { key: 'NTPROBNP', labelKo: 'NT-proBNP', labelEn: 'NT-proBNP',    defaultUnit: 'pmol/L', templates: ['cardiac'], valueType: N, graphable: true, aliases: ['proBNP'] },
+  { key: 'TROPI',    labelKo: '트로포닌 I',  labelEn: 'Troponin I',  defaultUnit: 'ng/mL',  templates: ['cardiac'], valueType: N, graphable: true, aliases: ['cTnI'] },
+  { key: 'HR',       labelKo: '심박수',     labelEn: 'Heart Rate',   defaultUnit: 'bpm',    templates: ['cardiac'], valueType: N, graphable: true },
+  { key: 'CRP',      labelKo: 'CRP',       labelEn: 'CRP',          defaultUnit: 'mg/L',   templates: ['inflammation'], valueType: N, graphable: true },
+  { key: 'SAA',      labelKo: 'SAA',       labelEn: 'SAA',          defaultUnit: 'µg/mL',  templates: ['inflammation'], valueType: N, graphable: true },
+  { key: 'FIB',      labelKo: '피브리노겐',  labelEn: 'Fibrinogen',   defaultUnit: 'mg/dL',  templates: ['inflammation'], valueType: N, graphable: true },
 ];
 
 const ANALYTE_BY_KEY: Record<string, LabAnalyte> = Object.fromEntries(LAB_ANALYTES.map((a) => [a.key, a]));

@@ -14,7 +14,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
 import { useLabTests, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from '@/lib/labCatalog';
-import { ageGroupFor, refDefaultFor, speciesAgeLabel } from '@/lib/labRefDefaults';
+import { ageGroupFor, refDefaultFor, opSymbol } from '@/lib/labRefDefaults';
 
 const ALLOWED_FILE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
@@ -142,7 +142,12 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
 
   const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), raw } }));
   const setUnit = (key: string, unit: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), unit } }));
-  const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), [field]: v } }));
+  const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => setValues((prev) => {
+    const e = prev[key] ?? emptyEntry();
+    const next = { ...e, [field]: v };
+    if (field === 'refLow' || field === 'refHigh') next.refText = ''; // 숫자 직접 수정 시 한쪽범위 기호(<0.2 등) 해제
+    return { ...prev, [key]: next };
+  });
   const toggleRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
 
   const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,14 +170,26 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     setValues((prev) => {
       const n = { ...prev };
       applicableKeys.forEach((k) => {
-        const r = refDefaultFor(k, petInfo.type, refGroup)!;
+        const d = refDefaultFor(k, petInfo.type, refGroup);
+        if (!d) return;
         const e = n[k] ?? emptyEntry();
-        if ((e.refLow ?? '').trim() === '' && (e.refHigh ?? '').trim() === '') n[k] = { ...e, refLow: String(r[0]), refHigh: String(r[1]) };
+        // 이미 입력한 참고범위는 덮지 않음.
+        if ((e.refLow ?? '').trim() || (e.refHigh ?? '').trim() || (e.refText ?? '').trim()) return;
+        if ('text' in d) {
+          n[k] = { ...e, refText: d.text };
+        } else if ('op' in d) {
+          const upper = d.op === '<' || d.op === '<=';
+          n[k] = { ...e, refLow: upper ? '' : String(d.value), refHigh: upper ? String(d.value) : '', refText: `${opSymbol(d.op)}${d.value}` };
+        } else {
+          n[k] = { ...e, refLow: String(d.low), refHigh: String(d.high) };
+        }
       });
       return n;
     });
     setRefOpen((prev) => { const s = new Set(prev); applicableKeys.forEach((k) => s.add(k)); return s; });
-    setRefFillNote(`${speciesAgeLabel(petInfo.type, refGroup)} 기준 예시값으로 채웠어요. 결과지에 적힌 범위가 있으면 그 값으로 수정해주세요.`);
+    setRefFillNote(petInfo.birth_date
+      ? '기본 참고범위를 불러왔어요. 병원 결과지에 적힌 범위가 다르면 수정해 주세요.'
+      : '생년월일이 없어 성체 기준 기본 참고범위를 불러왔어요. 결과지에 적힌 범위가 다르면 수정해 주세요.');
   };
 
   const finishNavigation = () => {
@@ -220,7 +237,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
             analyte_key: i.key, label: i.label, value_raw: e.raw, unit: e.unit || null, display_order: idx,
             ref_low: isNum ? num(e.refLow) : null,
             ref_high: isNum ? num(e.refHigh) : null,
-            ref_text: !isNum ? (e.refText.trim() || null) : null,
+            ref_text: (e.refText ?? '').trim() || null, // 한쪽범위 기호(<0.2)·선택형(음성) 모두 보존
           };
         });
       const cats = new Set<string>();
@@ -419,7 +436,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <Sparkles size={13} /> 종·나이 기준 참고범위 채우기
             </button>
             <p className="text-[11px] text-indigo-400 mt-1 leading-relaxed">
-              {refFillNote ?? '예시 참고범위를 불러와요. 결과지 참고범위는 언제나 수정할 수 있어요.'}
+              {refFillNote ?? '종·나이 기준 기본 참고범위를 불러와요. 결과지 기준으로 언제나 수정할 수 있어요.'}
             </p>
           </div>
         )}
