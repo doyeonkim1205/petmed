@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
 import { parseNumeric } from '@/lib/labCatalog';
+import { deleteFile } from '@/services/fileUpload';
 
 // 검사 수치 — 검사 1건(lab_tests) 안에 수치 여러 개(lab_values).
 export interface LabValueInput {
@@ -26,6 +27,17 @@ export interface LabValue extends LabValueInput {
   created_at: string;
 }
 
+export interface LabTestFile {
+  id: string;
+  lab_test_id: string;
+  user_id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+}
+
 export interface LabTest {
   id: string;
   user_id: string;
@@ -38,6 +50,7 @@ export interface LabTest {
   created_at: string;
   updated_at: string;
   lab_values?: LabValue[];
+  lab_test_files?: LabTestFile[];
 }
 
 export function useLabTests() {
@@ -48,7 +61,7 @@ export function useLabTests() {
     if (!user || !petId) return [];
     const { data, error } = await supabase
       .from('lab_tests')
-      .select('*, lab_values(*)')
+      .select('*, lab_values(*), lab_test_files(id)')
       .eq('user_id', user.id)
       .eq('pet_id', petId)
       .order('test_date', { ascending: false })
@@ -64,7 +77,7 @@ export function useLabTests() {
     if (!user) return null;
     const { data, error } = await supabase
       .from('lab_tests')
-      .select('*, lab_values(*)')
+      .select('*, lab_values(*), lab_test_files(*)')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -213,5 +226,43 @@ export function useLabTests() {
     return (vals || []).map((v: { analyte_key: string; unit: string | null }) => ({ analyte_key: v.analyte_key, unit: v.unit }));
   }, [user]);
 
-  return { getLabTests, getLabTest, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend, getLastAnalyteKeys };
+  // ─── 결과지 첨부 (lab_test_files) — 스토리지는 medical-files 버킷 재사용, DB만 분리 ───
+  const getLabFiles = useCallback(async (labTestId: string): Promise<LabTestFile[]> => {
+    if (!user || !labTestId) return [];
+    const { data, error } = await supabase
+      .from('lab_test_files')
+      .select('*')
+      .eq('lab_test_id', labTestId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
+    if (error) { Sentry.captureException(error, { tags: { feature: 'labs', action: 'files-list' } }); return []; }
+    return (data || []) as LabTestFile[];
+  }, [user]);
+
+  const insertLabFile = async (row: { lab_test_id: string; file_name: string; file_path: string; file_type: string; file_size: number }): Promise<LabTestFile> => {
+    if (!user) throw new Error('로그인이 필요합니다');
+    const { data, error } = await supabase
+      .from('lab_test_files')
+      .insert({ ...row, user_id: user.id })
+      .select()
+      .single();
+    if (error) throw error;
+    logActivity(user.id, 'lab.file_upload', { resourceType: 'lab_test_file', resourceId: row.lab_test_id, details: { fileName: row.file_name, fileSize: row.file_size } });
+    return data as LabTestFile;
+  };
+
+  const getFileUrl = useCallback(async (path: string): Promise<string> => {
+    const { data } = await supabase.storage.from('medical-files').createSignedUrl(path, 3600);
+    return data?.signedUrl ?? '';
+  }, []);
+
+  const deleteLabFile = async (id: string, filePath: string): Promise<void> => {
+    if (!user) throw new Error('로그인이 필요합니다');
+    await deleteFile(filePath, user.id).catch(() => {}); // 스토리지 제거 실패해도 DB row 는 지움
+    const { error } = await supabase.from('lab_test_files').delete().eq('id', id).eq('user_id', user.id);
+    if (error) throw error;
+    logActivity(user.id, 'lab.file_delete', { resourceType: 'lab_test_file', resourceId: id });
+  };
+
+  return { getLabTests, getLabTest, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend, getLastAnalyteKeys, getLabFiles, insertLabFile, deleteLabFile, getFileUrl };
 }

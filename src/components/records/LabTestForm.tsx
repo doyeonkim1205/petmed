@@ -2,15 +2,19 @@
 
 // 검사 수치 추가/수정 공용 폼. petId 만 오면 추가, initial 이 오면 수정.
 // dedup 은 '열린 템플릿' 기준(닫힌 템플릿은 수치를 차지하지 않음) → 전해질만 열면 Na 등이 거기 뜸.
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, X, ChevronDown, Check, Paperclip, Image as ImageIcon, FileText } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
+import { useAuth } from '@/contexts/AuthContext';
+import { uploadFile } from '@/services/fileUpload';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
-import { useLabTests, LabValueInput } from '@/hooks/useLabTests';
+import { useLabTests, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from '@/lib/labCatalog';
+
+const ALLOWED_FILE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 interface CustomAnalyte { key: string; label: string; }
 export interface LabFormInitial {
@@ -19,6 +23,7 @@ export interface LabFormInitial {
   hospital_name: string;
   memo: string;
   values: { analyte_key: string; label: string; value_raw: string; unit: string | null; ref_low?: number | null; ref_high?: number | null; ref_text?: string | null }[];
+  files?: LabTestFile[];
 }
 
 // 값 1개의 입력 상태. ref* = 사용자가 결과지 기준으로 적는 참고범위(앱이 판정/자동채움 안 함).
@@ -30,8 +35,16 @@ const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
 
 export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; initial?: LabFormInitial; backOnSave?: boolean }) {
   const router = useRouter();
-  const { createLabTest, updateLabTest, getLastAnalyteKeys } = useLabTests();
+  const { user } = useAuth();
+  const { createLabTest, updateLabTest, getLastAnalyteKeys, insertLabFile, deleteLabFile } = useLabTests();
   const isEdit = !!initial;
+
+  // 결과지 첨부 — 기존 파일(수정 시)·삭제표시·새 파일. 스토리지 업로드는 검사 저장 후.
+  const [existingFiles] = useState<LabTestFile[]>(initial?.files ?? []);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [savedPartial, setSavedPartial] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [testDate, setTestDate] = useState(initial?.test_date ?? todayLocalISO());
   const [hospital, setHospital] = useState(initial?.hospital_name ?? '');
@@ -119,6 +132,28 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), [field]: v } }));
   const toggleRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
 
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    const valid = picked.filter((f) => ALLOWED_FILE.includes(f.type));
+    if (valid.length < picked.length) setError('사진(JPG/PNG/WebP) 또는 PDF만 첨부할 수 있어요.');
+    else setError(null);
+    setNewFiles((prev) => [...prev, ...valid]);
+    e.target.value = ''; // 같은 파일 재선택 허용
+  };
+  const removeExisting = (id: string) => setRemovedIds((prev) => new Set(prev).add(id));
+  const removeNew = (idx: number) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
+  const visibleExisting = existingFiles.filter((f) => !removedIds.has(f.id));
+
+  const finishNavigation = () => {
+    sessionStorage.setItem('lab_list_reload', '1');
+    if (isEdit) {
+      if (backOnSave) { sessionStorage.setItem('lab_updated_id', initial!.id); router.back(); }
+      else router.replace(`/records/labs/${initial!.id}`);
+    } else {
+      router.back();
+    }
+  };
+
   // 열린 템플릿 순서대로 dedup — 닫힌 템플릿은 수치를 차지하지 않음.
   const sections = useMemo(() => {
     const rendered = new Set<string>();
@@ -137,7 +172,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
 
   const handleSave = async () => {
     if (!isEdit && !petId) { setError('반려동물 정보가 없어요.'); return; }
-    if (filledCount === 0) { setError('수치를 하나 이상 입력해주세요.'); return; }
+    if (filledCount === 0 && newFiles.length === 0 && visibleExisting.length === 0) { setError('수치를 입력하거나 결과지를 첨부해주세요.'); return; }
     setError(null);
     setSaving(true);
     try {
@@ -161,21 +196,38 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       const openArr = LAB_TEMPLATES.filter((t) => t.key !== 'custom' && open.has(t.key));
       LAB_ANALYTES.filter((a) => active.has(a.key)).forEach((a) => { const sec = openArr.find((t) => a.templates.includes(t.key)); cats.add(sec ? sec.key : a.templates[0]); });
       if (customs.some((c) => active.has(c.key))) cats.add('custom');
+      let labId: string;
       if (isEdit) {
         await updateLabTest(initial!.id, { test_date: testDate, hospital_name: hospital, categories: [...cats], memo, values: vals });
+        labId = initial!.id;
       } else {
-        await createLabTest({ pet_id: petId!, test_date: testDate, hospital_name: hospital, categories: [...cats], memo, values: vals });
+        labId = await createLabTest({ pet_id: petId!, test_date: testDate, hospital_name: hospital, categories: [...cats], memo, values: vals });
       }
       if (hospital.trim()) authFetch('/api/recent-hospitals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: hospital.trim() }) }).catch(() => {});
-      sessionStorage.setItem('lab_list_reload', '1'); // 목록으로 돌아왔을 때 갱신
-      if (isEdit) {
-        // 상세→수정으로 들어온 경우: 스택에 이미 있는 상세로 back() → 뒤로가기 한 번에 목록. 상세는 popstate 로 재조회.
-        if (backOnSave) { sessionStorage.setItem('lab_updated_id', initial!.id); router.back(); }
-        else router.replace(`/records/labs/${initial!.id}`);
-      } else {
-        // 목록 FAB 로 진입 → back() 으로 그 목록으로 복귀(중복 스택 방지). 펫은 목록 상태로 유지, popstate 로 갱신.
-        router.back();
+
+      // 결과지 첨부 — 검사는 이미 저장됨. 파일 실패는 관대 처리(검사 통째로 롤백 X).
+      let fileWarning: string | null = null;
+      for (const f of existingFiles.filter((x) => removedIds.has(x.id))) {
+        try { await deleteLabFile(f.id, f.file_path); } catch { /* 삭제 실패는 조용히 넘어감 */ }
       }
+      if (newFiles.length > 0) {
+        const usage = await authFetch('/api/storage-usage').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        if (usage && !usage.canUpload) {
+          fileWarning = '저장용량이 가득 차 결과지 파일은 첨부되지 않았어요. 저장공간을 정리한 뒤 상세에서 다시 첨부해주세요.';
+        } else {
+          let failed = 0;
+          for (const file of newFiles) {
+            try {
+              const { path } = await uploadFile(file, user!.id, labId);
+              await insertLabFile({ lab_test_id: labId, file_name: file.name, file_path: path, file_type: file.type, file_size: file.size });
+            } catch (err) { failed++; Sentry.captureException(err, { tags: { feature: 'labs', action: 'file-upload' } }); }
+          }
+          if (failed > 0) fileWarning = `검사는 저장됐어요. 다만 파일 ${failed}개 업로드에 실패했어요. 상세에서 다시 첨부할 수 있어요.`;
+        }
+      }
+
+      if (fileWarning) { setSavedPartial(fileWarning); setSaving(false); return; } // 확인 누르면 이동
+      finishNavigation();
     } catch (e) {
       Sentry.captureException(e, { tags: { feature: 'labs', action: isEdit ? 'update' : 'create' } });
       setError('저장에 실패했어요. 다시 시도해주세요.');
@@ -298,6 +350,35 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           </div>
         </div>
 
+        {/* 결과지 첨부 — 사진/PDF. 실제 업로드는 저장 시(검사 저장 후). */}
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">결과지 첨부 <span className="text-gray-300">(선택 · 사진/PDF)</span></label>
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple className="hidden" onChange={onPickFiles} />
+          <button type="button" onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 active:bg-gray-50 transition-colors">
+            <Paperclip size={15} /> 결과지 사진·PDF 추가
+          </button>
+          {(visibleExisting.length > 0 || newFiles.length > 0) && (
+            <div className="mt-2 space-y-1.5">
+              {visibleExisting.map((f) => (
+                <div key={f.id} className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-50 rounded-lg">
+                  {f.file_type.startsWith('image/') ? <ImageIcon size={14} className="text-gray-400 flex-shrink-0" /> : <FileText size={14} className="text-gray-400 flex-shrink-0" />}
+                  <span className="flex-1 min-w-0 text-[12px] text-gray-600 truncate">{f.file_name}</span>
+                  <button type="button" onClick={() => removeExisting(f.id)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label="첨부 삭제"><X size={13} /></button>
+                </div>
+              ))}
+              {newFiles.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-50 rounded-lg">
+                  {f.type.startsWith('image/') ? <ImageIcon size={14} className="text-blue-400 flex-shrink-0" /> : <FileText size={14} className="text-blue-400 flex-shrink-0" />}
+                  <span className="flex-1 min-w-0 text-[12px] text-gray-600 truncate">{f.name}</span>
+                  <span className="text-[10px] text-blue-400 flex-shrink-0">새 파일</span>
+                  <button type="button" onClick={() => removeNew(i)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label="첨부 삭제"><X size={13} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 수치를 체크하면 값 입력칸이 생겨요. 값 넣은 항목만 저장돼요.</p>
 
         <div className="space-y-2">
@@ -355,10 +436,17 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         <p className="text-[11px] text-gray-300 leading-relaxed">단위·참고범위는 결과지 기준으로 입력·수정하세요. 병원·장비에 따라 다를 수 있어요. PawDex는 의학적 진단이 아닌 기록·정리 도구예요.</p>
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        <button onClick={handleSave} disabled={saving}
-          className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors">
-          {saving ? '저장 중...' : `저장${filledCount > 0 ? ` (${filledCount})` : ''}`}
-        </button>
+        {savedPartial ? (
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <p className="text-[12px] text-amber-700 leading-relaxed">{savedPartial}</p>
+            <button onClick={finishNavigation} className="mt-2 w-full h-10 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-sm font-medium">확인</button>
+          </div>
+        ) : (
+          <button onClick={handleSave} disabled={saving}
+            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors">
+            {saving ? '저장 중...' : `저장${filledCount > 0 ? ` (${filledCount})` : ''}`}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ export default function EditLabPage() {
         hospital_name: t.hospital_name ?? '',
         memo: t.memo ?? '',
         values: (t.lab_values ?? []).map((v) => ({ analyte_key: v.analyte_key, label: v.label, value_raw: v.value_raw, unit: v.unit ?? null, ref_low: v.ref_low ?? null, ref_high: v.ref_high ?? null, ref_text: v.ref_text ?? null })),
+        files: t.lab_test_files ?? [],
       });
     });
   }, [id, getLabTest]);

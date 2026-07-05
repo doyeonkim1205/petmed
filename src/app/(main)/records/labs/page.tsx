@@ -4,7 +4,7 @@
 // TODO: 하드코딩 한글 → i18n, 실제 prod 노출 전 정리.
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, FlaskConical, Lock, ChevronRight, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, FlaskConical, Lock, ChevronRight, FileText, Paperclip } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getEffectivePlan } from '@/lib/plans';
@@ -133,8 +133,9 @@ export default function LabsPage() {
                     <p className="text-[13px] font-bold text-gray-900 truncate">
                       {(t.categories || []).map(catLabel).join(' · ') || '검사'}
                     </p>
-                    <p className="text-[11px] text-gray-400 truncate">
-                      {t.test_date}{t.hospital_name ? ` · ${t.hospital_name}` : ''} · 수치 {t.lab_values?.length ?? 0}개
+                    <p className="text-[11px] text-gray-400 truncate flex items-center gap-1">
+                      <span className="truncate">{t.test_date}{t.hospital_name ? ` · ${t.hospital_name}` : ''} · 수치 {t.lab_values?.length ?? 0}개</span>
+                      {(t.lab_test_files?.length ?? 0) > 0 && <Paperclip size={11} className="text-gray-300 flex-shrink-0" />}
                     </p>
                   </div>
                   <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
