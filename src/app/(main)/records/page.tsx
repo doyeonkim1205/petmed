@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getEffectivePlan } from '@/lib/plans';
@@ -33,11 +33,12 @@ const filterOptions: { id: RecordFilter }[] = [
 
 // 기록장 상단 빠른 접근. 평소엔 2×2 카드, 스크롤로 가려지면 헤더에 슬림 1줄 바로 고정.
 // 라벨/숏라벨은 messages(record.module.* / record.moduleShort.*)로 분리 — key 로 참조.
+// 순서: 건강통계 | 복약 | 예방 | (검사기록) | 지출. 검사기록은 조건부라 렌더에서 지출 앞에 삽입.
 const QUICK_LINKS = [
   { icon: Activity, key: 'stats', color: 'text-blue-500', href: '/records/stats' },
-  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
-  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
   { icon: Pill, key: 'meds', color: 'text-pink-500', href: '/records/meds' },
+  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
+  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
 ] as const;
 
 // 기록장 펫 필터 — 앱 실행 중(모듈 생존 동안)에만 유지되는 메모리 상태.
@@ -91,8 +92,8 @@ export default function RecordsPage() {
   const [showQuickBar, setShowQuickBar] = useState(false);
   // 2단 고정: 필터(검사 아래 선+칩)의 sticky top = 글로벌헤더(48) + 기록헤더(펫+탭) 높이. 아래 effect에서 실측.
   const [stickyTop, setStickyTop] = useState(88);
-  // 검사 수치 카드 = 기능 미완성 → 프로덕션(pawdex.store)에선 숨김, 프리뷰/로컬에서만 시안 노출.
-  const [showLabCard, setShowLabCard] = useState(false);
+  // 검사 기록 정식 출시(2026-07-05 go-live) — 전 도메인 노출. Plus 게이팅은 /records/labs 랜딩에서.
+  const showLabCard = true;
 
   const handleAddPet = async () => {
     if (!user) return;
@@ -140,6 +141,18 @@ export default function RecordsPage() {
   const handleFilterChange = (filter: RecordFilter) => {
     setRecordFilter(filter);
     localStorage.setItem('recordFilter', filter);
+  };
+
+  // 모듈 아이콘 타일 — 그리드에서 검사기록을 지출 앞에 끼워야 해서 slice 로 나눠 렌더.
+  const moduleTile = (q: typeof QUICK_LINKS[number]) => {
+    const Icon = q.icon;
+    return (
+      <button key={q.href} onClick={() => router.push(q.href)}
+        className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform">
+        <Icon size={24} className={q.color} />
+        <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
+      </button>
+    );
   };
 
   const filteredRecords = recordFilter === 'all'
@@ -221,11 +234,6 @@ export default function RecordsPage() {
     obs.observe(el);
     return () => obs.disconnect();
   }, [activeTab, loading, error, selectMode, petCount]);
-
-  // 검사 수치 시안: 프로덕션 도메인(pawdex.store)에선 숨기고, 프리뷰/로컬에서만 노출(기능 미완성).
-  useEffect(() => {
-    setShowLabCard(window.location.hostname !== 'pawdex.store');
-  }, []);
 
   if (authLoading) {
     return (
@@ -320,40 +328,22 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 스크롤 시 헤더 슬림바로 고정. */}
-              <div ref={quickRef} className="grid grid-cols-2 gap-2 mb-1">
-                {QUICK_LINKS.map((q) => {
-                  const Icon = q.icon;
-                  return (
-                    <button
-                      key={q.href}
-                      onClick={() => router.push(q.href)}
-                      className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
-                    >
-                      <Icon size={14} className={`${q.color} flex-shrink-0`} />
-                      <p className="text-[13px] font-bold text-gray-700">{t(`record.module.${q.key}`)}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* 검사 수치 (Plus 전용) — 시안. 프로덕션(pawdex.store)에선 숨김(기능 미완성), 프리뷰에서만 노출. TODO: /records/labs 연결 + i18n */}
-              {showLabCard && (
-              <button
-                onClick={() => router.push('/profile/subscription')}
-                className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border active:scale-[0.98] transition-transform ${
-                  isPlus ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50'
-                }`}
-              >
-                <FlaskConical size={15} className="text-indigo-500 flex-shrink-0" />
-                <p className="text-[13px] font-bold text-gray-700">검사 수치</p>
-                {!isPlus && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">
-                    <Lock size={9} /> Plus 전용
-                  </span>
+              {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
+                  타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
+              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-1`}>
+                {QUICK_LINKS.slice(0, 3).map((q) => moduleTile(q))}
+                {/* 검사 기록 (Plus 전용) — 예방과 지출 사이. 프로덕션에선 숨김(기능 미완성), 프리뷰만. 잠금은 랜딩(LockLanding)에서 안내. TODO: i18n */}
+                {showLabCard && (
+                  <button
+                    onClick={() => router.push('/records/labs')}
+                    className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
+                  >
+                    <FlaskConical size={24} className="text-indigo-500" />
+                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t('record.module.labs')}</span>
+                  </button>
                 )}
-              </button>
-              )}
+                {QUICK_LINKS.slice(3).map((q) => moduleTile(q))}
+              </div>
 
               {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
               <div className="sticky z-20 bg-white -mx-4 px-4" style={{ top: stickyTop }}>
@@ -376,7 +366,7 @@ export default function RecordsPage() {
                 )}
                 <div className="border-t border-gray-100 max-w-sm mx-auto" />
                 {selectMode ? (
-                  <div className="flex items-center justify-between py-2 max-w-sm mx-auto">
+                  <div className="flex items-center justify-between pt-3 pb-1 max-w-sm mx-auto">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={toggleSelectAll}
@@ -405,7 +395,7 @@ export default function RecordsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 py-2 overflow-x-auto max-w-sm mx-auto">
+                  <div className="flex items-center gap-1.5 pt-3 pb-1 overflow-x-auto max-w-sm mx-auto">
                     {filterOptions.map((f) => (
                       <button
                         key={f.id}

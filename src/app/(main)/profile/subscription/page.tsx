@@ -85,6 +85,7 @@ function buildFeatureGroups(t: TFn): { title: string; features: FeatureItem[] }[
         { label: t('subscription.feature.attachments'), sublabel: t('subscription.feature.attachmentsSub'), key: 'attachments', format: (p) => t('subscription.val.count', { n: PLANS[p].attachmentsPerRecord }) },
         { label: t('subscription.feature.healthStats'), key: 'healthStats', format: (p) => p === 'free' ? t('subscription.val.recentMonths', { n: PLANS[p].costStatsMonths }) : t('subscription.val.allTime') },
         { label: t('subscription.feature.expenseStats'), key: 'expenseStats', format: (p) => p === 'free' ? t('subscription.val.recentMonths', { n: PLANS[p].costStatsMonths }) : t('subscription.val.allTime') },
+        { label: t('subscription.feature.labs'), key: 'labs', format: () => '✓', unavailable: (p) => p === 'free' },
         { label: t('subscription.feature.push'), sublabel: t('subscription.feature.pushSub'), key: 'push', format: () => '✓', unavailable: (p) => p === 'free' },
         { label: t('subscription.feature.savedAnalyses'), sublabel: t('subscription.feature.savedAnalysesSub'), key: 'savedAnalyses', format: () => '✓', unavailable: (p) => PLANS[p].maxSavedAnalyses === 0 },
         { label: t('subscription.feature.devices'), sublabel: t('subscription.feature.devicesSub'), key: 'devices', format: (p) => t('subscription.val.devicesCount', { n: PLANS[p].maxDevices }), unavailable: (p) => p === 'free' },

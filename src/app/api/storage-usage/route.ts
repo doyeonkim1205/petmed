@@ -22,15 +22,17 @@ export async function GET(request: NextRequest) {
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
 
-  const { data: files } = await supabaseAdmin
-    .from('record_files')
-    .select('file_size')
-    .eq('user_id', userId);
+  // 저장용량 = record_files + lab_test_files (검사 결과지). 둘 다 medical-files 버킷을 쓰므로 반드시 합산.
+  const [{ data: files }, { data: labFiles }] = await Promise.all([
+    supabaseAdmin.from('record_files').select('file_size').eq('user_id', userId),
+    supabaseAdmin.from('lab_test_files').select('file_size').eq('user_id', userId),
+  ]);
 
-  const usedBytes = (files || []).reduce((sum, f) => sum + (f.file_size || 0), 0);
+  const allFiles = [...(files || []), ...(labFiles || [])];
+  const usedBytes = allFiles.reduce((sum, f) => sum + (f.file_size || 0), 0);
   const usedMB = Math.round(usedBytes / 1024 / 1024 * 10) / 10;
   const limitMB = config.maxStorageMB;
-  const fileCount = files?.length || 0;
+  const fileCount = allFiles.length;
 
   return NextResponse.json({
     plan,
