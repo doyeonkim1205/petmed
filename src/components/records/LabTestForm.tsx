@@ -379,7 +379,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           )}
         </div>
 
-        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 수치를 체크하면 값 입력칸이 생겨요. 값 넣은 항목만 저장돼요.</p>
+        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값이 입력된 항목만 저장돼요.</p>
 
         <div className="space-y-2">
           {sections.map(({ tpl, analytes }) => {
@@ -396,7 +396,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                   </button>
                   {isOpen && analytes.length > 0 && (
                     <button type="button" onClick={() => toggleSectionAll(analytes)} className="text-[11px] font-medium text-blue-600 flex-shrink-0 px-1">
-                      {allOn ? '해제' : '전체'}
+                      {allOn ? '전체 해제' : '전체 선택'}
                     </button>
                   )}
                   <button type="button" onClick={() => toggle(tpl.key)} className="flex-shrink-0 p-0.5" aria-label="펼치기">
