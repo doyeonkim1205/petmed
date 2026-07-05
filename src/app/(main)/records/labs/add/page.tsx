@@ -1,19 +1,18 @@
 'use client';
 
-// 검사 수치 추가 v1 — 바텀시트 체크박스로 수치 선택(영/한 이중 라벨) + 평탄 입력 리스트 + 직접추가.
-// TODO: 결과지 첨부·참고범위 입력·i18n 은 다음 단계.
+// 검사 수치 추가 v1 — 템플릿 그룹 아코디언 + 체크하면 그 자리에 값 입력(인라인). 바텀시트 없음.
+// 영/한 이중 라벨. 값 있는 항목만 저장. TODO: 지난검사 자동선택·결과지 첨부·참고범위·i18n.
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, X, Plus } from 'lucide-react';
+import { ArrowLeft, X, ChevronDown, Check } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { FilterSheet } from '@/components/records/FilterSheet';
 import { todayLocalISO } from '@/lib/date';
 import { useLabTests, LabValueInput } from '@/hooks/useLabTests';
-import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay } from '@/lib/labCatalog';
+import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from '@/lib/labCatalog';
 
-interface CustomAnalyte { key: string; label: string; unit: string; }
+interface CustomAnalyte { key: string; label: string; }
 
 function AddLabInner() {
   const router = useRouter();
@@ -24,11 +23,13 @@ function AddLabInner() {
   const [testDate, setTestDate] = useState(todayLocalISO());
   const [hospital, setHospital] = useState('');
   const [memo, setMemo] = useState('');
-  const [active, setActive] = useState<Set<string>>(new Set());               // 입력할 수치(체크된 것)
+  const [open, setOpen] = useState<Set<LabTemplateKey>>(
+    () => new Set(LAB_TEMPLATES.filter((t) => t.defaultOpen && t.key !== 'custom').map((t) => t.key)),
+  );
+  const [active, setActive] = useState<Set<string>>(new Set());   // 값 입력칸 표시(체크)된 analyte
   const [values, setValues] = useState<Record<string, { raw: string; unit: string }>>({});
   const [customs, setCustoms] = useState<CustomAnalyte[]>([]);
   const [customName, setCustomName] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
   const [showHosp, setShowHosp] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,9 +39,11 @@ function AddLabInner() {
     authFetch('/api/recent-hospitals').then(async (r) => { if (r.ok) setHospitalSuggestions(await r.json()); }).catch(() => {});
   }, []);
 
+  const toggle = (k: LabTemplateKey) => setOpen((prev) => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+
   const toggleAnalyte = (key: string, unitDefault: string) => {
     const wasOn = active.has(key);
-    setActive((prev) => { const next = new Set(prev); if (wasOn) next.delete(key); else next.add(key); return next; });
+    setActive((prev) => { const n = new Set(prev); if (wasOn) n.delete(key); else n.add(key); return n; });
     setValues((prev) => {
       if (wasOn) { const c = { ...prev }; delete c[key]; return c; }
       return prev[key] ? prev : { ...prev, [key]: { raw: '', unit: unitDefault } };
@@ -51,7 +54,7 @@ function AddLabInner() {
     const name = customName.trim();
     if (!name) return;
     const key = `CUSTOM:${name}`;
-    if (!customs.some((c) => c.key === key)) setCustoms((prev) => [...prev, { key, label: name, unit: '' }]);
+    if (!customs.some((c) => c.key === key)) setCustoms((prev) => [...prev, { key, label: name }]);
     setActive((prev) => new Set(prev).add(key));
     setValues((prev) => (prev[key] ? prev : { ...prev, [key]: { raw: '', unit: '' } }));
     setCustomName('');
@@ -60,14 +63,20 @@ function AddLabInner() {
   const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { raw, unit: prev[key]?.unit ?? '' } }));
   const setUnit = (key: string, unit: string) => setValues((prev) => ({ ...prev, [key]: { raw: prev[key]?.raw ?? '', unit } }));
 
-  // 입력 리스트 — 카탈로그 순서 + 커스텀. 체크된 것만.
-  const inputList = useMemo(() => {
-    const cat = LAB_ANALYTES.filter((a) => active.has(a.key)).map((a) => ({ key: a.key, label: analyteDisplay(a), valueType: a.valueType }));
-    const cus = customs.filter((c) => active.has(c.key)).map((c) => ({ key: c.key, label: c.label, valueType: 'numeric' as const }));
-    return [...cat, ...cus];
-  }, [active, customs]);
+  // 열린 템플릿 순서대로 렌더하되 이미 나온 analyte 는 skip(union dedup) → 같은 수치 중복 방지.
+  const sections = useMemo(() => {
+    const rendered = new Set<string>();
+    const out: { tpl: typeof LAB_TEMPLATES[number]; analytes: typeof LAB_ANALYTES }[] = [];
+    for (const tpl of LAB_TEMPLATES) {
+      if (tpl.key === 'custom') continue;
+      const analytes = LAB_ANALYTES.filter((a) => a.templates.includes(tpl.key) && !rendered.has(a.key));
+      analytes.forEach((a) => rendered.add(a.key));
+      out.push({ tpl, analytes });
+    }
+    return out;
+  }, []);
 
-  const filledCount = inputList.filter((i) => (values[i.key]?.raw ?? '').trim() !== '').length;
+  const filledCount = [...active].filter((k) => (values[k]?.raw ?? '').trim() !== '').length;
 
   const handleSave = async () => {
     if (!petId) { setError('반려동물 정보가 없어요.'); return; }
@@ -75,7 +84,9 @@ function AddLabInner() {
     setError(null);
     setSaving(true);
     try {
-      const vals: LabValueInput[] = inputList
+      const ordered = [...LAB_ANALYTES.filter((a) => active.has(a.key)).map((a) => ({ key: a.key, label: analyteDisplay(a) })),
+                       ...customs.filter((c) => active.has(c.key)).map((c) => ({ key: c.key, label: c.label }))];
+      const vals: LabValueInput[] = ordered
         .filter((i) => (values[i.key]?.raw ?? '').trim())
         .map((i, idx) => ({ analyte_key: i.key, label: i.label, value_raw: values[i.key].raw, unit: values[i.key].unit || null, display_order: idx }));
       const cats = new Set<string>();
@@ -91,12 +102,35 @@ function AddLabInner() {
     }
   };
 
-  const deleteHosp = async (name: string) => {
+  const deleteHosp = (name: string) => {
     setHospitalSuggestions((prev) => prev.filter((h) => h !== name));
     authFetch('/api/recent-hospitals', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).catch(() => {});
   };
-
   const hospMatches = hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital);
+
+  // 체크 줄 + 체크 시 인라인 입력칸.
+  const AnalyteRow = ({ akey, label, unitDefault, vtype }: { akey: string; label: string; unitDefault: string; vtype?: string }) => {
+    const on = active.has(akey);
+    return (
+      <div>
+        <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="w-full flex items-center gap-2 py-1.5 text-left">
+          <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+            {on && <Check size={11} className="text-white" />}
+          </span>
+          <span className={`text-[13px] ${on ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{label}</span>
+        </button>
+        {on && (
+          <div className="flex items-center gap-2 pl-6 pb-1.5">
+            <input type="text" inputMode={vtype === 'numeric' ? 'decimal' : 'text'} value={values[akey]?.raw ?? ''}
+              onChange={(e) => setVal(akey, e.target.value)} placeholder={vtype === 'numeric' ? '값' : (vtype === 'semi_quantitative' ? '+/-' : '')}
+              className="flex-1 min-w-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder="단위"
+              className="w-16 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white min-h-full pb-24">
@@ -136,31 +170,48 @@ function AddLabInner() {
           </div>
         </div>
 
-        {/* 수치 선택 트리거 */}
-        <button onClick={() => setShowPicker(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-blue-300 text-blue-600 text-sm font-medium active:bg-blue-50 transition-colors">
-          <Plus size={16} /> 수치 선택{active.size > 0 ? ` (${active.size})` : ''}
-        </button>
+        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 수치를 체크하면 값 입력칸이 생겨요. 값 넣은 항목만 저장돼요.</p>
 
-        {/* 입력 리스트 */}
-        {inputList.length === 0 ? (
-          <p className="text-[12px] text-gray-400 text-center py-6">위 &quot;수치 선택&quot;에서 결과지의 항목을 골라 값을 입력해요.<br />값 넣은 항목만 저장돼요.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {inputList.map((i) => (
-              <div key={i.key} className="flex items-center gap-2">
-                <span className="text-[12px] text-gray-600 w-28 flex-shrink-0 truncate" title={i.label}>{i.label}</span>
-                <input type="text" inputMode={i.valueType === 'numeric' ? 'decimal' : 'text'}
-                  value={values[i.key]?.raw ?? ''} onChange={(e) => setVal(i.key, e.target.value)}
-                  placeholder={i.valueType === 'numeric' ? '값' : (i.valueType === 'semi_quantitative' ? '+/-' : '')}
-                  className="flex-1 min-w-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
-                <input type="text" value={values[i.key]?.unit ?? ''} onChange={(e) => setUnit(i.key, e.target.value)} placeholder="단위"
-                  className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
-                <button onClick={() => toggleAnalyte(i.key, values[i.key]?.unit ?? '')} className="p-1 text-gray-300 hover:text-red-400 flex-shrink-0" aria-label="제거"><X size={14} /></button>
+        {/* 템플릿 그룹 아코디언 — 체크 줄 + 인라인 입력 */}
+        <div className="space-y-2">
+          {sections.map(({ tpl, analytes }) => {
+            const isOpen = open.has(tpl.key);
+            const cnt = analytes.filter((a) => active.has(a.key)).length;
+            return (
+              <div key={tpl.key} className="border border-gray-100 rounded-xl overflow-hidden">
+                <button type="button" onClick={() => toggle(tpl.key)} className="w-full flex items-center gap-2 px-3 py-2.5 text-left">
+                  <span className="text-base">{tpl.emoji}</span>
+                  <span className="text-[13px] font-bold text-gray-800 flex-1">{tpl.labelKo}</span>
+                  {cnt > 0 && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{cnt}</span>}
+                  <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isOpen && (
+                  <div className="px-3 pb-2">
+                    {analytes.map((a) => <AnalyteRow key={a.key} akey={a.key} label={analyteDisplay(a)} unitDefault={a.defaultUnit} vtype={a.valueType} />)}
+                  </div>
+                )}
               </div>
-            ))}
+            );
+          })}
+
+          {/* 직접 추가 */}
+          <div className="border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <span className="text-base">➕</span>
+              <span className="text-[13px] font-bold text-gray-800 flex-1">직접 추가</span>
+            </div>
+            <div className="px-3 pb-3">
+              {customs.map((c) => <AnalyteRow key={c.key} akey={c.key} label={c.label} unitDefault="" vtype="numeric" />)}
+              <div className="flex gap-1.5 mt-1">
+                <input value={customName} onChange={(e) => setCustomName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
+                  placeholder="항목명 직접 입력 (예: Reticulocyte)" maxLength={24}
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+                <button type="button" onClick={addCustom} className="px-3 rounded-lg bg-gray-100 text-gray-600 text-sm font-medium">추가</button>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* 메모 */}
         <div>
@@ -177,50 +228,6 @@ function AddLabInner() {
           {saving ? '저장 중...' : `저장${filledCount > 0 ? ` (${filledCount})` : ''}`}
         </button>
       </div>
-
-      {/* 수치 선택 바텀시트 — 검사 종류별 체크박스(영/한). */}
-      <FilterSheet open={showPicker} title="수치 선택" closeLabel="닫기" doneLabel="완료" onClose={() => setShowPicker(false)}>
-        <div className="space-y-4">
-          {LAB_TEMPLATES.filter((t) => t.key !== 'custom').map((tpl) => {
-            const analytes = LAB_ANALYTES.filter((a) => a.templates.includes(tpl.key));
-            return (
-              <div key={tpl.key}>
-                <p className="text-[11px] font-bold text-gray-400 mb-1.5">{tpl.emoji} {tpl.labelKo}</p>
-                <div className="grid grid-cols-2 gap-x-3">
-                  {analytes.map((a) => (
-                    <label key={a.key} className="flex items-center gap-1.5 py-1 cursor-pointer">
-                      <input type="checkbox" checked={active.has(a.key)} onChange={() => toggleAnalyte(a.key, a.defaultUnit)}
-                        className="w-4 h-4 accent-blue-600 flex-shrink-0" />
-                      <span className="text-[12px] text-gray-700 truncate" title={analyteDisplay(a)}>{analyteDisplay(a)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-          {/* 직접 추가 */}
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 mb-1.5">➕ 직접 추가</p>
-            {customs.length > 0 && (
-              <div className="grid grid-cols-2 gap-x-3 mb-1.5">
-                {customs.map((c) => (
-                  <label key={c.key} className="flex items-center gap-1.5 py-1 cursor-pointer">
-                    <input type="checkbox" checked={active.has(c.key)} onChange={() => toggleAnalyte(c.key, c.unit)} className="w-4 h-4 accent-blue-600 flex-shrink-0" />
-                    <span className="text-[12px] text-gray-700 truncate" title={c.label}>{c.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-1.5">
-              <input value={customName} onChange={(e) => setCustomName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
-                placeholder="항목명 직접 입력 (예: Reticulocyte)" maxLength={24}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
-              <button type="button" onClick={addCustom} className="px-3 rounded-lg bg-gray-100 text-gray-600 text-sm font-medium">추가</button>
-            </div>
-          </div>
-        </div>
-      </FilterSheet>
     </div>
   );
 }
