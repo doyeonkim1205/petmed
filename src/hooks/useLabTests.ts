@@ -209,7 +209,7 @@ export function useLabTests() {
   }, [user]);
 
   // 지난(가장 최근) 검사에 넣었던 수치 항목 — 추가 시 자동 선택용(값은 안 가져옴).
-  const getLastAnalyteKeys = useCallback(async (petId: string): Promise<{ analyte_key: string; unit: string | null }[]> => {
+  const getLastAnalyteKeys = useCallback(async (petId: string): Promise<{ analyte_key: string; unit: string | null; ref_low: number | null; ref_high: number | null; ref_text: string | null }[]> => {
     if (!user || !petId) return [];
     const { data: last } = await supabase
       .from('lab_tests')
@@ -220,10 +220,11 @@ export function useLabTests() {
     if (!last) return [];
     const { data: vals } = await supabase
       .from('lab_values')
-      .select('analyte_key, unit, display_order')
+      .select('analyte_key, unit, display_order, ref_low, ref_high, ref_text')
       .eq('lab_test_id', last.id)
       .order('display_order', { ascending: true });
-    return (vals || []).map((v: { analyte_key: string; unit: string | null }) => ({ analyte_key: v.analyte_key, unit: v.unit }));
+    type Row = { analyte_key: string; unit: string | null; ref_low: number | null; ref_high: number | null; ref_text: string | null };
+    return (vals || []).map((v: Row) => ({ analyte_key: v.analyte_key, unit: v.unit, ref_low: v.ref_low ?? null, ref_high: v.ref_high ?? null, ref_text: v.ref_text ?? null }));
   }, [user]);
 
   // ─── 결과지 첨부 (lab_test_files) — 스토리지는 medical-files 버킷 재사용, DB만 분리 ───

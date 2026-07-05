@@ -69,12 +69,16 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     });
     return m;
   });
-  // 참고범위 입력칸이 펼쳐진 행 — 값이 있는 수치는 자동으로 펼침.
-  const [refOpen, setRefOpen] = useState<Set<string>>(() => {
-    const s = new Set<string>();
-    (initial?.values ?? []).forEach((v) => { if (v.ref_low != null || v.ref_high != null || (v.ref_text ?? '').trim()) s.add(v.analyte_key); });
-    return s;
+  // refOpen = "참고범위 편집 중"인 행(펼침). 기본은 요약 한 줄로 보여주고, 수정 눌렀을 때만 펼침.
+  const [refOpen, setRefOpen] = useState<Set<string>>(new Set());
+  // 참고범위 출처(지난/기본/입력한) — 요약 라벨용. 수정 모드 초기값은 '입력한'.
+  const [refSource, setRefSource] = useState<Record<string, 'inherited' | 'default' | 'manual'>>(() => {
+    const m: Record<string, 'inherited' | 'default' | 'manual'> = {};
+    (initial?.values ?? []).forEach((v) => { if (v.ref_low != null || v.ref_high != null || (v.ref_text ?? '').trim()) m[v.analyte_key] = 'manual'; });
+    return m;
   });
+  const [clearedKeys, setClearedKeys] = useState<Set<string>>(new Set()); // 사용자가 지운 참고범위 — 재자동채움 금지
+  const [hasInherited, setHasInherited] = useState(false);                // 지난 검사에서 상속했는지(상단 안내용)
   const [customs, setCustoms] = useState<CustomAnalyte[]>(() =>
     (initial?.values ?? []).filter((v) => v.analyte_key.startsWith('CUSTOM:')).map((v) => ({ key: v.analyte_key, label: v.label || v.analyte_key.slice(7) })),
   );
@@ -98,7 +102,17 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     getLastAnalyteKeys(petId).then((items) => {
       if (items.length === 0) return;
       setActive(new Set(items.map((i) => i.analyte_key)));
-      setValues(Object.fromEntries(items.map((i) => [i.analyte_key, emptyEntry(i.unit ?? '')])));
+      // 값(raw)은 빈칸, 단위·참고범위는 지난 검사에서 상속.
+      setValues(Object.fromEntries(items.map((i) => [i.analyte_key, {
+        raw: '', unit: i.unit ?? '',
+        refLow: i.ref_low != null ? String(i.ref_low) : '',
+        refHigh: i.ref_high != null ? String(i.ref_high) : '',
+        refText: i.ref_text ?? '',
+      }])));
+      const src: Record<string, 'inherited' | 'default' | 'manual'> = {};
+      items.forEach((i) => { if (i.ref_low != null || i.ref_high != null || (i.ref_text ?? '').trim()) src[i.analyte_key] = 'inherited'; });
+      setRefSource(src);
+      setHasInherited(true);
       setCustoms(items.filter((i) => i.analyte_key.startsWith('CUSTOM:')).map((i) => ({ key: i.analyte_key, label: i.analyte_key.slice(7) })));
       setOpen((prev) => {
         const s = new Set(prev);
@@ -141,18 +155,35 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
 
   const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), raw } }));
   const setUnit = (key: string, unit: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), unit } }));
-  const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => setValues((prev) => {
-    const e = prev[key] ?? emptyEntry();
-    const next = { ...e, [field]: v };
-    if (field === 'refLow' || field === 'refHigh') next.refText = ''; // 숫자 직접 수정 시 한쪽범위 기호(<0.2 등) 해제
-    return { ...prev, [key]: next };
-  });
-  const toggleRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
-  // 행별 ✕ = 그 참고범위 값 삭제 + 닫힘(접기만 하면 값이 남아 저장되는 혼란 방지).
+  const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => {
+    setValues((prev) => {
+      const e = prev[key] ?? emptyEntry();
+      const next = { ...e, [field]: v };
+      if (field === 'refLow' || field === 'refHigh') next.refText = ''; // 숫자 직접 수정 시 한쪽범위 기호(<0.2 등) 해제
+      return { ...prev, [key]: next };
+    });
+    setRefSource((prev) => ({ ...prev, [key]: 'manual' })); // 직접 수정 → '입력한'
+  };
+  const openRef = (key: string) => setRefOpen((prev) => new Set(prev).add(key));   // 수정 → 입력칸 펼침
+  const closeRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); n.delete(key); return n; }); // 완료 → 요약으로
+  // 행별 ✕ = 그 참고범위 값 삭제 + 닫힘 + 재자동채움 금지.
   const clearRef = (key: string) => {
     setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), refLow: '', refHigh: '', refText: '' } }));
     setRefOpen((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    setRefSource((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    setClearedKeys((prev) => new Set(prev).add(key));
   };
+  // 참고범위 요약 문자열 (텍스트/양측/한쪽 ≤·≥).
+  const refSummary = (e?: VEntry): string | null => {
+    if (!e) return null;
+    if ((e.refText ?? '').trim()) return e.refText.trim();
+    const lo = (e.refLow ?? '').trim(), hi = (e.refHigh ?? '').trim();
+    if (lo && hi) return `${lo}–${hi}`;
+    if (hi) return `≤${hi}`;
+    if (lo) return `≥${lo}`;
+    return null;
+  };
+  const refSourceLabel = (key: string) => { const s = refSource[key]; return s === 'inherited' ? '지난' : s === 'default' ? '기본' : '입력한'; };
 
   const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
@@ -171,14 +202,19 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const applicableKeys = petInfo ? [...active].filter((k) => refDefaultFor(k, petInfo.type, refGroup)) : [];
   const fillDefaults = () => {
     if (!petInfo) return;
+    // 비어있고 + 안 지운 항목만 대상(이미 입력·상속·지운 건 보존).
+    const toFill = applicableKeys.filter((k) => {
+      if (clearedKeys.has(k)) return false;
+      const e = values[k];
+      return !((e?.refLow ?? '').trim() || (e?.refHigh ?? '').trim() || (e?.refText ?? '').trim());
+    });
+    if (toFill.length === 0) return;
     setValues((prev) => {
       const n = { ...prev };
-      applicableKeys.forEach((k) => {
+      toFill.forEach((k) => {
         const d = refDefaultFor(k, petInfo.type, refGroup);
         if (!d) return;
         const e = n[k] ?? emptyEntry();
-        // 이미 입력한 참고범위는 덮지 않음.
-        if ((e.refLow ?? '').trim() || (e.refHigh ?? '').trim() || (e.refText ?? '').trim()) return;
         if ('text' in d) {
           n[k] = { ...e, refText: d.text };
         } else if ('op' in d) {
@@ -190,7 +226,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       });
       return n;
     });
-    setRefOpen((prev) => { const s = new Set(prev); applicableKeys.forEach((k) => s.add(k)); return s; });
+    setRefSource((prev) => { const m = { ...prev }; toFill.forEach((k) => { m[k] = 'default'; }); return m; }); // '기본'
   };
 
   const finishNavigation = () => {
@@ -317,7 +353,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
             </>
           )}
         </div>
-        {/* 참고범위 — 결과지 기준 사용자 입력. 앱은 판정 안 함(정상/위험 표시 없음). */}
+        {/* 참고범위 — 요약 한 줄(지난/기본/입력한). 수정 눌러야 펼침. 앱은 판정 안 함. */}
         {on && numeric && (
           refOpen.has(akey) ? (
             <div className="pl-6 pt-1 flex items-center gap-1.5">
@@ -328,10 +364,17 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <input type="text" inputMode="decimal" value={values[akey]?.refHigh ?? ''} onChange={(e) => setRef(akey, 'refHigh', e.target.value)} placeholder="27"
                 className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
               {hasUnit && <span className="text-[11px] text-gray-400">{values[akey]?.unit || unitDefault}</span>}
+              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">완료</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label="참고범위 지우기"><X size={12} /></button>
+            </div>
+          ) : refSummary(values[akey]) ? (
+            <div className="pl-6 pt-1 flex items-center gap-1">
+              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} 참고범위 <span className="text-gray-500 tabular-nums">{refSummary(values[akey])}</span></span>
+              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· 수정</button>
               <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고범위 지우기"><X size={12} /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고범위 입력</button>
+            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고범위 입력</button>
           )
         )}
         {on && !numeric && (
@@ -352,10 +395,17 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <span className="text-[11px] text-gray-400 flex-shrink-0">참고값</span>
               <input type="text" value={values[akey]?.refText ?? ''} onChange={(e) => setRef(akey, 'refText', e.target.value)} placeholder="음성"
                 className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-[12px] bg-white outline-none focus:ring-1 focus:ring-blue-400" />
+              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">완료</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label="참고값 지우기"><X size={12} /></button>
+            </div>
+          ) : (values[akey]?.refText ?? '').trim() ? (
+            <div className="pl-6 pt-1 flex items-center gap-1">
+              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} 참고값 <span className="text-gray-500">{values[akey]?.refText}</span></span>
+              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· 수정</button>
               <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고값 지우기"><X size={12} /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고값 입력</button>
+            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고값 입력</button>
           )
         )}
       </div>
@@ -429,6 +479,9 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         </div>
 
         <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.</p>
+        {hasInherited && (
+          <p className="text-[11px] text-gray-400">지난 검사에서 입력한 단위와 참고범위를 불러왔어요. 결과지와 다르면 수정해 주세요.</p>
+        )}
 
         {/* 기본 참고범위 불러오기 — 활성 항목 중 기본값 있는 게 있을 때만. 배너 아닌 조용한 버튼 + 회색 캡션. */}
         {applicableKeys.length > 0 && (
