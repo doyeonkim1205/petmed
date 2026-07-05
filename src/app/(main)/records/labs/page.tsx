@@ -170,16 +170,16 @@ function LockLanding({ onUpgrade }: { onUpgrade: () => void }) {
       </div>
       <h2 className="text-lg font-bold text-gray-900 mb-2">검사 수치 관리</h2>
       <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
-        BUN, 크레아티닌, ALT, WBC처럼 반복 확인이 필요한 검사 수치를<br />
-        한곳에 모아 변화를 그래프로 확인하세요.
+        검사 결과지와 주요 수치를 한곳에 모아<br />
+        지난 검사와의 변화를 쉽게 확인해요.
       </p>
 
       <div className="text-left space-y-2.5 mb-7">
         {[
           '혈액·소변검사 결과지 사진/PDF 보관',
-          'BUN·크레아티닌·간수치 등 주요 수치 입력',
-          '이전 검사와 비교 · 수치별 추이 그래프',
-          '신장·간·전해질 등 8종 검사 템플릿',
+          'BUN·크레아티닌·ALT 등 주요 수치 입력',
+          '이전 검사와 비교하고 추이 그래프로 확인',
+          '신장·간·전해질 등 8개 검사 템플릿 제공',
         ].map((f) => (
           <div key={f} className="flex items-start gap-2">
             <FileText size={15} className="text-indigo-400 mt-0.5 flex-shrink-0" />
@@ -190,11 +190,11 @@ function LockLanding({ onUpgrade }: { onUpgrade: () => void }) {
 
       <button onClick={onUpgrade}
         className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">
-        Plus 시작하기
+        Plus 보기
       </button>
       <p className="text-[11px] text-gray-300 mt-3 leading-relaxed">
-        결과지 사진/PDF는 저장용량에 포함돼요.<br />
-        PawDex는 의학적 진단이 아닌 기록·정리 도구예요.
+        결과지 사진/PDF는 저장용량에 포함돼요<br />
+        PawDex는 의학적 진단이 아닌 기록·정리 도구예요
       </p>
     </div>
   );

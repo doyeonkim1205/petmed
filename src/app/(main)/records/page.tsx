@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical, Lock } from 'lucide-react';
+import { Plus, ClipboardList, Calendar, RefreshCw, AlertTriangle, Dog, Cat, Wallet, Trash2, X, Activity, Pill, Syringe, FlaskConical } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getEffectivePlan } from '@/lib/plans';
@@ -329,27 +329,20 @@ export default function RecordsPage() {
                     <button
                       key={q.href}
                       onClick={() => router.push(q.href)}
-                      className="py-2 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
+                      className="py-1 flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
                     >
                       <Icon size={24} className={q.color} />
                       <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
                     </button>
                   );
                 })}
-                {/* 검사 수치 (Plus 전용) — 복약 옆 5번째 모듈. 프로덕션에선 숨김(기능 미완성), 프리뷰만. Free 는 자물쇠 힌트 후 랜딩에서 전환 유도. TODO: i18n */}
+                {/* 검사 수치 (Plus 전용) — 복약 옆 5번째 모듈. 프로덕션에선 숨김(기능 미완성), 프리뷰만. 잠금은 랜딩(LockLanding)에서 안내. TODO: i18n */}
                 {showLabCard && (
                   <button
                     onClick={() => router.push('/records/labs')}
-                    className="py-2 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
+                    className="py-1 flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
                   >
-                    <span className="relative">
-                      <FlaskConical size={24} className="text-indigo-500" />
-                      {!isPlus && (
-                        <span className="absolute -top-1.5 -right-2 w-3.5 h-3.5 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white">
-                          <Lock size={8} className="text-white" />
-                        </span>
-                      )}
-                    </span>
+                    <FlaskConical size={24} className="text-indigo-500" />
                     <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 수치</span>
                   </button>
                 )}
