@@ -69,7 +69,10 @@ export default function LabDetailPage() {
     setDeleting(true);
     try {
       await deleteLabTest(id);
-      router.replace('/records/labs');
+      // 목록에서 상세로 들어왔으니 back() 으로 그 목록 복귀(replace 는 목록 중복 생성 → 뒤로 2번 버그).
+      // popstate 로 목록 갱신(삭제된 검사 제거).
+      sessionStorage.setItem('lab_list_reload', '1');
+      router.back();
     } catch (e) {
       Sentry.captureException(e, { tags: { feature: 'labs', action: 'delete' } });
       setDeleting(false);
