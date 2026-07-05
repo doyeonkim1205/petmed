@@ -1285,7 +1285,7 @@
       "catMore": "{first} +{n} more",
       "emptyNoPet": "Please register a pet first",
       "emptyNoTest": "No lab results yet",
-      "emptyHint": "Tap + to record lab sheets and values",
+      "emptyHint": "Tap + to add a lab result",
       "valueCount": "{count} values",
       "addAria": "Add lab test"
     },
