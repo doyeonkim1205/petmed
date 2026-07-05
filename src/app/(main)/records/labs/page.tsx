@@ -26,6 +26,7 @@ export default function LabsPage() {
   const [selectedPetId, setSelectedPetId] = useState<string | undefined>(undefined);
   const [tests, setTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [petsLoaded, setPetsLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -35,11 +36,13 @@ export default function LabsPage() {
         setPets(sorted);
         if (sorted.length >= 1) setSelectedPetId(sorted[0].id);
       }
+      setPetsLoaded(true);
     });
   }, [user]);
 
   const load = useCallback(async () => {
-    if (!isPlus || !selectedPetId) { setTests([]); setLoading(false); return; }
+    // 펫 로딩 전엔 loading 유지 → 빈 상태("아직 등록한 검사 없음")가 잠깐 깜빡이는 것 방지.
+    if (!isPlus || !selectedPetId) return;
     setLoading(true);
     try {
       setTests(await getLabTests(selectedPetId));
@@ -86,8 +89,13 @@ export default function LabsPage() {
             </div>
           )}
 
-          {loading ? (
+          {!petsLoaded || (selectedPetId && loading) ? (
             <div className="space-y-2 pt-2">{[1, 2].map((i) => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}</div>
+          ) : !selectedPetId ? (
+            <div className="text-center py-16">
+              <FlaskConical size={40} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-gray-400 text-sm">반려동물을 먼저 등록해주세요</p>
+            </div>
           ) : tests.length === 0 ? (
             <div className="text-center py-16">
               <FlaskConical size={40} className="mx-auto mb-3 text-gray-200" />
