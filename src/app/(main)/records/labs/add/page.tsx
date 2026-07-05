@@ -89,8 +89,14 @@ function AddLabInner() {
       const vals: LabValueInput[] = ordered
         .filter((i) => (values[i.key]?.raw ?? '').trim())
         .map((i, idx) => ({ analyte_key: i.key, label: i.label, value_raw: values[i.key].raw, unit: values[i.key].unit || null, display_order: idx }));
+      // 카테고리 = 실제 렌더된 섹션(첫 열린 템플릿) 기준. analyte 의 모든 template 을 넣으면
+      // 겹치는 수치(WBC=cbc+cardio 등) 때문에 안 쓴 카테고리까지 딸려간다.
       const cats = new Set<string>();
-      LAB_ANALYTES.filter((a) => active.has(a.key)).forEach((a) => a.templates.forEach((t) => cats.add(t)));
+      const openArr = LAB_TEMPLATES.filter((t) => t.key !== 'custom' && open.has(t.key));
+      LAB_ANALYTES.filter((a) => active.has(a.key)).forEach((a) => {
+        const sec = openArr.find((t) => a.templates.includes(t.key));
+        cats.add(sec ? sec.key : a.templates[0]);
+      });
       if (customs.some((c) => active.has(c.key))) cats.add('custom');
       await createLabTest({ pet_id: petId, test_date: testDate, hospital_name: hospital, categories: [...cats], memo, values: vals });
       if (hospital.trim()) authFetch('/api/recent-hospitals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: hospital.trim() }) }).catch(() => {});
