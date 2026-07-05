@@ -2,10 +2,11 @@
 
 // 검사 수치 추가 v1 — 템플릿 아코디언(union dedup) + 값 있는 항목만 저장. Plus 전용.
 // TODO: 결과지 첨부·참고범위 입력·i18n 은 다음 단계.
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
+import { authFetch } from '@/lib/authFetch';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
 import { useLabTests, LabValueInput } from '@/hooks/useLabTests';
@@ -25,6 +26,9 @@ function AddLabInner() {
   );
   // analyte_key → { raw, unit }
   const [values, setValues] = useState<Record<string, { raw: string; unit: string }>>({});
+  const [active, setActive] = useState<Set<string>>(new Set());   // 입력칸 표시(on)된 analyte
+  const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
+  const [showHosp, setShowHosp] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +37,21 @@ function AddLabInner() {
     if (next.has(k)) next.delete(k); else next.add(k);
     return next;
   });
+
+  // 칩 on/off — on 이면 입력칸 등장, off 면 값도 제거(숨은 값 저장 방지).
+  const toggleAnalyte = (key: string, unitDefault: string) => {
+    const wasOn = active.has(key);
+    setActive((prev) => { const next = new Set(prev); if (wasOn) next.delete(key); else next.add(key); return next; });
+    setValues((prev) => {
+      if (wasOn) { const c = { ...prev }; delete c[key]; return c; }
+      return prev[key] ? prev : { ...prev, [key]: { raw: '', unit: unitDefault } };
+    });
+  };
+
+  // 병원명 자동완성 — 기록 추가와 동일 소스(/api/recent-hospitals).
+  useEffect(() => {
+    authFetch('/api/recent-hospitals').then(async (r) => { if (r.ok) setHospitalSuggestions(await r.json()); }).catch(() => {});
+  }, []);
 
   // 열린 템플릿을 순서대로 렌더하되, 이미 나온 analyte 는 skip(union dedup) → 같은 수치 입력칸 중복 방지.
   const sections = useMemo(() => {
@@ -91,11 +110,25 @@ function AddLabInner() {
       <div className="max-w-sm mx-auto px-4 pt-3 space-y-3">
         {/* 병원 / 검사일 — 세로 배열(잘림 방지) */}
         <div className="space-y-2">
-          <div>
+          <div className="relative">
             <label className="text-xs text-gray-400 mb-1 block">병원 <span className="text-gray-300">(선택)</span></label>
-            <input type="search" value={hospital} onChange={(e) => setHospital(e.target.value)} maxLength={30}
-              placeholder="병원명" autoComplete="off"
+            <input type="search" value={hospital}
+              onChange={(e) => { setHospital(e.target.value); setShowHosp(true); }}
+              onFocus={() => setShowHosp(true)}
+              onBlur={() => setTimeout(() => setShowHosp(false), 150)}
+              maxLength={30} placeholder="병원명" autoComplete="off"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 appearance-none [&::-webkit-search-cancel-button]:hidden" />
+            {showHosp && hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital).length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                {hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital).map((name) => (
+                  <button key={name} type="button" onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setHospital(name); setShowHosp(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-400 mb-1 block">검사일</label>
@@ -119,8 +152,21 @@ function AddLabInner() {
                   <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isOpen && (
-                  <div className="px-3 pb-3 space-y-1.5">
-                    {analytes.map((a) => (
+                  <div className="px-3 pb-3 space-y-2">
+                    {/* 수치 칩 — 탭하면 입력칸 등장(위치 무관 on/off). 안 쓸 항목은 칩으로만 남아 깔끔. */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {analytes.map((a) => {
+                        const on = active.has(a.key);
+                        return (
+                          <button key={a.key} type="button" onClick={() => toggleAnalyte(a.key, a.defaultUnit)}
+                            className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-colors ${on ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                            {a.labelKo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* on 된 항목만 입력칸 */}
+                    {analytes.filter((a) => active.has(a.key)).map((a) => (
                       <div key={a.key} className="flex items-center gap-2">
                         <span className="text-[12px] text-gray-600 w-24 flex-shrink-0 truncate" title={a.labelKo}>{a.labelKo}</span>
                         <input

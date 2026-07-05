@@ -76,7 +76,7 @@ export default function LabsPage() {
         <div className="max-w-sm mx-auto px-4 pt-3">
           {/* 펫 선택 */}
           {pets.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-2">
+            <div className={`flex gap-1.5 overflow-x-auto pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
               {pets.map((p) => (
                 <button key={p.id} onClick={() => setSelectedPetId(p.id)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedPetId === p.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}>
