@@ -88,21 +88,11 @@ export default function LabDetailPage() {
     const meta = getAnalyte(v.analyte_key);
     const lbl = v.label || meta?.labelKo || v.analyte_key;
     const canTrend = !!meta?.graphable && v.value_numeric != null;
-    // 사용자가 입력한 참고범위 — 앱은 판정 안 함, 그대로 병기만.
-    // ref_text 우선(한쪽범위 <0.2·선택형 음성 등 원문 보존). 없으면 low/high, 한쪽만이면 ≤/≥.
-    const refStr = (v.ref_text ?? '').trim()
-      ? (v.ref_text as string).trim()
-      : v.ref_low != null && v.ref_high != null ? `${v.ref_low}–${v.ref_high}`
-      : v.ref_high != null ? `≤${v.ref_high}`
-      : v.ref_low != null ? `≥${v.ref_low}`
-      : null;
+    // 참고범위는 상세에 병기하지 않음(그래프 탭 시 하단 캡션에 표시). 값만 표시.
     const inner = (
       <>
         <span className="text-[13px] text-gray-600 flex items-center gap-1">{lbl}{canTrend && <TrendingUp size={12} className="text-indigo-400" />}</span>
-        <span className="flex flex-col items-end">
-          <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{v.value_raw}{v.unit ? <span className="text-gray-400 font-normal"> {v.unit}</span> : null}</span>
-          {refStr && <span className="text-[10px] text-gray-400 tabular-nums">입력한 참고범위 {refStr}</span>}
-        </span>
+        <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{v.value_raw}{v.unit ? <span className="text-gray-400 font-normal"> {v.unit}</span> : null}</span>
       </>
     );
     return canTrend ? (
