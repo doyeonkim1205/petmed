@@ -17,6 +17,7 @@ import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from
 import { ageGroupFor, refDefaultFor, opSymbol } from '@/lib/labRefDefaults';
 
 const ALLOWED_FILE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const MAX_FILES = 10; // 검사당 결과지 첨부 상한(저장용량 쿼터와 별개의 가벼운 상한)
 
 interface CustomAnalyte { key: string; label: string; }
 export interface LabFormInitial {
@@ -47,6 +48,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [savedPartial, setSavedPartial] = useState<string | null>(null);
+  const [attachNote, setAttachNote] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 종·나이 기준 참고범위 자동 채우기용 펫 정보.
@@ -190,12 +192,16 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     const valid = picked.filter((f) => ALLOWED_FILE.includes(f.type));
     if (valid.length < picked.length) setError('사진(JPG/PNG/WebP) 또는 PDF만 첨부할 수 있어요.');
     else setError(null);
-    setNewFiles((prev) => [...prev, ...valid]);
+    const remaining = MAX_FILES - (visibleExisting.length + newFiles.length);
+    const toAdd = valid.slice(0, Math.max(0, remaining));
+    setAttachNote(valid.length > toAdd.length ? `검사당 최대 ${MAX_FILES}장까지 첨부할 수 있어요.` : null);
+    if (toAdd.length) setNewFiles((prev) => [...prev, ...toAdd]);
     e.target.value = ''; // 같은 파일 재선택 허용
   };
-  const removeExisting = (id: string) => setRemovedIds((prev) => new Set(prev).add(id));
-  const removeNew = (idx: number) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
+  const removeExisting = (id: string) => { setRemovedIds((prev) => new Set(prev).add(id)); setAttachNote(null); };
+  const removeNew = (idx: number) => { setNewFiles((prev) => prev.filter((_, i) => i !== idx)); setAttachNote(null); };
   const visibleExisting = existingFiles.filter((f) => !removedIds.has(f.id));
+  const totalFiles = visibleExisting.length + newFiles.length;
 
   // 종·나이 기준 예시 참고범위 자동 채우기 — 활성 항목 중 비어있는 참고범위만 채움(사용자 입력 보존).
   const refGroup = ageGroupFor(petInfo?.birth_date, testDate);
@@ -453,10 +459,11 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         <div>
           <label className="text-xs text-gray-400 mb-1 block">결과지 첨부 <span className="text-gray-300">(선택)</span></label>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple className="hidden" onChange={onPickFiles} />
-          <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 active:bg-gray-50 transition-colors">
-            <Paperclip size={15} /> 결과지 사진·PDF 첨부
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={totalFiles >= MAX_FILES}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 active:bg-gray-50 disabled:opacity-50 transition-colors">
+            <Paperclip size={15} /> 결과지 사진·PDF 첨부{totalFiles > 0 ? ` (${totalFiles}/${MAX_FILES})` : ''}
           </button>
+          {attachNote && <p className="text-[11px] text-amber-500 mt-1">{attachNote}</p>}
           {(visibleExisting.length > 0 || newFiles.length > 0) && (
             <div className="mt-2 space-y-1.5">
               {visibleExisting.map((f) => (

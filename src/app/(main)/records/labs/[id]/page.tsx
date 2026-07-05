@@ -157,12 +157,10 @@ export default function LabDetailPage() {
           <p className="text-sm text-gray-400 py-8 text-center">입력된 수치가 없어요.</p>
         )}
 
-        {/* 결과지 첨부 — 조회 전용 리스트(탭하면 원본). 추가/삭제는 '수정'에서. */}
-        <div className="mt-5">
-          <p className="text-[11px] font-bold text-gray-400 mb-1.5">결과지</p>
-          {files.length === 0 ? (
-            <p className="text-[12px] text-gray-300">첨부된 결과지가 없어요.</p>
-          ) : (
+        {/* 결과지 첨부 — 조회 전용 리스트(탭하면 원본). 첨부 있을 때만 노출. 추가/삭제는 '수정'에서. */}
+        {files.length > 0 && (
+          <div className="mt-5">
+            <p className="text-[11px] font-bold text-gray-400 mb-1.5">결과지</p>
             <div className="space-y-1.5">
               {files.map((f) => (
                 <button key={f.id} onClick={() => openFile(f)}
@@ -173,8 +171,8 @@ export default function LabDetailPage() {
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {test.memo && (
           <div className="mt-4">
@@ -182,8 +180,6 @@ export default function LabDetailPage() {
             <p className="text-[13px] text-gray-600 whitespace-pre-wrap">{test.memo}</p>
           </div>
         )}
-
-        <p className="text-[11px] text-gray-300 mt-6 leading-relaxed">PawDex는 의학적 진단이 아닌 기록·정리 도구예요. 수치 해석은 담당 수의사와 상의하세요.</p>
       </div>
 
       <ConfirmModal
