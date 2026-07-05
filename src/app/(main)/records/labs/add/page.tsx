@@ -114,25 +114,47 @@ function AddLabInner() {
   };
   const hospMatches = hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital);
 
-  // 체크 줄 + 체크 시 인라인 입력칸. ⚠️ 컴포넌트로 빼면 리렌더마다 remount 되어 포커스 유실 → 인라인 함수로.
+  // 체크 줄 + 체크 시 입력. ⚠️ 컴포넌트로 빼면 리렌더마다 remount 되어 포커스 유실 → 인라인 함수로.
+  // 숫자형: 이름 옆 값+단위(단위 없으면 값만). 반정량(dipstick)·텍스트(결정/세균): 선택형 칩.
+  const SEMI_OPTS = ['음성', 'trace', '+', '++', '+++'];
+  const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
   const renderRow = (akey: string, label: string, unitDefault: string, vtype?: string) => {
     const on = active.has(akey);
+    const hasUnit = unitDefault.trim() !== '';
+    const numeric = !vtype || vtype === 'numeric';
+    const opts = vtype === 'semi_quantitative' ? SEMI_OPTS : TEXT_OPTS;
+    const raw = values[akey]?.raw ?? '';
     return (
-      <div key={akey} className="flex items-center gap-2 py-1">
-        <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-          <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
-            {on && <Check size={11} className="text-white" />}
-          </span>
-          <span className={`text-[13px] truncate ${on ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{label}</span>
-        </button>
-        {on && (
-          <>
-            <input type="text" inputMode={vtype === 'numeric' ? 'decimal' : 'text'} value={values[akey]?.raw ?? ''}
-              onChange={(e) => setVal(akey, e.target.value)} placeholder={vtype === 'numeric' ? '값' : (vtype === 'semi_quantitative' ? '+/-' : '')}
-              className="w-20 flex-shrink-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
-            <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder="단위"
-              className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
-          </>
+      <div key={akey} className="py-1">
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+              {on && <Check size={11} className="text-white" />}
+            </span>
+            <span className={`text-[13px] truncate ${on ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{label}</span>
+          </button>
+          {on && numeric && (
+            <>
+              <input type="text" inputMode="decimal" value={raw} onChange={(e) => setVal(akey, e.target.value)} placeholder="값"
+                className="w-20 flex-shrink-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+              {hasUnit && (
+                <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder="단위"
+                  className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
+              )}
+            </>
+          )}
+        </div>
+        {on && !numeric && (
+          <div className="pl-6 pt-1 flex flex-wrap items-center gap-1">
+            {opts.map((opt) => (
+              <button key={opt} type="button" onClick={() => setVal(akey, opt)}
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${raw === opt ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{opt}</button>
+            ))}
+            {vtype === 'text' && (
+              <input type="text" value={opts.includes(raw) ? '' : raw} onChange={(e) => setVal(akey, e.target.value)} placeholder="직접"
+                className="w-20 px-2 py-0.5 border border-gray-200 rounded-full text-[11px] outline-none focus:ring-1 focus:ring-blue-400" />
+            )}
+          </div>
         )}
       </div>
     );
