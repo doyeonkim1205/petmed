@@ -88,7 +88,7 @@ export default function LabsPage() {
       <div className="sticky top-0 z-30 bg-white">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-sm font-semibold text-gray-700">검사 수치</h1>
+          <h1 className="text-sm font-semibold text-gray-700">검사 기록</h1>
         </header>
       </div>
 
@@ -168,7 +168,7 @@ function LockLanding({ onUpgrade }: { onUpgrade: () => void }) {
       <div className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full mb-3">
         <Lock size={10} /> Plus 전용
       </div>
-      <h2 className="text-lg font-bold text-gray-900 mb-2">검사 수치 관리</h2>
+      <h2 className="text-lg font-bold text-gray-900 mb-2">검사 기록 관리</h2>
       <p className="text-[13px] text-gray-500 leading-relaxed mb-6">
         검사 결과지와 주요 수치를 한곳에 모아<br />
         지난 검사와의 변화를 쉽게 확인해요.

@@ -33,11 +33,12 @@ const filterOptions: { id: RecordFilter }[] = [
 
 // 기록장 상단 빠른 접근. 평소엔 2×2 카드, 스크롤로 가려지면 헤더에 슬림 1줄 바로 고정.
 // 라벨/숏라벨은 messages(record.module.* / record.moduleShort.*)로 분리 — key 로 참조.
+// 순서: 건강통계 | 복약 | 예방 | (검사기록) | 지출. 검사기록은 조건부라 렌더에서 지출 앞에 삽입.
 const QUICK_LINKS = [
   { icon: Activity, key: 'stats', color: 'text-blue-500', href: '/records/stats' },
-  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
-  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
   { icon: Pill, key: 'meds', color: 'text-pink-500', href: '/records/meds' },
+  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
+  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
 ] as const;
 
 // 기록장 펫 필터 — 앱 실행 중(모듈 생존 동안)에만 유지되는 메모리 상태.
@@ -140,6 +141,18 @@ export default function RecordsPage() {
   const handleFilterChange = (filter: RecordFilter) => {
     setRecordFilter(filter);
     localStorage.setItem('recordFilter', filter);
+  };
+
+  // 모듈 아이콘 타일 — 그리드에서 검사기록을 지출 앞에 끼워야 해서 slice 로 나눠 렌더.
+  const moduleTile = (q: typeof QUICK_LINKS[number]) => {
+    const Icon = q.icon;
+    return (
+      <button key={q.href} onClick={() => router.push(q.href)}
+        className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform">
+        <Icon size={24} className={q.color} />
+        <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
+      </button>
+    );
   };
 
   const filteredRecords = recordFilter === 'all'
@@ -323,29 +336,18 @@ export default function RecordsPage() {
               {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
                   타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
               <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-1`}>
-                {QUICK_LINKS.map((q) => {
-                  const Icon = q.icon;
-                  return (
-                    <button
-                      key={q.href}
-                      onClick={() => router.push(q.href)}
-                      className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
-                    >
-                      <Icon size={24} className={q.color} />
-                      <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
-                    </button>
-                  );
-                })}
-                {/* 검사 수치 (Plus 전용) — 복약 옆 5번째 모듈. 프로덕션에선 숨김(기능 미완성), 프리뷰만. 잠금은 랜딩(LockLanding)에서 안내. TODO: i18n */}
+                {QUICK_LINKS.slice(0, 3).map((q) => moduleTile(q))}
+                {/* 검사 기록 (Plus 전용) — 예방과 지출 사이. 프로덕션에선 숨김(기능 미완성), 프리뷰만. 잠금은 랜딩(LockLanding)에서 안내. TODO: i18n */}
                 {showLabCard && (
                   <button
                     onClick={() => router.push('/records/labs')}
                     className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                   >
                     <FlaskConical size={24} className="text-indigo-500" />
-                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 수치</span>
+                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 기록</span>
                   </button>
                 )}
+                {QUICK_LINKS.slice(3).map((q) => moduleTile(q))}
               </div>
 
               {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
