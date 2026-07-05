@@ -1320,8 +1320,8 @@
       "deleteCancel": "Cancel"
     },
     "form": {
-      "titleAdd": "Add Lab Test",
-      "titleEdit": "Edit Lab Test",
+      "titleAdd": "Add Lab Record",
+      "titleEdit": "Edit Lab Record",
       "hospital": "Clinic",
       "optional": "(optional)",
       "hospitalPlaceholder": "Clinic name",
