@@ -79,7 +79,7 @@ export function ConfirmModal({
         </div>
 
         {message && (
-          <div className="text-xs text-gray-500 leading-relaxed mb-4">
+          <div className="text-xs text-gray-500 leading-relaxed mb-4 whitespace-pre-line">
             {message}
           </div>
         )}
