@@ -329,11 +329,9 @@ export default function RecordsPage() {
                     <button
                       key={q.href}
                       onClick={() => router.push(q.href)}
-                      className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
+                      className="py-2 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
                     >
-                      <span className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
-                        <Icon size={22} className={q.color} />
-                      </span>
+                      <Icon size={24} className={q.color} />
                       <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
                     </button>
                   );
@@ -342,13 +340,13 @@ export default function RecordsPage() {
                 {showLabCard && (
                   <button
                     onClick={() => router.push('/records/labs')}
-                    className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
+                    className="py-2 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
                   >
-                    <span className="relative w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
-                      <FlaskConical size={22} className="text-indigo-500" />
+                    <span className="relative">
+                      <FlaskConical size={24} className="text-indigo-500" />
                       {!isPlus && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white">
-                          <Lock size={9} className="text-white" />
+                        <span className="absolute -top-1.5 -right-2 w-3.5 h-3.5 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white">
+                          <Lock size={8} className="text-white" />
                         </span>
                       )}
                     </span>
