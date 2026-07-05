@@ -154,9 +154,15 @@ export function getAnalyte(key: string): LabAnalyte | undefined {
   return ANALYTE_BY_KEY[key];
 }
 
-/** 표시 라벨 — 검사지가 보통 영어 약어라 "영어 (한글)"로. 영/한이 같으면 하나만. */
-export function analyteDisplay(a: { labelEn: string; labelKo: string }): string {
+/** 표시 라벨 — 영어 로케일은 영문만, 그 외엔 "영어 (한글)"(영/한 같으면 하나만). */
+export function analyteDisplay(a: { labelEn: string; labelKo: string }, locale?: string): string {
+  if (locale === 'en') return a.labelEn;
   return a.labelEn === a.labelKo ? a.labelEn : `${a.labelEn} (${a.labelKo})`;
+}
+
+/** 템플릿(카테고리) 라벨 — 로케일별. */
+export function templateLabel(t: { labelKo: string; labelEn: string }, locale?: string): string {
+  return locale === 'en' ? t.labelEn : t.labelKo;
 }
 
 /**

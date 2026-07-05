@@ -344,7 +344,7 @@ export default function RecordsPage() {
                     className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                   >
                     <FlaskConical size={24} className="text-indigo-500" />
-                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 기록</span>
+                    <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t('record.module.labs')}</span>
                   </button>
                 )}
                 {QUICK_LINKS.slice(3).map((q) => moduleTile(q))}

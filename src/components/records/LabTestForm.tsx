@@ -4,6 +4,7 @@
 // dedup 은 '열린 템플릿' 기준(닫힌 템플릿은 수치를 차지하지 않음) → 전해질만 열면 Na 등이 거기 뜸.
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, X, ChevronDown, Check, Paperclip, Image as ImageIcon, FileText, Sparkles } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
@@ -13,7 +14,7 @@ import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
 import { useLabTests, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
-import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from '@/lib/labCatalog';
+import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, templateLabel, type LabTemplateKey } from '@/lib/labCatalog';
 import { ageGroupFor, refDefaultFor, opSymbol } from '@/lib/labRefDefaults';
 
 const ALLOWED_FILE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -34,14 +35,17 @@ export interface LabFormInitial {
 type VEntry = { raw: string; unit: string; refLow: string; refHigh: string; refText: string };
 const emptyEntry = (unit = ''): VEntry => ({ raw: '', unit, refLow: '', refHigh: '', refText: '' });
 
-const SEMI_OPTS = ['음성', 'trace', '+', '++', '+++'];
-const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
-
 export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; initial?: LabFormInitial; backOnSave?: boolean }) {
   const router = useRouter();
+  const t = useTranslations();
+  const locale = useLocale();
   const { user } = useAuth();
   const { createLabTest, updateLabTest, getLastAnalyteKeys, insertLabFile, deleteLabFile } = useLabTests();
   const isEdit = !!initial;
+
+  // 선택형/텍스트 칩 옵션 — 로케일별(음성/None 등). trace·+ 는 공통.
+  const SEMI_OPTS = [t('lab.form.semiNegative'), 'trace', '+', '++', '+++'];
+  const TEXT_OPTS = [t('lab.form.textNone'), t('lab.form.textSmall'), t('lab.form.textModerate'), t('lab.form.textLarge')];
 
   // 결과지 첨부 — 기존 파일(수정 시)·삭제표시·새 파일. 스토리지 업로드는 검사 저장 후.
   const [existingFiles] = useState<LabTestFile[]>(initial?.files ?? []);
@@ -192,16 +196,16 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     if (lo) return `≥${lo}`;
     return null;
   };
-  const refSourceLabel = (key: string) => { const s = refSource[key]; return s === 'inherited' ? '지난' : s === 'default' ? '기본' : '입력한'; };
+  const refSourceLabel = (key: string) => { const s = refSource[key]; return s === 'inherited' ? t('lab.form.srcInherited') : s === 'default' ? t('lab.form.srcDefault') : t('lab.form.srcManual'); };
 
   const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
     const valid = picked.filter((f) => ALLOWED_FILE.includes(f.type));
-    if (valid.length < picked.length) setError('사진(JPG/PNG/WebP) 또는 PDF만 첨부할 수 있어요.');
+    if (valid.length < picked.length) setError(t('lab.form.attachTypeErr'));
     else setError(null);
     const remaining = MAX_FILES - (visibleExisting.length + newFiles.length);
     const toAdd = valid.slice(0, Math.max(0, remaining));
-    setAttachNote(valid.length > toAdd.length ? `검사당 최대 ${MAX_FILES}장까지 첨부할 수 있어요.` : null);
+    setAttachNote(valid.length > toAdd.length ? t('lab.form.attachMax', { max: MAX_FILES }) : null);
     if (toAdd.length) setNewFiles((prev) => [...prev, ...toAdd]);
     e.target.value = ''; // 같은 파일 재선택 허용
   };
@@ -229,7 +233,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         if (!d) return;
         const e = n[k] ?? emptyEntry();
         if ('text' in d) {
-          n[k] = { ...e, refText: d.text };
+          n[k] = { ...e, refText: d.text === '음성' ? t('lab.form.semiNegative') : d.text };
         } else if ('op' in d) {
           const upper = d.op === '<' || d.op === '<=';
           n[k] = { ...e, refLow: upper ? '' : String(d.value), refHigh: upper ? String(d.value) : '', refText: `${opSymbol(d.op)}${d.value}` };
@@ -269,8 +273,8 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const filledCount = [...active].filter((k) => (values[k]?.raw ?? '').trim() !== '').length;
 
   const handleSave = async () => {
-    if (!isEdit && !petId) { setError('반려동물 정보가 없어요.'); return; }
-    if (filledCount === 0 && newFiles.length === 0 && visibleExisting.length === 0) { setError('수치를 입력하거나 결과지를 첨부해주세요.'); return; }
+    if (!isEdit && !petId) { setError(t('lab.form.errNoPet')); return; }
+    if (filledCount === 0 && newFiles.length === 0 && visibleExisting.length === 0) { setError(t('lab.form.errNoInput')); return; }
     setError(null);
     setSaving(true);
     try {
@@ -311,7 +315,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       if (newFiles.length > 0) {
         const usage = await authFetch('/api/storage-usage').then((r) => (r.ok ? r.json() : null)).catch(() => null);
         if (usage && !usage.canUpload) {
-          fileWarning = '저장용량이 가득 차 결과지 파일은 첨부되지 않았어요. 저장공간을 정리한 뒤 상세에서 다시 첨부해주세요.';
+          fileWarning = t('lab.form.errStorageFull');
         } else {
           let failed = 0;
           for (const file of newFiles) {
@@ -320,7 +324,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               await insertLabFile({ lab_test_id: labId, file_name: file.name, file_path: path, file_type: file.type, file_size: file.size });
             } catch (err) { failed++; Sentry.captureException(err, { tags: { feature: 'labs', action: 'file-upload' } }); }
           }
-          if (failed > 0) fileWarning = `검사는 저장됐어요. 다만 파일 ${failed}개 업로드에 실패했어요. 상세에서 다시 첨부할 수 있어요.`;
+          if (failed > 0) fileWarning = t('lab.form.errUploadPartial', { n: failed });
         }
       }
 
@@ -328,7 +332,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       finishNavigation();
     } catch (e) {
       Sentry.captureException(e, { tags: { feature: 'labs', action: isEdit ? 'update' : 'create' } });
-      setError('저장에 실패했어요. 다시 시도해주세요.');
+      setError(t('lab.form.errSave'));
       setSaving(false);
     }
   };
@@ -357,40 +361,40 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           </button>
           {on && numeric && (
             <>
-              <input type="text" inputMode="decimal" value={raw} onChange={(e) => setVal(akey, e.target.value)} placeholder="값"
+              <input type="text" inputMode="decimal" value={raw} onChange={(e) => setVal(akey, e.target.value)} placeholder={t('lab.form.valuePlaceholder')}
                 className="w-20 flex-shrink-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
               {hasUnit && (
-                <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder="단위"
+                <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder={t('lab.form.unitPlaceholder')}
                   className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
               )}
             </>
           )}
           {onDelete && (
-            <button type="button" onClick={onDelete} className={`flex-shrink-0 p-1 text-gray-300 hover:text-red-400 ${on ? '' : 'ml-auto'}`} aria-label="항목 삭제"><X size={14} /></button>
+            <button type="button" onClick={onDelete} className={`flex-shrink-0 p-1 text-gray-300 hover:text-red-400 ${on ? '' : 'ml-auto'}`} aria-label={t('lab.form.itemDeleteAria')}><X size={14} /></button>
           )}
         </div>
         {/* 참고범위 — 요약 한 줄(지난/기본/입력한). 수정 눌러야 펼침. 앱은 판정 안 함. */}
         {on && numeric && (
           refOpen.has(akey) ? (
             <div className="pl-6 pt-1 flex items-center gap-1.5">
-              <span className="text-[11px] text-gray-400 flex-shrink-0">참고범위</span>
+              <span className="text-[11px] text-gray-400 flex-shrink-0">{t('lab.form.refRange')}</span>
               <input type="text" inputMode="decimal" value={values[akey]?.refLow ?? ''} onChange={(e) => setRef(akey, 'refLow', e.target.value)} placeholder="7"
                 className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
               <span className="text-gray-300 text-xs">~</span>
               <input type="text" inputMode="decimal" value={values[akey]?.refHigh ?? ''} onChange={(e) => setRef(akey, 'refHigh', e.target.value)} placeholder="27"
                 className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
               {hasUnit && <span className="text-[11px] text-gray-400">{values[akey]?.unit || unitDefault}</span>}
-              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">완료</button>
-              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label="참고범위 지우기"><X size={12} /></button>
+              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">{t('lab.form.refDone')}</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label={t('lab.form.refRangeClearAria')}><X size={12} /></button>
             </div>
           ) : refSummary(values[akey]) ? (
             <div className="pl-6 pt-1 flex items-center gap-1">
-              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} 참고범위 <span className="text-gray-500 tabular-nums">{refSummary(values[akey])}</span></span>
-              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· 수정</button>
-              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고범위 지우기"><X size={12} /></button>
+              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} {t('lab.form.refRange')} <span className="text-gray-500 tabular-nums">{refSummary(values[akey])}</span></span>
+              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· {t('lab.form.refEdit')}</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label={t('lab.form.refRangeClearAria')}><X size={12} /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고범위 입력</button>
+            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">{t('lab.form.refAddRange')}</button>
           )
         )}
         {on && !numeric && (
@@ -400,7 +404,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                 className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${raw === opt ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{opt}</button>
             ))}
             {vtype === 'text' && (
-              <input type="text" value={opts.includes(raw) ? '' : raw} onChange={(e) => setVal(akey, e.target.value)} placeholder="직접"
+              <input type="text" value={opts.includes(raw) ? '' : raw} onChange={(e) => setVal(akey, e.target.value)} placeholder={t('lab.form.directShort')}
                 className="w-20 px-2 py-0.5 border border-gray-200 rounded-full text-[11px] outline-none focus:ring-1 focus:ring-blue-400" />
             )}
           </div>
@@ -408,20 +412,20 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         {on && !numeric && (
           refOpen.has(akey) ? (
             <div className="pl-6 pt-1 flex items-center gap-1.5">
-              <span className="text-[11px] text-gray-400 flex-shrink-0">참고값</span>
-              <input type="text" value={values[akey]?.refText ?? ''} onChange={(e) => setRef(akey, 'refText', e.target.value)} placeholder="음성"
+              <span className="text-[11px] text-gray-400 flex-shrink-0">{t('lab.form.refValue')}</span>
+              <input type="text" value={values[akey]?.refText ?? ''} onChange={(e) => setRef(akey, 'refText', e.target.value)} placeholder={t('lab.form.semiNegative')}
                 className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-[12px] bg-white outline-none focus:ring-1 focus:ring-blue-400" />
-              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">완료</button>
-              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label="참고값 지우기"><X size={12} /></button>
+              <button type="button" onClick={() => closeRef(akey)} className="ml-auto text-[11px] font-medium text-blue-500 flex-shrink-0">{t('lab.form.refDone')}</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 flex-shrink-0" aria-label={t('lab.form.refValueClearAria')}><X size={12} /></button>
             </div>
           ) : (values[akey]?.refText ?? '').trim() ? (
             <div className="pl-6 pt-1 flex items-center gap-1">
-              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} 참고값 <span className="text-gray-500">{values[akey]?.refText}</span></span>
-              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· 수정</button>
-              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고값 지우기"><X size={12} /></button>
+              <span className="text-[11px] text-gray-400">{refSourceLabel(akey)} {t('lab.form.refValue')} <span className="text-gray-500">{values[akey]?.refText}</span></span>
+              <button type="button" onClick={() => openRef(akey)} className="text-[11px] text-blue-500 flex-shrink-0">· {t('lab.form.refEdit')}</button>
+              <button type="button" onClick={() => clearRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label={t('lab.form.refValueClearAria')}><X size={12} /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고값 입력</button>
+            <button type="button" onClick={() => openRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">{t('lab.form.refAddValue')}</button>
           )
         )}
       </div>
@@ -432,19 +436,19 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     <div className="bg-white min-h-full pb-24">
       <div className="sticky top-0 z-30 bg-white">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
-          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-sm font-semibold text-gray-700">{isEdit ? '검사 수정' : '검사 추가'}</h1>
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-sm font-semibold text-gray-700">{isEdit ? t('lab.form.titleEdit') : t('lab.form.titleAdd')}</h1>
         </header>
       </div>
 
       <div className="max-w-sm mx-auto px-4 pt-3 space-y-3">
         <div className="space-y-2">
           <div className="relative">
-            <label className="text-xs text-gray-400 mb-1 block">병원 <span className="text-gray-300">(선택)</span></label>
+            <label className="text-xs text-gray-400 mb-1 block">{t('lab.form.hospital')} <span className="text-gray-300">{t('lab.form.optional')}</span></label>
             <input type="search" value={hospital}
               onChange={(e) => { setHospital(e.target.value); setShowHosp(true); }}
               onFocus={() => setShowHosp(true)} onBlur={() => setTimeout(() => setShowHosp(false), 150)}
-              maxLength={30} placeholder="병원명" autoComplete="off"
+              maxLength={30} placeholder={t('lab.form.hospitalPlaceholder')} autoComplete="off"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 appearance-none [&::-webkit-search-cancel-button]:hidden" />
             {showHosp && hospMatches.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -453,25 +457,25 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                     <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setHospital(name); setShowHosp(false); }}
                       className="flex-1 text-left px-3 py-2 text-sm text-gray-700 truncate">{name}</button>
                     <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => deleteHosp(name)}
-                      className="px-2.5 py-2 text-gray-300 hover:text-red-400" aria-label="삭제"><X size={13} /></button>
+                      className="px-2.5 py-2 text-gray-300 hover:text-red-400" aria-label={t('common.delete')}><X size={13} /></button>
                   </div>
                 ))}
               </div>
             )}
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">검사일</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t('lab.form.testDate')}</label>
             <DatePicker value={testDate} onChange={setTestDate} max={todayLocalISO()} inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
           </div>
         </div>
 
         {/* 결과지 첨부 — 사진/PDF. 실제 업로드는 저장 시(검사 저장 후). */}
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">결과지 첨부 <span className="text-gray-300">(선택)</span></label>
+          <label className="text-xs text-gray-400 mb-1 block">{t('lab.form.attachLabel')} <span className="text-gray-300">{t('lab.form.optional')}</span></label>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple className="hidden" onChange={onPickFiles} />
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={totalFiles >= MAX_FILES}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 active:bg-gray-50 disabled:opacity-50 transition-colors">
-            <Paperclip size={15} /> 결과지 사진·PDF 첨부{totalFiles > 0 ? ` (${totalFiles}/${MAX_FILES})` : ''}
+            <Paperclip size={15} /> {t('lab.form.attachBtn')}{totalFiles > 0 ? ` (${totalFiles}/${MAX_FILES})` : ''}
           </button>
           {attachNote && <p className="text-[11px] text-amber-500 mt-1">{attachNote}</p>}
           {(visibleExisting.length > 0 || newFiles.length > 0) && (
@@ -480,15 +484,15 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                 <div key={f.id} className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-50 rounded-lg">
                   {f.file_type.startsWith('image/') ? <ImageIcon size={14} className="text-gray-400 flex-shrink-0" /> : <FileText size={14} className="text-gray-400 flex-shrink-0" />}
                   <span className="flex-1 min-w-0 text-[12px] text-gray-600 truncate">{f.file_name}</span>
-                  <button type="button" onClick={() => removeExisting(f.id)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label="첨부 삭제"><X size={13} /></button>
+                  <button type="button" onClick={() => removeExisting(f.id)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label={t('lab.form.attachDeleteAria')}><X size={13} /></button>
                 </div>
               ))}
               {newFiles.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-50 rounded-lg">
                   {f.type.startsWith('image/') ? <ImageIcon size={14} className="text-blue-400 flex-shrink-0" /> : <FileText size={14} className="text-blue-400 flex-shrink-0" />}
                   <span className="flex-1 min-w-0 text-[12px] text-gray-600 truncate">{f.name}</span>
-                  <span className="text-[10px] text-blue-400 flex-shrink-0">새 파일</span>
-                  <button type="button" onClick={() => removeNew(i)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label="첨부 삭제"><X size={13} /></button>
+                  <span className="text-[10px] text-blue-400 flex-shrink-0">{t('lab.form.newFile')}</span>
+                  <button type="button" onClick={() => removeNew(i)} className="text-gray-300 hover:text-red-400 flex-shrink-0" aria-label={t('lab.form.attachDeleteAria')}><X size={13} /></button>
                 </div>
               ))}
             </div>
@@ -500,16 +504,16 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           <div>
             <button type="button" onClick={fillDefaults}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] font-medium text-gray-600 active:bg-gray-50 transition-colors">
-              <Sparkles size={13} className="text-indigo-400" /> 기본 참고범위 불러오기
+              <Sparkles size={13} className="text-indigo-400" /> {t('lab.form.loadDefaults')}
             </button>
             <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
-              반려동물의 종·나이 기준으로 채워요. 결과지와 다르면 수정해 주세요.
+              {t('lab.form.loadDefaultsCaption')}
             </p>
           </div>
         )}
 
         {/* 항목 선택 안내 — 검사 항목(혈액검사…) 바로 위 고정 위치. */}
-        <p className="text-[11px] text-gray-400">결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.</p>
+        <p className="text-[11px] text-gray-400">{t('lab.form.selectHint')}</p>
         <div className="space-y-2">
           {sections.map(({ tpl, analytes }) => {
             const isOpen = open.has(tpl.key);
@@ -519,19 +523,19 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <div key={tpl.key} className="border border-gray-100 rounded-xl overflow-hidden">
                 <div className="w-full flex items-center gap-2 px-3 py-2.5">
                   <button type="button" onClick={() => toggle(tpl.key)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                    <span className="text-[13px] font-bold text-gray-800">{tpl.labelKo}</span>
+                    <span className="text-[13px] font-bold text-gray-800">{templateLabel(tpl, locale)}</span>
                     {cnt > 0 && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{cnt}</span>}
                   </button>
                   {isOpen && analytes.length > 0 && (
                     <button type="button" onClick={() => toggleSectionAll(analytes)} className="text-[11px] font-medium text-blue-600 flex-shrink-0 px-1">
-                      {allOn ? '전체 해제' : '전체 선택'}
+                      {allOn ? t('lab.form.deselectAll') : t('lab.form.selectAll')}
                     </button>
                   )}
-                  <button type="button" onClick={() => toggle(tpl.key)} className="flex-shrink-0 p-0.5" aria-label="펼치기">
+                  <button type="button" onClick={() => toggle(tpl.key)} className="flex-shrink-0 p-0.5" aria-label={t('lab.form.expandAria')}>
                     <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
-                {isOpen && <div className="px-3 pb-2">{analytes.map((a) => renderRow(a.key, analyteDisplay(a), a.defaultUnit, a.valueType))}</div>}
+                {isOpen && <div className="px-3 pb-2">{analytes.map((a) => renderRow(a.key, analyteDisplay(a, locale), a.defaultUnit, a.valueType))}</div>}
               </div>
             );
           })}
@@ -539,39 +543,39 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           {/* 직접 추가 */}
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2.5">
-              <span className="text-[13px] font-bold text-gray-800 flex-1">직접 추가</span>
+              <span className="text-[13px] font-bold text-gray-800 flex-1">{t('lab.form.custom')}</span>
             </div>
             <div className="px-3 pb-3">
               {customs.map((c) => renderRow(c.key, c.label, '', 'numeric', () => removeCustom(c.key)))}
               <div className="flex gap-1.5 mt-1">
                 <input value={customName} onChange={(e) => setCustomName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
-                  placeholder="항목명 직접 입력 (예: Reticulocyte)" maxLength={24}
+                  placeholder={t('lab.form.customPlaceholder')} maxLength={24}
                   className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
-                <button type="button" onClick={addCustom} className="px-3 rounded-lg bg-gray-100 text-gray-600 text-sm font-medium">추가</button>
+                <button type="button" onClick={addCustom} className="px-3 rounded-lg bg-gray-100 text-gray-600 text-sm font-medium">{t('lab.form.customAdd')}</button>
               </div>
             </div>
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">메모 <span className="text-gray-300">(선택)</span></label>
-          <textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={500} placeholder="특이사항을 기록해보세요"
+          <label className="text-xs text-gray-400 mb-1 block">{t('lab.form.memo')} <span className="text-gray-300">{t('lab.form.optional')}</span></label>
+          <textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={500} placeholder={t('lab.form.memoPlaceholder')}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none" />
         </div>
 
-        <p className="text-[11px] text-gray-300 leading-relaxed">단위·참고범위는 결과지 기준으로 입력·수정하세요. 병원·장비에 따라 다를 수 있어요. PawDex는 의학적 진단이 아닌 기록·정리 도구예요.</p>
+        <p className="text-[11px] text-gray-300 leading-relaxed">{t('lab.form.footer')}</p>
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         {savedPartial ? (
           <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
             <p className="text-[12px] text-amber-700 leading-relaxed">{savedPartial}</p>
-            <button onClick={finishNavigation} className="mt-2 w-full h-10 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-sm font-medium">확인</button>
+            <button onClick={finishNavigation} className="mt-2 w-full h-10 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-sm font-medium">{t('lab.form.confirm')}</button>
           </div>
         ) : (
           <button onClick={handleSave} disabled={saving}
             className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors">
-            {saving ? '저장 중...' : `저장${filledCount > 0 ? ` (${filledCount})` : ''}`}
+            {saving ? t('lab.form.saving') : `${t('lab.form.save')}${filledCount > 0 ? ` (${filledCount})` : ''}`}
           </button>
         )}
       </div>

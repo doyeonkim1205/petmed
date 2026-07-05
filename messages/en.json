@@ -134,7 +134,9 @@
         "subtitle": "We analyze symptoms from your pet's health records"
       }
     },
-    "preventiveWidget": { "summaryMore": "{label} +{count} more upcoming" },
+    "preventiveWidget": {
+      "summaryMore": "{label} +{count} more upcoming"
+    },
     "medWidget": {
       "title": "Today's meds",
       "allDone": "All meds done for today",
@@ -159,12 +161,16 @@
       "hospitalization": "Hospitalization",
       "manual": "Manual"
     },
-    "tab": { "records": "Records", "calendar": "Calendar" },
+    "tab": {
+      "records": "Records",
+      "calendar": "Calendar"
+    },
     "module": {
       "stats": "Health Stats",
       "expenses": "Expenses",
       "preventive": "Preventive Care",
-      "meds": "Medications"
+      "meds": "Medications",
+      "labs": "Lab Records"
     },
     "moduleShort": {
       "stats": "Stats",
@@ -247,9 +253,21 @@
       "title": "Title",
       "memo": "Memo",
       "description": "Description",
-      "titleLabel": { "symptom": "Symptom name", "hospitalization": "Reason for admission", "visit": "Reason for visit" },
-      "titlePlaceholder": { "symptom": "e.g. vomiting, diarrhea", "hospitalization": "e.g. patella surgery, enteritis treatment", "visit": "e.g. checkup, vaccination" },
-      "dateLabel": { "symptom": "Onset date", "hospitalization": "Admission date", "visit": "Visit date" },
+      "titleLabel": {
+        "symptom": "Symptom name",
+        "hospitalization": "Reason for admission",
+        "visit": "Reason for visit"
+      },
+      "titlePlaceholder": {
+        "symptom": "e.g. vomiting, diarrhea",
+        "hospitalization": "e.g. patella surgery, enteritis treatment",
+        "visit": "e.g. checkup, vaccination"
+      },
+      "dateLabel": {
+        "symptom": "Onset date",
+        "hospitalization": "Admission date",
+        "visit": "Visit date"
+      },
       "dailyTitlePlaceholder": "e.g. 30-min walk, grooming, family outing",
       "dailyMemoPlaceholder": "Write about today",
       "descriptionPlaceholder": "Enter details",
@@ -324,11 +342,26 @@
     "noPets": "Please register a pet first",
     "empty": "No records in this period",
     "emptyHint": "Try a longer period or add a record",
-    "period": { "week": "1 week", "month": "1 month", "3month": "3 months" },
+    "period": {
+      "week": "1 week",
+      "month": "1 month",
+      "3month": "3 months"
+    },
     "label": {
-      "hospitalization": "Hospitalization", "symptom": "Symptom", "visit": "Visit", "daily": "Daily",
-      "preventive": "Preventive", "med": "Med", "poop": "Stool", "pee": "Urine",
-      "food": "Food", "water": "Water", "fluid": "Fluid", "respiratory": "Respiratory", "weight": "Weight", "cost": "Cost"
+      "hospitalization": "Hospitalization",
+      "symptom": "Symptom",
+      "visit": "Visit",
+      "daily": "Daily",
+      "preventive": "Preventive",
+      "med": "Med",
+      "poop": "Stool",
+      "pee": "Urine",
+      "food": "Food",
+      "water": "Water",
+      "fluid": "Fluid",
+      "respiratory": "Respiratory",
+      "weight": "Weight",
+      "cost": "Cost"
     },
     "medDose": "{name} dose",
     "medFallbackName": "Med",
@@ -346,12 +379,31 @@
   },
   "preventive": {
     "category": {
-      "heartworm": "Heartworm", "external_parasite": "External parasite", "internal_worm": "Deworming",
-      "vaccine": "Vaccination", "rabies": "Rabies", "health_check": "Health checkup", "other": "Other"
+      "heartworm": "Heartworm",
+      "external_parasite": "External parasite",
+      "internal_worm": "Deworming",
+      "vaccine": "Vaccination",
+      "rabies": "Rabies",
+      "health_check": "Health checkup",
+      "other": "Other"
     },
-    "interval": { "monthly": "Monthly", "yearly": "Yearly", "everyMonths": "Every {value} months", "everyYears": "Every {value} years" },
-    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days, plural, one {# day} other {# days}} overdue", "overdueMax": "30+ days overdue" },
-    "status": { "overdue": "Overdue", "soon": "Soon", "ok": "OK" },
+    "interval": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "everyMonths": "Every {value} months",
+      "everyYears": "Every {value} years"
+    },
+    "dday": {
+      "today": "D-Day",
+      "remaining": "D-{days}",
+      "overdue": "{days, plural, one {# day} other {# days}} overdue",
+      "overdueMax": "30+ days overdue"
+    },
+    "status": {
+      "overdue": "Overdue",
+      "soon": "Soon",
+      "ok": "OK"
+    },
     "selectPet": "Please select a pet first",
     "saveError": "Something went wrong while saving. Please try again.",
     "toastUpdated": "Next due date updated to {date}",
@@ -381,12 +433,37 @@
   },
   "excretion": {
     "condition": {
-      "poop": { "normal": "Normal", "soft": "Soft", "diarrhea": "Diarrhea", "hard": "Hard", "blood": "Bloody" },
-      "pee": { "normal": "Normal", "dark": "Dark", "blood": "Reddish", "cloudy": "Cloudy", "none": "Barely any" }
+      "poop": {
+        "normal": "Normal",
+        "soft": "Soft",
+        "diarrhea": "Diarrhea",
+        "hard": "Hard",
+        "blood": "Bloody"
+      },
+      "pee": {
+        "normal": "Normal",
+        "dark": "Dark",
+        "blood": "Reddish",
+        "cloudy": "Cloudy",
+        "none": "Barely any"
+      }
     },
-    "amount": { "less": "Less", "normal": "Normal", "more": "More" },
-    "color": { "brown": "Brown", "black": "Black", "red": "Red", "yellow": "Yellow", "gray": "Gray" },
-    "kindLabel": { "poop": "Stool", "pee": "Urine" },
+    "amount": {
+      "less": "Less",
+      "normal": "Normal",
+      "more": "More"
+    },
+    "color": {
+      "brown": "Brown",
+      "black": "Black",
+      "red": "Red",
+      "yellow": "Yellow",
+      "gray": "Gray"
+    },
+    "kindLabel": {
+      "poop": "Stool",
+      "pee": "Urine"
+    },
     "loading": "Loading…",
     "todayKind": "Today's {kind}",
     "times": "{count}×",
@@ -399,8 +476,16 @@
     "todayTime": "Today {time}"
   },
   "metrics": {
-    "label": { "water": "Water", "food": "Food", "fluid": "Fluids" },
-    "placeholder": { "water": "Water today (ml)", "food": "Food today (g)", "fluid": "Fluids given (ml)" },
+    "label": {
+      "water": "Water",
+      "food": "Food",
+      "fluid": "Fluids"
+    },
+    "placeholder": {
+      "water": "Water today (ml)",
+      "food": "Food today (g)",
+      "fluid": "Fluids given (ml)"
+    },
     "loading": "Loading…",
     "today": "Today's {label}",
     "recommendedVs": "{pct}% of recommended",
@@ -442,8 +527,22 @@
     "choosePhoto": "Choose file"
   },
   "calendar": {
-    "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-    "label": { "symptom": "Symptom", "visit": "Visit", "hospitalization": "Admission", "manual": "Record", "daily": "Daily" },
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "label": {
+      "symptom": "Symptom",
+      "visit": "Visit",
+      "hospitalization": "Admission",
+      "manual": "Record",
+      "daily": "Daily"
+    },
     "medicating": "On medication",
     "appointment": "Appointment",
     "discharge": "Discharge",
@@ -452,7 +551,11 @@
     "nextMonth": "Next month"
   },
   "meds": {
-    "type": { "prescription": "Prescription", "supplement": "Supplement", "other": "Other" },
+    "type": {
+      "prescription": "Prescription",
+      "supplement": "Supplement",
+      "other": "Other"
+    },
     "endBeforeStart": "End date can't be earlier than start date",
     "intro": "Medications from visit/hospitalization records gather here automatically! You can check off doses from Home or the calendar.",
     "empty": "No medications or supplements yet",
@@ -474,8 +577,22 @@
     "doneCount": "{checked}/{total} done"
   },
   "expenses": {
-    "category": { "medical": "Medical", "food": "Food", "snack": "Treats", "insurance": "Insurance", "supplies": "Supplies & toys", "grooming": "Grooming", "other": "Other" },
-    "period": { "month": "1 month", "3month": "3 months", "year": "1 year", "all": "All", "custom": "Custom" },
+    "category": {
+      "medical": "Medical",
+      "food": "Food",
+      "snack": "Treats",
+      "insurance": "Insurance",
+      "supplies": "Supplies & toys",
+      "grooming": "Grooming",
+      "other": "Other"
+    },
+    "period": {
+      "month": "1 month",
+      "3month": "3 months",
+      "year": "1 year",
+      "all": "All",
+      "custom": "Custom"
+    },
     "hint": "Costs entered in records (visits/hospitalization) are\nauto-summed into ''{category}''.",
     "totalSpent": "{period} total",
     "byCategoryShow": "Show categories",
@@ -502,7 +619,12 @@
     "valueLabel": "Breaths per minute",
     "placeholder": "e.g. 24",
     "conditionLabel": "Condition",
-    "condition": { "sleeping": "Sleeping", "resting": "Resting", "afterActivity": "After activity", "other": "Other" },
+    "condition": {
+      "sleeping": "Sleeping",
+      "resting": "Resting",
+      "afterActivity": "After activity",
+      "other": "Other"
+    },
     "grade": {
       "verylow": "That's quite low. Re-counting gives a more accurate reading",
       "low": "On the low side. It can happen during deep sleep",
@@ -525,7 +647,14 @@
     "less": "Show less"
   },
   "stats": {
-    "tab": { "weight": "Weight", "water": "Water", "food": "Food", "fluid": "Fluid", "excretion": "Excretion", "respiratory": "Respiratory" },
+    "tab": {
+      "weight": "Weight",
+      "water": "Water",
+      "food": "Food",
+      "fluid": "Fluid",
+      "excretion": "Excretion",
+      "respiratory": "Respiratory"
+    },
     "tabSettingsLabel": "Metric display settings",
     "filterHint": "Choose the metrics you want to see here,\nand reorder them too.",
     "editMetrics": "Edit metrics",
@@ -555,7 +684,10 @@
     "recordGeneric": "Record"
   },
   "pets": {
-    "type": { "dog": "Dog", "cat": "Cat" }
+    "type": {
+      "dog": "Dog",
+      "cat": "Cat"
+    }
   },
   "petForm": {
     "hint": "💡 Detailed info about your pet helps with AI reference analysis and health record management.",
@@ -691,7 +823,14 @@
     "registerPet": "Go register a pet",
     "selectPet": "Pet to analyze",
     "bodyPart": "Affected area",
-    "category": { "skin": "Skin", "eye": "Eye", "wound": "Wound", "dental": "Mouth & teeth", "ear": "Ear", "excretion": "Stool/urine & vomit" },
+    "category": {
+      "skin": "Skin",
+      "eye": "Eye",
+      "wound": "Wound",
+      "dental": "Mouth & teeth",
+      "ear": "Ear",
+      "excretion": "Stool/urine & vomit"
+    },
     "photoTip": "💡 The closer and brighter the photo, the more accurate the analysis",
     "attachPhoto": "Attach a photo",
     "freeTrialLabel": "Free trial",
@@ -706,7 +845,11 @@
     "disclaimerShort": "AI analysis is for reference only! Visit a vet for an accurate diagnosis",
     "analyzing": "AI is analyzing...",
     "analyzeCta": "Analyze photo",
-    "concern": { "low": "Looks okay for now", "medium": "Keep an eye on it", "high": "Needs prompt veterinary care" },
+    "concern": {
+      "low": "Looks okay for now",
+      "medium": "Keep an eye on it",
+      "high": "Needs prompt veterinary care"
+    },
     "analyzedAlt": "Analyzed photo",
     "usedPhoto": "Photo used for analysis",
     "privacyAria": "Privacy notice",
@@ -1037,7 +1180,10 @@
     }
   },
   "search": {
-    "mode": { "symptom": "Symptom check", "disease": "Paper search" },
+    "mode": {
+      "symptom": "Symptom check",
+      "disease": "Paper search"
+    },
     "placeholderSymptom": "Search symptoms",
     "placeholderDisease": "Search a disease or keyword",
     "photoAnalyzeAria": "Analyze with a photo",
@@ -1078,7 +1224,10 @@
     "viewOriginal": "View original paper",
     "pubmedFailed": "Failed to connect to PubMed.",
     "offlineData": "Offline data",
-    "error": { "saveFailed": "Failed to save.", "network": "A network error occurred." }
+    "error": {
+      "saveFailed": "Failed to save.",
+      "network": "A network error occurred."
+    }
   },
   "analysis": {
     "loading": "AI is analyzing the symptoms...",
@@ -1088,9 +1237,21 @@
     "matchingSymptoms": "Matching symptoms",
     "additionalSymptoms": "Additional symptoms to watch",
     "watchHeader": "🩺 Consider seeing a vet if",
-    "severity": { "urgent": "Urgent", "caution": "Caution", "watch": "Watch" },
-    "likelihood": { "high": "High", "medium": "Medium", "low": "Low" },
-    "emergencyTier": { "immediate": "Now", "within24h": "Within 24h", "monitor": "Monitor" },
+    "severity": {
+      "urgent": "Urgent",
+      "caution": "Caution",
+      "watch": "Watch"
+    },
+    "likelihood": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "emergencyTier": {
+      "immediate": "Now",
+      "within24h": "Within 24h",
+      "monitor": "Monitor"
+    },
     "emergencyTitle": {
       "immediate": "See a vet immediately if you notice",
       "within24h": "See a vet within 24 hours if you notice",
@@ -1114,6 +1275,118 @@
       "refineLimit": "You've exceeded the re-analysis limit.",
       "searchLimit": "You've exceeded the symptom analysis limit.",
       "failed": "Symptom analysis failed.\nPlease check your network connection."
+    }
+  },
+  "lab": {
+    "title": "Lab Records",
+    "list": {
+      "fallbackTitle": "Lab Test",
+      "catMore": "{first} +{n} more",
+      "emptyNoPet": "Please register a pet first",
+      "emptyNoTest": "No lab results yet",
+      "emptyHint": "Tap + to record lab sheets and values",
+      "valueCount": "{count} values",
+      "addAria": "Add lab test"
+    },
+    "lock": {
+      "badge": "Plus only",
+      "title": "Lab Records",
+      "subtitle": "Keep lab sheets and key values in one place\nand track changes across tests easily.",
+      "f1": "Store lab sheet photos/PDFs",
+      "f2": "Enter key values like BUN, Creatinine, ALT",
+      "f3": "Compare with past tests and view trend graphs",
+      "f4": "8 templates: kidney, liver, electrolytes, and more",
+      "cta": "See Plus",
+      "footer": "Lab sheet photos/PDFs count toward your storage\nPawDex is a record-keeping tool, not a medical diagnosis"
+    },
+    "detail": {
+      "title": "Lab Test",
+      "notFound": "Lab test not found.",
+      "toList": "Back to list",
+      "editAria": "Edit",
+      "deleteAria": "Delete",
+      "noValues": "No values entered.",
+      "custom": "Custom",
+      "memo": "Memo",
+      "attachments": "Lab sheets",
+      "photo": "Photo",
+      "pdf": "PDF",
+      "trendHint": "Tap a value to see its trend graph.",
+      "hintClose": "Close",
+      "deleteTitle": "Delete this test?",
+      "deleteMsg": "This test and all its values will be deleted. This can't be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel"
+    },
+    "form": {
+      "titleAdd": "Add Lab Test",
+      "titleEdit": "Edit Lab Test",
+      "hospital": "Clinic",
+      "optional": "(optional)",
+      "hospitalPlaceholder": "Clinic name",
+      "hospitalDeleteAria": "Delete",
+      "testDate": "Test date",
+      "attachLabel": "Attach lab sheet",
+      "attachBtn": "Attach photo/PDF",
+      "attachMax": "You can attach up to {max} files per test.",
+      "attachTypeErr": "Only photos (JPG/PNG/WebP) or PDF can be attached.",
+      "newFile": "New",
+      "attachDeleteAria": "Remove attachment",
+      "selectHint": "Select only the items on your lab sheet. Only items with a value are saved.",
+      "loadDefaults": "Load default reference ranges",
+      "loadDefaultsCaption": "Filled by species and age. Edit if your sheet differs.",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "expandAria": "Expand",
+      "custom": "Custom",
+      "customPlaceholder": "Enter item name (e.g. Reticulocyte)",
+      "customAdd": "Add",
+      "itemDeleteAria": "Delete item",
+      "valuePlaceholder": "Value",
+      "unitPlaceholder": "Unit",
+      "refRange": "reference",
+      "refValue": "reference",
+      "refDone": "Done",
+      "refEdit": "Edit",
+      "refAddRange": "+ Add reference range",
+      "refAddValue": "+ Add reference value",
+      "refRangeClearAria": "Clear reference range",
+      "refValueClearAria": "Clear reference value",
+      "directShort": "Custom",
+      "memo": "Memo",
+      "memoPlaceholder": "Note anything special",
+      "footer": "Enter units and reference ranges from your lab sheet. They may vary by clinic and equipment. PawDex is a record-keeping tool, not a medical diagnosis.",
+      "save": "Save",
+      "saving": "Saving...",
+      "confirm": "OK",
+      "errNoPet": "No pet selected.",
+      "errNoInput": "Enter a value or attach a lab sheet.",
+      "errStorageFull": "Storage is full, so the lab files weren't attached. Free up space and attach again from the detail page.",
+      "errUploadPartial": "The test was saved, but {n} file(s) failed to upload. You can attach them again from the detail page.",
+      "errSave": "Failed to save. Please try again.",
+      "srcInherited": "Last",
+      "srcDefault": "Default",
+      "srcManual": "Entered",
+      "semiNegative": "Negative",
+      "textNone": "None",
+      "textSmall": "Small",
+      "textModerate": "Moderate",
+      "textLarge": "Large"
+    },
+    "trend": {
+      "title": "{label} Trend",
+      "loading": "Loading...",
+      "needMore": "Need more records to compare.\nOnce this value appears in 2+ tests, you can view its trend.",
+      "latest": "Latest",
+      "vsPrev": "vs previous",
+      "recentN": "Recent {n}",
+      "allN": "All {n}",
+      "recent": "Recent",
+      "all": "All",
+      "scrollHint": "← Swipe to see all",
+      "refBand": "Reference range {range} (latest)",
+      "excluded": "{n} record(s) with a different unit were excluded.",
+      "close": "Close"
     }
   }
 }

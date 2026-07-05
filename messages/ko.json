@@ -134,7 +134,9 @@
         "subtitle": "우리 아이 건강 기록을 바탕으로 증상을 분석해요"
       }
     },
-    "preventiveWidget": { "summaryMore": "{label} 외 {count}개 예정" },
+    "preventiveWidget": {
+      "summaryMore": "{label} 외 {count}개 예정"
+    },
     "medWidget": {
       "title": "오늘의 약",
       "allDone": "오늘 약을 모두 챙겼어요",
@@ -159,12 +161,16 @@
       "hospitalization": "입퇴원",
       "manual": "수동"
     },
-    "tab": { "records": "기록", "calendar": "캘린더" },
+    "tab": {
+      "records": "기록",
+      "calendar": "캘린더"
+    },
     "module": {
       "stats": "건강 통계",
       "expenses": "지출 관리",
       "preventive": "예방 관리",
-      "meds": "복약 관리"
+      "meds": "복약 관리",
+      "labs": "검사 기록"
     },
     "moduleShort": {
       "stats": "통계",
@@ -247,9 +253,21 @@
       "title": "제목",
       "memo": "메모",
       "description": "내용",
-      "titleLabel": { "symptom": "증상명", "hospitalization": "입원 사유", "visit": "진료 사유" },
-      "titlePlaceholder": { "symptom": "예: 구토, 설사", "hospitalization": "예: 슬개골 수술, 장염 치료", "visit": "예: 건강검진, 예방접종" },
-      "dateLabel": { "symptom": "발생일", "hospitalization": "입원일", "visit": "진료일" },
+      "titleLabel": {
+        "symptom": "증상명",
+        "hospitalization": "입원 사유",
+        "visit": "진료 사유"
+      },
+      "titlePlaceholder": {
+        "symptom": "예: 구토, 설사",
+        "hospitalization": "예: 슬개골 수술, 장염 치료",
+        "visit": "예: 건강검진, 예방접종"
+      },
+      "dateLabel": {
+        "symptom": "발생일",
+        "hospitalization": "입원일",
+        "visit": "진료일"
+      },
       "dailyTitlePlaceholder": "예: 산책 30분, 미용, 가족 나들이",
       "dailyMemoPlaceholder": "오늘 하루를 기록해보세요",
       "descriptionPlaceholder": "상세 내용을 입력하세요",
@@ -324,11 +342,26 @@
     "noPets": "먼저 반려동물을 등록해주세요",
     "empty": "이 기간에 기록이 없어요",
     "emptyHint": "기간을 늘리거나 기록을 추가해보세요",
-    "period": { "week": "1주", "month": "1개월", "3month": "3개월" },
+    "period": {
+      "week": "1주",
+      "month": "1개월",
+      "3month": "3개월"
+    },
     "label": {
-      "hospitalization": "입퇴원", "symptom": "증상", "visit": "진료", "daily": "일상",
-      "preventive": "예방", "med": "약", "poop": "대변", "pee": "소변",
-      "food": "식사", "water": "음수", "fluid": "수액", "respiratory": "호흡수", "weight": "체중", "cost": "지출"
+      "hospitalization": "입퇴원",
+      "symptom": "증상",
+      "visit": "진료",
+      "daily": "일상",
+      "preventive": "예방",
+      "med": "약",
+      "poop": "대변",
+      "pee": "소변",
+      "food": "식사",
+      "water": "음수",
+      "fluid": "수액",
+      "respiratory": "호흡수",
+      "weight": "체중",
+      "cost": "지출"
     },
     "medDose": "{name} 복용",
     "medFallbackName": "약",
@@ -346,12 +379,31 @@
   },
   "preventive": {
     "category": {
-      "heartworm": "심장사상충", "external_parasite": "외부기생충", "internal_worm": "내부구충",
-      "vaccine": "종합백신", "rabies": "광견병", "health_check": "건강검진", "other": "기타"
+      "heartworm": "심장사상충",
+      "external_parasite": "외부기생충",
+      "internal_worm": "내부구충",
+      "vaccine": "종합백신",
+      "rabies": "광견병",
+      "health_check": "건강검진",
+      "other": "기타"
     },
-    "interval": { "monthly": "월 1회", "yearly": "연 1회", "everyMonths": "{value}개월", "everyYears": "{value}년" },
-    "dday": { "today": "D-Day", "remaining": "D-{days}", "overdue": "{days}일 지남", "overdueMax": "30일+ 지남" },
-    "status": { "overdue": "지남", "soon": "임박", "ok": "여유" },
+    "interval": {
+      "monthly": "월 1회",
+      "yearly": "연 1회",
+      "everyMonths": "{value}개월",
+      "everyYears": "{value}년"
+    },
+    "dday": {
+      "today": "D-Day",
+      "remaining": "D-{days}",
+      "overdue": "{days}일 지남",
+      "overdueMax": "30일+ 지남"
+    },
+    "status": {
+      "overdue": "지남",
+      "soon": "임박",
+      "ok": "여유"
+    },
     "selectPet": "반려동물을 먼저 선택해주세요",
     "saveError": "저장 중 오류가 발생했어요! 다시 시도해주세요",
     "toastUpdated": "다음 예정일이 {date}로 갱신됐어요",
@@ -381,12 +433,37 @@
   },
   "excretion": {
     "condition": {
-      "poop": { "normal": "정상", "soft": "무름", "diarrhea": "설사", "hard": "딱딱함", "blood": "혈변" },
-      "pee": { "normal": "정상", "dark": "진함", "blood": "붉음", "cloudy": "탁함", "none": "거의 못 봄" }
+      "poop": {
+        "normal": "정상",
+        "soft": "무름",
+        "diarrhea": "설사",
+        "hard": "딱딱함",
+        "blood": "혈변"
+      },
+      "pee": {
+        "normal": "정상",
+        "dark": "진함",
+        "blood": "붉음",
+        "cloudy": "탁함",
+        "none": "거의 못 봄"
+      }
     },
-    "amount": { "less": "적음", "normal": "보통", "more": "많음" },
-    "color": { "brown": "갈색", "black": "검은색", "red": "붉은색", "yellow": "노란색", "gray": "회색" },
-    "kindLabel": { "poop": "대변", "pee": "소변" },
+    "amount": {
+      "less": "적음",
+      "normal": "보통",
+      "more": "많음"
+    },
+    "color": {
+      "brown": "갈색",
+      "black": "검은색",
+      "red": "붉은색",
+      "yellow": "노란색",
+      "gray": "회색"
+    },
+    "kindLabel": {
+      "poop": "대변",
+      "pee": "소변"
+    },
     "loading": "불러오는 중…",
     "todayKind": "오늘 {kind}",
     "times": "{count}회",
@@ -399,8 +476,16 @@
     "todayTime": "오늘 {time}"
   },
   "metrics": {
-    "label": { "water": "음수량", "food": "식사량", "fluid": "수액" },
-    "placeholder": { "water": "오늘 마신 물 (ml)", "food": "오늘 먹은 사료 (g)", "fluid": "투여한 수액 (ml)" },
+    "label": {
+      "water": "음수량",
+      "food": "식사량",
+      "fluid": "수액"
+    },
+    "placeholder": {
+      "water": "오늘 마신 물 (ml)",
+      "food": "오늘 먹은 사료 (g)",
+      "fluid": "투여한 수액 (ml)"
+    },
     "loading": "불러오는 중…",
     "today": "오늘 {label}",
     "recommendedVs": "권장 대비 {pct}%",
@@ -442,8 +527,22 @@
     "choosePhoto": "파일 선택"
   },
   "calendar": {
-    "weekdays": ["일", "월", "화", "수", "목", "금", "토"],
-    "label": { "symptom": "증상", "visit": "진료", "hospitalization": "입원", "manual": "기록", "daily": "일상" },
+    "weekdays": [
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
+    ],
+    "label": {
+      "symptom": "증상",
+      "visit": "진료",
+      "hospitalization": "입원",
+      "manual": "기록",
+      "daily": "일상"
+    },
     "medicating": "투약 중",
     "appointment": "예약",
     "discharge": "퇴원",
@@ -452,7 +551,11 @@
     "nextMonth": "다음 달"
   },
   "meds": {
-    "type": { "prescription": "처방약", "supplement": "영양제", "other": "기타" },
+    "type": {
+      "prescription": "처방약",
+      "supplement": "영양제",
+      "other": "기타"
+    },
     "endBeforeStart": "종료일이 시작일보다 빠를 수 없어요",
     "intro": "진료·입퇴원 기록에 작성한 약도 자동으로 여기에 모여요! 복용 체크는 홈·캘린더에서 할 수 있어요",
     "empty": "등록된 약·영양제가 없어요",
@@ -474,8 +577,22 @@
     "doneCount": "{checked}/{total} 완료"
   },
   "expenses": {
-    "category": { "medical": "병원·의료", "food": "사료", "snack": "간식", "insurance": "펫보험", "supplies": "용품·장난감", "grooming": "미용", "other": "기타" },
-    "period": { "month": "1개월", "3month": "3개월", "year": "1년", "all": "전체", "custom": "직접 선택" },
+    "category": {
+      "medical": "병원·의료",
+      "food": "사료",
+      "snack": "간식",
+      "insurance": "펫보험",
+      "supplies": "용품·장난감",
+      "grooming": "미용",
+      "other": "기타"
+    },
+    "period": {
+      "month": "1개월",
+      "3month": "3개월",
+      "year": "1년",
+      "all": "전체",
+      "custom": "직접 선택"
+    },
     "hint": "기록장(진료·입원)에 적은 비용은\n''{category}''로 자동 합산돼요.",
     "totalSpent": "{period} 총 지출",
     "byCategoryShow": "카테고리별 보기",
@@ -502,7 +619,12 @@
     "valueLabel": "분당 호흡수",
     "placeholder": "예: 24",
     "conditionLabel": "측정 상태",
-    "condition": { "sleeping": "수면 중", "resting": "휴식 중", "afterActivity": "활동 후", "other": "기타" },
+    "condition": {
+      "sleeping": "수면 중",
+      "resting": "휴식 중",
+      "afterActivity": "활동 후",
+      "other": "기타"
+    },
     "grade": {
       "verylow": "측정값이 낮아요. 다시 세어보면 더 정확해요",
       "low": "낮은 편이에요. 깊게 잠든 상태면 나올 수 있어요",
@@ -525,7 +647,14 @@
     "less": "접기"
   },
   "stats": {
-    "tab": { "weight": "체중", "water": "음수량", "food": "식사", "fluid": "수액", "excretion": "대소변", "respiratory": "호흡수" },
+    "tab": {
+      "weight": "체중",
+      "water": "음수량",
+      "food": "식사",
+      "fluid": "수액",
+      "excretion": "대소변",
+      "respiratory": "호흡수"
+    },
     "tabSettingsLabel": "표시 지표 설정",
     "filterHint": "여기서 보고 싶은 지표를 고르고,\n순서도 바꿀 수 있어요.",
     "editMetrics": "지표 편집",
@@ -555,7 +684,10 @@
     "recordGeneric": "기록"
   },
   "pets": {
-    "type": { "dog": "강아지", "cat": "고양이" }
+    "type": {
+      "dog": "강아지",
+      "cat": "고양이"
+    }
   },
   "petForm": {
     "hint": "💡 아이 정보를 자세히 입력하면 AI 참고 분석과 건강 기록 관리에 도움이 돼요.",
@@ -691,7 +823,14 @@
     "registerPet": "반려동물 등록하러 가기",
     "selectPet": "분석할 반려동물",
     "bodyPart": "증상 부위",
-    "category": { "skin": "피부", "eye": "눈", "wound": "외상", "dental": "입·치아", "ear": "귀", "excretion": "대소변·구토" },
+    "category": {
+      "skin": "피부",
+      "eye": "눈",
+      "wound": "외상",
+      "dental": "입·치아",
+      "ear": "귀",
+      "excretion": "대소변·구토"
+    },
     "photoTip": "💡 밝은 곳에서 가까이 찍을수록 분석 결과가 정확해져요",
     "attachPhoto": "증상 사진 첨부",
     "freeTrialLabel": "Free 체험",
@@ -706,7 +845,11 @@
     "disclaimerShort": "AI 분석 결과는 참고용입니다! 정확한 진단은 동물병원을 방문해 주세요",
     "analyzing": "AI가 분석 중이에요...",
     "analyzeCta": "사진 분석하기",
-    "concern": { "low": "지금은 괜찮아 보여요", "medium": "지켜봐 주세요", "high": "빠른 진료가 필요해요" },
+    "concern": {
+      "low": "지금은 괜찮아 보여요",
+      "medium": "지켜봐 주세요",
+      "high": "빠른 진료가 필요해요"
+    },
     "analyzedAlt": "분석한 사진",
     "usedPhoto": "분석에 사용한 사진",
     "privacyAria": "개인정보 보호 안내",
@@ -1037,7 +1180,10 @@
     }
   },
   "search": {
-    "mode": { "symptom": "증상 분석", "disease": "논문 검색" },
+    "mode": {
+      "symptom": "증상 분석",
+      "disease": "논문 검색"
+    },
     "placeholderSymptom": "증상을 검색하세요",
     "placeholderDisease": "질병·키워드를 검색하세요",
     "photoAnalyzeAria": "사진으로 분석하기",
@@ -1078,7 +1224,10 @@
     "viewOriginal": "원본 논문 보기",
     "pubmedFailed": "PubMed 연결에 실패했습니다.",
     "offlineData": "오프라인 데이터",
-    "error": { "saveFailed": "저장에 실패했어요.", "network": "네트워크 오류가 발생했어요." }
+    "error": {
+      "saveFailed": "저장에 실패했어요.",
+      "network": "네트워크 오류가 발생했어요."
+    }
   },
   "analysis": {
     "loading": "AI가 증상을 분석하고 있습니다...",
@@ -1088,9 +1237,21 @@
     "matchingSymptoms": "일치하는 증상",
     "additionalSymptoms": "추가로 관찰할 증상",
     "watchHeader": "🩺 이런 경우엔 진료를 고려하세요",
-    "severity": { "urgent": "긴급", "caution": "주의", "watch": "관찰" },
-    "likelihood": { "high": "높음", "medium": "중간", "low": "낮음" },
-    "emergencyTier": { "immediate": "즉시", "within24h": "24시간내", "monitor": "경과관찰" },
+    "severity": {
+      "urgent": "긴급",
+      "caution": "주의",
+      "watch": "관찰"
+    },
+    "likelihood": {
+      "high": "높음",
+      "medium": "중간",
+      "low": "낮음"
+    },
+    "emergencyTier": {
+      "immediate": "즉시",
+      "within24h": "24시간내",
+      "monitor": "경과관찰"
+    },
     "emergencyTitle": {
       "immediate": "이런 증상이면 즉시 병원으로",
       "within24h": "이런 증상이면 24시간 내 병원으로",
@@ -1114,6 +1275,118 @@
       "refineLimit": "재분석 횟수를 초과했습니다.",
       "searchLimit": "증상 분석 횟수를 초과했습니다.",
       "failed": "증상 분석에 실패했습니다.\n네트워크 연결을 확인해주세요."
+    }
+  },
+  "lab": {
+    "title": "검사 기록",
+    "list": {
+      "fallbackTitle": "검사",
+      "catMore": "{first} 외 {n}개",
+      "emptyNoPet": "반려동물을 먼저 등록해주세요",
+      "emptyNoTest": "아직 등록한 검사 결과가 없어요",
+      "emptyHint": "+ 버튼으로 검사 결과지와 수치를 기록해보세요",
+      "valueCount": "수치 {count}개",
+      "addAria": "검사 추가"
+    },
+    "lock": {
+      "badge": "Plus 전용",
+      "title": "검사 기록 관리",
+      "subtitle": "검사 결과지와 주요 수치를 한곳에 모아\n지난 검사와의 변화를 쉽게 확인해요.",
+      "f1": "검사 결과지 사진/PDF 보관",
+      "f2": "BUN·크레아티닌·ALT 등 주요 수치 입력",
+      "f3": "이전 검사와 비교하고 추이 그래프로 확인",
+      "f4": "신장·간·전해질 등 8개 검사 템플릿 제공",
+      "cta": "Plus 보기",
+      "footer": "결과지 사진/PDF는 저장용량에 포함돼요\nPawDex는 의학적 진단이 아닌 기록·정리 도구예요"
+    },
+    "detail": {
+      "title": "검사 상세",
+      "notFound": "검사를 찾을 수 없어요.",
+      "toList": "목록으로",
+      "editAria": "수정",
+      "deleteAria": "삭제",
+      "noValues": "입력된 수치가 없어요.",
+      "custom": "직접 추가",
+      "memo": "메모",
+      "attachments": "결과지",
+      "photo": "사진",
+      "pdf": "PDF",
+      "trendHint": "수치를 누르면 추이 그래프를 볼 수 있어요.",
+      "hintClose": "닫기",
+      "deleteTitle": "검사를 삭제할까요?",
+      "deleteMsg": "이 검사와 입력한 수치가 모두 삭제돼요. 되돌릴 수 없어요.",
+      "deleteConfirm": "삭제",
+      "deleteCancel": "취소"
+    },
+    "form": {
+      "titleAdd": "검사 추가",
+      "titleEdit": "검사 수정",
+      "hospital": "병원",
+      "optional": "(선택)",
+      "hospitalPlaceholder": "병원명",
+      "hospitalDeleteAria": "삭제",
+      "testDate": "검사일",
+      "attachLabel": "결과지 첨부",
+      "attachBtn": "결과지 사진·PDF 첨부",
+      "attachMax": "검사당 최대 {max}장까지 첨부할 수 있어요.",
+      "attachTypeErr": "사진(JPG/PNG/WebP) 또는 PDF만 첨부할 수 있어요.",
+      "newFile": "새 파일",
+      "attachDeleteAria": "첨부 삭제",
+      "selectHint": "결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.",
+      "loadDefaults": "기본 참고범위 불러오기",
+      "loadDefaultsCaption": "반려동물의 종·나이 기준으로 채워요. 결과지와 다르면 수정해 주세요.",
+      "selectAll": "전체 선택",
+      "deselectAll": "전체 해제",
+      "expandAria": "펼치기",
+      "custom": "직접 추가",
+      "customPlaceholder": "항목명 직접 입력 (예: Reticulocyte)",
+      "customAdd": "추가",
+      "itemDeleteAria": "항목 삭제",
+      "valuePlaceholder": "값",
+      "unitPlaceholder": "단위",
+      "refRange": "참고범위",
+      "refValue": "참고값",
+      "refDone": "완료",
+      "refEdit": "수정",
+      "refAddRange": "+ 참고범위 입력",
+      "refAddValue": "+ 참고값 입력",
+      "refRangeClearAria": "참고범위 지우기",
+      "refValueClearAria": "참고값 지우기",
+      "directShort": "직접",
+      "memo": "메모",
+      "memoPlaceholder": "특이사항을 기록해보세요",
+      "footer": "단위·참고범위는 결과지 기준으로 입력·수정하세요. 병원·장비에 따라 다를 수 있어요. PawDex는 의학적 진단이 아닌 기록·정리 도구예요.",
+      "save": "저장",
+      "saving": "저장 중...",
+      "confirm": "확인",
+      "errNoPet": "반려동물 정보가 없어요.",
+      "errNoInput": "수치를 입력하거나 결과지를 첨부해주세요.",
+      "errStorageFull": "저장용량이 가득 차 결과지 파일은 첨부되지 않았어요. 저장공간을 정리한 뒤 상세에서 다시 첨부해주세요.",
+      "errUploadPartial": "검사는 저장됐어요. 다만 파일 {n}개 업로드에 실패했어요. 상세에서 다시 첨부할 수 있어요.",
+      "errSave": "저장에 실패했어요. 다시 시도해주세요.",
+      "srcInherited": "지난",
+      "srcDefault": "기본",
+      "srcManual": "입력한",
+      "semiNegative": "음성",
+      "textNone": "없음",
+      "textSmall": "소량",
+      "textModerate": "중등도",
+      "textLarge": "다량"
+    },
+    "trend": {
+      "title": "{label} 추이",
+      "loading": "불러오는 중...",
+      "needMore": "비교할 기록이 더 필요해요.\n이 수치가 있는 검사가 2회 이상이면 추이를 볼 수 있어요.",
+      "latest": "최근",
+      "vsPrev": "이전 대비",
+      "recentN": "최근 {n}회",
+      "allN": "전체 {n}회",
+      "recent": "최근",
+      "all": "전체",
+      "scrollHint": "← 좌우로 넘겨서 전체 보기",
+      "refBand": "입력한 참고범위 {range} (최근 기준)",
+      "excluded": "단위가 다른 기록 {n}건은 제외됐어요.",
+      "close": "닫기"
     }
   }
 }

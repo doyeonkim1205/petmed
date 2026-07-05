@@ -2,6 +2,7 @@
 
 // 특정 수치의 추이 — 같은 analyte_key + 같은 단위만 연결. 누적 대응: 최근/전체 토글, 많으면 라벨 숨김, 요약 한 줄.
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { FilterSheet } from '@/components/records/FilterSheet';
 import { useLabTests } from '@/hooks/useLabTests';
 
@@ -34,6 +35,7 @@ function MiniLineChart({ data, showValueLabels, dateStride, width, scroll }: { d
 }
 
 export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: string; analyteKey: string; label: string; onClose: () => void }) {
+  const t = useTranslations();
   const { getAnalyteTrend } = useLabTests();
   const [data, setData] = useState<Pt[] | null>(null);
   const [range, setRange] = useState<'recent' | 'all'>('recent');
@@ -63,23 +65,23 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
   const band = lastPt && lastPt.refLow != null && lastPt.refHigh != null ? { low: lastPt.refLow, high: lastPt.refHigh } : null;
 
   return (
-    <FilterSheet open title={`${label} 추이`} closeLabel="닫기" doneLabel="닫기" onClose={onClose}>
+    <FilterSheet open title={t('lab.trend.title', { label })} closeLabel={t('common.close')} doneLabel={t('common.close')} onClose={onClose}>
       {data === null ? (
         <div className="h-36 bg-gray-50 rounded-lg flex flex-col items-center justify-center gap-2">
           <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-400 rounded-full animate-spin" />
-          <p className="text-[11px] text-gray-400">불러오는 중...</p>
+          <p className="text-[11px] text-gray-400">{t('lab.trend.loading')}</p>
         </div>
       ) : series.length < 2 ? (
-        <p className="text-sm text-gray-400 text-center py-8">비교할 기록이 더 필요해요.<br />이 수치가 있는 검사가 2회 이상이면 추이를 볼 수 있어요.</p>
+        <p className="text-sm text-gray-400 text-center py-8 whitespace-pre-line">{t('lab.trend.needMore')}</p>
       ) : (
         <>
           {/* 요약 한 줄 — 그래프보다 이게 흐름 파악에 더 중요 */}
           <div className="text-center mb-2">
             <p className="text-[14px] text-gray-800">
-              최근 <b className="tabular-nums">{latest}</b>{latestUnit ? ` ${latestUnit}` : ''}
-              {delta != null && <span className="text-gray-400 font-normal"> · 이전 대비 {delta >= 0 ? '+' : ''}{delta}</span>}
+              {t('lab.trend.latest')} <b className="tabular-nums">{latest}</b>{latestUnit ? ` ${latestUnit}` : ''}
+              {delta != null && <span className="text-gray-400 font-normal"> · {t('lab.trend.vsPrev')} {delta >= 0 ? '+' : ''}{delta}</span>}
             </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">{range === 'recent' ? `최근 ${shown.length}회` : `전체 ${series.length}회`}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{range === 'recent' ? t('lab.trend.recentN', { n: shown.length }) : t('lab.trend.allN', { n: series.length })}</p>
           </div>
 
           {series.length > RECENT_N && (
@@ -87,7 +89,7 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
               {(['recent', 'all'] as const).map((r) => (
                 <button key={r} onClick={() => setRange(r)}
                   className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${range === r ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                  {r === 'recent' ? '최근' : '전체'}
+                  {r === 'recent' ? t('lab.trend.recent') : t('lab.trend.all')}
                 </button>
               ))}
             </div>
@@ -96,12 +98,12 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
           <div className={scroll ? 'overflow-x-auto' : ''}>
             <MiniLineChart data={shown} showValueLabels={showValueLabels} dateStride={dateStride} width={chartW} scroll={scroll} />
           </div>
-          {scroll && <p className="text-[10px] text-gray-300 text-center mt-0.5">← 좌우로 넘겨서 전체 보기</p>}
+          {scroll && <p className="text-[10px] text-gray-300 text-center mt-0.5">{t('lab.trend.scrollHint')}</p>}
 
           {band && (
-            <p className="text-[11px] text-gray-400 text-center mt-1">입력한 참고범위 <span className="tabular-nums">{band.low}–{band.high}</span> (최근 기준)</p>
+            <p className="text-[11px] text-gray-400 text-center mt-1">{t('lab.trend.refBand', { range: `${band.low}–${band.high}` })}</p>
           )}
-          {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-1.5">단위가 다른 기록 {excluded}건은 제외됐어요.</p>}
+          {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-1.5">{t('lab.trend.excluded', { n: excluded })}</p>}
         </>
       )}
     </FilterSheet>
