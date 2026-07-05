@@ -118,22 +118,22 @@ export default function LabDetailPage() {
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
           <h1 className="text-sm font-semibold text-gray-700">검사 상세</h1>
-          <div className="absolute right-1 flex items-center">
-            <button onClick={() => router.push(`/records/labs/${id}/edit?from=detail`)} className="p-2 text-gray-500 hover:text-gray-800" aria-label="수정"><Pencil size={16} /></button>
-            <button onClick={() => setConfirmDel(true)} disabled={deleting} className="p-2 text-red-400 hover:text-red-600 disabled:opacity-50" aria-label="삭제"><Trash2 size={16} /></button>
-          </div>
         </header>
       </div>
 
       <div className="max-w-sm mx-auto px-4 pt-4">
-        {/* 헤더 요약 */}
+        {/* 헤더 요약 — 수정/삭제는 기록 상세처럼 우측에 */}
         <div className="flex items-center gap-3 mb-4">
           <span className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
             <FlaskConical size={20} className="text-indigo-500" />
           </span>
-          <div className="min-w-0">
+          <div className="flex-1 min-w-0">
             <p className="text-[15px] font-bold text-gray-900 truncate">{(test.categories || []).map(catLabel).join(' · ') || '검사'}</p>
             <p className="text-[12px] text-gray-400">{test.test_date}{test.hospital_name ? ` · ${test.hospital_name}` : ''}</p>
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <button onClick={() => router.push(`/records/labs/${id}/edit?from=detail`)} className="p-1.5 text-gray-700 hover:text-gray-900 transition-colors" aria-label="수정"><Pencil size={16} /></button>
+            <button onClick={() => setConfirmDel(true)} disabled={deleting} className="p-1.5 text-red-400 hover:text-red-600 disabled:opacity-50 transition-colors" aria-label="삭제"><Trash2 size={16} /></button>
           </div>
         </div>
 
