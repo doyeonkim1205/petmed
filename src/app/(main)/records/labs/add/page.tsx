@@ -112,21 +112,21 @@ function AddLabInner() {
   const AnalyteRow = ({ akey, label, unitDefault, vtype }: { akey: string; label: string; unitDefault: string; vtype?: string }) => {
     const on = active.has(akey);
     return (
-      <div>
-        <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="w-full flex items-center gap-2 py-1.5 text-left">
+      <div className="flex items-center gap-2 py-1">
+        <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
           <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
             {on && <Check size={11} className="text-white" />}
           </span>
-          <span className={`text-[13px] ${on ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{label}</span>
+          <span className={`text-[13px] truncate ${on ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{label}</span>
         </button>
         {on && (
-          <div className="flex items-center gap-2 pl-6 pb-1.5">
+          <>
             <input type="text" inputMode={vtype === 'numeric' ? 'decimal' : 'text'} value={values[akey]?.raw ?? ''}
               onChange={(e) => setVal(akey, e.target.value)} placeholder={vtype === 'numeric' ? '값' : (vtype === 'semi_quantitative' ? '+/-' : '')}
-              className="flex-1 min-w-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-20 flex-shrink-0 px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
             <input type="text" value={values[akey]?.unit ?? unitDefault} onChange={(e) => setUnit(akey, e.target.value)} placeholder="단위"
-              className="w-16 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
-          </div>
+              className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
+          </>
         )}
       </div>
     );
