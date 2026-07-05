@@ -102,8 +102,8 @@ export default function LabsPage() {
       {!isPlus ? (
         <LockLanding onUpgrade={() => { trackEvent('lab_upgrade_click'); router.push('/profile/subscription'); }} />
       ) : (
-        <div className="max-w-sm mx-auto px-4 pt-3">
-          {/* 펫 선택 */}
+        <div className="max-w-sm mx-auto px-4 pt-1">
+          {/* 펫 선택 — 헤더~펫이름 간격을 건강통계 등 표준(pt-1 pb-2)과 동일하게 */}
           {pets.length > 1 && (
             <div className={`flex gap-1.5 overflow-x-auto pb-2 ${pets.length <= 4 ? 'justify-center' : ''}`}>
               {pets.map((p) => (
