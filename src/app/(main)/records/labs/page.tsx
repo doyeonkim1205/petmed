@@ -62,6 +62,18 @@ export default function LabsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // 추가/수정 후 back() 으로 돌아오면 목록이 stale → popstate 때 갱신.
+  useEffect(() => {
+    const onPop = () => {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('lab_list_reload') === '1') {
+        sessionStorage.removeItem('lab_list_reload');
+        load();
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [load]);
+
   // 이벤트 로그: Free 가 잠금 화면을 봄(하루 1회) / Plus 진입.
   useEffect(() => {
     if (authLoading) return;

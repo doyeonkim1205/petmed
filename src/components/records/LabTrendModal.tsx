@@ -55,8 +55,6 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
   const latest = series.length ? series[series.length - 1].value : null;
   const prev = series.length >= 2 ? series[series.length - 2].value : null;
   const delta = latest != null && prev != null ? round(latest - prev) : null;
-  const min = series.length ? round(Math.min(...series.map((s) => s.value))) : null;
-  const max = series.length ? round(Math.max(...series.map((s) => s.value))) : null;
 
   return (
     <FilterSheet open title={`${label} 추이`} closeLabel="닫기" doneLabel="닫기" onClose={onClose}>
@@ -72,7 +70,7 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
               최근 <b className="tabular-nums">{latest}</b>{latestUnit ? ` ${latestUnit}` : ''}
               {delta != null && <span className="text-gray-400 font-normal"> · 이전 대비 {delta >= 0 ? '+' : ''}{delta}</span>}
             </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">기간 {min}~{max} · {range === 'recent' ? `최근 ${shown.length}회` : `전체 ${series.length}회`}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{range === 'recent' ? `최근 ${shown.length}회` : `전체 ${series.length}회`}</p>
           </div>
 
           {series.length > RECENT_N && (
