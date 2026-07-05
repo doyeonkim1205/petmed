@@ -3,11 +3,10 @@
 // 검사 수치 상세 v1 — 수치 목록 + 추이 그래프 + 결과지 첨부(조회 전용) + 수정/삭제. i18n TODO.
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Trash2, FlaskConical, Pencil, TrendingUp, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Trash2, FlaskConical, Pencil, TrendingUp, FileText, Image as ImageIcon, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LabTrendModal } from '@/components/records/LabTrendModal';
-import { OnboardHint } from '@/components/ui/OnboardHint';
 import { useLabTests, LabTest, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, getAnalyte, type LabTemplateKey } from '@/lib/labCatalog';
 import { trackEvent } from '@/lib/trackEvent';
@@ -31,6 +30,7 @@ export default function LabDetailPage() {
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [trend, setTrend] = useState<{ key: string; label: string } | null>(null);
+  const [showTrendHint, setShowTrendHint] = useState(false); // 추이 안내 말풍선 — 닫으면 래퍼째 사라짐(빈칸 방지)
 
   useEffect(() => {
     if (!id) return;
@@ -56,6 +56,10 @@ export default function LabDetailPage() {
     const u = await getFileUrl(f.file_path);
     if (u) window.open(u, '_blank', 'noopener,noreferrer');
   };
+
+  // 추이 안내 말풍선 — 닫기 전까지 노출, 닫으면 localStorage 기록 + 즉시 사라짐(빈칸 없음).
+  useEffect(() => { try { if (!localStorage.getItem('hint_lab_trend')) setShowTrendHint(true); } catch { /* noop */ } }, []);
+  const dismissTrendHint = () => { setShowTrendHint(false); try { localStorage.setItem('hint_lab_trend', '1'); } catch { /* noop */ } };
 
   const handleDelete = async () => {
     setConfirmDel(false);
@@ -145,11 +149,15 @@ export default function LabDetailPage() {
               <div key={tpl.key}>
                 <p className="text-[11px] font-bold text-gray-400 mb-1 px-0.5">{tpl.labelKo}</p>
                 <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">
-                  {vals.map((v) => v.id === firstGraphId ? (
+                  {vals.map((v) => v.id === firstGraphId && showTrendHint ? (
                     <div key={v.id}>
                       {renderValueRow(v)}
                       <div className="px-3 pt-1 pb-2">
-                        <OnboardHint storageKey="hint_lab_trend" pointer="left" text="수치를 누르면 추이 그래프를 볼 수 있어요." />
+                        <div className="relative flex items-start gap-2 rounded-xl bg-white border border-blue-300 px-3 py-2 text-[11px] font-medium text-blue-600 shadow-[0_6px_22px_rgba(37,99,235,0.28)]">
+                          <span className="absolute -top-1 left-4 w-2.5 h-2.5 rotate-45 bg-white border-l border-t border-blue-300" />
+                          <p className="flex-1 leading-snug break-keep">수치를 누르면 추이 그래프를 볼 수 있어요.</p>
+                          <button type="button" onClick={dismissTrendHint} aria-label="닫기" className="-mt-0.5 -mr-0.5 flex-shrink-0 p-0.5 text-blue-400 hover:text-blue-600 active:scale-90"><X size={16} strokeWidth={2.5} /></button>
+                        </div>
                       </div>
                     </div>
                   ) : renderValueRow(v))}
