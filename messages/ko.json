@@ -1320,8 +1320,8 @@
       "deleteCancel": "취소"
     },
     "form": {
-      "titleAdd": "검사 추가",
-      "titleEdit": "검사 수정",
+      "titleAdd": "검사 기록 추가",
+      "titleEdit": "검사 기록 수정",
       "hospital": "병원",
       "optional": "(선택)",
       "hospitalPlaceholder": "병원명",
