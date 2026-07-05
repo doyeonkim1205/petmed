@@ -1314,8 +1314,8 @@
       "pdf": "PDF",
       "trendHint": "Tap a value to see its trend graph.",
       "hintClose": "Close",
-      "deleteTitle": "Delete this test?",
-      "deleteMsg": "This test and all its values will be deleted. This can't be undone.",
+      "deleteTitle": "Delete this lab record?",
+      "deleteMsg": "The lab result and all entered values will be deleted,\nand this can't be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel"
     },

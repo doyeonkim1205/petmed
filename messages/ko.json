@@ -1314,8 +1314,8 @@
       "pdf": "PDF",
       "trendHint": "수치를 누르면 추이 그래프를 볼 수 있어요.",
       "hintClose": "닫기",
-      "deleteTitle": "검사를 삭제할까요?",
-      "deleteMsg": "이 검사와 입력한 수치가 모두 삭제돼요. 되돌릴 수 없어요.",
+      "deleteTitle": "검사 기록을 삭제할까요?",
+      "deleteMsg": "검사 결과와 입력한 수치가 모두 삭제되며,\n삭제한 내용은 되돌릴 수 없어요.",
       "deleteConfirm": "삭제",
       "deleteCancel": "취소"
     },
