@@ -1128,7 +1128,9 @@
       "savedAnalyses": "Library",
       "savedAnalysesSub": "(saved paper searches)",
       "devices": "Logged-in devices",
-      "devicesSub": "(share with family)"
+      "devicesSub": "(share with family)",
+      "labs": "Lab Records",
+      "labsSub": "Store lab sheets, value trends"
     },
     "val": {
       "perMonth": "{n}/mo",

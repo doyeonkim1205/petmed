@@ -1128,7 +1128,9 @@
       "savedAnalyses": "보관함",
       "savedAnalysesSub": "(논문 검색 결과)",
       "devices": "로그인 기기",
-      "devicesSub": "(가족과 함께)"
+      "devicesSub": "(가족과 함께)",
+      "labs": "검사 기록",
+      "labsSub": "결과지 보관 · 수치 추이 그래프"
     },
     "val": {
       "perMonth": "{n}회/월",
