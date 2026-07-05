@@ -153,7 +153,7 @@ export default function LabDetailPage() {
                     <div key={v.id}>
                       {renderValueRow(v)}
                       <div className="px-3 pt-1 pb-2">
-                        <div className="relative flex items-start gap-2 rounded-xl bg-white border border-blue-300 px-3 py-2 text-[11px] font-medium text-blue-600 shadow-[0_6px_22px_rgba(37,99,235,0.28)]">
+                        <div className="relative w-fit max-w-full flex items-start gap-2 rounded-xl bg-white border border-blue-300 px-3 py-2 text-[11px] font-medium text-blue-600 shadow-[0_6px_22px_rgba(37,99,235,0.28)]">
                           <span className="absolute -top-1 left-4 w-2.5 h-2.5 rotate-45 bg-white border-l border-t border-blue-300" />
                           <p className="flex-1 leading-snug break-keep">수치를 누르면 추이 그래프를 볼 수 있어요.</p>
                           <button type="button" onClick={dismissTrendHint} aria-label="닫기" className="-mt-0.5 -mr-0.5 flex-shrink-0 p-0.5 text-blue-400 hover:text-blue-600 active:scale-90"><X size={16} strokeWidth={2.5} /></button>
