@@ -322,7 +322,7 @@ export default function RecordsPage() {
             <>
               {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
                   타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
-              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-1`}>
+              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-2`}>
                 {QUICK_LINKS.map((q) => {
                   const Icon = q.icon;
                   return (

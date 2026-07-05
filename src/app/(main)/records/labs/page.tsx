@@ -189,7 +189,7 @@ function LockLanding({ onUpgrade }: { onUpgrade: () => void }) {
       </div>
 
       <button onClick={onUpgrade}
-        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">
+        className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors">
         Plus 보기
       </button>
       <p className="text-[11px] text-gray-300 mt-3 leading-relaxed">
