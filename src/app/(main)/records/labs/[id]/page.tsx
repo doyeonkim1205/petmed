@@ -3,7 +3,7 @@
 // 검사 수치 상세 v1 — 수치 목록 + 삭제. TODO: 편집·추이 그래프·결과지 첨부는 다음 단계. i18n.
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Trash2, FlaskConical } from 'lucide-react';
+import { ArrowLeft, Trash2, FlaskConical, Pencil } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { useLabTests, LabTest } from '@/hooks/useLabTests';
@@ -55,7 +55,10 @@ export default function LabDetailPage() {
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
           <h1 className="text-sm font-semibold text-gray-700">검사 상세</h1>
-          <button onClick={() => setConfirmDel(true)} disabled={deleting} className="absolute right-2 p-2 text-red-400 hover:text-red-600 disabled:opacity-50" aria-label="삭제"><Trash2 size={16} /></button>
+          <div className="absolute right-1 flex items-center">
+            <button onClick={() => router.push(`/records/labs/${id}/edit`)} className="p-2 text-gray-500 hover:text-gray-800" aria-label="수정"><Pencil size={16} /></button>
+            <button onClick={() => setConfirmDel(true)} disabled={deleting} className="p-2 text-red-400 hover:text-red-600 disabled:opacity-50" aria-label="삭제"><Trash2 size={16} /></button>
+          </div>
         </header>
       </div>
 
