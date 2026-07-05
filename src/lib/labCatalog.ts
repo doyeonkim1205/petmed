@@ -65,16 +65,16 @@ const TXT: LabValueType = 'text';
 export const LAB_ANALYTES: LabAnalyte[] = [
   // ── A. 혈액검사 CBC ──
   { key: 'WBC',   labelKo: '백혈구',        labelEn: 'WBC',        defaultUnit: 'K/µL', templates: ['cbc', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['White Blood Cell'] },
-  { key: 'NEU',   labelKo: '호중구',        labelEn: 'Neutrophil', defaultUnit: 'K/µL', templates: ['cbc', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['Neutrophils', 'SEG'] },
-  { key: 'LYM',   labelKo: '림프구',        labelEn: 'Lymphocyte', defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Lymphocytes'] },
-  { key: 'MONO',  labelKo: '단핵구',        labelEn: 'Monocyte',   defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Monocytes'] },
-  { key: 'EOS',   labelKo: '호산구',        labelEn: 'Eosinophil', defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Eosinophils'] },
+  { key: 'NEU',   labelKo: '호중구',        labelEn: 'NEU',        defaultUnit: 'K/µL', templates: ['cbc', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['Neutrophil', 'Neutrophils', 'SEG'] },
+  { key: 'LYM',   labelKo: '림프구',        labelEn: 'LYM',        defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Lymphocyte', 'Lymphocytes'] },
+  { key: 'MONO',  labelKo: '단핵구',        labelEn: 'MONO',       defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Monocyte', 'Monocytes'] },
+  { key: 'EOS',   labelKo: '호산구',        labelEn: 'EOS',        defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Eosinophil', 'Eosinophils'] },
   { key: 'RBC',   labelKo: '적혈구',        labelEn: 'RBC',        defaultUnit: 'M/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Red Blood Cell'] },
-  { key: 'HGB',   labelKo: '혈색소',        labelEn: 'Hemoglobin', defaultUnit: 'g/dL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['HB'] },
-  { key: 'HCT',   labelKo: '적혈구용적률',  labelEn: 'Hematocrit', defaultUnit: '%',    templates: ['cbc'], valueType: N, graphable: true, aliases: ['PCV'] },
+  { key: 'HGB',   labelKo: '혈색소',        labelEn: 'HGB',        defaultUnit: 'g/dL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Hemoglobin', 'HB'] },
+  { key: 'HCT',   labelKo: '적혈구용적률',  labelEn: 'HCT / PCV',  defaultUnit: '%',    templates: ['cbc'], valueType: N, graphable: true, aliases: ['Hematocrit', 'PCV'] },
   { key: 'MCV',   labelKo: '평균적혈구용적', labelEn: 'MCV',       defaultUnit: 'fL',   templates: ['cbc'], valueType: N, graphable: true },
   { key: 'MCHC',  labelKo: '평균혈색소농도', labelEn: 'MCHC',      defaultUnit: 'g/dL', templates: ['cbc'], valueType: N, graphable: true },
-  { key: 'PLT',   labelKo: '혈소판',        labelEn: 'Platelet',   defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Platelets'] },
+  { key: 'PLT',   labelKo: '혈소판',        labelEn: 'PLT',        defaultUnit: 'K/µL', templates: ['cbc'], valueType: N, graphable: true, aliases: ['Platelet', 'Platelets'] },
 
   // ── B. 간 수치 ──
   { key: 'ALT',   labelKo: 'ALT',      labelEn: 'ALT',            defaultUnit: 'U/L',    templates: ['liver'], valueType: N, graphable: true, aliases: ['GPT', 'SGPT'] },
@@ -90,16 +90,16 @@ export const LAB_ANALYTES: LabAnalyte[] = [
 
   // ── C. 신장 수치 ── (전해질과 겹치는 항목은 templates 에 둘 다)
   { key: 'BUN',   labelKo: '요소질소',   labelEn: 'BUN',          defaultUnit: 'mg/dL',  templates: ['kidney'], valueType: N, graphable: true, aliases: ['Urea', 'Blood Urea Nitrogen', 'UREA'] },
-  { key: 'CREA',  labelKo: '크레아티닌', labelEn: 'Creatinine',    defaultUnit: 'mg/dL',  templates: ['kidney'], valueType: N, graphable: true, aliases: ['Cr', 'CREAT', 'CRE'] },
+  { key: 'CREA',  labelKo: '크레아티닌', labelEn: 'CREA',          defaultUnit: 'mg/dL',  templates: ['kidney'], valueType: N, graphable: true, aliases: ['Creatinine', 'Cr', 'CREAT', 'CRE'] },
   { key: 'SDMA',  labelKo: 'SDMA',      labelEn: 'SDMA',          defaultUnit: 'µg/dL',  templates: ['kidney'], valueType: N, graphable: true },
-  { key: 'PHOS',  labelKo: '인',        labelEn: 'Phosphorus',    defaultUnit: 'mg/dL',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['P', 'PHOSPHATE'] },
-  { key: 'CA',    labelKo: '칼슘',      labelEn: 'Calcium',       defaultUnit: 'mg/dL',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Ca'] },
-  { key: 'K',     labelKo: '칼륨',      labelEn: 'Potassium',     defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Potassium'] },
-  { key: 'NA',    labelKo: '나트륨',    labelEn: 'Sodium',        defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Na'] },
-  { key: 'CL',    labelKo: '염소',      labelEn: 'Chloride',      defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Cl'] },
+  { key: 'PHOS',  labelKo: '인',        labelEn: 'Phos',          defaultUnit: 'mg/dL',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Phosphorus', 'P', 'PHOSPHATE'] },
+  { key: 'CA',    labelKo: '칼슘',      labelEn: 'Ca',            defaultUnit: 'mg/dL',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Calcium'] },
+  { key: 'K',     labelKo: '칼륨',      labelEn: 'K',             defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Potassium'] },
+  { key: 'NA',    labelKo: '나트륨',    labelEn: 'Na',            defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Sodium'] },
+  { key: 'CL',    labelKo: '염소',      labelEn: 'Cl',            defaultUnit: 'mEq/L',  templates: ['kidney', 'electrolyte'], valueType: N, graphable: true, aliases: ['Chloride'] },
   { key: 'USG',   labelKo: '요비중',    labelEn: 'USG',           defaultUnit: '',       templates: ['kidney', 'urine'], valueType: N, graphable: true, aliases: ['Specific Gravity', 'SG'] },
   { key: 'UPC',   labelKo: '요단백/크레아티닌비', labelEn: 'UPC', defaultUnit: '',       templates: ['kidney', 'urine'], valueType: N, graphable: true, aliases: ['UPCR', 'Protein/Creatinine'] },
-  { key: 'BP',    labelKo: '혈압',      labelEn: 'Blood Pressure', defaultUnit: 'mmHg',  templates: ['kidney', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['SBP'] },
+  { key: 'BP',    labelKo: '혈압',      labelEn: 'BP',            defaultUnit: 'mmHg',  templates: ['kidney', 'cardio_inflammation'], valueType: N, graphable: true, aliases: ['Blood Pressure', 'SBP'] },
 
   // ── D. 소변검사 ── (USG·UPC 는 위에서 공유)
   { key: 'URINE_PH',      labelKo: 'pH',       labelEn: 'pH',        defaultUnit: '',   templates: ['urine'], valueType: N,   graphable: true },
@@ -112,18 +112,21 @@ export const LAB_ANALYTES: LabAnalyte[] = [
   { key: 'URINE_RBC',     labelKo: '적혈구(뇨)',  labelEn: 'RBC (urine)', defaultUnit: '/HPF', templates: ['urine'], valueType: TXT, graphable: false },
   { key: 'URINE_CRYSTAL', labelKo: '결정',     labelEn: 'Crystal',   defaultUnit: '',   templates: ['urine'], valueType: TXT, graphable: false },
   { key: 'URINE_BACT',    labelKo: '세균',     labelEn: 'Bacteria',  defaultUnit: '',   templates: ['urine'], valueType: TXT, graphable: false },
+  { key: 'URINE_CAST',    labelKo: '원주',     labelEn: 'Casts',     defaultUnit: '/LPF', templates: ['urine'], valueType: TXT, graphable: false },
+  { key: 'URINE_EPI',     labelKo: '상피세포',  labelEn: 'Epithelial', defaultUnit: '/HPF', templates: ['urine'], valueType: TXT, graphable: false },
 
   // ── E. 전해질 ── (Na·K·Cl·Ca·Phos 는 신장과 공유)
-  { key: 'MG',    labelKo: '마그네슘',   labelEn: 'Magnesium',     defaultUnit: 'mg/dL', templates: ['electrolyte'], valueType: N, graphable: true, aliases: ['Mg'] },
+  { key: 'MG',    labelKo: '마그네슘',   labelEn: 'Mg',            defaultUnit: 'mg/dL', templates: ['electrolyte'], valueType: N, graphable: true, aliases: ['Magnesium'] },
   { key: 'TCO2',  labelKo: '중탄산염',   labelEn: 'TCO2',          defaultUnit: 'mEq/L', templates: ['electrolyte'], valueType: N, graphable: true, aliases: ['HCO3', 'Bicarbonate'] },
 
   // ── F. 췌장·소화기 ──
   { key: 'AMYL',  labelKo: '아밀라아제',  labelEn: 'Amylase',       defaultUnit: 'U/L',  templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['AMY'] },
   { key: 'LIP',   labelKo: '리파아제',    labelEn: 'Lipase',        defaultUnit: 'U/L',  templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['LIPA'] },
-  { key: 'FPL',   labelKo: '췌장염(고양이 fPL)', labelEn: 'Spec fPL', defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true },
-  { key: 'CPL',   labelKo: '췌장염(강아지 cPL)', labelEn: 'Spec cPL', defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true },
+  // ⚠️ amylase/lipase·fPL/cPL 은 췌장염 "판정"이 아니라 결과지 수치 기록용. 라벨을 진단처럼 쓰지 않는다(MSD: 아밀/리파제는 췌장염 민감도·특이도 한계).
+  { key: 'FPL',   labelKo: 'Spec fPL',    labelEn: 'Spec fPL',      defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['fPL', 'Spec fPL'] },
+  { key: 'CPL',   labelKo: 'Spec cPL',    labelEn: 'Spec cPL',      defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['cPL', 'Spec cPL'] },
   { key: 'TLI',   labelKo: 'TLI',        labelEn: 'TLI',           defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true },
-  { key: 'COB',   labelKo: '비타민 B12',  labelEn: 'Cobalamin',     defaultUnit: 'ng/L', templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['B12', 'Vitamin B12'] },
+  { key: 'COB',   labelKo: 'B12',         labelEn: 'Cobalamin',     defaultUnit: 'ng/L', templates: ['pancreas_gi'], valueType: N, graphable: true, aliases: ['B12', 'Vitamin B12'] },
   { key: 'FOL',   labelKo: '엽산',        labelEn: 'Folate',        defaultUnit: 'µg/L', templates: ['pancreas_gi'], valueType: N, graphable: true },
 
   // ── G. 당·호르몬 ──
@@ -147,6 +150,11 @@ const ANALYTE_BY_KEY: Record<string, LabAnalyte> = Object.fromEntries(LAB_ANALYT
 
 export function getAnalyte(key: string): LabAnalyte | undefined {
   return ANALYTE_BY_KEY[key];
+}
+
+/** 표시 라벨 — 검사지가 보통 영어 약어라 "영어 (한글)"로. 영/한이 같으면 하나만. */
+export function analyteDisplay(a: { labelEn: string; labelKo: string }): string {
+  return a.labelEn === a.labelKo ? a.labelEn : `${a.labelEn} (${a.labelKo})`;
 }
 
 /**
