@@ -92,8 +92,8 @@ export default function RecordsPage() {
   const [showQuickBar, setShowQuickBar] = useState(false);
   // 2단 고정: 필터(검사 아래 선+칩)의 sticky top = 글로벌헤더(48) + 기록헤더(펫+탭) 높이. 아래 effect에서 실측.
   const [stickyTop, setStickyTop] = useState(88);
-  // 검사 수치 카드 = 기능 미완성 → 프로덕션(pawdex.store)에선 숨김, 프리뷰/로컬에서만 시안 노출.
-  const [showLabCard, setShowLabCard] = useState(false);
+  // 검사 기록 정식 출시(2026-07-05 go-live) — 전 도메인 노출. Plus 게이팅은 /records/labs 랜딩에서.
+  const showLabCard = true;
 
   const handleAddPet = async () => {
     if (!user) return;
@@ -234,11 +234,6 @@ export default function RecordsPage() {
     obs.observe(el);
     return () => obs.disconnect();
   }, [activeTab, loading, error, selectMode, petCount]);
-
-  // 검사 수치 시안: 프로덕션 도메인(pawdex.store)에선 숨기고, 프리뷰/로컬에서만 노출(기능 미완성).
-  useEffect(() => {
-    setShowLabCard(window.location.hostname !== 'pawdex.store');
-  }, []);
 
   if (authLoading) {
     return (
