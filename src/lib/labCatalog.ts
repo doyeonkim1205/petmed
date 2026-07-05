@@ -54,8 +54,8 @@ export const LAB_TEMPLATES: LabTemplate[] = [
   { key: 'electrolyte',         labelKo: '전해질',         labelEn: 'Electrolytes',     emoji: '🧂', defaultOpen: true },
   { key: 'endocrine',           labelKo: '혈당·호르몬',    labelEn: 'Endocrine',        emoji: '🍬', defaultOpen: false },
   { key: 'pancreas_gi',         labelKo: '췌장·소화기',    labelEn: 'Pancreas/GI',      emoji: '🥞', defaultOpen: false },
-  { key: 'cardiac',             labelKo: '심장',           labelEn: 'Cardiac',          emoji: '❤️', defaultOpen: false },
-  { key: 'inflammation',        labelKo: '염증',           labelEn: 'Inflammation',     emoji: '🔥', defaultOpen: false },
+  { key: 'cardiac',             labelKo: '심장 지표',      labelEn: 'Cardiac',          emoji: '❤️', defaultOpen: false },
+  { key: 'inflammation',        labelKo: '염증 수치',      labelEn: 'Inflammation',     emoji: '🔥', defaultOpen: false },
   { key: 'custom',              labelKo: '직접 추가',      labelEn: 'Custom',           emoji: '➕', defaultOpen: false },
 ];
 
