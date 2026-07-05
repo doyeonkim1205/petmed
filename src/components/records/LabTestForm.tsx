@@ -80,7 +80,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     return m;
   });
   const [clearedKeys, setClearedKeys] = useState<Set<string>>(new Set()); // 사용자가 지운 참고범위 — 재자동채움 금지
-  const [hasInherited, setHasInherited] = useState(false);                // 지난 검사에서 상속했는지(상단 안내용)
   const [customs, setCustoms] = useState<CustomAnalyte[]>(() =>
     (initial?.values ?? []).filter((v) => v.analyte_key.startsWith('CUSTOM:')).map((v) => ({ key: v.analyte_key, label: v.label || v.analyte_key.slice(7) })),
   );
@@ -114,7 +113,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       const src: Record<string, 'inherited' | 'default' | 'manual'> = {};
       items.forEach((i) => { if (i.ref_low != null || i.ref_high != null || (i.ref_text ?? '').trim()) src[i.analyte_key] = 'inherited'; });
       setRefSource(src);
-      setHasInherited(true);
       setCustoms(items.filter((i) => i.analyte_key.startsWith('CUSTOM:')).map((i) => ({ key: i.analyte_key, label: i.analyte_key.slice(7) })));
       setOpen((prev) => {
         const s = new Set(prev);
@@ -153,6 +151,15 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     setActive((prev) => new Set(prev).add(key));
     setValues((prev) => (prev[key] ? prev : { ...prev, [key]: emptyEntry('') }));
     setCustomName('');
+  };
+
+  // 직접 추가 항목 완전 삭제 — 목록·선택·값·참고범위 전부 제거(체크해제와 달리 행 자체를 없앰).
+  const removeCustom = (key: string) => {
+    setCustoms((prev) => prev.filter((c) => c.key !== key));
+    setActive((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    setValues((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    setRefOpen((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    setRefSource((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), raw } }));
@@ -333,7 +340,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const hospMatches = hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital);
 
   // ⚠️ 컴포넌트로 빼면 리렌더마다 remount→포커스 유실 → 인라인 함수.
-  const renderRow = (akey: string, label: string, unitDefault: string, vtype?: string) => {
+  const renderRow = (akey: string, label: string, unitDefault: string, vtype?: string, onDelete?: () => void) => {
     const on = active.has(akey);
     const hasUnit = unitDefault.trim() !== '';
     const numeric = !vtype || vtype === 'numeric';
@@ -357,6 +364,9 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                   className="w-14 flex-shrink-0 px-2 py-1.5 border border-gray-100 rounded-lg text-[11px] text-gray-500 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-400" />
               )}
             </>
+          )}
+          {onDelete && (
+            <button type="button" onClick={onDelete} className={`flex-shrink-0 p-1 text-gray-300 hover:text-red-400 ${on ? '' : 'ml-auto'}`} aria-label="항목 삭제"><X size={14} /></button>
           )}
         </div>
         {/* 참고범위 — 요약 한 줄(지난/기본/입력한). 수정 눌러야 펼침. 앱은 판정 안 함. */}
@@ -485,10 +495,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           )}
         </div>
 
-        {hasInherited && (
-          <p className="text-[11px] text-gray-400 pt-1">지난 검사에서 입력한 단위와 참고범위를 불러왔어요. 결과지와 다르면 수정해 주세요.</p>
-        )}
-
         {/* 기본 참고범위 불러오기 — 활성 항목 중 기본값 있는 게 있을 때만. 배너 아닌 조용한 버튼 + 회색 캡션. */}
         {applicableKeys.length > 0 && (
           <div>
@@ -536,7 +542,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <span className="text-[13px] font-bold text-gray-800 flex-1">직접 추가</span>
             </div>
             <div className="px-3 pb-3">
-              {customs.map((c) => renderRow(c.key, c.label, '', 'numeric'))}
+              {customs.map((c) => renderRow(c.key, c.label, '', 'numeric', () => removeCustom(c.key)))}
               <div className="flex gap-1.5 mt-1">
                 <input value={customName} onChange={(e) => setCustomName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
