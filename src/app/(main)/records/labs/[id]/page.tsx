@@ -80,10 +80,17 @@ export default function LabDetailPage() {
     const meta = getAnalyte(v.analyte_key);
     const lbl = v.label || meta?.labelKo || v.analyte_key;
     const canTrend = !!meta?.graphable && v.value_numeric != null;
+    // 사용자가 입력한 참고범위 — 앱은 판정 안 함, 그대로 병기만.
+    const refStr = (v.ref_low != null || v.ref_high != null)
+      ? `${v.ref_low ?? ''}–${v.ref_high ?? ''}`
+      : ((v.ref_text ?? '').trim() || null);
     const inner = (
       <>
         <span className="text-[13px] text-gray-600 flex items-center gap-1">{lbl}{canTrend && <TrendingUp size={12} className="text-indigo-400" />}</span>
-        <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{v.value_raw}{v.unit ? <span className="text-gray-400 font-normal"> {v.unit}</span> : null}</span>
+        <span className="flex flex-col items-end">
+          <span className="text-[13px] font-semibold text-gray-900 tabular-nums">{v.value_raw}{v.unit ? <span className="text-gray-400 font-normal"> {v.unit}</span> : null}</span>
+          {refStr && <span className="text-[10px] text-gray-400 tabular-nums">입력한 참고범위 {refStr}</span>}
+        </span>
       </>
     );
     return canTrend ? (

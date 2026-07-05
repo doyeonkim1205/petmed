@@ -18,8 +18,12 @@ export interface LabFormInitial {
   test_date: string;
   hospital_name: string;
   memo: string;
-  values: { analyte_key: string; label: string; value_raw: string; unit: string | null }[];
+  values: { analyte_key: string; label: string; value_raw: string; unit: string | null; ref_low?: number | null; ref_high?: number | null; ref_text?: string | null }[];
 }
+
+// 값 1개의 입력 상태. ref* = 사용자가 결과지 기준으로 적는 참고범위(앱이 판정/자동채움 안 함).
+type VEntry = { raw: string; unit: string; refLow: string; refHigh: string; refText: string };
+const emptyEntry = (unit = ''): VEntry => ({ raw: '', unit, refLow: '', refHigh: '', refText: '' });
 
 const SEMI_OPTS = ['음성', 'trace', '+', '++', '+++'];
 const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
@@ -33,10 +37,18 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const [hospital, setHospital] = useState(initial?.hospital_name ?? '');
   const [memo, setMemo] = useState(initial?.memo ?? '');
   const [active, setActive] = useState<Set<string>>(() => new Set((initial?.values ?? []).map((v) => v.analyte_key)));
-  const [values, setValues] = useState<Record<string, { raw: string; unit: string }>>(() => {
-    const m: Record<string, { raw: string; unit: string }> = {};
-    (initial?.values ?? []).forEach((v) => { m[v.analyte_key] = { raw: v.value_raw, unit: v.unit ?? '' }; });
+  const [values, setValues] = useState<Record<string, VEntry>>(() => {
+    const m: Record<string, VEntry> = {};
+    (initial?.values ?? []).forEach((v) => {
+      m[v.analyte_key] = { raw: v.value_raw, unit: v.unit ?? '', refLow: v.ref_low != null ? String(v.ref_low) : '', refHigh: v.ref_high != null ? String(v.ref_high) : '', refText: v.ref_text ?? '' };
+    });
     return m;
+  });
+  // 참고범위 입력칸이 펼쳐진 행 — 값이 있는 수치는 자동으로 펼침.
+  const [refOpen, setRefOpen] = useState<Set<string>>(() => {
+    const s = new Set<string>();
+    (initial?.values ?? []).forEach((v) => { if (v.ref_low != null || v.ref_high != null || (v.ref_text ?? '').trim()) s.add(v.analyte_key); });
+    return s;
   });
   const [customs, setCustoms] = useState<CustomAnalyte[]>(() =>
     (initial?.values ?? []).filter((v) => v.analyte_key.startsWith('CUSTOM:')).map((v) => ({ key: v.analyte_key, label: v.label || v.analyte_key.slice(7) })),
@@ -61,7 +73,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     getLastAnalyteKeys(petId).then((items) => {
       if (items.length === 0) return;
       setActive(new Set(items.map((i) => i.analyte_key)));
-      setValues(Object.fromEntries(items.map((i) => [i.analyte_key, { raw: '', unit: i.unit ?? '' }])));
+      setValues(Object.fromEntries(items.map((i) => [i.analyte_key, emptyEntry(i.unit ?? '')])));
       setCustoms(items.filter((i) => i.analyte_key.startsWith('CUSTOM:')).map((i) => ({ key: i.analyte_key, label: i.analyte_key.slice(7) })));
       setOpen((prev) => {
         const s = new Set(prev);
@@ -78,7 +90,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     setActive((prev) => { const n = new Set(prev); if (wasOn) n.delete(key); else n.add(key); return n; });
     setValues((prev) => {
       if (wasOn) { const c = { ...prev }; delete c[key]; return c; }
-      return prev[key] ? prev : { ...prev, [key]: { raw: '', unit: unitDefault } };
+      return prev[key] ? prev : { ...prev, [key]: emptyEntry(unitDefault) };
     });
   };
 
@@ -87,7 +99,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     setActive((prev) => { const n = new Set(prev); analytes.forEach((a) => { if (allOn) n.delete(a.key); else n.add(a.key); }); return n; });
     setValues((prev) => {
       const n = { ...prev };
-      analytes.forEach((a) => { if (allOn) delete n[a.key]; else if (!n[a.key]) n[a.key] = { raw: '', unit: a.defaultUnit }; });
+      analytes.forEach((a) => { if (allOn) delete n[a.key]; else if (!n[a.key]) n[a.key] = emptyEntry(a.defaultUnit); });
       return n;
     });
   };
@@ -98,12 +110,14 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     const key = `CUSTOM:${name}`;
     if (!customs.some((c) => c.key === key)) setCustoms((prev) => [...prev, { key, label: name }]);
     setActive((prev) => new Set(prev).add(key));
-    setValues((prev) => (prev[key] ? prev : { ...prev, [key]: { raw: '', unit: '' } }));
+    setValues((prev) => (prev[key] ? prev : { ...prev, [key]: emptyEntry('') }));
     setCustomName('');
   };
 
-  const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { raw, unit: prev[key]?.unit ?? '' } }));
-  const setUnit = (key: string, unit: string) => setValues((prev) => ({ ...prev, [key]: { raw: prev[key]?.raw ?? '', unit } }));
+  const setVal = (key: string, raw: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), raw } }));
+  const setUnit = (key: string, unit: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), unit } }));
+  const setRef = (key: string, field: 'refLow' | 'refHigh' | 'refText', v: string) => setValues((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyEntry()), [field]: v } }));
+  const toggleRef = (key: string) => setRefOpen((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
 
   // 열린 템플릿 순서대로 dedup — 닫힌 템플릿은 수치를 차지하지 않음.
   const sections = useMemo(() => {
@@ -129,9 +143,20 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
     try {
       const ordered = [...LAB_ANALYTES.filter((a) => active.has(a.key)).map((a) => ({ key: a.key, label: analyteDisplay(a) })),
                        ...customs.filter((c) => active.has(c.key)).map((c) => ({ key: c.key, label: c.label }))];
+      const num = (s?: string) => { const f = parseFloat((s ?? '').trim()); return Number.isFinite(f) ? f : null; };
       const vals: LabValueInput[] = ordered
         .filter((i) => (values[i.key]?.raw ?? '').trim())
-        .map((i, idx) => ({ analyte_key: i.key, label: i.label, value_raw: values[i.key].raw, unit: values[i.key].unit || null, display_order: idx }));
+        .map((i, idx) => {
+          const e = values[i.key];
+          const a = LAB_ANALYTES.find((x) => x.key === i.key);
+          const isNum = !a || a.valueType === 'numeric'; // custom = numeric
+          return {
+            analyte_key: i.key, label: i.label, value_raw: e.raw, unit: e.unit || null, display_order: idx,
+            ref_low: isNum ? num(e.refLow) : null,
+            ref_high: isNum ? num(e.refHigh) : null,
+            ref_text: !isNum ? (e.refText.trim() || null) : null,
+          };
+        });
       const cats = new Set<string>();
       const openArr = LAB_TEMPLATES.filter((t) => t.key !== 'custom' && open.has(t.key));
       LAB_ANALYTES.filter((a) => active.has(a.key)).forEach((a) => { const sec = openArr.find((t) => a.templates.includes(t.key)); cats.add(sec ? sec.key : a.templates[0]); });
@@ -191,6 +216,23 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
             </>
           )}
         </div>
+        {/* 참고범위 — 결과지 기준 사용자 입력. 앱은 판정 안 함(정상/위험 표시 없음). */}
+        {on && numeric && (
+          refOpen.has(akey) ? (
+            <div className="pl-6 pt-1 flex items-center gap-1.5">
+              <span className="text-[11px] text-gray-400 flex-shrink-0">참고범위</span>
+              <input type="text" inputMode="decimal" value={values[akey]?.refLow ?? ''} onChange={(e) => setRef(akey, 'refLow', e.target.value)} placeholder="7"
+                className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
+              <span className="text-gray-300 text-xs">~</span>
+              <input type="text" inputMode="decimal" value={values[akey]?.refHigh ?? ''} onChange={(e) => setRef(akey, 'refHigh', e.target.value)} placeholder="27"
+                className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-[12px] text-center bg-white outline-none focus:ring-1 focus:ring-blue-400" />
+              {hasUnit && <span className="text-[11px] text-gray-400">{values[akey]?.unit || unitDefault}</span>}
+              <button type="button" onClick={() => toggleRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고범위 닫기"><X size={12} /></button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고범위 입력</button>
+          )
+        )}
         {on && !numeric && (
           <div className="pl-6 pt-1 flex flex-wrap items-center gap-1">
             {opts.map((opt) => (
@@ -202,6 +244,18 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
                 className="w-20 px-2 py-0.5 border border-gray-200 rounded-full text-[11px] outline-none focus:ring-1 focus:ring-blue-400" />
             )}
           </div>
+        )}
+        {on && !numeric && (
+          refOpen.has(akey) ? (
+            <div className="pl-6 pt-1 flex items-center gap-1.5">
+              <span className="text-[11px] text-gray-400 flex-shrink-0">참고값</span>
+              <input type="text" value={values[akey]?.refText ?? ''} onChange={(e) => setRef(akey, 'refText', e.target.value)} placeholder="음성"
+                className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-[12px] bg-white outline-none focus:ring-1 focus:ring-blue-400" />
+              <button type="button" onClick={() => toggleRef(akey)} className="text-gray-300 hover:text-gray-500 ml-auto flex-shrink-0" aria-label="참고값 닫기"><X size={12} /></button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => toggleRef(akey)} className="ml-6 mt-1 text-[11px] text-blue-500">+ 참고값 입력</button>
+          )
         )}
       </div>
     );
@@ -298,7 +352,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none" />
         </div>
 
-        <p className="text-[11px] text-gray-300 leading-relaxed">단위는 결과지 기준으로 수정할 수 있어요. PawDex는 의학적 진단이 아닌 기록·정리 도구예요.</p>
+        <p className="text-[11px] text-gray-300 leading-relaxed">단위·참고범위는 결과지 기준으로 입력·수정하세요. 병원·장비에 따라 다를 수 있어요. PawDex는 의학적 진단이 아닌 기록·정리 도구예요.</p>
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         <button onClick={handleSave} disabled={saving}
