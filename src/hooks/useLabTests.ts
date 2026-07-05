@@ -189,11 +189,11 @@ export function useLabTests() {
   };
 
   // 특정 수치의 추이 — 같은 analyte_key + 같은 unit 만 이어 그림(단위 혼재 방지).
-  const getAnalyteTrend = useCallback(async (petId: string, analyteKey: string): Promise<{ date: string; value: number; unit: string }[]> => {
+  const getAnalyteTrend = useCallback(async (petId: string, analyteKey: string): Promise<{ date: string; value: number; unit: string; refLow: number | null; refHigh: number | null }[]> => {
     if (!user || !petId) return [];
     const { data, error } = await supabase
       .from('lab_values')
-      .select('value_numeric, unit, lab_tests!inner(test_date, pet_id, user_id)')
+      .select('value_numeric, unit, ref_low, ref_high, lab_tests!inner(test_date, pet_id, user_id)')
       .eq('analyte_key', analyteKey)
       .eq('lab_tests.pet_id', petId)
       .eq('lab_tests.user_id', user.id)
@@ -202,9 +202,9 @@ export function useLabTests() {
       Sentry.captureException(error, { tags: { feature: 'labs', action: 'trend' } });
       return [];
     }
-    type Row = { value_numeric: number; unit: string | null; lab_tests: { test_date: string } };
+    type Row = { value_numeric: number; unit: string | null; ref_low: number | null; ref_high: number | null; lab_tests: { test_date: string } };
     return ((data || []) as unknown as Row[])
-      .map((r) => ({ date: r.lab_tests.test_date, value: Number(r.value_numeric), unit: r.unit || '' }))
+      .map((r) => ({ date: r.lab_tests.test_date, value: Number(r.value_numeric), unit: r.unit || '', refLow: r.ref_low ?? null, refHigh: r.ref_high ?? null }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [user]);
 

@@ -5,25 +5,25 @@ import { useEffect, useState } from 'react';
 import { FilterSheet } from '@/components/records/FilterSheet';
 import { useLabTests } from '@/hooks/useLabTests';
 
-type Pt = { date: string; value: number; unit: string };
+type Pt = { date: string; value: number; unit: string; refLow: number | null; refHigh: number | null };
 const RECENT_N = 8;
 
-function MiniLineChart({ data, showValueLabels, dateStride, width, scroll }: { data: Pt[]; showValueLabels: boolean; dateStride: number; width: number; scroll: boolean }) {
+function MiniLineChart({ data, showValueLabels, dateStride, width, scroll, band }: { data: Pt[]; showValueLabels: boolean; dateStride: number; width: number; scroll: boolean; band: { low: number; high: number } | null }) {
   const W = width, H = 150, padX = 16, padTop = 22, padBottom = 26;
   const vals = data.map((d) => d.value);
-  const min = Math.min(...vals), max = Math.max(...vals);
+  const domain = band ? [...vals, band.low, band.high] : vals; // 밴드가 값 범위 밖이어도 보이도록 스케일 확장
+  const min = Math.min(...domain), max = Math.max(...domain);
   const range = max - min || 1;
+  const yOf = (v: number) => padTop + (1 - (v - min) / range) * (H - padTop - padBottom);
   const xStep = data.length > 1 ? (W - padX * 2) / (data.length - 1) : 0;
-  const pts = data.map((d, i) => ({
-    x: padX + i * xStep,
-    y: padTop + (1 - (d.value - min) / range) * (H - padTop - padBottom),
-    d,
-  }));
+  const pts = data.map((d, i) => ({ x: padX + i * xStep, y: yOf(d.value), d }));
   const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
   const mmdd = (s: string) => { const [, m, dd] = s.split('-'); return `${Number(m)}/${Number(dd)}`; };
   const lastIdx = pts.length - 1;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={scroll ? W : undefined} height={scroll ? H : undefined} className={scroll ? 'block' : 'w-full'} style={{ maxHeight: 170 }}>
+      {/* 참고범위 밴드 — 회색만(판정/색상 없음). 선 뒤에 깔림. */}
+      {band && <rect x={0} y={yOf(band.high)} width={W} height={Math.max(0, yOf(band.low) - yOf(band.high))} fill="#9ca3af" opacity="0.12" />}
       <path d={path} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p, i) => (
         <g key={i}>
@@ -61,6 +61,10 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
   const prev = series.length >= 2 ? series[series.length - 2].value : null;
   const delta = latest != null && prev != null ? round(latest - prev) : null;
 
+  // 참고범위 밴드 — 가장 최근 기록의 양측 참고범위만(다를 수 있어 '최근 기준'). 한쪽/텍스트는 밴드 없음.
+  const lastPt = series.length ? series[series.length - 1] : null;
+  const band = lastPt && lastPt.refLow != null && lastPt.refHigh != null ? { low: lastPt.refLow, high: lastPt.refHigh } : null;
+
   return (
     <FilterSheet open title={`${label} 추이`} closeLabel="닫기" doneLabel="닫기" onClose={onClose}>
       {data === null ? (
@@ -90,10 +94,16 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
           )}
 
           <div className={scroll ? 'overflow-x-auto' : ''}>
-            <MiniLineChart data={shown} showValueLabels={showValueLabels} dateStride={dateStride} width={chartW} scroll={scroll} />
+            <MiniLineChart data={shown} showValueLabels={showValueLabels} dateStride={dateStride} width={chartW} scroll={scroll} band={band} />
           </div>
           {scroll && <p className="text-[10px] text-gray-300 text-center mt-0.5">← 좌우로 넘겨서 전체 보기</p>}
 
+          {band && (
+            <p className="text-[11px] text-gray-400 text-center mt-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-gray-300 align-middle mr-1" />
+              입력한 참고범위 <span className="tabular-nums">{band.low}–{band.high}</span> (최근 기준)
+            </p>
+          )}
           <p className="text-[11px] text-gray-400 text-center mt-1">단위 {latestUnit || '-'} · 같은 단위 기록만 표시</p>
           {excluded > 0 && <p className="text-[11px] text-amber-500 text-center mt-0.5">단위가 다른 기록 {excluded}건은 제외됐어요.</p>}
           <p className="text-[11px] text-gray-300 text-center mt-2 leading-relaxed">수치 해석은 담당 수의사와 상의하세요.</p>

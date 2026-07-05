@@ -19,6 +19,11 @@ const actionLabels: Record<string, string> = {
   'record.update': '기록 수정',
   'record.delete': '기록 삭제',
   'record.bulk_delete': '기록 일괄 삭제',
+  'lab.create': '검사 추가',
+  'lab.update': '검사 수정',
+  'lab.delete': '검사 삭제',
+  'lab.file_upload': '검사 결과지 업로드',
+  'lab.file_delete': '검사 결과지 삭제',
   'analysis.save': '분석 보관',
   'analysis.delete': '분석 삭제',
   'paper.delete': '논문 삭제',
@@ -131,6 +136,16 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:record.update', label: '기록 수정' },
       { value: 'action:record.delete', label: '기록 삭제' },
       { value: 'action:record.bulk_delete', label: '기록 일괄 삭제' },
+    ],
+  },
+  {
+    label: '검사 기록',
+    options: [
+      { value: 'action:lab.create', label: '검사 추가' },
+      { value: 'action:lab.update', label: '검사 수정' },
+      { value: 'action:lab.delete', label: '검사 삭제' },
+      { value: 'action:lab.file_upload', label: '검사 결과지 업로드' },
+      { value: 'action:lab.file_delete', label: '검사 결과지 삭제' },
     ],
   },
   {
