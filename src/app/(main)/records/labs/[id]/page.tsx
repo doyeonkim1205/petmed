@@ -78,7 +78,7 @@ export default function LabDetailPage() {
   );
 
   const values = (test.lab_values || []).slice().sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  const hasGraphable = values.some((v) => getAnalyte(v.analyte_key)?.graphable && v.value_numeric != null);
+  const isGraphable = (v: typeof values[number]) => !!getAnalyte(v.analyte_key)?.graphable && v.value_numeric != null;
 
   // 카테고리별 그룹핑(입력폼과 동일 정신모델). test.categories 순서 우선, 겹치는 analyte 는 첫 카테고리에만.
   const assigned = new Set<string>();
@@ -92,6 +92,8 @@ export default function LabDetailPage() {
     if (vals.length) groups.push({ tpl, vals });
   }
   const customVals = values.filter((v) => v.analyte_key.startsWith('CUSTOM:'));
+  // 추이 안내 말풍선을 붙일 '첫 그래프 가능한 수치' — 그 행 바로 아래에 왼쪽 꼬리로 표시.
+  const firstGraphId = groups.flatMap((g) => g.vals).find(isGraphable)?.id ?? null;
 
   const renderValueRow = (v: typeof values[number]) => {
     const meta = getAnalyte(v.analyte_key);
@@ -136,25 +138,27 @@ export default function LabDetailPage() {
           </div>
         </div>
 
-        {/* 추이 안내 말풍선 — 그래프 있는 수치가 있을 때 1회(닫기 전까지 노출). */}
-        {hasGraphable && (
-          <div className="mb-3">
-            <OnboardHint storageKey="hint_lab_trend" pointer="none" text="📈 표시된 수치를 누르면 검사가 쌓일수록 추이를 그래프로 볼 수 있어요." />
-          </div>
-        )}
-
-        {/* 수치 — 카테고리별 섹션(입력폼과 동일). 📈 있는 수치 탭 시 추이. */}
+        {/* 수치 — 카테고리별 섹션. 첫 그래프 수치 행 아래에 추이 안내 말풍선(꼬리 왼쪽). */}
         {values.length > 0 ? (
           <div className="space-y-3">
             {groups.map(({ tpl, vals }) => (
               <div key={tpl.key}>
-                <p className="text-[11px] font-bold text-gray-400 mb-1 px-0.5">{tpl.emoji} {tpl.labelKo}</p>
-                <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">{vals.map(renderValueRow)}</div>
+                <p className="text-[11px] font-bold text-gray-400 mb-1 px-0.5">{tpl.labelKo}</p>
+                <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">
+                  {vals.map((v) => v.id === firstGraphId ? (
+                    <div key={v.id}>
+                      {renderValueRow(v)}
+                      <div className="px-3 pt-1 pb-2">
+                        <OnboardHint storageKey="hint_lab_trend" pointer="left" text="📈 표시된 수치를 누르면 검사가 쌓일수록 추이를 그래프로 볼 수 있어요." />
+                      </div>
+                    </div>
+                  ) : renderValueRow(v))}
+                </div>
               </div>
             ))}
             {customVals.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold text-gray-400 mb-1 px-0.5">➕ 직접 추가</p>
+                <p className="text-[11px] font-bold text-gray-400 mb-1 px-0.5">직접 추가</p>
                 <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">{customVals.map(renderValueRow)}</div>
               </div>
             )}

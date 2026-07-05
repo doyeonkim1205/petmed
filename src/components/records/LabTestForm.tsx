@@ -513,7 +513,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <div key={tpl.key} className="border border-gray-100 rounded-xl overflow-hidden">
                 <div className="w-full flex items-center gap-2 px-3 py-2.5">
                   <button type="button" onClick={() => toggle(tpl.key)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                    <span className="text-base">{tpl.emoji}</span>
                     <span className="text-[13px] font-bold text-gray-800">{tpl.labelKo}</span>
                     {cnt > 0 && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{cnt}</span>}
                   </button>
@@ -534,7 +533,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           {/* 직접 추가 */}
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2.5">
-              <span className="text-base">➕</span>
               <span className="text-[13px] font-bold text-gray-800 flex-1">직접 추가</span>
             </div>
             <div className="px-3 pb-3">
