@@ -81,23 +81,25 @@ function AddLabInner() {
 
   return (
     <div className="bg-white min-h-full pb-24">
-      <header className="sticky top-12 z-30 bg-white flex items-center justify-center px-4 h-[52px] border-b border-gray-50">
-        <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft size={20} /></button>
-        <h1 className="text-sm font-semibold text-gray-700">검사 추가</h1>
-      </header>
+      <div className="sticky top-0 z-30 bg-white">
+        <header className="relative flex items-center justify-center px-4 h-[60px]">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-sm font-semibold text-gray-700">검사 추가</h1>
+        </header>
+      </div>
 
       <div className="max-w-sm mx-auto px-4 pt-3 space-y-3">
-        {/* 검사일 / 병원 */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* 병원 / 검사일 — 세로 배열(잘림 방지) */}
+        <div className="space-y-2">
           <div>
-            <label className="text-xs text-gray-400">검사일</label>
-            <DatePicker value={testDate} onChange={setTestDate} max={todayLocalISO()} inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400">병원 <span className="text-gray-300">(선택)</span></label>
+            <label className="text-xs text-gray-400 mb-1 block">병원 <span className="text-gray-300">(선택)</span></label>
             <input type="search" value={hospital} onChange={(e) => setHospital(e.target.value)} maxLength={30}
               placeholder="병원명" autoComplete="off"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500 appearance-none [&::-webkit-search-cancel-button]:hidden" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">검사일</label>
+            <DatePicker value={testDate} onChange={setTestDate} max={todayLocalISO()} inputClassName="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white" />
           </div>
         </div>
 

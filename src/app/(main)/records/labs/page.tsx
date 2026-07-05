@@ -63,10 +63,12 @@ export default function LabsPage() {
 
   return (
     <div className="bg-white min-h-full pb-24">
-      <header className="sticky top-12 z-30 bg-white flex items-center justify-center px-4 h-[52px] border-b border-gray-50">
-        <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft size={20} /></button>
-        <h1 className="text-sm font-semibold text-gray-700">검사 수치</h1>
-      </header>
+      <div className="sticky top-0 z-30 bg-white">
+        <header className="relative flex items-center justify-center px-4 h-[60px]">
+          <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label="뒤로"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-sm font-semibold text-gray-700">검사 수치</h1>
+        </header>
+      </div>
 
       {!isPlus ? (
         <LockLanding onUpgrade={() => { trackEvent('lab_upgrade_click'); router.push('/profile/subscription'); }} />
