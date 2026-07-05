@@ -428,7 +428,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
           )}
         </div>
 
-        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값이 입력된 항목만 저장돼요.</p>
+        <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값을 입력한 항목만 저장돼요.</p>
 
         {/* 기본 참고범위 불러오기 — 활성 항목 중 기본값 있는 게 있을 때만. 배너 아닌 조용한 버튼 + 회색 캡션. */}
         {applicableKeys.length > 0 && (
@@ -438,7 +438,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <Sparkles size={13} className="text-indigo-400" /> 기본 참고범위 불러오기
             </button>
             <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
-              반려동물의 종과 나이를 기준으로 참고범위를 채워요. 결과지와 다르면 수정해 주세요.
+              반려동물의 종·나이 기준으로 채워요. 결과지와 다르면 수정해 주세요.
             </p>
           </div>
         )}
