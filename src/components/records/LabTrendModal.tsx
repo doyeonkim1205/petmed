@@ -65,7 +65,10 @@ export function LabTrendModal({ petId, analyteKey, label, onClose }: { petId: st
   return (
     <FilterSheet open title={`${label} 추이`} closeLabel="닫기" doneLabel="닫기" onClose={onClose}>
       {data === null ? (
-        <div className="h-36 bg-gray-50 rounded-lg animate-pulse" />
+        <div className="h-36 bg-gray-50 rounded-lg flex flex-col items-center justify-center gap-2">
+          <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-400 rounded-full animate-spin" />
+          <p className="text-[11px] text-gray-400">불러오는 중...</p>
+        </div>
       ) : series.length < 2 ? (
         <p className="text-sm text-gray-400 text-center py-8">비교할 기록이 더 필요해요.<br />이 수치가 있는 검사가 2회 이상이면 추이를 볼 수 있어요.</p>
       ) : (
