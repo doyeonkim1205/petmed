@@ -169,7 +169,7 @@ export default function LabDetailPage() {
 
         {test.memo && (
           <div className="mt-5">
-            <p className="text-[11px] font-bold text-gray-400 mb-1">📝 메모</p>
+            <p className="text-[11px] font-bold text-gray-400 mb-1">메모</p>
             <p className="text-[13px] text-gray-600 whitespace-pre-wrap">{test.memo}</p>
           </div>
         )}
@@ -177,7 +177,7 @@ export default function LabDetailPage() {
         {/* 결과지 첨부 — 메모 아래, 조회 전용 리스트(탭하면 원본). 첨부 있을 때만 노출. 추가/삭제는 '수정'에서. */}
         {files.length > 0 && (
           <div className="mt-5">
-            <p className="text-[11px] font-bold text-gray-400 mb-1.5">🧾 결과지</p>
+            <p className="text-[11px] font-bold text-gray-400 mb-1.5">결과지</p>
             <div className="space-y-1.5">
               {files.map((f) => (
                 <button key={f.id} onClick={() => openFile(f)}
