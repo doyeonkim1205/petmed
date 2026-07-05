@@ -108,11 +108,11 @@ function AddLabInner() {
   };
   const hospMatches = hospitalSuggestions.filter((h) => h.toLowerCase().includes(hospital.toLowerCase()) && h !== hospital);
 
-  // 체크 줄 + 체크 시 인라인 입력칸.
-  const AnalyteRow = ({ akey, label, unitDefault, vtype }: { akey: string; label: string; unitDefault: string; vtype?: string }) => {
+  // 체크 줄 + 체크 시 인라인 입력칸. ⚠️ 컴포넌트로 빼면 리렌더마다 remount 되어 포커스 유실 → 인라인 함수로.
+  const renderRow = (akey: string, label: string, unitDefault: string, vtype?: string) => {
     const on = active.has(akey);
     return (
-      <div className="flex items-center gap-2 py-1">
+      <div key={akey} className="flex items-center gap-2 py-1">
         <button type="button" onClick={() => toggleAnalyte(akey, unitDefault)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
           <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
             {on && <Check size={11} className="text-white" />}
@@ -187,7 +187,7 @@ function AddLabInner() {
                 </button>
                 {isOpen && (
                   <div className="px-3 pb-2">
-                    {analytes.map((a) => <AnalyteRow key={a.key} akey={a.key} label={analyteDisplay(a)} unitDefault={a.defaultUnit} vtype={a.valueType} />)}
+                    {analytes.map((a) => renderRow(a.key, analyteDisplay(a), a.defaultUnit, a.valueType))}
                   </div>
                 )}
               </div>
@@ -201,7 +201,7 @@ function AddLabInner() {
               <span className="text-[13px] font-bold text-gray-800 flex-1">직접 추가</span>
             </div>
             <div className="px-3 pb-3">
-              {customs.map((c) => <AnalyteRow key={c.key} akey={c.key} label={c.label} unitDefault="" vtype="numeric" />)}
+              {customs.map((c) => renderRow(c.key, c.label, '', 'numeric'))}
               <div className="flex gap-1.5 mt-1">
                 <input value={customName} onChange={(e) => setCustomName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
