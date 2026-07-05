@@ -177,7 +177,7 @@ function LockLanding({ onUpgrade }: { onUpgrade: () => void }) {
 
       <div className="text-left space-y-2.5 mb-7">
         {[
-          '혈액·소변검사 결과지 사진/PDF 보관',
+          '검사 결과지 사진/PDF 보관',
           'BUN·크레아티닌·ALT 등 주요 수치 입력',
           '이전 검사와 비교하고 추이 그래프로 확인',
           '신장·간·전해질 등 8개 검사 템플릿 제공',
