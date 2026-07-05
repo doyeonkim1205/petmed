@@ -52,7 +52,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   // 종·나이 기준 참고범위 자동 채우기용 펫 정보.
   const effectivePetId = petId ?? initial?.pet_id;
   const [petInfo, setPetInfo] = useState<{ type: Pet['type']; birth_date?: string } | null>(null);
-  const [refFillNote, setRefFillNote] = useState<string | null>(null);
   useEffect(() => {
     if (!effectivePetId) return;
     supabase.from('pets').select('type, birth_date').eq('id', effectivePetId).single()
@@ -192,9 +191,6 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       return n;
     });
     setRefOpen((prev) => { const s = new Set(prev); applicableKeys.forEach((k) => s.add(k)); return s; });
-    setRefFillNote(petInfo.birth_date
-      ? '기본 참고범위를 불러왔어요. 병원 결과지에 적힌 범위가 다르면 수정해 주세요.'
-      : '생년월일이 없어 성체 기준 기본 참고범위를 불러왔어요. 결과지에 적힌 범위가 다르면 수정해 주세요.');
   };
 
   const finishNavigation = () => {
@@ -442,7 +438,7 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
               <Sparkles size={13} className="text-indigo-400" /> 기본 참고범위 불러오기
             </button>
             <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">
-              {refFillNote ?? '반려동물의 종과 나이를 기준으로 참고범위를 채워요. 결과지와 다르면 수정해 주세요.'}
+              반려동물의 종과 나이를 기준으로 참고범위를 채워요. 결과지와 다르면 수정해 주세요.
             </p>
           </div>
         )}
