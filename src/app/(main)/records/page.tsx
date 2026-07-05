@@ -320,18 +320,21 @@ export default function RecordsPage() {
             </div>
           ) : (
             <>
-              {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 스크롤 시 헤더 슬림바로 고정. */}
-              <div ref={quickRef} className="grid grid-cols-2 gap-2 mb-1">
+              {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
+                  타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
+              <div ref={quickRef} className="grid grid-cols-4 gap-2 mb-1">
                 {QUICK_LINKS.map((q) => {
                   const Icon = q.icon;
                   return (
                     <button
                       key={q.href}
                       onClick={() => router.push(q.href)}
-                      className="flex-1 min-w-0 flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-white border border-gray-200"
+                      className="py-1.5 flex flex-col items-center gap-1.5 active:scale-[0.95] transition-transform"
                     >
-                      <Icon size={14} className={`${q.color} flex-shrink-0`} />
-                      <p className="text-[13px] font-bold text-gray-700">{t(`record.module.${q.key}`)}</p>
+                      <span className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
+                        <Icon size={22} className={q.color} />
+                      </span>
+                      <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">{t(`record.module.${q.key}`)}</span>
                     </button>
                   );
                 })}
