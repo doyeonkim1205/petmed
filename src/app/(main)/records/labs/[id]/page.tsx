@@ -1,11 +1,12 @@
 'use client';
 
-// 검사 수치 상세 v1 — 수치 목록 + 삭제. TODO: 편집·추이 그래프·결과지 첨부는 다음 단계. i18n.
+// 검사 수치 상세 v1 — 수치 목록 + 추이 그래프 + 수정/삭제. TODO: 결과지 첨부는 다음 단계. i18n.
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Trash2, FlaskConical, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, FlaskConical, Pencil, TrendingUp } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { LabTrendModal } from '@/components/records/LabTrendModal';
 import { useLabTests, LabTest } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, getAnalyte } from '@/lib/labCatalog';
 import { trackEvent } from '@/lib/trackEvent';
@@ -21,6 +22,7 @@ export default function LabDetailPage() {
   const [loading, setLoading] = useState(true);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [trend, setTrend] = useState<{ key: string; label: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -79,13 +81,23 @@ export default function LabDetailPage() {
           <div className="rounded-xl border border-gray-100 divide-y divide-gray-50">
             {values.map((v) => {
               const meta = getAnalyte(v.analyte_key);
-              return (
-                <div key={v.id} className="flex items-center justify-between px-3 py-2.5">
-                  <span className="text-[13px] text-gray-600">{v.label || meta?.labelKo || v.analyte_key}</span>
+              const lbl = v.label || meta?.labelKo || v.analyte_key;
+              const canTrend = !!meta?.graphable && v.value_numeric != null;
+              const inner = (
+                <>
+                  <span className="text-[13px] text-gray-600 flex items-center gap-1">
+                    {lbl}{canTrend && <TrendingUp size={12} className="text-indigo-400" />}
+                  </span>
                   <span className="text-[13px] font-semibold text-gray-900 tabular-nums">
                     {v.value_raw}{v.unit ? <span className="text-gray-400 font-normal"> {v.unit}</span> : null}
                   </span>
-                </div>
+                </>
+              );
+              return canTrend ? (
+                <button key={v.id} onClick={() => setTrend({ key: v.analyte_key, label: lbl })}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors text-left">{inner}</button>
+              ) : (
+                <div key={v.id} className="flex items-center justify-between px-3 py-2.5">{inner}</div>
               );
             })}
           </div>
@@ -113,6 +125,10 @@ export default function LabDetailPage() {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDel(false)}
       />
+
+      {trend && test && (
+        <LabTrendModal petId={test.pet_id} analyteKey={trend.key} label={trend.label} onClose={() => setTrend(null)} />
+      )}
     </div>
   );
 }

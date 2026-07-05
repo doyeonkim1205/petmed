@@ -26,7 +26,7 @@ const TEXT_OPTS = ['없음', '소량', '중등도', '다량'];
 
 export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabFormInitial }) {
   const router = useRouter();
-  const { createLabTest, updateLabTest } = useLabTests();
+  const { createLabTest, updateLabTest, getLastAnalyteKeys } = useLabTests();
   const isEdit = !!initial;
 
   const [testDate, setTestDate] = useState(initial?.test_date ?? todayLocalISO());
@@ -54,6 +54,22 @@ export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabF
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { authFetch('/api/recent-hospitals').then(async (r) => { if (r.ok) setHospitalSuggestions(await r.json()); }).catch(() => {}); }, []);
+
+  // 추가 모드: 지난 검사에 넣었던 항목을 자동 선택(값은 빈칸). 병원 패널이 보통 반복되니 매번 선택 안 해도 됨.
+  useEffect(() => {
+    if (isEdit || !petId) return;
+    getLastAnalyteKeys(petId).then((items) => {
+      if (items.length === 0) return;
+      setActive(new Set(items.map((i) => i.analyte_key)));
+      setValues(Object.fromEntries(items.map((i) => [i.analyte_key, { raw: '', unit: i.unit ?? '' }])));
+      setCustoms(items.filter((i) => i.analyte_key.startsWith('CUSTOM:')).map((i) => ({ key: i.analyte_key, label: i.analyte_key.slice(7) })));
+      setOpen((prev) => {
+        const s = new Set(prev);
+        items.forEach((i) => { const a = LAB_ANALYTES.find((x) => x.key === i.analyte_key); if (a) s.add(a.templates[0]); });
+        return s;
+      });
+    });
+  }, [isEdit, petId, getLastAnalyteKeys]);
 
   const toggle = (k: LabTemplateKey) => setOpen((prev) => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 

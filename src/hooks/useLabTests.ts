@@ -195,5 +195,23 @@ export function useLabTests() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [user]);
 
-  return { getLabTests, getLabTest, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend };
+  // 지난(가장 최근) 검사에 넣었던 수치 항목 — 추가 시 자동 선택용(값은 안 가져옴).
+  const getLastAnalyteKeys = useCallback(async (petId: string): Promise<{ analyte_key: string; unit: string | null }[]> => {
+    if (!user || !petId) return [];
+    const { data: last } = await supabase
+      .from('lab_tests')
+      .select('id')
+      .eq('user_id', user.id).eq('pet_id', petId)
+      .order('test_date', { ascending: false }).order('created_at', { ascending: false })
+      .limit(1).maybeSingle();
+    if (!last) return [];
+    const { data: vals } = await supabase
+      .from('lab_values')
+      .select('analyte_key, unit, display_order')
+      .eq('lab_test_id', last.id)
+      .order('display_order', { ascending: true });
+    return (vals || []).map((v: { analyte_key: string; unit: string | null }) => ({ analyte_key: v.analyte_key, unit: v.unit }));
+  }, [user]);
+
+  return { getLabTests, getLabTest, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend, getLastAnalyteKeys };
 }
