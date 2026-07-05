@@ -35,10 +35,10 @@ const filterOptions: { id: RecordFilter }[] = [
 // 라벨/숏라벨은 messages(record.module.* / record.moduleShort.*)로 분리 — key 로 참조.
 // 순서: 건강통계 | 복약 | 예방 | (검사기록) | 지출. 검사기록은 조건부라 렌더에서 지출 앞에 삽입.
 const QUICK_LINKS = [
-  { icon: Activity, key: 'stats', color: 'text-gray-800', href: '/records/stats' },
-  { icon: Pill, key: 'meds', color: 'text-gray-800', href: '/records/meds' },
-  { icon: Syringe, key: 'preventive', color: 'text-gray-800', href: '/records/preventive' },
-  { icon: Wallet, key: 'expenses', color: 'text-gray-800', href: '/records/expenses' },
+  { icon: Activity, key: 'stats', color: 'text-blue-500', href: '/records/stats' },
+  { icon: Pill, key: 'meds', color: 'text-pink-500', href: '/records/meds' },
+  { icon: Syringe, key: 'preventive', color: 'text-sky-500', href: '/records/preventive' },
+  { icon: Wallet, key: 'expenses', color: 'text-gray-500', href: '/records/expenses' },
 ] as const;
 
 // 기록장 펫 필터 — 앱 실행 중(모듈 생존 동안)에만 유지되는 메모리 상태.
@@ -343,7 +343,7 @@ export default function RecordsPage() {
                     onClick={() => router.push('/records/labs')}
                     className="py-1 flex flex-col items-center gap-2 active:scale-[0.95] transition-transform"
                   >
-                    <FlaskConical size={24} className="text-gray-800" />
+                    <FlaskConical size={24} className="text-indigo-500" />
                     <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5">검사 기록</span>
                   </button>
                 )}
