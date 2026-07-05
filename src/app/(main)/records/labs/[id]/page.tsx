@@ -12,6 +12,13 @@ import { LAB_TEMPLATES, getAnalyte, type LabTemplateKey } from '@/lib/labCatalog
 import { trackEvent } from '@/lib/trackEvent';
 
 const catLabel = (key: string) => LAB_TEMPLATES.find((t) => t.key === key)?.labelKo ?? key;
+// 카테고리 많으면 제목 잘리니 '첫 외 N개'로 요약(2개 이하는 그대로 나열).
+const catSummary = (cats?: string[] | null) => {
+  const labels = (cats || []).map(catLabel);
+  if (labels.length === 0) return '검사';
+  if (labels.length <= 2) return labels.join(' · ');
+  return `${labels[0]} 외 ${labels.length - 1}개`;
+};
 
 export default function LabDetailPage() {
   const router = useRouter();
@@ -118,7 +125,7 @@ export default function LabDetailPage() {
             <FlaskConical size={20} className="text-indigo-500" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-gray-900 truncate">{(test.categories || []).map(catLabel).join(' · ') || '검사'}</p>
+            <p className="text-[15px] font-bold text-gray-900 truncate">{catSummary(test.categories)}</p>
             <p className="text-[12px] text-gray-400">{test.test_date}{test.hospital_name ? ` · ${test.hospital_name}` : ''}</p>
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">

@@ -15,6 +15,13 @@ import { useLabTests, LabTest } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES } from '@/lib/labCatalog';
 
 const catLabel = (key: string) => LAB_TEMPLATES.find((t) => t.key === key)?.labelKo ?? key;
+// 카테고리 많으면 잘리니 '첫 외 N개'로 요약(2개 이하는 그대로).
+const catSummary = (cats?: string[] | null) => {
+  const labels = (cats || []).map(catLabel);
+  if (labels.length === 0) return '검사';
+  if (labels.length <= 2) return labels.join(' · ');
+  return `${labels[0]} 외 ${labels.length - 1}개`;
+};
 
 // 세션 중 마지막 선택 펫(메모리) — 다른 페이지 갔다 와도 유지. 기록장 sessionSelectedPetId 와 동일 패턴.
 let sessionLabPetId: string | undefined = undefined;
@@ -131,7 +138,7 @@ export default function LabsPage() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-gray-900 truncate">
-                      {(t.categories || []).map(catLabel).join(' · ') || '검사'}
+                      {catSummary(t.categories)}
                     </p>
                     <p className="text-[11px] text-gray-400 truncate flex items-center gap-1">
                       <span className="truncate">{t.test_date}{t.hospital_name ? ` · ${t.hospital_name}` : ''} · 수치 {t.lab_values?.length ?? 0}개</span>
