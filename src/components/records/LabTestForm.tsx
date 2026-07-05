@@ -43,8 +43,9 @@ export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabF
   );
   const [customName, setCustomName] = useState('');
   const [open, setOpen] = useState<Set<LabTemplateKey>>(() => {
-    const s = new Set(LAB_TEMPLATES.filter((t) => t.defaultOpen && t.key !== 'custom').map((t) => t.key));
-    (initial?.values ?? []).forEach((v) => { const a = LAB_ANALYTES.find((x) => x.key === v.analyte_key); if (a) a.templates.forEach((t) => s.add(t)); });
+    // 기본은 전부 닫힘. 수정 모드에선 값이 있는 수치의 대표 템플릿만 열어둠.
+    const s = new Set<LabTemplateKey>();
+    (initial?.values ?? []).forEach((v) => { const a = LAB_ANALYTES.find((x) => x.key === v.analyte_key); if (a) s.add(a.templates[0]); });
     return s;
   });
   const [hospitalSuggestions, setHospitalSuggestions] = useState<string[]>([]);
@@ -278,7 +279,7 @@ export function LabTestForm({ petId, initial }: { petId?: string; initial?: LabF
 
         <button onClick={handleSave} disabled={saving}
           className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-[#fff] rounded-full font-medium text-sm disabled:opacity-50 transition-colors">
-          {saving ? '저장 중...' : `${isEdit ? '수정' : '저장'}${filledCount > 0 ? ` (${filledCount})` : ''}`}
+          {saving ? '저장 중...' : `저장${filledCount > 0 ? ` (${filledCount})` : ''}`}
         </button>
       </div>
     </div>
