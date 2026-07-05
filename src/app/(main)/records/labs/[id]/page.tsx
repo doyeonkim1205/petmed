@@ -7,6 +7,7 @@ import { ArrowLeft, Trash2, FlaskConical, Pencil, TrendingUp, FileText, Image as
 import * as Sentry from '@sentry/nextjs';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LabTrendModal } from '@/components/records/LabTrendModal';
+import { OnboardHint } from '@/components/ui/OnboardHint';
 import { useLabTests, LabTest, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, getAnalyte, type LabTemplateKey } from '@/lib/labCatalog';
 import { trackEvent } from '@/lib/trackEvent';
@@ -77,6 +78,7 @@ export default function LabDetailPage() {
   );
 
   const values = (test.lab_values || []).slice().sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+  const hasGraphable = values.some((v) => getAnalyte(v.analyte_key)?.graphable && v.value_numeric != null);
 
   // 카테고리별 그룹핑(입력폼과 동일 정신모델). test.categories 순서 우선, 겹치는 analyte 는 첫 카테고리에만.
   const assigned = new Set<string>();
@@ -134,6 +136,13 @@ export default function LabDetailPage() {
           </div>
         </div>
 
+        {/* 추이 안내 말풍선 — 그래프 있는 수치가 있을 때 1회(닫기 전까지 노출). */}
+        {hasGraphable && (
+          <div className="mb-3">
+            <OnboardHint storageKey="hint_lab_trend" pointer="none" text="📈 표시된 수치를 누르면 검사가 쌓일수록 추이를 그래프로 볼 수 있어요." />
+          </div>
+        )}
+
         {/* 수치 — 카테고리별 섹션(입력폼과 동일). 📈 있는 수치 탭 시 추이. */}
         {values.length > 0 ? (
           <div className="space-y-3">
@@ -154,7 +163,14 @@ export default function LabDetailPage() {
           <p className="text-sm text-gray-400 py-8 text-center">입력된 수치가 없어요.</p>
         )}
 
-        {/* 결과지 첨부 — 조회 전용 리스트(탭하면 원본). 첨부 있을 때만 노출. 추가/삭제는 '수정'에서. */}
+        {test.memo && (
+          <div className="mt-5">
+            <p className="text-[11px] font-bold text-gray-400 mb-1">메모</p>
+            <p className="text-[13px] text-gray-600 whitespace-pre-wrap">{test.memo}</p>
+          </div>
+        )}
+
+        {/* 결과지 첨부 — 메모 아래, 조회 전용 리스트(탭하면 원본). 첨부 있을 때만 노출. 추가/삭제는 '수정'에서. */}
         {files.length > 0 && (
           <div className="mt-5">
             <p className="text-[11px] font-bold text-gray-400 mb-1.5">결과지</p>
@@ -168,13 +184,6 @@ export default function LabDetailPage() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {test.memo && (
-          <div className="mt-4">
-            <p className="text-[11px] font-bold text-gray-400 mb-1">메모</p>
-            <p className="text-[13px] text-gray-600 whitespace-pre-wrap">{test.memo}</p>
           </div>
         )}
       </div>
