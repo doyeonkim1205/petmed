@@ -322,7 +322,7 @@ export default function RecordsPage() {
             <>
               {/* 건강 통계·지출·예방·복약 — 기록 없어도 항상 노출. 홈 스타일(아이콘 위·라벨 아래).
                   타일 배경은 무채색(gray-50), 색은 아이콘에만 → 리스트 화면에서 튀지 않게. 스크롤 시 슬림바로 고정. */}
-              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-2`}>
+              <div ref={quickRef} className={`grid ${showLabCard ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mb-1`}>
                 {QUICK_LINKS.map((q) => {
                   const Icon = q.icon;
                   return (
@@ -369,7 +369,7 @@ export default function RecordsPage() {
                 )}
                 <div className="border-t border-gray-100 max-w-sm mx-auto" />
                 {selectMode ? (
-                  <div className="flex items-center justify-between py-2 max-w-sm mx-auto">
+                  <div className="flex items-center justify-between pt-4 pb-2 max-w-sm mx-auto">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={toggleSelectAll}
@@ -398,7 +398,7 @@ export default function RecordsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 py-2 overflow-x-auto max-w-sm mx-auto">
+                  <div className="flex items-center gap-1.5 pt-4 pb-2 overflow-x-auto max-w-sm mx-auto">
                     {filterOptions.map((f) => (
                       <button
                         key={f.id}
