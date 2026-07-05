@@ -4,15 +4,17 @@
 // dedup 은 '열린 템플릿' 기준(닫힌 템플릿은 수치를 차지하지 않음) → 전해질만 열면 Na 등이 거기 뜸.
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, ChevronDown, Check, Paperclip, Image as ImageIcon, FileText } from 'lucide-react';
+import { ArrowLeft, X, ChevronDown, Check, Paperclip, Image as ImageIcon, FileText, Sparkles } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFile } from '@/services/fileUpload';
+import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
 import { useLabTests, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, type LabTemplateKey } from '@/lib/labCatalog';
+import { ageGroupFor, refDefaultFor, speciesAgeLabel } from '@/lib/labRefDefaults';
 
 const ALLOWED_FILE = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
@@ -24,6 +26,7 @@ export interface LabFormInitial {
   memo: string;
   values: { analyte_key: string; label: string; value_raw: string; unit: string | null; ref_low?: number | null; ref_high?: number | null; ref_text?: string | null }[];
   files?: LabTestFile[];
+  pet_id?: string;
 }
 
 // 값 1개의 입력 상태. ref* = 사용자가 결과지 기준으로 적는 참고범위(앱이 판정/자동채움 안 함).
@@ -45,6 +48,16 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [savedPartial, setSavedPartial] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 종·나이 기준 참고범위 자동 채우기용 펫 정보.
+  const effectivePetId = petId ?? initial?.pet_id;
+  const [petInfo, setPetInfo] = useState<{ type: Pet['type']; birth_date?: string } | null>(null);
+  const [refFillNote, setRefFillNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!effectivePetId) return;
+    supabase.from('pets').select('type, birth_date').eq('id', effectivePetId).single()
+      .then(({ data }) => { if (data) setPetInfo(data as { type: Pet['type']; birth_date?: string }); });
+  }, [effectivePetId]);
 
   const [testDate, setTestDate] = useState(initial?.test_date ?? todayLocalISO());
   const [hospital, setHospital] = useState(initial?.hospital_name ?? '');
@@ -143,6 +156,24 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
   const removeExisting = (id: string) => setRemovedIds((prev) => new Set(prev).add(id));
   const removeNew = (idx: number) => setNewFiles((prev) => prev.filter((_, i) => i !== idx));
   const visibleExisting = existingFiles.filter((f) => !removedIds.has(f.id));
+
+  // 종·나이 기준 예시 참고범위 자동 채우기 — 활성 항목 중 비어있는 참고범위만 채움(사용자 입력 보존).
+  const refGroup = ageGroupFor(petInfo?.birth_date, testDate);
+  const applicableKeys = petInfo ? [...active].filter((k) => refDefaultFor(k, petInfo.type, refGroup)) : [];
+  const fillDefaults = () => {
+    if (!petInfo) return;
+    setValues((prev) => {
+      const n = { ...prev };
+      applicableKeys.forEach((k) => {
+        const r = refDefaultFor(k, petInfo.type, refGroup)!;
+        const e = n[k] ?? emptyEntry();
+        if ((e.refLow ?? '').trim() === '' && (e.refHigh ?? '').trim() === '') n[k] = { ...e, refLow: String(r[0]), refHigh: String(r[1]) };
+      });
+      return n;
+    });
+    setRefOpen((prev) => { const s = new Set(prev); applicableKeys.forEach((k) => s.add(k)); return s; });
+    setRefFillNote(`${speciesAgeLabel(petInfo.type, refGroup)} 기준 예시값으로 채웠어요. 결과지에 적힌 범위가 있으면 그 값으로 수정해주세요.`);
+  };
 
   const finishNavigation = () => {
     sessionStorage.setItem('lab_list_reload', '1');
@@ -352,11 +383,11 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
 
         {/* 결과지 첨부 — 사진/PDF. 실제 업로드는 저장 시(검사 저장 후). */}
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">결과지 첨부 <span className="text-gray-300">(선택 · 사진/PDF)</span></label>
+          <label className="text-xs text-gray-400 mb-1 block">결과지 첨부 <span className="text-gray-300">(선택)</span></label>
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple className="hidden" onChange={onPickFiles} />
           <button type="button" onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 active:bg-gray-50 transition-colors">
-            <Paperclip size={15} /> 결과지 사진·PDF 추가
+            <Paperclip size={15} /> 결과지 사진·PDF 첨부
           </button>
           {(visibleExisting.length > 0 || newFiles.length > 0) && (
             <div className="mt-2 space-y-1.5">
@@ -380,6 +411,18 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         </div>
 
         <p className="text-[11px] text-gray-400 pt-1">결과지에 있는 항목만 선택해 입력해 주세요. 값이 입력된 항목만 저장돼요.</p>
+
+        {/* 종·나이 기준 예시 참고범위 자동 채우기 — 활성 항목 중 기본값 있는 게 있을 때만. */}
+        {applicableKeys.length > 0 && (
+          <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2">
+            <button type="button" onClick={fillDefaults} className="flex items-center gap-1 text-[12px] font-semibold text-indigo-600">
+              <Sparkles size={13} /> 종·나이 기준 참고범위 채우기
+            </button>
+            <p className="text-[11px] text-indigo-400 mt-1 leading-relaxed">
+              {refFillNote ?? '예시 참고범위를 불러와요. 결과지 참고범위는 언제나 수정할 수 있어요.'}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           {sections.map(({ tpl, analytes }) => {
