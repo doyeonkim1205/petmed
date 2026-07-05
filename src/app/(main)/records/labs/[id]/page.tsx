@@ -149,7 +149,7 @@ export default function LabDetailPage() {
                     <div key={v.id}>
                       {renderValueRow(v)}
                       <div className="px-3 pt-1 pb-2">
-                        <OnboardHint storageKey="hint_lab_trend" pointer="left" text="📈 표시된 수치를 누르면 검사가 쌓일수록 추이를 그래프로 볼 수 있어요." />
+                        <OnboardHint storageKey="hint_lab_trend" pointer="left" text="수치를 누르면 추이 그래프를 볼 수 있어요." />
                       </div>
                     </div>
                   ) : renderValueRow(v))}

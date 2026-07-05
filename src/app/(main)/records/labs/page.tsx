@@ -129,7 +129,7 @@ export default function LabsPage() {
               <p className="text-gray-300 text-xs mt-1">+ 버튼으로 검사 결과지와 수치를 기록해보세요</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
               {tests.map((t) => (
                 <button key={t.id} onClick={() => router.push(`/records/labs/${t.id}`)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors text-left">
