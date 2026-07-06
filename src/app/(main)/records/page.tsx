@@ -348,7 +348,7 @@ export default function RecordsPage() {
               {/* 2단 고정: 검사 아래 '선' + 필터(선택). 스크롤 시 슬림 모듈바+선+필터가 기록헤더 밑에 딱 고정. 검사·그리드는 스크롤로 사라짐. */}
               <div className="sticky z-20 bg-white -mx-4 px-4" style={{ top: stickyTop }}>
                 {!selectMode && showQuickBar && (
-                  <div className="flex gap-1.5 pt-1 pb-2 max-w-sm mx-auto">
+                  <div className="flex gap-1.5 pt-2 pb-2 max-w-sm mx-auto">
                     {QUICK_LINKS.map((q) => {
                       const Icon = q.icon;
                       return (

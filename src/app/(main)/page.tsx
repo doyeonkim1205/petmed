@@ -56,7 +56,7 @@ function MenuGrid({ items }: { items: MenuItem[] }) {
 
 function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-[13px] font-bold text-gray-800 mb-2.5">
+    <p className="flex items-center gap-1.5 text-[13px] font-bold text-gray-800 mb-2">
       <Icon size={14} className="text-gray-700" /> {title}
     </p>
   );
@@ -89,12 +89,12 @@ export default function HomePage() {
 
       {/* 기능 메뉴 — 섹션별 흰 카드 박스 (건강 기록 → AI 케어 순) */}
       <div className="px-4 pt-2.5 space-y-2.5">
-        <section className="bg-white rounded-2xl p-4 border border-gray-100">
+        <section className="bg-white rounded-2xl p-3.5 border border-gray-100">
           <SectionTitle icon={ClipboardList} title={t('healthRecord')} />
           <MenuGrid items={HEALTH} />
         </section>
 
-        <section className="bg-white rounded-2xl p-4 border border-gray-100">
+        <section className="bg-white rounded-2xl p-3.5 border border-gray-100">
           <SectionTitle icon={Stethoscope} title={t('aiCare')} />
           <MenuGrid items={AI_CARE} />
         </section>
