@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { diseaseMap } from '@/data/diseaseMap';
+import { normalizedDiseaseMap, normalizedDiseaseKeysByLength } from '@/data/diseaseMap';
+import { normalizeQuery } from '@/lib/normalizeQuery';
 import { checkBannedWords } from '@/data/bannedWords';
 import { verifyAuth } from '@/lib/apiAuth';
 import { sanitizeForLLM } from '@/lib/sanitize';
@@ -53,17 +54,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(rejectBody(en));
     }
 
+    // 검색어 정규형(띄어쓰기 무시) — "신장 결석"/"신장결석" 을 같은 사전 항목에 매칭.
+    //   (englishQuery·LLM 프롬프트에는 정규형이 아니라 원문 trimmed 를 사용)
+    const normalized = normalizeQuery(trimmed);
+
     // 1) diseaseMap 정확 매치 → OpenAI 호출 없이 즉시 반환
     //    feline/canine 접두어 불필요 — PubMed 검색에서 MeSH 동물 필터 사용
-    if (diseaseMap[trimmed]) {
-      return NextResponse.json({ valid: true, englishQuery: diseaseMap[trimmed] });
+    if (normalizedDiseaseMap[normalized]) {
+      return NextResponse.json({ valid: true, englishQuery: normalizedDiseaseMap[normalized] });
     }
 
     // 2) diseaseMap 부분 매치 — 입력이 키를 포함하는 경우만 (가장 긴 키부터)
-    const sortedKeys = Object.keys(diseaseMap).sort((a, b) => b.length - a.length);
-    for (const key of sortedKeys) {
-      if (trimmed.includes(key)) {
-        return NextResponse.json({ valid: true, englishQuery: diseaseMap[key] });
+    for (const key of normalizedDiseaseKeysByLength) {
+      if (normalized.includes(key)) {
+        return NextResponse.json({ valid: true, englishQuery: normalizedDiseaseMap[key] });
       }
     }
 
