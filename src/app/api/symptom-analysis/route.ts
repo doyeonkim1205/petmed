@@ -442,7 +442,9 @@ ${petLabel} 보호자가 설명한 증상을 진료실에서처럼 신중하게 
 
 [reassurance — concern_level 이 low/medium 일 때만 필수]
 - 한국어 1~2문장
-- "정상 행동일 가능성도 있다" / "너무 걱정하지 마세요" 류 톤
+- low: "정상 행동일 가능성도 있다" / "너무 걱정하지 마세요" 류 안심 톤
+- medium: "정상 행동/정상 가능성"으로 운을 떼지 말 것. 차분하되 관찰이 필요하다는 톤으로 바로 안내.
+  (예: "아직 응급 상황은 아니지만 지켜볼 필요가 있어요. 증상이 지속되면 진료를 고려하세요.")
 - high 일 땐 reassurance 생략 (빈 문자열 가능)
 - 펫 이름이 환자 정보에 있으면 자연스럽게 사용 가능
 
@@ -672,6 +674,16 @@ type 사용 가이드:
           ? ['If bleeding increases or recurs', 'If lethargy, loss of appetite, or vomiting appears', 'If black/tarry stool appears']
           : ['출혈량이 늘거나 반복될 때', '무기력·식욕부진·구토가 동반될 때', '검은색/타르 같은 변이 보일 때'];
       }
+    }
+
+    // medium 안심문구 도입부의 "정상(적인) 행동일 가능성도 있지만," 류 제거.
+    //   medium 은 "지켜볼 필요"인데 정상 가능성으로 운을 떼면 경중이 흐려져 보호자가 방심할 수 있음.
+    //   (low 는 실제로 정상 가능성이 커서 그대로 둠) 프롬프트에서도 배제하지만 안전망으로 한 번 더 정리.
+    if (concernLevel === 'medium' && reassurance) {
+      const cleaned = reassurance
+        .replace(/^\s*정상[^,.]*?(행동|가능성)[^,.]*?(있지만|있으나)\s*[,·]?\s*/, '')
+        .trim();
+      if (cleaned) reassurance = cleaned;
     }
 
     const result = {
