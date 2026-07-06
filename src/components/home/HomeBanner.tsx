@@ -49,7 +49,7 @@ export function HomeBanner() {
       <button
         type="button"
         onClick={() => router.push(banner.href)}
-        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 pt-4 ${subtitle ? 'pb-10' : 'pb-8'} flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
+        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 py-4 flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
       >
         {/* 장식 — 은은한 반투명 원 (깊이감) */}
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
@@ -62,7 +62,7 @@ export function HomeBanner() {
         {subtitle && <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{subtitle}</p>}
 
         {/* 인디케이터 — 하단 좌측, 활성 칩은 길게 (현대적) */}
-        <div className="absolute bottom-4 left-5 flex gap-1.5">
+        <div className="absolute bottom-4 right-5 flex gap-1.5">
           {BANNERS.map((b, i) => (
             <span
               key={b.id}
