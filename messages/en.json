@@ -124,9 +124,9 @@
     },
     "banner": {
       "plus": {
-        "badge": "PawDex Plus",
+        "badge": "",
         "title": "Today's records become\ntomorrow's health hints",
-        "subtitle": ""
+        "subtitle": "Keep visits, symptoms, and daily notes in one place"
       },
       "ai": {
         "badge": "AI Care",

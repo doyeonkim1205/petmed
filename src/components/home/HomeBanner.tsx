@@ -41,6 +41,7 @@ export function HomeBanner() {
   }, []);
 
   const banner = BANNERS[idx];
+  const badge = t(`${banner.id}.badge`);
   const subtitle = t(`${banner.id}.subtitle`);
 
   return (
@@ -54,7 +55,7 @@ export function HomeBanner() {
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
         <span className="pointer-events-none absolute -right-12 bottom-0 w-28 h-28 rounded-full bg-white/10" />
 
-        <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{t(`${banner.id}.badge`)}</span>
+        {badge && <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{badge}</span>}
         <p className="relative text-[19px] font-bold leading-snug whitespace-pre-line">
           {t(`${banner.id}.title`)}
         </p>

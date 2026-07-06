@@ -124,9 +124,9 @@
     },
     "banner": {
       "plus": {
-        "badge": "PawDex Plus",
+        "badge": "",
         "title": "오늘의 기록이,\n내일의 건강 힌트가 되도록",
-        "subtitle": ""
+        "subtitle": "진료·증상·일상을 한 곳에"
       },
       "ai": {
         "badge": "AI 케어",
