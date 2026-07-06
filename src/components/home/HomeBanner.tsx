@@ -41,26 +41,28 @@ export function HomeBanner() {
   }, []);
 
   const banner = BANNERS[idx];
+  const badge = t(`${banner.id}.badge`);
+  const subtitle = t(`${banner.id}.subtitle`);
 
   return (
     <div className="px-4 pt-4">
       <button
         type="button"
         onClick={() => router.push(banner.href)}
-        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 pt-4 pb-10 flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
+        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 py-4 flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
       >
         {/* 장식 — 은은한 반투명 원 (깊이감) */}
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
         <span className="pointer-events-none absolute -right-12 bottom-0 w-28 h-28 rounded-full bg-white/10" />
 
-        <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{t(`${banner.id}.badge`)}</span>
+        {badge && <span className="absolute top-4 right-5 z-10 inline-flex items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{badge}</span>}
         <p className="relative text-[19px] font-bold leading-snug whitespace-pre-line">
           {t(`${banner.id}.title`)}
         </p>
-        <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{t(`${banner.id}.subtitle`)}</p>
+        {subtitle && <p className="relative text-[13px] font-medium opacity-90 mt-1.5">{subtitle}</p>}
 
         {/* 인디케이터 — 하단 좌측, 활성 칩은 길게 (현대적) */}
-        <div className="absolute bottom-4 left-5 flex gap-1.5">
+        <div className="absolute bottom-4 right-5 flex gap-1.5">
           {BANNERS.map((b, i) => (
             <span
               key={b.id}
