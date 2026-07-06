@@ -10,6 +10,7 @@ import {
 } from '@/services/pubmed';
 import { analyzePapers, AiAnalysisResult, fetchDiseaseDescription, DiseaseDescription } from '@/services/openai';
 import { supabase } from '@/lib/supabase';
+import { normalizeQuery } from '@/lib/normalizeQuery';
 
 export type SearchStep = 'idle' | 'validating' | 'searching' | 'fetching' | 'analyzing' | 'done';
 
@@ -33,10 +34,12 @@ export interface UsePubMedSearchResult {
 }
 
 /**
- * 캐시 키 생성: query + petType 조합
+ * 캐시 키 생성: query(정규형) + petType 조합.
+ * normalizeQuery 로 띄어쓰기를 무시 → "신장 결석"/"신장결석" 이 같은 캐시 행을 공유
+ * (한쪽이 먼저 저장되면 다른 쪽도 동일 결과를 읽어 결과가 갈리지 않음).
  */
 function makeCacheKey(query: string, petType: string): string {
-  return `${query.trim().toLowerCase()}:${petType}`;
+  return `${normalizeQuery(query)}:${petType}`;
 }
 
 /**

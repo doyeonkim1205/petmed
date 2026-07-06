@@ -1,6 +1,7 @@
 /**
  * 한국어 질병명 → 영문 PubMed 검색어 매핑
  */
+import { normalizeQuery } from '@/lib/normalizeQuery';
 
 export const diseaseMap: Record<string, string> = {
   // 소화기
@@ -19,6 +20,8 @@ export const diseaseMap: Record<string, string> = {
   '급성 신부전': 'acute kidney injury',
   '방광염': 'cystitis',
   '요로결석': 'urolithiasis',
+  '신장결석': 'nephrolithiasis',
+  '방광결석': 'bladder calculi',
   '혈뇨': 'hematuria',
 
   // 내분비
@@ -107,6 +110,20 @@ export const diseaseMap: Record<string, string> = {
   // '코로나 장염' — GPT가 petType에 따라 특화
 };
 
+/**
+ * 띄어쓰기 무시 조회용 정규화 사본.
+ * diseaseMap 의 키를 normalizeQuery 로 정규화 → "신장 결석"/"신장결석"처럼 공백만
+ * 다른 입력이 같은 항목에 매칭된다. 값이 같은 공백 변형 키('파보바이러스'/'파보 바이러스')는
+ * 자연스럽게 하나로 합쳐진다(값이 동일하므로 충돌 무해).
+ */
+export const normalizedDiseaseMap: Record<string, string> = Object.fromEntries(
+  Object.entries(diseaseMap).map(([k, v]) => [normalizeQuery(k), v]),
+);
+
+/** 부분 매치용 — 정규화 키를 길이 내림차순 정렬(가장 구체적인 키 우선). */
+export const normalizedDiseaseKeysByLength: string[] =
+  Object.keys(normalizedDiseaseMap).sort((a, b) => b.length - a.length);
+
 // 번역 결과 캐시 — localStorage 기반으로 새로고침 후에도 유지
 const LS_KEY = 'pawdex_translation_cache';
 
@@ -166,18 +183,17 @@ export async function toEnglishQuery(koreanName: string): Promise<string> {
     return trimmed;
   }
 
-  // 1) 정확 매치
-  if (diseaseMap[trimmed]) {
-    return diseaseMap[trimmed];
+  const normalized = normalizeQuery(trimmed);
+
+  // 1) 정확 매치 (띄어쓰기 무시)
+  if (normalizedDiseaseMap[normalized]) {
+    return normalizedDiseaseMap[normalized];
   }
 
-  // 2) 부분 매치 — 가장 긴 키부터 시도
-  const sortedKeys = Object.keys(diseaseMap).sort(
-    (a, b) => b.length - a.length,
-  );
-  for (const key of sortedKeys) {
-    if (trimmed.includes(key) || key.includes(trimmed)) {
-      return diseaseMap[key];
+  // 2) 부분 매치 — 가장 긴 키부터 시도 (양방향, 띄어쓰기 무시)
+  for (const key of normalizedDiseaseKeysByLength) {
+    if (normalized.includes(key) || key.includes(normalized)) {
+      return normalizedDiseaseMap[key];
     }
   }
 
