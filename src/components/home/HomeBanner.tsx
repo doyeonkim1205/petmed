@@ -55,7 +55,7 @@ export function HomeBanner() {
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
         <span className="pointer-events-none absolute -right-12 bottom-0 w-28 h-28 rounded-full bg-white/10" />
 
-        {badge && <span className="relative inline-flex w-fit items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full mb-2.5">{badge}</span>}
+        {badge && <span className="absolute top-4 right-5 z-10 inline-flex items-center text-[11px] font-bold bg-white/20 px-2.5 py-1 rounded-full">{badge}</span>}
         <p className="relative text-[19px] font-bold leading-snug whitespace-pre-line">
           {t(`${banner.id}.title`)}
         </p>
