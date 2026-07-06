@@ -48,7 +48,7 @@ export function HomeBanner() {
       <button
         type="button"
         onClick={() => router.push(banner.href)}
-        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 pt-4 ${subtitle ? 'pb-10' : 'pb-4'} flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
+        className={`relative w-full text-left rounded-2xl overflow-hidden h-36 bg-gradient-to-br ${banner.gradient} px-5 pt-4 ${subtitle ? 'pb-10' : 'pb-8'} flex flex-col justify-center text-white shadow-sm transition-transform active:scale-[0.99]`}
       >
         {/* 장식 — 은은한 반투명 원 (깊이감) */}
         <span className="pointer-events-none absolute -right-7 -top-10 w-32 h-32 rounded-full bg-white/10" />
