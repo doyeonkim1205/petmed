@@ -12,7 +12,7 @@ import { logActivityServer } from '@/lib/activityLogServer';
  *
  * GET ?section=overview|pets|records&page=1
  */
-const SECTIONS = ['overview', 'pets', 'records'] as const;
+const SECTIONS = ['overview', 'pets', 'records', 'meds', 'stats', 'preventive'] as const;
 type Section = (typeof SECTIONS)[number];
 
 const RECORDS_PAGE_SIZE = 50;
@@ -61,6 +61,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       { count: recordCount },
       { count: petCount },
       { count: medCount },
+      { count: preventiveCount },
       { count: labCount },
       { count: savedAnalysesCount },
     ] = await Promise.all([
@@ -70,6 +71,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       supabase.from('health_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
       supabase.from('pets').select('*', { count: 'exact', head: true }).eq('user_id', id),
       supabase.from('medications').select('*', { count: 'exact', head: true }).eq('user_id', id),
+      supabase.from('preventive_cares').select('*', { count: 'exact', head: true }).eq('user_id', id),
       supabase.from('lab_tests').select('*', { count: 'exact', head: true }).eq('user_id', id),
       supabase.from('saved_analyses').select('*', { count: 'exact', head: true }).eq('user_id', id),
     ]);
@@ -82,6 +84,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         records: recordCount || 0,
         pets: petCount || 0,
         meds: medCount || 0,
+        preventive: preventiveCount || 0,
         labs: labCount || 0,
         searches: searchCount || 0,
         savedAnalyses: savedAnalysesCount || 0,
@@ -96,6 +99,54 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .eq('user_id', id)
       .order('created_at', { ascending: true });
     return NextResponse.json({ pets: pets || [] });
+  }
+
+  if (section === 'meds') {
+    const [{ data: meds }, { data: checks }] = await Promise.all([
+      supabase
+        .from('medications')
+        .select('*, pets:pet_id (id, name, type)')
+        .eq('user_id', id)
+        .order('created_at', { ascending: false }),
+      // 복약 체크 완료 건수 집계용 (medication_id 별 checked=true 개수).
+      supabase
+        .from('medication_checks')
+        .select('medication_id')
+        .eq('user_id', id)
+        .eq('checked', true),
+    ]);
+    const checkedCount: Record<string, number> = {};
+    for (const c of checks || []) checkedCount[c.medication_id] = (checkedCount[c.medication_id] || 0) + 1;
+    const withCounts = (meds || []).map((m) => ({ ...m, checkedCount: checkedCount[m.id] || 0 }));
+    return NextResponse.json({ meds: withCounts });
+  }
+
+  if (section === 'preventive') {
+    const { data: cares } = await supabase
+      .from('preventive_cares')
+      .select('*, pets:pet_id (id, name, type)')
+      .eq('user_id', id)
+      .order('next_due_date', { ascending: true });
+    return NextResponse.json({ preventive: cares || [] });
+  }
+
+  if (section === 'stats') {
+    // 건강통계 — 체중(weight_logs) + 지표(health_metrics). 최근순, 각 200건 상한.
+    const [{ data: weights }, { data: metrics }] = await Promise.all([
+      supabase
+        .from('weight_logs')
+        .select('id, pet_id, weight, measured_at')
+        .eq('user_id', id)
+        .order('measured_at', { ascending: false })
+        .limit(200),
+      supabase
+        .from('health_metrics')
+        .select('id, pet_id, metric_type, value, unit, input_pct, measured_at')
+        .eq('user_id', id)
+        .order('measured_at', { ascending: false })
+        .limit(200),
+    ]);
+    return NextResponse.json({ weights: weights || [], metrics: metrics || [] });
   }
 
   // section === 'records'
