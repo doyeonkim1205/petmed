@@ -285,6 +285,7 @@ function PrivacyKo() {
           <li>API 접근 시 인증 토큰 기반 접근 제어</li>
           <li>서버 측 보안 헤더 적용 (XSS, 클릭재킹 방지)</li>
           <li>민감한 API 키의 서버 측 전용 관리 (클라이언트 노출 방지)</li>
+          <li>개인정보에 접근할 수 있는 담당자를 최소한으로 제한하며, 고객지원·서비스 운영 및 오류 대응 목적에 한해 접근합니다. 모든 관리자 열람 이력은 별도로 기록·관리됩니다.</li>
         </ul>
       </Section>
 
@@ -292,7 +293,7 @@ function PrivacyKo() {
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 6월 26일 (개정 — 앱 인앱 결제(Apple·Google)·RevenueCat·Apple 로그인 명시)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 7월 12일 (개정 — 개인정보 접근 통제 및 관리자 열람 기록 조항 명시)</p>
     </>
   );
 }
@@ -568,6 +569,7 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
           <li>Authentication token–based access control for API access</li>
           <li>Server-side security headers applied (XSS, clickjacking prevention)</li>
           <li>Server-side-only management of sensitive API keys (prevents client exposure)</li>
+          <li>Access to personal information is limited to the minimum necessary personnel and is permitted only for customer support, service operation, and error handling; all administrator access is separately logged and managed.</li>
         </ul>
       </Section>
 
@@ -575,7 +577,7 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
         <p>This policy applies from its effective date, and any changes are announced through a notice within the Service.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: June 26, 2026 (revised — app in-app billing (Apple/Google), RevenueCat, Sign in with Apple specified)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: July 12, 2026 (revised — added personal-information access control and administrator access-logging clause)</p>
     </>
   );
 }
