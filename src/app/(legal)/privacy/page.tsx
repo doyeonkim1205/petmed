@@ -293,7 +293,7 @@ function PrivacyKo() {
         <p>본 방침은 시행일로부터 적용되며, 변경 사항이 있을 경우 서비스 내 공지를 통해 안내합니다.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 7월 12일 (개정 — 개인정보 접근 통제 및 관리자 열람 기록 조항 명시)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">시행일: 2026년 7월 12일</p>
     </>
   );
 }
@@ -577,7 +577,7 @@ function PrivacyEn({ refNotice }: { refNotice: string }) {
         <p>This policy applies from its effective date, and any changes are announced through a notice within the Service.</p>
       </Section>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: July 12, 2026 (revised — added personal-information access control and administrator access-logging clause)</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-10">Effective date: July 12, 2026</p>
     </>
   );
 }
