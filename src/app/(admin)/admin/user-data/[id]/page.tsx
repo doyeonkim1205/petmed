@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, PawPrint, FileText, Pill, FlaskConical, Search as SearchIcon, Bookmark, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, PawPrint, FileText, Pill, FlaskConical, Search as SearchIcon, Bookmark, ChevronDown, ChevronRight, Syringe, Activity } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 
 /* ── 타입 (API 응답 셰이프) ── */
@@ -11,8 +11,20 @@ interface Overview {
   profile: { id: string; email: string; nickname: string; avatar_url?: string; plan: string; role: string; created_at: string };
   subscription: { plan: string; status: string; period_end: string; canceled_at?: string | null; billing_type?: string; product_id?: string; next_billing_at?: string } | null;
   payments: { id: string; amount: number; status: string; created_at: string; store?: string | null; environment?: string | null }[];
-  counts: { records: number; pets: number; meds: number; labs: number; searches: number; savedAnalyses: number };
+  counts: { records: number; pets: number; meds: number; preventive: number; labs: number; searches: number; savedAnalyses: number };
 }
+interface Med {
+  id: string; name: string; kind?: string; dosage?: string; frequency?: string;
+  start_date: string; end_date?: string; alarm_enabled?: boolean; alarm_times?: string[];
+  checkedCount: number; pets?: { id: string; name: string; type: string };
+}
+interface Care {
+  id: string; category: string; name: string; last_done_date: string; next_due_date: string;
+  interval_unit: 'month' | 'year'; interval_value: number; alarm_enabled: boolean; memo?: string | null;
+  pets?: { id: string; name: string; type: string } | null;
+}
+interface WeightLog { id: string; pet_id: string; weight: number; measured_at: string }
+interface Metric { id: string; pet_id: string; metric_type: string; value: number; unit?: string; input_pct?: number | null; measured_at: string }
 interface Pet {
   id: string; name: string; type: 'dog' | 'cat'; breed?: string; birth_date?: string;
   sex?: 'male' | 'female' | null; neutered?: boolean | null; weight?: number | null;
@@ -29,7 +41,7 @@ interface RecordRow {
   record_files?: { id: string }[];
 }
 
-type TabKey = 'overview' | 'pets' | 'records';
+type TabKey = 'overview' | 'pets' | 'records' | 'meds' | 'preventive' | 'stats';
 
 const RECORD_TYPE_LABEL: Record<string, string> = {
   symptom: '증상', visit: '진료', hospitalization: '입퇴원', manual: '기타', daily: '일상',
@@ -38,6 +50,16 @@ const SUB_KIND_LABEL: Record<string, string> = {
   meal: '식사', hydration: '수분', walk: '산책', poop: '배변', mood: '기분', other: '기타',
 };
 const STORE_LABEL: Record<string, string> = { toss: '토스', play: '구글', apple: '애플' };
+const MED_KIND_LABEL: Record<string, string> = {
+  prescription: '처방약', supplement: '영양제', other: '기타',
+};
+const PREVENTIVE_LABEL: Record<string, string> = {
+  heartworm: '심장사상충', external_parasite: '외부기생충', internal_worm: '내부구충',
+  vaccine: '종합백신', rabies: '광견병', health_check: '건강검진', other: '기타',
+};
+const METRIC_LABEL: Record<string, string> = {
+  water: '음수량', food: '식사', fluid: '수액', respiratory: '호흡수', excretion: '배변',
+};
 
 function fmtDate(d?: string | null) {
   if (!d) return '-';
@@ -55,6 +77,9 @@ export default function UserDataDetailPage() {
   const [records, setRecords] = useState<RecordRow[] | null>(null);
   const [recordsPage, setRecordsPage] = useState(1);
   const [recordsTotalPages, setRecordsTotalPages] = useState(1);
+  const [meds, setMeds] = useState<Med[] | null>(null);
+  const [preventive, setPreventive] = useState<Care[] | null>(null);
+  const [stats, setStats] = useState<{ weights: WeightLog[]; metrics: Metric[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -83,11 +108,32 @@ export default function UserDataDetailPage() {
     setRecordsTotalPages(data.totalPages || 1);
   }, [id]);
 
+  const loadMeds = useCallback(async () => {
+    const res = await authFetch(`/api/admin/users/${id}/data?section=meds`);
+    const data = await res.json();
+    setMeds(data.meds || []);
+  }, [id]);
+
+  const loadPreventive = useCallback(async () => {
+    const res = await authFetch(`/api/admin/users/${id}/data?section=preventive`);
+    const data = await res.json();
+    setPreventive(data.preventive || []);
+  }, [id]);
+
+  const loadStats = useCallback(async () => {
+    const res = await authFetch(`/api/admin/users/${id}/data?section=stats`);
+    const data = await res.json();
+    setStats({ weights: data.weights || [], metrics: data.metrics || [] });
+  }, [id]);
+
   // 탭 진입 시 지연 로드 (한 번만)
   useEffect(() => {
     if (tab === 'pets' && pets === null) loadPets();
     if (tab === 'records' && records === null) loadRecords(1);
-  }, [tab, pets, records, loadPets, loadRecords]);
+    if (tab === 'meds' && meds === null) loadMeds();
+    if (tab === 'preventive' && preventive === null) loadPreventive();
+    if (tab === 'stats' && stats === null) loadStats();
+  }, [tab, pets, records, meds, preventive, stats, loadPets, loadRecords, loadMeds, loadPreventive, loadStats]);
 
   const toggle = (rid: string) =>
     setExpanded((prev) => {
@@ -100,6 +146,9 @@ export default function UserDataDetailPage() {
     { key: 'overview', label: '개요', icon: FileText },
     { key: 'pets', label: '반려동물', icon: PawPrint },
     { key: 'records', label: '건강기록', icon: FileText },
+    { key: 'meds', label: '복약', icon: Pill },
+    { key: 'preventive', label: '예방', icon: Syringe },
+    { key: 'stats', label: '건강통계', icon: Activity },
   ];
 
   if (loading || !overview) {
@@ -167,10 +216,11 @@ export default function UserDataDetailPage() {
       {/* ── 개요 ── */}
       {tab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
             <CountCard icon={FileText} label="건강기록" value={overview.counts.records} onClick={() => setTab('records')} />
             <CountCard icon={PawPrint} label="반려동물" value={overview.counts.pets} onClick={() => setTab('pets')} />
-            <CountCard icon={Pill} label="복약" value={overview.counts.meds} />
+            <CountCard icon={Pill} label="복약" value={overview.counts.meds} onClick={() => setTab('meds')} />
+            <CountCard icon={Syringe} label="예방" value={overview.counts.preventive} onClick={() => setTab('preventive')} />
             <CountCard icon={FlaskConical} label="검사" value={overview.counts.labs} />
             <CountCard icon={SearchIcon} label="검색" value={overview.counts.searches} />
             <CountCard icon={Bookmark} label="보관함" value={overview.counts.savedAnalyses} />
@@ -339,6 +389,84 @@ export default function UserDataDetailPage() {
           </div>
         )
       )}
+
+      {/* ── 복약 ── */}
+      {tab === 'meds' && (
+        meds === null ? <TabLoading /> :
+        meds.length === 0 ? <Empty text="복약 정보가 없습니다." /> : (
+          <div className="space-y-2">
+            {meds.map((m) => (
+              <Card key={m.id}>
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-2">
+                    <Pill size={15} className="text-indigo-500 shrink-0" />
+                    <span className="font-medium text-sm">{m.name}</span>
+                    {m.kind && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{MED_KIND_LABEL[m.kind] || m.kind}</span>}
+                    {m.dosage && <span className="text-xs text-gray-500">{m.dosage}</span>}
+                    <span className="ml-auto text-xs text-gray-400">{m.pets?.name || '-'}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-y-1 max-w-md text-[13px]">
+                    <Field label="주기" value={m.frequency || '-'} />
+                    <Field label="기간" value={`${fmtDate(m.start_date)} ~ ${m.end_date ? fmtDate(m.end_date) : '진행중'}`} />
+                    <Field label="알람" value={m.alarm_enabled ? (m.alarm_times?.join(', ') || '켜짐') : '꺼짐'} />
+                    <Field label="복용 체크" value={`${m.checkedCount}회`} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* ── 예방 ── */}
+      {tab === 'preventive' && (
+        preventive === null ? <TabLoading /> :
+        preventive.length === 0 ? <Empty text="예방 관리 항목이 없습니다." /> : (
+          <div className="space-y-2">
+            {preventive.map((c) => (
+              <Card key={c.id}>
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-2">
+                    <Syringe size={15} className="text-emerald-500 shrink-0" />
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">{PREVENTIVE_LABEL[c.category] || c.category}</span>
+                    <span className="font-medium text-sm">{c.name || '-'}</span>
+                    <span className="ml-auto text-xs text-gray-400">{c.pets?.name || '-'}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-y-1 max-w-md text-[13px]">
+                    <Field label="마지막 시행" value={fmtDate(c.last_done_date)} />
+                    <Field label="다음 예정" value={fmtDate(c.next_due_date)} />
+                    <Field label="주기" value={`${c.interval_value}${c.interval_unit === 'year' ? '년' : '개월'}마다`} />
+                    <Field label="알람" value={c.alarm_enabled ? '켜짐' : '꺼짐'} />
+                  </div>
+                  {c.memo && <p className="mt-1 text-[13px] text-gray-500">{c.memo}</p>}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* ── 건강통계 ── */}
+      {tab === 'stats' && (
+        stats === null ? <TabLoading /> :
+        (stats.weights.length === 0 && stats.metrics.length === 0) ? <Empty text="건강통계 데이터가 없습니다." /> : (
+          <div className="space-y-4">
+            {stats.weights.length > 0 && (
+              <StatTable
+                title="체중"
+                rows={stats.weights.map((w) => ({ id: w.id, measured_at: w.measured_at, value: w.weight, unit: 'kg' }))}
+              />
+            )}
+            {Object.entries(groupBy(stats.metrics, (m) => m.metric_type)).map(([type, rows]) => (
+              <StatTable
+                key={type}
+                title={METRIC_LABEL[type] || type}
+                rows={rows.map((m) => ({ id: m.id, measured_at: m.measured_at, value: m.value, unit: m.unit || '', pct: m.input_pct }))}
+              />
+            ))}
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -374,4 +502,39 @@ function TabLoading() {
 }
 function Empty({ text }: { text: string }) {
   return <p className="py-12 text-center text-sm text-gray-400">{text}</p>;
+}
+function groupBy<T>(arr: T[], key: (x: T) => string): Record<string, T[]> {
+  const out: Record<string, T[]> = {};
+  for (const x of arr) {
+    const k = key(x);
+    (out[k] ||= []).push(x);
+  }
+  return out;
+}
+function StatTable({ title, rows }: { title: string; rows: { id: string; measured_at: string; value: number; unit?: string; pct?: number | null }[] }) {
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm font-semibold text-gray-700 mb-3">
+          {title} <span className="text-xs font-normal text-gray-400">({rows.length}건)</span>
+        </p>
+        <div className="max-h-72 overflow-y-auto">
+          <table className="w-full text-[13px]">
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-b border-gray-50 last:border-0">
+                  <td className="py-1.5 text-gray-500">
+                    {new Date(r.measured_at).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </td>
+                  <td className="py-1.5 text-right font-medium text-gray-800">
+                    {r.value}{r.unit}{r.pct != null ? ` (${r.pct}%)` : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
