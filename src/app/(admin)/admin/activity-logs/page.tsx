@@ -58,6 +58,7 @@ const actionLabels: Record<string, string> = {
   'subscription.manual_retry': '결제 재시도',
   'admin.refund': '관리자 환불',
   'admin.delete_user': '관리자 유저 삭제',
+  'admin.view_user_data': '관리자 데이터 열람',
   // 복약·예방·지출 — 액션만(내용 X)
   'medication.create': '복약 추가',
   'medication.update': '복약 수정',
@@ -106,6 +107,7 @@ const filterGroups: FilterGroup[] = [
       { value: 'action:admin.push_send', label: '알림 발송' },
       { value: 'action:admin.refund', label: '환불' },
       { value: 'action:admin.delete_user', label: '유저 삭제' },
+      { value: 'action:admin.view_user_data', label: '데이터 열람' },
     ],
   },
   {
