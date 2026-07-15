@@ -30,6 +30,7 @@ type Item = {
   source: 'record' | 'direct';
   id: string;
   date: string;       // YYYY-MM-DD
+  createdAt: string;  // ISO 입력 시각 — 같은 날짜 내 정렬(나중 입력이 위) 2차 키
   amount: number;
   title: string;
   category: string;
@@ -161,12 +162,12 @@ export default function ExpensesPage() {
       if (!r.cost || r.cost <= 0) continue;
       const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], amount: r.cost, title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
+      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], createdAt: r.created_at || '', amount: r.cost, title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
     }
     for (const e of expenses) {
       const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], amount: Number(e.amount), title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], createdAt: e.created_at || '', amount: Number(e.amount), title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
     return out;
   }, [records, expenses, startDate, endDate, pets, t]);
@@ -202,7 +203,8 @@ export default function ExpensesPage() {
       g.total += it.amount;
       g.items.push(it);
     }
-    for (const g of map.values()) g.items.sort((a, b) => b.date.localeCompare(a.date));
+    // 날짜 내림차순, 같은 날짜면 나중에 입력한(created_at 큰) 항목이 위로.
+    for (const g of map.values()) g.items.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([, g]) => g);
   }, [filteredItems, locale]);
 
