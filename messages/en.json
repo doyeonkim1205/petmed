@@ -808,7 +808,9 @@
     },
     "business": {
       "toggle": "Business info",
+      "companyLabel": "Company",
       "companyName": "DYLabs",
+      "emailLabel": "Email",
       "email": "dylabs.pawdex@gmail.com",
       "repLabel": "Representative",
       "rep": "Kim Doyeon",

@@ -1403,40 +1403,31 @@ export default function ProfilePage() {
 
       <div className="py-8 px-6">
         <div className="mx-auto max-w-xs text-center">
-          {/* 기본 노출: 회사명 + 이메일만 */}
-          <p className="text-[11px] font-medium text-gray-400">{t('profile.business.companyName')}</p>
-          <a
-            href={`mailto:${t('profile.business.email')}`}
-            className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
+          {/* 사업자 정보: 전체 표시는 약관·정책 > 사업자정보 메뉴에 별도로 있어
+              여기 하단 푸터는 중복이라 접이식(기본 접힘)으로만 둔다. */}
+          <button
+            type="button"
+            onClick={() => setShowBizInfo((v) => !v)}
+            aria-expanded={showBizInfo}
+            className="inline-flex items-center gap-0.5 text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
           >
-            {t('profile.business.email')}
-          </a>
+            {t('profile.business.toggle')}
+            <ChevronDown
+              size={11}
+              className={`transition-transform ${showBizInfo ? 'rotate-180' : ''}`}
+            />
+          </button>
 
-          {/* 접이식 토글 */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowBizInfo((v) => !v)}
-              aria-expanded={showBizInfo}
-              className="mt-2 inline-flex items-center gap-0.5 text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
-            >
-              {t('profile.business.toggle')}
-              <ChevronDown
-                size={11}
-                className={`transition-transform ${showBizInfo ? 'rotate-180' : ''}`}
-              />
-            </button>
-          </div>
-
-          {/* 접이식 상세: 나머지 법정 표시 항목 */}
           {showBizInfo && (
             <dl className="mt-3 space-y-1.5 border-t border-gray-100 pt-3 text-left">
               {[
+                ['companyLabel', 'companyName'],
                 ['repLabel', 'rep'],
                 ['regNoLabel', 'regNo'],
                 ['ecommerceNoLabel', 'ecommerceNo'],
                 ['addressLabel', 'address'],
                 ['phoneLabel', 'phone'],
+                ['emailLabel', 'email'],
               ].map(([labelKey, valueKey]) => (
                 <div key={labelKey} className="flex gap-2 text-[10px] leading-relaxed">
                   <dt className="w-24 flex-shrink-0 text-gray-400">

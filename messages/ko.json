@@ -808,7 +808,9 @@
     },
     "business": {
       "toggle": "사업자 정보",
+      "companyLabel": "상호",
       "companyName": "디와이랩스(DYLabs)",
+      "emailLabel": "이메일",
       "email": "dylabs.pawdex@gmail.com",
       "repLabel": "대표자",
       "rep": "김도연",
