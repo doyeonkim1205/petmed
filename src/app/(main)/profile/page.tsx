@@ -12,7 +12,7 @@ import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { isNativeApp, registerNativePush, unregisterNativePush, isNativePushRegistered } from '@/lib/platform';
 import {
-  User, Settings, Bell, LogOut, ChevronRight, Edit2,
+  User, Settings, Bell, LogOut, ChevronRight, ChevronDown, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
   CreditCard, MapPin, Building2, HardDrive, Loader2,
@@ -1160,6 +1160,7 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
   const [showAlarmUpgrade, setShowAlarmUpgrade] = useState(false);
+  const [showBizInfo, setShowBizInfo] = useState(false); // 사업자 정보 접이식 (기본 접힘)
 
   const canUseAlarm = isPWA && getEffectivePlan(profile?.plan) === 'plus';
 
@@ -1400,13 +1401,52 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="py-8 px-6 text-center">
-        <div className="text-[10px] text-gray-300 leading-relaxed">
-          <p>{t('profile.business.line1')}</p>
-          <p>{t('profile.business.regNo')}</p>
-          <p>{t('profile.business.ecommerceNo')}</p>
-          <p>{t('profile.business.address')}</p>
-          <p>{t('profile.business.contact')}</p>
+      <div className="py-8 px-6">
+        <div className="mx-auto max-w-xs text-center">
+          {/* 기본 노출: 회사명 + 이메일만 */}
+          <p className="text-[11px] font-medium text-gray-400">{t('profile.business.companyName')}</p>
+          <a
+            href={`mailto:${t('profile.business.email')}`}
+            className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
+          >
+            {t('profile.business.email')}
+          </a>
+
+          {/* 접이식 토글 */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowBizInfo((v) => !v)}
+              aria-expanded={showBizInfo}
+              className="mt-2 inline-flex items-center gap-0.5 text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
+            >
+              {t('profile.business.toggle')}
+              <ChevronDown
+                size={11}
+                className={`transition-transform ${showBizInfo ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+
+          {/* 접이식 상세: 나머지 법정 표시 항목 */}
+          {showBizInfo && (
+            <dl className="mt-3 space-y-1.5 border-t border-gray-100 pt-3 text-left">
+              {[
+                ['repLabel', 'rep'],
+                ['regNoLabel', 'regNo'],
+                ['ecommerceNoLabel', 'ecommerceNo'],
+                ['addressLabel', 'address'],
+                ['phoneLabel', 'phone'],
+              ].map(([labelKey, valueKey]) => (
+                <div key={labelKey} className="flex gap-2 text-[10px] leading-relaxed">
+                  <dt className="w-24 flex-shrink-0 text-gray-400">
+                    {t(`profile.business.${labelKey}`)}
+                  </dt>
+                  <dd className="text-gray-300">{t(`profile.business.${valueKey}`)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
       </div>
 
