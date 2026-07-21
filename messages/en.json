@@ -807,21 +807,8 @@
       "subDesc": "We send push reminders for medication, preventive care, appointments, and discharge"
     },
     "business": {
-      "toggle": "Business info",
-      "companyLabel": "Company",
       "companyName": "DYLabs",
-      "emailLabel": "Email",
-      "email": "dylabs.pawdex@gmail.com",
-      "repLabel": "Representative",
-      "rep": "Kim Doyeon",
-      "regNoLabel": "Business reg. no.",
-      "regNo": "769-77-00552",
-      "ecommerceNoLabel": "E-commerce license",
-      "ecommerceNo": "2026-화성동탄-1654",
-      "addressLabel": "Address",
-      "address": "81, Dongtansunhwan-daero 26-gil, Hwaseong-si, Gyeonggi-do",
-      "phoneLabel": "Phone",
-      "phone": "010-8306-9687"
+      "email": "dylabs.pawdex@gmail.com"
     }
   },
   "photo": {
