@@ -807,11 +807,8 @@
       "subDesc": "복약·예방·예약·퇴원에 푸시 알림을 보내드려요"
     },
     "business": {
-      "line1": "디와이랩스(DYLabs) | 대표: 김도연",
-      "regNo": "사업자등록번호: 769-77-00552",
-      "ecommerceNo": "통신판매업신고번호: 2026-화성동탄-1654",
-      "address": "경기도 화성시 동탄순환대로 26길 81",
-      "contact": "010-8306-9687 | dylabs.pawdex@gmail.com"
+      "companyName": "디와이랩스(DYLabs)",
+      "email": "dylabs.pawdex@gmail.com"
     }
   },
   "photo": {

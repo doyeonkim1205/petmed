@@ -1400,14 +1400,16 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="py-8 px-6 text-center">
-        <div className="text-[10px] text-gray-300 leading-relaxed">
-          <p>{t('profile.business.line1')}</p>
-          <p>{t('profile.business.regNo')}</p>
-          <p>{t('profile.business.ecommerceNo')}</p>
-          <p>{t('profile.business.address')}</p>
-          <p>{t('profile.business.contact')}</p>
-        </div>
+      <div className="py-8 px-6 text-center leading-tight">
+        {/* 전체 사업자 신원정보는 약관·정책 > 사업자정보(/business) 메뉴에서 표시.
+            하단은 브랜드/연락 창구용으로 상호·이메일만 노출. */}
+        <p className="text-[11px] text-gray-300">{t('profile.business.companyName')}</p>
+        <a
+          href={`mailto:${t('profile.business.email')}`}
+          className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
+        >
+          {t('profile.business.email')}
+        </a>
       </div>
 
       {/* Modals */}
