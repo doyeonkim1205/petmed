@@ -1403,7 +1403,7 @@ export default function ProfilePage() {
       <div className="py-8 px-6 text-center">
         {/* 전체 사업자 신원정보는 약관·정책 > 사업자정보(/business) 메뉴에서 표시.
             하단은 브랜드/연락 창구용으로 상호·이메일만 노출. */}
-        <p className="text-[11px] font-medium text-gray-400">{t('profile.business.companyName')}</p>
+        <p className="text-[11px] text-gray-300">{t('profile.business.companyName')}</p>
         <a
           href={`mailto:${t('profile.business.email')}`}
           className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
