@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
-import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff } from 'lucide-react';
+import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff, MapPin } from 'lucide-react';
 import { TextField } from '@/components/TextField';
 import { getCurrentPosition, isGeolocationAvailable } from '@/lib/platform';
 
@@ -32,7 +32,7 @@ const KAKAO_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
 const DEFAULT_LAT = 37.5665;
 const DEFAULT_LNG = 126.978;
 
-export default function MapPage() {
+function KakaoMapView() {
   const t = useTranslations();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -635,4 +635,51 @@ export default function MapPage() {
 
     </div>
   );
+}
+
+// 영어(미국 등) 로케일 — 카카오맵은 한국 전용이라 앱내 지도 대신 구글맵 검색으로 연결.
+// KakaoMapView 를 마운트하지 않으므로 카카오 SDK 로드/위치권한 요청이 발생하지 않는다.
+// 구글맵 URL(Maps URLs)은 API 키·과금이 없는 단순 링크 열기다.
+function UsVetLinkOut() {
+  const t = useTranslations();
+  const GENERAL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('veterinarian near me')}`;
+  const EMERGENCY = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('24 hour emergency vet near me')}`;
+  return (
+    <div
+      className="flex flex-col items-center justify-center px-8 text-center"
+      style={{ minHeight: 'calc(100dvh - 7.5rem)' }}
+    >
+      <div className="w-16 h-16 rounded-2xl bg-rose-100 flex items-center justify-center mb-5">
+        <MapPin size={30} className="text-rose-500" />
+      </div>
+      <h1 className="text-xl font-bold text-gray-900 mb-2">{t('map.usVet.title')}</h1>
+      <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-xs">{t('map.usVet.subtitle')}</p>
+      <div className="w-full max-w-xs space-y-3">
+        <a
+          href={GENERAL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-rose-500 text-[#fff] font-semibold text-sm shadow-sm hover:bg-rose-600 active:scale-[0.98] transition"
+        >
+          <MapPin size={18} /> {t('map.usVet.findNearby')}
+        </a>
+        <a
+          href={EMERGENCY}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white text-rose-600 font-semibold text-sm border border-rose-200 hover:bg-rose-50 active:scale-[0.98] transition"
+        >
+          <Clock size={18} /> {t('map.usVet.findEmergency')}
+        </a>
+      </div>
+      <p className="text-[11px] text-gray-400 mt-6">{t('map.usVet.poweredBy')}</p>
+    </div>
+  );
+}
+
+export default function MapPage() {
+  const locale = useLocale();
+  // 한국어 → 기존 카카오 지도(KakaoMapView) / 그 외(영어 등) → 구글맵 링크아웃.
+  if (locale === 'en') return <UsVetLinkOut />;
+  return <KakaoMapView />;
 }

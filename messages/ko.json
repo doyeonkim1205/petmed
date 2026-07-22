@@ -883,7 +883,14 @@
     "badge24h": "24시",
     "call": "전화하기",
     "directions": "길찾기",
-    "details": "상세"
+    "details": "상세",
+    "usVet": {
+      "title": "근처 동물병원 찾기",
+      "subtitle": "구글 지도에서 근처 동물병원을 검색해 바로 이동하세요.",
+      "findNearby": "근처 병원 찾기",
+      "findEmergency": "24시 응급 병원",
+      "poweredBy": "구글 지도에서 열림"
+    }
   },
   "saved": {
     "loadingAria": "로딩 중",
