@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { platformPayments, isNativeApp } from '@/lib/platform';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
 // ── Types ──
@@ -106,6 +107,7 @@ const YEARLY_DISCOUNT_PCT = Math.round((1 - YEARLY_PRICE / (MONTHLY_ONETIME * 12
 export default function SubscriptionPage() {
   const t = useTranslations();
   const uiLocale = useLocale();
+  const region = useMarketRegion();
   const dateLocale = uiLocale === 'en' ? 'en-US' : 'ko-KR';
   const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString(dateLocale);
   const featureGroups = buildFeatureGroups(t);
@@ -448,7 +450,7 @@ export default function SubscriptionPage() {
             loading={processingProduct === 'plus_yearly'} loadingText={t('subscription.checkingStatus')}
             title={t('subscription.subscribeYearlyTitle')}
             price={nativePriceYearly ? t('subscription.perYearWrap', { price: nativePriceYearly }) : ''} priceLoading={!nativePriceYearly}
-            sub={t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() })}
+            sub={region === 'KR' ? t('subscription.subscribeYearlySub', { monthly: YEARLY_MONTHLY_EQUIV.toLocaleString() }) : t('subscription.subscribeYearlySubSimple')}
             badge={t('subscription.badgeRecommended')} badgeColor="bg-blue-100 text-blue-600" />
           <div className="pt-1">
             <button onClick={handleRestore} disabled={purchasing}

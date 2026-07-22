@@ -1068,6 +1068,7 @@
     "subscribeMonthlySub": "Renews monthly · cancel anytime",
     "subscribeYearlyTitle": "Annual subscription",
     "subscribeYearlySub": "Renews yearly · ~₩{monthly}/mo",
+    "subscribeYearlySubSimple": "Renews yearly",
     "perYearWrap": "{price}/yr",
     "manageInPlay": "Manage subscription in Google Play",
     "manageInPlayDesc": "Change, cancel, or refund your subscription in the Google Play subscriptions screen.",
