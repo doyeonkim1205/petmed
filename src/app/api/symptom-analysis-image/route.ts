@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
-import { startOfDayKST } from '@/lib/dailyBoundary';
+import { startOfDayInTz } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
@@ -89,11 +89,12 @@ export async function POST(request: NextRequest) {
     // 3) 플랜 + 일일 한도
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('plan')
+      .select('plan, quota_timezone')
       .eq('id', userId)
       .single();
     const plan = getEffectivePlan(profile?.plan);
     const config = getPlanConfig(plan);
+    const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
 
     // ── 맞춤 분석 게이팅 (Plus 전용) ── 무료(체험 포함)는 펫 의료정보 미반영 일반 분석. species 유지.
     const usePetContext = plan === 'plus';
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
         }, { status: 429 });
       }
     } else {
-      const startOfDay = startOfDayKST();
+      const startOfDay = startOfDayInTz(quotaTz);
       const { count } = await supabaseAdmin
         .from('search_logs')
         .select('*', { count: 'exact', head: true })
@@ -555,7 +556,7 @@ ${safeHint
       usageLimit = config.photoAnalysisLifetimeFree;
       usageWindow = 'lifetime';
     } else {
-      const startOfDay = startOfDayKST();
+      const startOfDay = startOfDayInTz(quotaTz);
       const { count } = await supabaseAdmin
         .from('search_logs')
         .select('*', { count: 'exact', head: true })

@@ -43,6 +43,8 @@ export interface Profile {
   // null = 미설정(레거시/신규). RegionSync 가 기기 타임존으로 최초 추정, 설정에서 변경 가능.
   market_region?: 'KR' | 'US' | null;
   market_region_source?: 'legacy_default' | 'timezone_inferred' | 'user_selected' | null;
+  // 일일/월 한도 리셋 기준 타임존 (IANA, 예: 'America/New_York'). null = 미설정 → 서버는 'Asia/Seoul'(KST) 폴백.
+  quota_timezone?: string | null;
 }
 
 export type SearchLogKind = 'symptom' | 'symptom_refine' | 'symptom_photo' | 'disease';

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { startOfDayKST, startOfWindowKST } from '@/lib/dailyBoundary';
+import { startOfDayInTz, startOfWindowInTz } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('plan')
+    .select('plan, quota_timezone')
     .eq('id', userId)
     .single();
 
@@ -24,8 +24,9 @@ export async function GET(request: NextRequest) {
   const config = getPlanConfig(plan);
 
   // 증상분석은 plan 창(무료=월), 재분석은 항상 일일.
-  const searchSince = startOfWindowKST(config.limitWindow);
-  const refineSince = startOfDayKST();
+  const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
+  const searchSince = startOfWindowInTz(config.limitWindow, quotaTz);
+  const refineSince = startOfDayInTz(quotaTz);
 
   const [searchCount, refineCount] = await Promise.all([
     supabaseAdmin

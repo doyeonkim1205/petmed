@@ -21,19 +21,31 @@ export function RegionSync() {
   useEffect(() => {
     if (done.current) return;
     if (!user || !profile) return;
-    if (isMarketRegion(profile.market_region)) return; // 이미 설정됨
+    const needRegion = !isMarketRegion(profile.market_region);
+    const needQuotaTz = !profile.quota_timezone;
+    if (!needRegion && !needQuotaTz) return; // 둘 다 이미 설정됨
 
     let tz: string | undefined;
     try {
       tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch {}
-    const inferred = inferMarketRegion(tz);
-    if (!inferred) return; // 확신 없으면 보류
 
+    const updates: Record<string, string> = {};
+    if (needRegion) {
+      const inferred = inferMarketRegion(tz); // 확신 없으면 null → 지역은 보류
+      if (inferred) {
+        updates.market_region = inferred;
+        updates.market_region_source = 'timezone_inferred';
+      }
+    }
+    // quota_timezone 은 '지역 추정'과 달리 기기 tz 원본을 그대로 저장(확신 문제 없음).
+    if (needQuotaTz && tz) updates.quota_timezone = tz;
+
+    if (Object.keys(updates).length === 0) return;
     done.current = true;
     supabase
       .from('profiles')
-      .update({ market_region: inferred, market_region_source: 'timezone_inferred' })
+      .update(updates)
       .eq('id', user.id)
       .then(({ error }) => {
         if (error) done.current = false; // 실패 시 다음 기회에 재시도
