@@ -6,10 +6,13 @@ import { supabase, HealthRecord, DailySubEntry } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { currencyForRegion } from '@/lib/region';
 
 export function useHealthRecords(petId?: string) {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const { user } = useAuth();
+  const region = useMarketRegion();
   const userId = user?.id;
   const [loading, setLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +127,7 @@ export function useHealthRecords(petId?: string) {
 
     const { data, error } = await supabase
       .from('health_records')
-      .insert({ ...record, user_id: user.id })
+      .insert({ ...record, user_id: user.id, currency: currencyForRegion(region) })
       .select()
       .single();
 

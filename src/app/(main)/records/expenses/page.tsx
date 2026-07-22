@@ -11,6 +11,8 @@ import {
 import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { currencyForRegion } from '@/lib/region';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
@@ -93,6 +95,7 @@ export default function ExpensesPage() {
   const locale = useLocale();
   const router = useRouter();
   const { user, profile } = useAuth();
+  const region = useMarketRegion();
   const maxMonths = getPlanConfig(getEffectivePlan(profile?.plan)).costStatsMonths;
 
   const defaultPeriod: Period = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
@@ -217,7 +220,7 @@ export default function ExpensesPage() {
     const today = todayLocalISO();
     const date = newDate > today ? today : newDate;
     setSaving(true);
-    const { data: exp } = await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date }).select('id').single();
+    const { data: exp } = await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date, currency: currencyForRegion(region) }).select('id').single();
     // 액션만 기록(금액·사유 등 내용 X).
     if (exp) logActivity(user.id, 'expense.create', { resourceType: 'expense', resourceId: exp.id });
     setNewReason(''); setNewAmount(''); setShowAddInput(false); setSaving(false);

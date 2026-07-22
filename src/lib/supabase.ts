@@ -129,6 +129,8 @@ export interface HealthRecord {
   hospital_name?: string;
   visit_date: string;
   cost?: number;
+  // 이 기록 금액(cost)의 통화. 생성 시 지역 기본값을 복사(표시 때 언어/타임존으로 재추론 금지).
+  currency?: 'KRW' | 'USD' | null;
   ai_summary?: string;
   color?: string;
   discharge_date?: string;

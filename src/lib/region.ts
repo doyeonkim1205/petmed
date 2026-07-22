@@ -40,3 +40,10 @@ export const REGION_DEFAULTS = {
   KR: { currency: 'KRW', measurementSystem: 'metric' },
   US: { currency: 'USD', measurementSystem: 'us' },
 } as const;
+
+export type Currency = 'KRW' | 'USD';
+
+// 지역의 기본 통화. 기록 생성 시 이 값을 기록에 '복사'해 저장한다(표시할 때 재추론 금지).
+export function currencyForRegion(region: MarketRegion): Currency {
+  return REGION_DEFAULTS[region].currency;
+}
