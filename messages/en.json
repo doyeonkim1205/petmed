@@ -883,7 +883,14 @@
     "badge24h": "24h",
     "call": "Call",
     "directions": "Directions",
-    "details": "Details"
+    "details": "Details",
+    "usVet": {
+      "title": "Find a vet near you",
+      "subtitle": "Search nearby veterinary clinics on Google Maps and head out right away.",
+      "findNearby": "Find nearby vets",
+      "findEmergency": "24-hour emergency vets",
+      "poweredBy": "Opens in Google Maps"
+    }
   },
   "saved": {
     "loadingAria": "Loading",
