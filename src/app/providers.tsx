@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { OnboardingGate } from '@/components/Onboarding';
 import { NativePushListener } from '@/components/NativePushListener';
 import { LocaleSync } from '@/components/LocaleSync';
+import { RegionSync } from '@/components/RegionSync';
 import { captureFirstTouch } from '@/lib/attribution';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <NativePushListener />
       <LocaleSync />
+      <RegionSync />
       <OnboardingGate>
         {children}
       </OnboardingGate>

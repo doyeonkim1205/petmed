@@ -39,6 +39,10 @@ export interface Profile {
   // 선호 언어 (계정 동기화). null = 미설정 → 쿠키/navigator.language 로 추정.
   // 'ko' | 'en' (i18n locales 와 일치). 로그인 시 이 값으로 NEXT_LOCALE 쿠키 seed.
   preferred_language?: 'ko' | 'en' | null;
+  // 서비스 지역 (언어와 별개 축). 통화·단위·지도 provider 등 지역 기본값 결정.
+  // null = 미설정(레거시/신규). RegionSync 가 기기 타임존으로 최초 추정, 설정에서 변경 가능.
+  market_region?: 'KR' | 'US' | null;
+  market_region_source?: 'legacy_default' | 'timezone_inferred' | 'user_selected' | null;
 }
 
 export type SearchLogKind = 'symptom' | 'symptom_refine' | 'symptom_photo' | 'disease';

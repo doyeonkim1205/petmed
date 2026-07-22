@@ -14,7 +14,7 @@ import { isNativeApp, registerNativePush, unregisterNativePush, isNativePushRegi
 import {
   User, Settings, Bell, LogOut, ChevronRight, Edit2,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
-  Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle,
+  Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle, Flag,
   CreditCard, MapPin, Building2, HardDrive, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +22,8 @@ import { NotificationPermissionDenied } from '@/components/NotificationPermissio
 import { APP_VERSION } from '@/lib/version';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { marketRegions, type MarketRegion } from '@/lib/region';
 import { LOCALE_COOKIE } from '@/i18n/config';
 import { TextField } from '@/components/TextField';
 import { PetFormFields } from '@/components/pets/PetFormFields';
@@ -712,6 +714,9 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   // 언어는 "확인" 누르기 전엔 적용 안 함 — 선택만 보류했다가 확인 시 쿠키·계정 저장 후 새로고침.
   const [pendingLocale, setPendingLocale] = useState<Locale>(currentLocale);
   const [applyingLocale, setApplyingLocale] = useState(false);
+  // 서비스 지역(언어와 별개 축) — 언어와 동일하게 "확인" 전엔 보류.
+  const currentRegion = useMarketRegion();
+  const [pendingRegion, setPendingRegion] = useState<MarketRegion>(currentRegion);
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('16');
   const [autoLogin, setAutoLogin] = useState(true);
@@ -724,6 +729,7 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
   useEffect(() => {
     if (open) {
       setPendingLocale(currentLocale); // 열 때마다 현재 언어로 초기화
+      setPendingRegion(currentRegion); // 열 때마다 현재 지역으로 초기화
       setDarkMode(document.documentElement.classList.contains('dark'));
       setFontSize(localStorage.getItem('fontSize') || '16');
       setAutoLogin(localStorage.getItem('autoLogin') !== 'false');
@@ -752,18 +758,31 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
         }
       })();
     }
-  }, [open, userId, currentLocale]);
+  }, [open, userId, currentLocale, currentRegion]);
 
   // "확인" 시: 언어가 바뀌었으면 쿠키 저장 + (로그인 시) 계정 동기화 후 새로고침. 아니면 그냥 닫기.
   const handleConfirm = () => {
-    if (pendingLocale === currentLocale) { onClose(); return; }
+    const localeChanged = pendingLocale !== currentLocale;
+    const regionChanged = pendingRegion !== currentRegion;
+    if (!localeChanged && !regionChanged) { onClose(); return; }
     setApplyingLocale(true);
     // path=/ (전 경로), max-age 1년, SameSite=Lax. Secure 생략(로컬 http 개발 환경 대응).
-    document.cookie = `${LOCALE_COOKIE}=${pendingLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    if (localeChanged) {
+      document.cookie = `${LOCALE_COOKIE}=${pendingLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    }
     (async () => {
       try {
-        await supabase.from('profiles').update({ preferred_language: pendingLocale }).eq('id', userId);
-      } catch { /* 계정 동기화 실패해도 쿠키 기반 전환은 진행 */ }
+        const updates: Record<string, unknown> = {};
+        if (localeChanged) updates.preferred_language = pendingLocale;
+        // 사용자가 직접 고른 지역은 source='user_selected' — 이후 자동추정이 덮어쓰지 않음.
+        if (regionChanged) {
+          updates.market_region = pendingRegion;
+          updates.market_region_source = 'user_selected';
+        }
+        if (Object.keys(updates).length > 0) {
+          await supabase.from('profiles').update(updates).eq('id', userId);
+        }
+      } catch { /* 계정 동기화 실패해도 (언어)쿠키 기반 전환은 진행 */ }
       window.location.reload();
     })();
   };
@@ -914,6 +933,28 @@ function AppSettingsModal({ open, onClose, userId }: { open: boolean; onClose: (
           <div>
             <SectionHeader icon={Globe} iconColor="text-gray-400" label={t('profile.settings.language')} />
             <LanguageToggle value={pendingLocale} onChange={setPendingLocale} disabled={applyingLocale} />
+          </div>
+
+          {/* 5-2. 서비스 지역 — 통화·단위·지도 등 지역 기본값(언어와 별개 축). "확인" 시 프로필 저장 후 새로고침. */}
+          <div>
+            <SectionHeader icon={Flag} iconColor="text-gray-400" label={t('profile.settings.region')} />
+            <div className="flex gap-2" role="group" aria-label={t('profile.settings.region')}>
+              {marketRegions.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  disabled={applyingLocale}
+                  onClick={() => setPendingRegion(r)}
+                  className={`flex-1 h-9 rounded-full border text-xs font-medium transition-colors ${
+                    pendingRegion === r
+                      ? 'border-blue-500 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                  }`}
+                >
+                  {t(r === 'KR' ? 'profile.settings.regionKR' : 'profile.settings.regionUS')}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 6. 저장 공간 — 첨부 파일 사용량. 제목은 즉시 + 데이터 로딩 중엔 스피너. */}

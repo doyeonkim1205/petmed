@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import * as Sentry from '@sentry/nextjs';
 import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, MapPinOff, MapPin } from 'lucide-react';
 import { TextField } from '@/components/TextField';
 import { getCurrentPosition, isGeolocationAvailable } from '@/lib/platform';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
 
 declare global {
   interface Window {
@@ -678,8 +679,8 @@ function UsVetLinkOut() {
 }
 
 export default function MapPage() {
-  const locale = useLocale();
-  // 한국어 → 기존 카카오 지도(KakaoMapView) / 그 외(영어 등) → 구글맵 링크아웃.
-  if (locale === 'en') return <UsVetLinkOut />;
+  const region = useMarketRegion();
+  // 한국(KR) → 기존 카카오 지도(KakaoMapView) / 그 외(US 등) → 구글맵 링크아웃.
+  if (region !== 'KR') return <UsVetLinkOut />;
   return <KakaoMapView />;
 }
