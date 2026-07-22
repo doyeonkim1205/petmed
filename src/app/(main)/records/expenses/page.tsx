@@ -12,7 +12,7 @@ import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
-import { currencyForRegion } from '@/lib/region';
+import { currencyForRegion, formatMoney, type Currency } from '@/lib/region';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
@@ -24,7 +24,7 @@ import { NumberPad } from '@/components/ui/NumberPad';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
-type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string };
+type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string; currency?: Currency | null };
 
 // 기록 cost + 직접 입력 지출을 한 형태로 병합한 항목. (category 포함 — 기록 비용은 medical)
 type Item = {
@@ -34,6 +34,7 @@ type Item = {
   date: string;       // YYYY-MM-DD
   createdAt: string;  // ISO 입력 시각 — 같은 날짜 내 정렬(나중 입력이 위) 2차 키
   amount: number;
+  currency: Currency;
   title: string;
   category: string;
   hospital?: string;
@@ -77,12 +78,6 @@ function getStartDate(period: Period, customStart?: string): Date {
 function getEndDate(period: Period, customEnd?: string): Date {
   if (period === 'custom' && customEnd) { const d = new Date(customEnd); d.setHours(23, 59, 59, 999); return d; }
   return new Date();
-}
-
-type TFn = (key: string, values?: Record<string, string | number>) => string;
-
-function formatCost(cost: number, t: TFn): string {
-  return t('record.money', { value: new Intl.NumberFormat('en-US').format(cost) });
 }
 
 function formatMonthLabel(year: number, month: number, locale: string): string {
@@ -165,12 +160,12 @@ export default function ExpensesPage() {
       if (!r.cost || r.cost <= 0) continue;
       const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], createdAt: r.created_at || '', amount: r.cost, title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
+      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], createdAt: r.created_at || '', amount: r.cost, currency: (r.currency as Currency) ?? 'KRW', title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
     }
     for (const e of expenses) {
       const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], createdAt: e.created_at || '', amount: Number(e.amount), title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], createdAt: e.created_at || '', amount: Number(e.amount), currency: (e.currency as Currency) ?? 'KRW', title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
     return out;
   }, [records, expenses, startDate, endDate, pets, t]);
@@ -183,6 +178,9 @@ export default function ExpensesPage() {
   }, [items]);
 
   const grandTotal = useMemo(() => items.reduce((s, it) => s + it.amount, 0), [items]);
+  // 표시용 통화 — 항목들의 통화(현재는 단일 통화가 일반적). 없으면 지역 기본값.
+  // ⚠️ 진짜 혼합통화(KR→US 이동) 유저의 통화별 분리 합계는 후속(현재 해당 유저 0명).
+  const displayCurrency: Currency = items[0]?.currency ?? currencyForRegion(region);
 
   // 도넛 세그먼트 (카테고리 순서)
   const segments = useMemo(() => EXP_CATEGORIES.map((c) => ({ value: categoryTotals.get(c.id) || 0, color: c.color })), [categoryTotals]);
@@ -299,7 +297,7 @@ export default function ExpensesPage() {
             {grandTotal > 0 ? (
               <div className="rounded-xl border border-gray-100 p-4">
                 <p className="text-[11px] text-gray-400">{t('expenses.totalSpent', { period: t(`expenses.period.${period}`) })}</p>
-                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatCost(grandTotal, t)}</p>
+                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatMoney(grandTotal, displayCurrency, locale)}</p>
                 {/* 카테고리별 누적 막대 */}
                 <div className="flex w-full h-3.5 rounded-full overflow-hidden bg-gray-100">
                   {segments.filter((s) => s.value > 0).map((s, i) => (
@@ -320,7 +318,7 @@ export default function ExpensesPage() {
                           className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${sel ? 'bg-blue-50' : 'active:bg-gray-50'}`}>
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
                           <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{t(`expenses.category.${c.id}`)}</span>
-                          <span className="text-xs font-semibold text-gray-700">{formatCost(c.value, t)}</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatMoney(c.value, displayCurrency, locale)}</span>
                           <span className="text-[10px] text-gray-400 w-8 text-right">{pct}%</span>
                         </button>
                       );
@@ -409,7 +407,7 @@ export default function ExpensesPage() {
                   <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                       <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
-                      <span className="text-sm font-bold text-blue-600">{formatCost(group.total, t)}</span>
+                      <span className="text-sm font-bold text-blue-600">{formatMoney(group.total, displayCurrency, locale)}</span>
                     </div>
                     <div className="divide-y divide-gray-50">
                       {group.items.map((it) => {
@@ -434,7 +432,7 @@ export default function ExpensesPage() {
                             <button key={it.key} onClick={() => router.push(`/records/${it.id}`)}
                               className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
                               <div className="min-w-0 flex-1">{head}</div>
-                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(it.amount, t)}</span>
+                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatMoney(it.amount, it.currency, locale)}</span>
                             </button>
                           );
                         }
@@ -444,7 +442,7 @@ export default function ExpensesPage() {
                             className={`w-full flex items-center justify-between py-3 px-4 transition-colors text-left ${sel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
                             <div className="min-w-0 flex-1">{head}</div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                              <span className="text-sm font-semibold text-gray-700">{formatCost(it.amount, t)}</span>
+                              <span className="text-sm font-semibold text-gray-700">{formatMoney(it.amount, it.currency, locale)}</span>
                               {sel && (
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteExpense(it.id); }}
                                   className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">{t('common.delete')}</button>

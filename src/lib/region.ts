@@ -47,3 +47,16 @@ export type Currency = 'KRW' | 'USD';
 export function currencyForRegion(region: MarketRegion): Currency {
   return REGION_DEFAULTS[region].currency;
 }
+
+/**
+ * 금액 표시. 통화기호·소수 자릿수·구분기호를 Intl 포매터가 처리(문자열에 기호 박지 않기).
+ * amount = major unit (KRW: 388550, USD: 49.99). currency 는 '기록에 저장된 값'을 넘긴다.
+ * KRW → "₩388,550" (소수 0자리), USD → "$49.99" (소수 2자리).
+ */
+export function formatMoney(amount: number, currency: Currency = 'KRW', locale: string = 'en-US'): string {
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+  } catch {
+    return String(amount);
+  }
+}

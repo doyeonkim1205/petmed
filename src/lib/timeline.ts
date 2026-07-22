@@ -1,4 +1,5 @@
 import { localDateKey } from '@/lib/date';
+import { formatMoney } from '@/lib/region';
 import { conditionLabel, isAbnormalCondition } from '@/lib/excretion';
 import { categoryMeta, categoryLabel } from '@/lib/preventiveCare';
 import type { ExcretionKind, PreventiveCategory } from '@/lib/supabase';
@@ -171,7 +172,7 @@ export function buildTimeline(t: TFn, input: {
     const dk = localDateKey(x.spent_at);
     const a = get(dk);
     a.cost += Number(x.amount);
-    a.events.push({ id: `exp-${x.id}`, kind: 'cost', timeMs: startOfDayMs(dk), time: '', text: t('record.money', { value: Number(x.amount).toLocaleString() }) + (x.reason ? ` · ${x.reason}` : ''), href: '/records/expenses' });
+    a.events.push({ id: `exp-${x.id}`, kind: 'cost', timeMs: startOfDayMs(dk), time: '', text: formatMoney(Number(x.amount), 'KRW') + (x.reason ? ` · ${x.reason}` : ''), href: '/records/expenses' });
   }
 
   // TLDay[] 빌드
@@ -194,7 +195,7 @@ export function buildTimeline(t: TFn, input: {
     if (a.respiratory.n > 0) chips.push({ key: 'respiratory', label: t('timeline.chip.respiratory', { amount: a.respiratory.last, unit: a.respiratory.unit }) });
     if (a.weight != null) chips.push({ key: 'weight', label: `${a.weight}kg` });
     if (a.daily > 0) chips.push({ key: 'daily', label: t('timeline.chip.daily', { count: a.daily }) });
-    if (a.cost > 0) chips.push({ key: 'cost', label: t('record.money', { value: a.cost.toLocaleString() }) });
+    if (a.cost > 0) chips.push({ key: 'cost', label: formatMoney(a.cost, 'KRW') });
 
     // 시각 오름차순 → 같은 시각(무시각 00:00)은 중요도순(DETAIL_RANK)
     const events = [...a.events].sort((x, y) => (x.timeMs - y.timeMs) || (DETAIL_RANK[x.kind] - DETAIL_RANK[y.kind]));
