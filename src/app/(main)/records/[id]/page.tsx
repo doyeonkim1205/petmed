@@ -260,7 +260,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-sm font-medium">{record.hospital_name}</span>
             </div>
           )}
-          {record.cost != null && record.cost > 0 && (
+          {record.cost != null && Number(record.cost) > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">{t('record.field.cost')}</span>
               <span className="text-sm font-medium text-blue-600">{formatCost(record.cost, (record.currency as Currency) ?? 'KRW')}</span>

@@ -128,6 +128,7 @@ export interface HealthRecord {
   description?: string;
   hospital_name?: string;
   visit_date: string;
+  // ⚠️ DB는 numeric — Supabase가 문자열로 반환하므로 숫자로 쓸 땐 Number()로 감쌀 것.
   cost?: number;
   // 이 기록 금액(cost)의 통화. 생성 시 지역 기본값을 복사(표시 때 언어/타임존으로 재추론 금지).
   currency?: 'KRW' | 'USD' | null;

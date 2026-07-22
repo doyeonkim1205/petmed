@@ -332,7 +332,7 @@ export default function UserDataDetailPage() {
                       {r.description && <p className="text-gray-700 whitespace-pre-wrap">{r.description}</p>}
                       <div className="grid grid-cols-2 gap-y-1 max-w-md text-[13px]">
                         {r.hospital_name && <Field label="병원" value={r.hospital_name} />}
-                        {r.cost != null && <Field label="비용" value={`${r.cost.toLocaleString()}원`} />}
+                        {r.cost != null && <Field label="비용" value={`${Number(r.cost).toLocaleString()}원`} />}
                         {r.weight != null && <Field label="체중" value={`${r.weight}kg`} />}
                         {r.symptom_time && <Field label="증상 시각" value={r.symptom_time} />}
                         {r.discharge_date && <Field label="퇴원일" value={fmtDate(r.discharge_date)} />}
