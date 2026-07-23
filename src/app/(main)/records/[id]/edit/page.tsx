@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
-import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput } from '@/lib/region';
+import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput, weightUnit, displayWeightToKg, kgToInputStr } from '@/lib/region';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
@@ -70,7 +70,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const t = useTranslations();
   const router = useRouter();
   const { user, profile } = useAuth();
-  const curr = currencyForRegion(useMarketRegion());   // 입력 통화 (KRW=정수 / USD=소수 2자리)
+  const region = useMarketRegion();
+  const curr = currencyForRegion(region);   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const { getRecord, updateRecord } = useHealthRecords();
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
@@ -213,7 +214,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       setHospitalName(record.hospital_name || '');
       setVisitDate(record.visit_date.split('T')[0]);
       setCost(record.cost ? String(record.cost) : '');
-      setWeight(record.weight ? String(record.weight) : '');
+      setWeight(kgToInputStr(record.weight, region));
       setRecordColor(record.color || '#3B82F6');
       setRecordType(record.record_type);
       setDischargeDate(record.discharge_date ? record.discharge_date.split('T')[0] : '');
@@ -276,7 +277,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         description: originalDescription,
         hospitalName: record.hospital_name || '',
         cost: record.cost ? String(record.cost) : '',
-        weight: record.weight ? String(record.weight) : '',
+        weight: kgToInputStr(record.weight, region),
         symptomTime: record.symptom_time || '',
         visitDate: record.visit_date.split('T')[0],
         dischargeDate: record.discharge_date ? record.discharge_date.split('T')[0] : '',
@@ -497,7 +498,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           next_appointment_date: recordType === 'visit' && nextAppointmentDate ? nextAppointmentDate : null,
           next_appointment_color: recordType === 'visit' && nextAppointmentDate ? nextAppointmentColor : null,
           symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : null,
-          weight: weight ? Number(weight) : null,
+          weight: weight ? displayWeightToKg(Number(weight), region) : null,
         } as any);
       }
 
@@ -718,7 +719,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
+              {t('record.field.weight')} ({weightUnit(region)}) <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <input
               type="text"
@@ -825,7 +826,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
             {/* Weight (진료/입퇴원: 설명 아래) */}
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
+                {t('record.field.weight')} ({weightUnit(region)}) <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <input
                 type="text"
@@ -1190,7 +1191,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           maxIntDigits={3}
           maxDecimals={2}
           label={t('record.field.weight')}
-          suffix="kg"
+          suffix={weightUnit(region)}
           onClose={() => setShowWeightPad(false)}
         />
       )}

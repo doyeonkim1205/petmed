@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
-import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput } from '@/lib/region';
+import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput, weightUnit, displayWeightToKg } from '@/lib/region';
 import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -74,7 +74,8 @@ export default function RecordAddPage() {
   const t = useTranslations();
   const router = useRouter();
   const { user, profile } = useAuth();
-  const curr = currencyForRegion(useMarketRegion());   // 입력 통화 (KRW=정수 / USD=소수 2자리)
+  const region = useMarketRegion();
+  const curr = currencyForRegion(region);   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
   // alarm_enabled 는 그냥 DB 에 저장. 실제 푸시 발송 여부는 서버 cron 이
@@ -557,7 +558,7 @@ export default function RecordAddPage() {
           next_appointment_date: recordType === 'visit' && nextAppointmentDate ? nextAppointmentDate : undefined,
           next_appointment_color: recordType === 'visit' && nextAppointmentDate ? nextAppointmentColor : undefined,
           symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
-          weight: weight ? Number(weight) : undefined,
+          weight: weight ? displayWeightToKg(Number(weight), region) : undefined,
         });
       }
 
@@ -800,7 +801,7 @@ export default function RecordAddPage() {
         {recordType === 'symptom' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
+              {t('record.field.weight')} ({weightUnit(region)}) <span className="text-gray-400 font-normal">{t('common.optional')}</span>
             </label>
             <input
               type="text"
@@ -914,7 +915,7 @@ export default function RecordAddPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                {t('record.form.weightKg')} <span className="text-gray-400 font-normal">{t('common.optional')}</span>
+                {t('record.field.weight')} ({weightUnit(region)}) <span className="text-gray-400 font-normal">{t('common.optional')}</span>
               </label>
               <input
                 type="text"
@@ -1221,7 +1222,7 @@ export default function RecordAddPage() {
           maxIntDigits={3}
           maxDecimals={2}
           label={t('record.field.weight')}
-          suffix="kg"
+          suffix={weightUnit(region)}
           onClose={() => setShowWeightPad(false)}
         />
       )}

@@ -20,6 +20,8 @@ import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { OnboardHint } from '@/components/ui/OnboardHint';
 import { NumberPad } from '@/components/ui/NumberPad';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { weightUnit, kgToDisplayWeight, displayWeightToKg, roundWeight, formatWeight } from '@/lib/region';
 
 type StatsTab = 'weight' | 'water' | 'food' | 'fluid' | 'excretion' | 'respiratory';
 const METRIC_TABS: MetricType[] = ['water', 'food', 'fluid'];
@@ -154,6 +156,8 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
 export default function StatsPage() {
   const t = useTranslations();
   const locale = useLocale();
+  const region = useMarketRegion();
+  const wUnit = weightUnit(region); // 체중 표시/입력 단위 (KR=kg, US=lb). 저장은 kg.
   const router = useRouter();
   const { user, profile } = useAuth();
   const planConfig = getPlanConfig(getEffectivePlan(profile?.plan));
@@ -368,14 +372,18 @@ export default function StatsPage() {
   const latestWeight = allWeightData.length > 0 ? allWeightData[allWeightData.length - 1] : null;
   const prevWeight = allWeightData.length > 1 ? allWeightData[allWeightData.length - 2] : null;
   const weightDiff = latestWeight && prevWeight ? +(latestWeight.weight - prevWeight.weight).toFixed(2) : null;
+  // 표시용 증감 — KR 은 kg 그대로(2자리), US 는 lb 로 변환(1자리). 부호/색 판정은 weightDiff(kg) 유지.
+  const weightDiffDisplay = weightDiff === null ? null : (region === 'US' ? roundWeight(kgToDisplayWeight(weightDiff, region)) : weightDiff);
 
   const chartData = useMemo(() => sampleForChart(weightData, period), [weightData, period]);
+  // 차트는 표시 단위(US=lb)로 변환해 전달 → 축·포인트 자동 스케일. KR 은 identity(불변).
+  const chartDataDisplay = useMemo(() => chartData.map(d => ({ ...d, weight: kgToDisplayWeight(d.weight, region) })), [chartData, region]);
   const weightMin = weightData.length > 0 ? Math.min(...weightData.map(d => d.weight)) : 0;
   const weightMax = weightData.length > 0 ? Math.max(...weightData.map(d => d.weight)) : 0;
 
   const handleAddWeight = async () => {
     if (!user || !newWeight || !selectedPetId) return;
-    const w = Math.round(Math.min(Math.max(0.1, Number(newWeight)), 100) * 100) / 100;
+    const w = Math.round(Math.min(Math.max(0.1, displayWeightToKg(Number(newWeight), region)), 100) * 100) / 100;
     const today = todayLocalISO();
     const date = newWeightDate > today ? today : newWeightDate;
     setWeightSaving(true);
@@ -527,14 +535,14 @@ export default function StatsPage() {
                       <p className="text-[11px] text-blue-400 font-medium">
                         {t('stats.petWeight', { name: pets.find(p => p.id === selectedPetId)?.name || t('stats.current') })}
                       </p>
-                      <p className="text-xl font-bold text-gray-800">{latestWeight.weight}kg</p>
+                      <p className="text-xl font-bold text-gray-800">{formatWeight(latestWeight.weight, region)}</p>
                     </div>
                     {weightDiff !== null && weightDiff !== 0 ? (
                       <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                         weightDiff > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
                       }`}>
                         {weightDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                        {weightDiff > 0 ? '+' : ''}{weightDiff}kg
+                        {weightDiff > 0 ? '+' : ''}{weightDiffDisplay}{wUnit}
                       </div>
                     ) : weightDiff === 0 ? (
                       <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
@@ -556,15 +564,15 @@ export default function StatsPage() {
                 {chartData.length >= 2 && (
                   <div className="rounded-xl border border-gray-100 p-4">
                     <h2 className="text-sm font-bold text-gray-700 mb-3">{t('stats.weightChange')}</h2>
-                    <WeightChart data={chartData} />
+                    <WeightChart data={chartDataDisplay} />
                     <div className="flex justify-center gap-6 mt-3">
                       <div className="text-center">
                         <p className="text-[10px] text-gray-400">{t('stats.min')}</p>
-                        <p className="text-sm font-bold text-blue-600">{weightMin}kg</p>
+                        <p className="text-sm font-bold text-blue-600">{formatWeight(weightMin, region)}</p>
                       </div>
                       <div className="text-center">
                         <p className="text-[10px] text-gray-400">{t('stats.max')}</p>
-                        <p className="text-sm font-bold text-red-500">{weightMax}kg</p>
+                        <p className="text-sm font-bold text-red-500">{formatWeight(weightMax, region)}</p>
                       </div>
                     </div>
                   </div>
@@ -576,7 +584,7 @@ export default function StatsPage() {
                     <div className="flex gap-2">
                       <input type="text"
                         inputMode={isTouch ? 'none' : 'decimal'}
-                        placeholder={t('record.form.weightKg')} value={newWeight}
+                        placeholder={`${t('record.field.weight')} (${wUnit})`} value={newWeight}
                         onChange={(e) => {
                           const v = e.target.value;
                           if (v === '' || /^\d{0,3}(\.\d{0,2})?$/.test(v)) setNewWeight(v);
@@ -615,7 +623,7 @@ export default function StatsPage() {
                         maxIntDigits={3}
                         maxDecimals={2}
                         label={t('record.field.weight')}
-                        suffix="kg"
+                        suffix={wUnit}
                         onClose={() => setShowWeightPad(false)}
                       />
                     )}
@@ -660,7 +668,7 @@ export default function StatsPage() {
                             {item.memo && <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1"><StickyNote size={11} className="flex-shrink-0" /><span className="truncate">{item.memo}</span></p>}
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                            <span className="text-sm font-semibold text-gray-700">{item.weight}kg</span>
+                            <span className="text-sm font-semibold text-gray-700">{formatWeight(item.weight, region)}</span>
                             {isSelected && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteWeight(item.id); setSelectedWeightId(null); }}

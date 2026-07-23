@@ -7,6 +7,8 @@ import { PawPrint, MessageSquare, Calendar, Cake, Heart, ChevronRight, Check } f
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthBriefing, type PetBriefing } from '@/hooks/useHealthBriefing';
 import { INACTIVE_RECORD_DAYS } from '@/lib/healthBriefing';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { formatWeight } from '@/lib/region';
 
 // 나이 표시용 — formatAge(lib)는 AI 프롬프트(petContext)에서도 쓰여 한국어 고정이므로,
 // UI 는 locale-aware 로 별도 포맷. {unit, count} 만 뽑아 컴포넌트에서 t('home.age.*') 적용.
@@ -83,10 +85,11 @@ function WelcomeCard() {
 // ────────────────────────────────────────────────
 function FirstRecordCard({ briefings }: { briefings: PetBriefing[] }) {
   const t = useTranslations('home');
+  const region = useMarketRegion();
   const first = briefings[0];
   const ap = ageParts(first.age);
   const ageLabel = ap ? t(`age.${ap.unit}`, { count: ap.count }) : '';
-  const meta = [ageLabel, first.latestWeight ? `${first.latestWeight}kg` : null]
+  const meta = [ageLabel, first.latestWeight ? formatWeight(first.latestWeight, region) : null]
     .filter(Boolean)
     .join(' · ');
   return (
@@ -189,9 +192,10 @@ function BriefingCard({
   indicator: React.ReactNode;
 }) {
   const t = useTranslations('home');
+  const region = useMarketRegion();
   const ap = ageParts(briefing.age);
   const ageLabel = ap ? t(`age.${ap.unit}`, { count: ap.count }) : '';
-  const meta = [ageLabel, briefing.latestWeight ? `${briefing.latestWeight}kg` : null]
+  const meta = [ageLabel, briefing.latestWeight ? formatWeight(briefing.latestWeight, region) : null]
     .filter(Boolean)
     .join(' · ');
 
