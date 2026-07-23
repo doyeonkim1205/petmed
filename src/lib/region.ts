@@ -41,6 +41,12 @@ export const REGION_DEFAULTS = {
   US: { currency: 'USD', measurementSystem: 'us' },
 } as const;
 
+// 남한 대략 bounding box (mainland+제주+울릉/독도). 역지오코딩 없이 "카카오맵 유효 범위" 판정.
+// 지도 provider가 현재 위치 기준(여행자)으로 전환할 때 사용.
+export function isInSouthKorea(lat: number, lng: number): boolean {
+  return lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
+}
+
 export type Currency = 'KRW' | 'USD';
 
 // 지역의 기본 통화. 기록 생성 시 이 값을 기록에 '복사'해 저장한다(표시할 때 재추론 금지).

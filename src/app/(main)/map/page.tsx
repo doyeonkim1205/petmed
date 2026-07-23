@@ -7,6 +7,7 @@ import { Search, Phone, Navigation, Clock, Loader2, LocateFixed, X, RefreshCw, M
 import { TextField } from '@/components/TextField';
 import { getCurrentPosition, isGeolocationAvailable } from '@/lib/platform';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { isInSouthKorea } from '@/lib/region';
 
 declare global {
   interface Window {
@@ -52,6 +53,7 @@ function KakaoMapView() {
   const [error, setError] = useState('');
   const [showResearch, setShowResearch] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  const [abroad, setAbroad] = useState(false); // 현재 위치가 한국 밖 → 구글 링크아웃으로 전환
   // 'unknown' = 미확인 (Permissions API 미지원 or 아직 쿼리 안 함)
   // 'prompt'  = 권한 미결정 → getCurrentPosition 시 네이티브 팝업 뜸
   // 'denied'  = 거부된 상태 → 팝업 강제 불가, OS/앱 설정으로만 복구 가능
@@ -210,6 +212,8 @@ function KakaoMapView() {
         if (isMyLocation) {
           myLatLng.current = { lat, lng };
           showMyLocationMarker(map, lat, lng);
+          // 한국 밖이면 카카오맵은 빈 화면 → 구글 링크아웃으로 전환 (여행 중 한국 유저 등)
+          if (!isInSouthKorea(lat, lng)) setAbroad(true);
         }
 
         window.kakao.maps.event.addListener(map, 'dragend', () => {
@@ -441,6 +445,9 @@ function KakaoMapView() {
     { id: '24h' as Filter, label: t('map.filter24h') },
     { id: 'normal' as Filter, label: t('map.filterNormal') },
   ];
+
+  // 현재 위치가 한국 밖이면 카카오맵 대신 구글 링크아웃 (KakaoMapView가 이미 잡은 위치 기준).
+  if (abroad) return <UsVetLinkOut />;
 
   return (
     <div
