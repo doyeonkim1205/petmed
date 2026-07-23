@@ -19,6 +19,14 @@ function parseDoseCount(frequency: string): number {
   return 1;
 }
 
+// 저장된 빈도(한국어 고정값, DB canonical) → 로케일 라벨 키. meds/page.tsx freqDisplay 와 동일 규칙.
+// (레거시 자유입력 빈도는 매핑에 없으면 원본 그대로 표시)
+const FREQ_LABEL_KEY: Record<string, string> = {
+  '1일 1회': 'onceDaily',
+  '1일 2회': 'twiceDaily',
+  '1일 3회': 'thriceDaily',
+};
+
 export function MedicationCheckList({ petId, date, card }: MedicationCheckListProps) {
   const t = useTranslations();
   const [medications, setMedications] = useState<any[]>([]);
@@ -104,7 +112,7 @@ export function MedicationCheckList({ petId, date, card }: MedicationCheckListPr
       hasTime: !!times,
       // 시각 없는 다회차 → "N회차"(기록장은 편집기와 맞춰 '회차' 유지). 시각 없는 1회차 → 빈도 힌트.
       ordinal: !times && doseCount > 1 ? t('record.form.doseNth', { n: di + 1 }) : null,
-      freqHint: !times && doseCount === 1 ? med.frequency : null,
+      freqHint: !times && doseCount === 1 ? (FREQ_LABEL_KEY[med.frequency] ? t(`record.dose.${FREQ_LABEL_KEY[med.frequency]}`) : med.frequency) : null,
       color: med.color || '#3B82F6',
       petName: med.pets?.name,
       medName: med.name,

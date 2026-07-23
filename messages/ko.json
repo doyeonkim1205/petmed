@@ -232,6 +232,7 @@
       "notFound": "기록을 찾을 수 없습니다.",
       "title": "기록 상세",
       "dailyTitle": "{name}의 일상 기록",
+      "dailyTitleShort": "일상 기록",
       "admitted": "입원 중",
       "aiSummary": "AI 요약",
       "alarm": "알림",

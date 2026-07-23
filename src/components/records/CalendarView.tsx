@@ -334,7 +334,7 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
                       {record.color && (
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: record.color }} />
                       )}
-                      <p className="text-sm font-medium text-gray-900 truncate">{record.title}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{record.record_type === 'daily' ? t('record.detail.dailyTitleShort') : record.title}</p>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-xs font-medium ${color}`}>{label}</span>

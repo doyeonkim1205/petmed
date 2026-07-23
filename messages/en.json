@@ -232,6 +232,7 @@
       "notFound": "Record not found.",
       "title": "Record details",
       "dailyTitle": "{name}'s daily record",
+      "dailyTitleShort": "Daily record",
       "admitted": "Admitted",
       "aiSummary": "AI summary",
       "alarm": "Reminder",
