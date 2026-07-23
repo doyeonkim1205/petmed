@@ -150,7 +150,7 @@ export function RecordCard({ record, onClick, selectMode, selected, onSelect, on
             </span>
           </div>
           <h3 className="font-semibold text-sm text-gray-800 line-clamp-1">
-            {record.title}
+            {record.record_type === 'daily' ? t('record.detail.dailyTitleShort') : record.title}
           </h3>
           {record.description ? (
             <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{record.description}</p>
