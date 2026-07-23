@@ -80,6 +80,46 @@ export function formatAmountInput(raw: string, currency: Currency): string {
   return decPart !== undefined ? `${intFmt}.${decPart}` : intFmt;
 }
 
+// ─── 체중 단위 (지역별 표시/입력) ───────────────────────────────
+// ⚠️ 저장은 항상 kg (pets.weight / weight_logs.weight / health_records.weight = 단일 진실원).
+//    표시·입력만 지역 단위로 변환한다. AI 컨텍스트·물 섭취 계산은 kg 유지(수의학 표준).
+export type WeightUnit = 'kg' | 'lb';
+const LB_PER_KG = 2.2046226218;
+
+export function weightUnit(region: MarketRegion): WeightUnit {
+  return region === 'US' ? 'lb' : 'kg';
+}
+
+/** 저장값(kg) → 표시 단위 숫자. KR=kg 그대로, US=lb 변환. */
+export function kgToDisplayWeight(kg: number, region: MarketRegion): number {
+  return region === 'US' ? kg * LB_PER_KG : kg;
+}
+
+/** 표시 단위 입력값 → 저장(kg). KR=그대로, US=lb→kg. */
+export function displayWeightToKg(value: number, region: MarketRegion): number {
+  return region === 'US' ? value / LB_PER_KG : value;
+}
+
+/** 표시용 반올림 — 소수 1자리 (kg/lb 공통). */
+export function roundWeight(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+/**
+ * 저장값(kg) → "9.9lb" / "4.53kg" 표시 문자열 (기호 없이 단위 접미).
+ * ⚠️ KR 은 원값 그대로(반올림 X — 기존 "${weight}kg" 와 byte 동일), US 만 lb 소수1자리.
+ */
+export function formatWeight(kg: number, region: MarketRegion): string {
+  const v = region === 'US' ? roundWeight(kgToDisplayWeight(kg, region)) : kg;
+  return `${v}${weightUnit(region)}`;
+}
+
+/** 저장값(kg) → 입력 필드용 표시 문자열. KR=원값(반올림 X, 기존 동작 보존), US=lb 소수1자리. null→''. */
+export function kgToInputStr(kg: number | null | undefined, region: MarketRegion): string {
+  if (kg == null) return '';
+  return String(region === 'US' ? roundWeight(kgToDisplayWeight(kg, region)) : kg);
+}
+
 export type Currency = 'KRW' | 'USD';
 
 // 지역의 기본 통화. 기록 생성 시 이 값을 기록에 '복사'해 저장한다(표시할 때 재추론 금지).

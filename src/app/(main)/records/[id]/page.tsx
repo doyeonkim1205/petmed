@@ -3,7 +3,8 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { formatMoney, type Currency } from '@/lib/region';
+import { formatMoney, formatWeight, type Currency } from '@/lib/region';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
 import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +50,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const t = useTranslations();
   const locale = useLocale();
+  const region = useMarketRegion();
   const router = useRouter();
   const { user } = useAuth();
   const { getRecord, deleteRecord } = useHealthRecords();
@@ -245,7 +247,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           {record.weight != null && Number(record.weight) > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">{t('record.field.weight')}</span>
-              <span className="text-sm font-medium">{record.weight}kg</span>
+              <span className="text-sm font-medium">{formatWeight(Number(record.weight), region)}</span>
             </div>
           )}
           {record.symptom_time && (

@@ -1,5 +1,5 @@
 import { localDateKey } from '@/lib/date';
-import { formatMoney, type Currency } from '@/lib/region';
+import { formatMoney, formatWeight, type Currency, type MarketRegion } from '@/lib/region';
 import { conditionLabel, isAbnormalCondition } from '@/lib/excretion';
 import { categoryMeta, categoryLabel } from '@/lib/preventiveCare';
 import type { ExcretionKind, PreventiveCategory } from '@/lib/supabase';
@@ -58,7 +58,7 @@ export function buildTimeline(t: TFn, input: {
   metrics: Array<{ id: string; metric_type: string; value: number; unit: string; input_pct?: number | null; measured_at: string }>;
   weights: Array<{ id: string; weight: number; measured_at: string }>;
   expenses: Array<{ id: string; amount: number; reason: string; spent_at: string; currency?: string | null }>;
-}): TLDay[] {
+}, region: MarketRegion = 'KR'): TLDay[] {
   type Agg = {
     events: TLEvent[];
     med: number;
@@ -165,7 +165,7 @@ export function buildTimeline(t: TFn, input: {
     const dk = localDateKey(w.measured_at);
     const a = get(dk);
     a.weight = Number(w.weight);
-    a.events.push({ id: `wt-${w.id}`, kind: 'weight', timeMs: startOfDayMs(dk), time: '', text: `${Number(w.weight)}kg`, href: '/records/stats?tab=weight' });
+    a.events.push({ id: `wt-${w.id}`, kind: 'weight', timeMs: startOfDayMs(dk), time: '', text: formatWeight(Number(w.weight), region), href: '/records/stats?tab=weight' });
   }
 
   // 7) 의료비
@@ -195,7 +195,7 @@ export function buildTimeline(t: TFn, input: {
     if (a.water.sum > 0) chips.push({ key: 'water', label: t('timeline.chip.water', { amount: Math.round(a.water.sum), unit: a.water.unit }) });
     if (a.fluid.sum > 0) chips.push({ key: 'fluid', label: t('timeline.chip.fluid', { amount: Math.round(a.fluid.sum), unit: a.fluid.unit }) });
     if (a.respiratory.n > 0) chips.push({ key: 'respiratory', label: t('timeline.chip.respiratory', { amount: a.respiratory.last, unit: a.respiratory.unit }) });
-    if (a.weight != null) chips.push({ key: 'weight', label: `${a.weight}kg` });
+    if (a.weight != null) chips.push({ key: 'weight', label: formatWeight(a.weight, region) });
     if (a.daily > 0) chips.push({ key: 'daily', label: t('timeline.chip.daily', { count: a.daily }) });
     if (a.cost > 0) chips.push({ key: 'cost', label: formatMoney(a.cost, a.costCurrency) });
 

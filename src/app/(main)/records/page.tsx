@@ -16,6 +16,7 @@ import { MedicationCheckList } from '@/components/records/MedicationCheckList';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetFormFields } from '@/components/pets/PetFormFields';
 import { PetFormState, EMPTY_PET_FORM, formToPayload, validatePetForm } from '@/lib/petForm';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
 import { addWeightLog, syncPetWeightCache } from '@/lib/petWeight';
 import { readDefaultPetId } from '@/lib/petSort';
 
@@ -50,6 +51,7 @@ let sessionSelectedPetId: string | null | undefined = undefined;
 
 export default function RecordsPage() {
   const t = useTranslations();
+  const region = useMarketRegion(); // 펫 등록 체중 단위 (KR=kg, US=lb). 저장은 kg.
   const [selectedPetId, setSelectedPetId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     // 세션 중 마지막 선택(메모리) 우선, 이번 세션 첫 진입이면 기본펫으로 시작.
@@ -105,7 +107,7 @@ export default function RecordsPage() {
     setPetFormError(null);
     setSavingPet(true);
     try {
-      const payload = formToPayload(newPet);
+      const payload = formToPayload(newPet, region);
       const { data: created } = await supabase.from('pets').insert({
         user_id: user.id,
         ...payload,

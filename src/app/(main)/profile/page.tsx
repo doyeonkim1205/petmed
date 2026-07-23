@@ -121,6 +121,7 @@ function PetModal({
   onClose: () => void;
 }) {
   const t = useTranslations();
+  const region = useMarketRegion(); // 체중 입력/표시 단위 (KR=kg, US=lb). 저장은 kg.
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -185,7 +186,7 @@ function PetModal({
 
   const openEditForm = (pet: Pet) => {
     setEditingPetId(pet.id);
-    setForm(petToForm(pet));
+    setForm(petToForm(pet, region));
     setFormError(null);
     setShowForm(true);
   };
@@ -201,7 +202,7 @@ function PetModal({
       return;
     }
 
-    const payload = formToPayload(form);
+    const payload = formToPayload(form, region);
     savingRef.current = true;
     setSaving(true);
 

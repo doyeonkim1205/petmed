@@ -7,6 +7,8 @@ import { TextField } from '@/components/TextField';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { NumberPad } from '@/components/ui/NumberPad';
 import type { PetFormState } from '@/lib/petForm';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { weightUnit } from '@/lib/region';
 
 /**
  * 반려동물 등록·편집 폼의 입력 필드 그룹 (공통 컴포넌트).
@@ -27,6 +29,7 @@ export function PetFormFields({
   showHint?: boolean;
 }) {
   const t = useTranslations();
+  const wUnit = weightUnit(useMarketRegion()); // 체중 단위 (KR=kg, US=lb) — 표시/입력 접미
   // 터치 기기에선 OS 키보드 대신 내장 숫자 패드 (다른 체중 입력칸과 통일)
   const [isTouch, setIsTouch] = useState(false);
   const [showWeightPad, setShowWeightPad] = useState(false);
@@ -168,7 +171,7 @@ export function PetFormFields({
             className={`w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm ${isTouch ? 'cursor-pointer' : ''}`}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none select-none">
-            kg
+            {wUnit}
           </span>
         </div>
         {showWeightPad && (
@@ -179,7 +182,7 @@ export function PetFormFields({
             maxIntDigits={3}
             maxDecimals={2}
             label={t('petForm.weightLabel')}
-            suffix="kg"
+            suffix={wUnit}
             onClose={() => setShowWeightPad(false)}
           />
         )}

@@ -1,4 +1,5 @@
 import type { Pet } from '@/lib/supabase';
+import { kgToInputStr, displayWeightToKg, type MarketRegion } from '@/lib/region';
 
 /**
  * 반려동물 등록·편집 폼의 공통 상태/변환 로직.
@@ -31,8 +32,8 @@ export const EMPTY_PET_FORM: PetFormState = {
   chronic_conditions: '',
 };
 
-/** DB Pet → 폼 상태 (편집 모드 진입 시). */
-export function petToForm(pet: Pet): PetFormState {
+/** DB Pet → 폼 상태 (편집 모드 진입 시). weight 는 지역 표시 단위로 변환(US=lb). */
+export function petToForm(pet: Pet, region: MarketRegion = 'KR'): PetFormState {
   return {
     name: pet.name,
     type: pet.type,
@@ -40,14 +41,15 @@ export function petToForm(pet: Pet): PetFormState {
     birth_date: pet.birth_date || '',
     sex: pet.sex || '',
     neutered: pet.neutered === true ? 'yes' : pet.neutered === false ? 'no' : '',
-    weight: pet.weight != null ? String(pet.weight) : '',
+    // 저장은 kg. KR 은 원값 그대로(반올림 X — 기존 동작 보존), US 만 lb 로 표시(소수 1자리).
+    weight: kgToInputStr(pet.weight, region),
     chronic_conditions: (pet.chronic_conditions || []).join(', '),
   };
 }
 
-/** 폼 상태 → DB payload (NULL/배열 변환). */
-export function formToPayload(form: PetFormState) {
-  const weightNum = form.weight.trim() ? parseFloat(form.weight.trim()) : null;
+/** 폼 상태 → DB payload (NULL/배열 변환). weight 입력(지역 단위)을 kg 로 역변환해 저장. */
+export function formToPayload(form: PetFormState, region: MarketRegion = 'KR') {
+  const weightNum = form.weight.trim() ? displayWeightToKg(parseFloat(form.weight.trim()), region) : null;
   const conditions = form.chronic_conditions
     .split(',')
     .map(s => s.trim())

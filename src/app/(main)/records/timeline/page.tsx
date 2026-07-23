@@ -18,6 +18,7 @@ import { sortPetsWithDefault, readDefaultPetId } from '@/lib/petSort';
 import { todayLocalISO } from '@/lib/date';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { buildTimeline, type TLDay, type TLKind } from '@/lib/timeline';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
 
 // 이벤트 종류 → lucide 아이콘 (앱 톤 통일). 음수=GlassWater·소변=Droplet, 예방=ShieldCheck·수액=Syringe 로 겹침 정리.
 const TL_ICON: Record<TLKind, LucideIcon> = {
@@ -75,6 +76,7 @@ function fmtDateHeader(dateK: string, todayStr: string, yesterdayStr: string, t:
 export default function TimelinePage() {
   const router = useRouter();
   const t = useTranslations();
+  const region = useMarketRegion(); // 체중 표시 단위 (KR=kg, US=lb)
   const locale = useLocale();
   // buildTimeline(lib)용 느슨한 t 래퍼 — next-intl 의 좁은 키 타입 우회.
   const tl = (key: string, values?: Record<string, string | number>) => t(key as never, values as never);
@@ -156,7 +158,7 @@ export default function TimelinePage() {
         metrics: mets.data || [],
         weights: wts.data || [],
         expenses: exps.data || [],
-      });
+      }, region);
       // 직접 선택 상한(customEnd)은 over-fetch 후 클라에서 자름 (타임스탬프/날짜 컬럼 혼재·'오늘 끝' 이슈 회피).
       if (period === 'custom' && customEnd) built = built.filter((d) => d.date <= customEnd);
       setDays(built);
@@ -165,7 +167,7 @@ export default function TimelinePage() {
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPetId, period, customStart, customEnd]);
+  }, [user, selectedPetId, period, customStart, customEnd, region]);
 
   useEffect(() => { load(); }, [load]);
 
