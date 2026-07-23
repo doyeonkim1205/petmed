@@ -7,6 +7,8 @@ import { ArrowLeft, Stethoscope, AlertCircle, Building2, Plus, X, Bell, BellOff,
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput } from '@/lib/region';
 import { useMedications } from '@/hooks/useMedications';
 import { supabase, Pet, RecordType } from '@/lib/supabase';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
@@ -72,6 +74,7 @@ export default function RecordAddPage() {
   const t = useTranslations();
   const router = useRouter();
   const { user, profile } = useAuth();
+  const curr = currencyForRegion(useMarketRegion());   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const { createRecord } = useHealthRecords();
   const { addMedication } = useMedications();
   // alarm_enabled 는 그냥 DB 에 저장. 실제 푸시 발송 여부는 서버 cron 이
@@ -547,7 +550,7 @@ export default function RecordAddPage() {
           description: description.trim() || undefined,
           hospital_name: hospitalName.trim() || undefined,
           visit_date: visitDate,
-          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
+          cost: cost ? Math.min(Math.max(0, roundToCurrency(Number(cost), curr)), 10000000) : undefined,
           color: recordType === 'symptom' ? '#F97316' : recordType === 'hospitalization' ? '#22C55E' : recordColor,
           discharge_date: recordType === 'hospitalization' && dischargeDate ? dischargeDate : undefined,
           // 다음 예약은 진료만 — 입퇴원에서 유형 전환 등으로 상태가 남아도 저장 안 되게 가드.
@@ -999,8 +1002,8 @@ export default function RecordAddPage() {
                 inputMode={isTouch ? 'none' : 'numeric'}
                 pattern="[0-9]*"
                 placeholder="0"
-                value={cost ? Number(cost).toLocaleString() : ''}
-                onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                value={formatAmountInput(cost, curr)}
+                onChange={(e) => setCost(sanitizeAmountInput(e.target.value, curr, 8))}
                 readOnly={isTouch ? true : !costFocused}
                 onClick={() => { if (isTouch) setShowCostPad(true); }}
                 onFocus={() => setCostFocused(true)}
@@ -1226,11 +1229,12 @@ export default function RecordAddPage() {
         <NumberPad
           value={cost}
           onChange={setCost}
-          decimal={false}
+          decimal={currencyDecimals(curr) > 0}
+          maxDecimals={currencyDecimals(curr)}
           maxIntDigits={8}
-          thousands
+          thousands={currencyDecimals(curr) === 0}
           label={t('record.field.cost')}
-          suffix={t('record.form.wonSuffix')}
+          suffix={currencyDecimals(curr) > 0 ? undefined : t('record.form.wonSuffix')}
           onClose={() => setShowCostPad(false)}
         />
       )}

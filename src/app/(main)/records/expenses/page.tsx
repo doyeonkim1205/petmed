@@ -12,7 +12,7 @@ import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
-import { currencyForRegion, formatMoney, type Currency } from '@/lib/region';
+import { currencyForRegion, formatMoney, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput, type Currency } from '@/lib/region';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
@@ -98,6 +98,7 @@ export default function ExpensesPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const region = useMarketRegion();
+  const curr = currencyForRegion(region);   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const maxMonths = getPlanConfig(getEffectivePlan(profile?.plan)).costStatsMonths;
 
   const defaultPeriod: Period = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
@@ -229,7 +230,7 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     if (!user || !resolvedPetId || !newAmount) return;
-    const amount = Math.min(Math.max(0, Math.round(Number(newAmount) || 0)), 100000000);
+    const amount = Math.min(Math.max(0, roundToCurrency(Number(newAmount) || 0, curr)), 100000000);
     if (!amount) return;
     const today = todayLocalISO();
     const date = newDate > today ? today : newDate;
@@ -391,8 +392,8 @@ export default function ExpensesPage() {
                 <div className="flex gap-2">
                   <input type="text"
                     inputMode={isTouch ? 'none' : 'numeric'}
-                    placeholder={t('expenses.amountPlaceholder')} value={newAmount ? Number(newAmount).toLocaleString() : ''}
-                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 9))}
+                    placeholder={t('expenses.amountPlaceholder')} value={formatAmountInput(newAmount, curr)}
+                    onChange={(e) => setNewAmount(sanitizeAmountInput(e.target.value, curr, 9))}
                     readOnly={isTouch}
                     onClick={() => { if (isTouch) setShowAmountPad(true); }}
                     autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-amount-value"
@@ -408,7 +409,7 @@ export default function ExpensesPage() {
                   </button>
                 </div>
                 {showAmountPad && (
-                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={false} maxIntDigits={9} thousands label={t('expenses.amount')} suffix={t('record.form.wonSuffix')} onClose={() => setShowAmountPad(false)} />
+                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={currencyDecimals(curr) > 0} maxDecimals={currencyDecimals(curr)} maxIntDigits={9} thousands={currencyDecimals(curr) === 0} label={t('expenses.amount')} suffix={currencyDecimals(curr) > 0 ? undefined : t('record.form.wonSuffix')} onClose={() => setShowAmountPad(false)} />
                 )}
               </div>
             ) : (

@@ -47,6 +47,39 @@ export function isInSouthKorea(lat: number, lng: number): boolean {
   return lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
 }
 
+// ─── 통화별 입력 정밀도 (금액 입력용) ───────────────────────────────
+// KRW = 0자리(정수), USD = 2자리(센트). 지출/진료비 입력에서 통화별로 소수 허용.
+export function currencyDecimals(currency: Currency): number {
+  return currency === 'USD' ? 2 : 0;
+}
+
+// 저장 시 통화 소수 자릿수로 반올림 (KRW=정수, USD=센트).
+export function roundToCurrency(amount: number, currency: Currency): number {
+  const f = Math.pow(10, currencyDecimals(currency));
+  return Math.round((amount + Number.EPSILON) * f) / f;
+}
+
+// 입력 onChange 정제 — 정수통화는 숫자만, 소수통화는 점 1개 + 소수 N자리까지.
+export function sanitizeAmountInput(input: string, currency: Currency, maxIntDigits: number): string {
+  const decimals = currencyDecimals(currency);
+  if (decimals === 0) return input.replace(/[^0-9]/g, '').slice(0, maxIntDigits);
+  const s = input.replace(/[^0-9.]/g, '');
+  const dot = s.indexOf('.');
+  if (dot === -1) return s.slice(0, maxIntDigits);
+  const intPart = s.slice(0, dot).slice(0, maxIntDigits);
+  const decPart = s.slice(dot + 1).replace(/\./g, '').slice(0, decimals);
+  return `${intPart}.${decPart}`;
+}
+
+// 입력 표시(value) — 정수부는 천단위 콤마, 소수부/입력 중 점은 그대로 유지.
+export function formatAmountInput(raw: string, currency: Currency): string {
+  if (!raw) return '';
+  if (currencyDecimals(currency) === 0) return Number(raw).toLocaleString();
+  const [intPart, decPart] = raw.split('.');
+  const intFmt = intPart === '' ? '0' : Number(intPart).toLocaleString();
+  return decPart !== undefined ? `${intFmt}.${decPart}` : intFmt;
+}
+
 export type Currency = 'KRW' | 'USD';
 
 // 지역의 기본 통화. 기록 생성 시 이 값을 기록에 '복사'해 저장한다(표시할 때 재추론 금지).
