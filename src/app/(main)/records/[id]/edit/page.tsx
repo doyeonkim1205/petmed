@@ -7,6 +7,8 @@ import { ArrowLeft, Plus, X, Paperclip, Image as ImageIcon, FileText, Download, 
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { currencyForRegion, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput } from '@/lib/region';
 import { useMedications } from '@/hooks/useMedications';
 import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
@@ -68,6 +70,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
   const t = useTranslations();
   const router = useRouter();
   const { user, profile } = useAuth();
+  const curr = currencyForRegion(useMarketRegion());   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const { getRecord, updateRecord } = useHealthRecords();
   const { addMedication, updateMedication: updateMed, deleteMedication, getMedicationsByRecordId } = useMedications();
   const medEndRef = useRef<HTMLDivElement>(null);
@@ -487,7 +490,7 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
           description: description.trim() || undefined,
           hospital_name: hospitalName.trim() || undefined,
           visit_date: visitDate,
-          cost: cost ? Math.min(Math.max(0, Math.round(Number(cost))), 10000000) : undefined,
+          cost: cost ? Math.min(Math.max(0, roundToCurrency(Number(cost), curr)), 10000000) : undefined,
           color: recordColor,
           discharge_date: dischargeDate || null,
           // 다음 예약은 진료만 — 입퇴원 기록엔 저장 안 함(유형 전환/기존 상태 잔존 방지).
@@ -909,8 +912,8 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
                 type="text"
                 inputMode={isTouch ? 'none' : 'numeric'}
                 pattern="[0-9]*"
-                value={cost ? Number(cost).toLocaleString() : ''}
-                onChange={(e) => setCost(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                value={formatAmountInput(cost, curr)}
+                onChange={(e) => setCost(sanitizeAmountInput(e.target.value, curr, 8))}
                 readOnly={isTouch ? true : !costFocused}
                 onClick={() => { if (isTouch) setShowCostPad(true); }}
                 onFocus={() => setCostFocused(true)}
@@ -1195,11 +1198,12 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
         <NumberPad
           value={cost}
           onChange={setCost}
-          decimal={false}
+          decimal={currencyDecimals(curr) > 0}
+          maxDecimals={currencyDecimals(curr)}
           maxIntDigits={8}
-          thousands
+          thousands={currencyDecimals(curr) === 0}
           label={t('record.field.cost')}
-          suffix={t('record.form.wonSuffix')}
+          suffix={currencyDecimals(curr) > 0 ? undefined : t('record.form.wonSuffix')}
           onClose={() => setShowCostPad(false)}
         />
       )}

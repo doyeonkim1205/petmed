@@ -39,6 +39,12 @@ export interface Profile {
   // 선호 언어 (계정 동기화). null = 미설정 → 쿠키/navigator.language 로 추정.
   // 'ko' | 'en' (i18n locales 와 일치). 로그인 시 이 값으로 NEXT_LOCALE 쿠키 seed.
   preferred_language?: 'ko' | 'en' | null;
+  // 서비스 지역 (언어와 별개 축). 통화·단위·지도 provider 등 지역 기본값 결정.
+  // null = 미설정(레거시/신규). RegionSync 가 기기 타임존으로 최초 추정, 설정에서 변경 가능.
+  market_region?: 'KR' | 'US' | null;
+  market_region_source?: 'legacy_default' | 'timezone_inferred' | 'user_selected' | null;
+  // 일일/월 한도 리셋 기준 타임존 (IANA, 예: 'America/New_York'). null = 미설정 → 서버는 'Asia/Seoul'(KST) 폴백.
+  quota_timezone?: string | null;
 }
 
 export type SearchLogKind = 'symptom' | 'symptom_refine' | 'symptom_photo' | 'disease';
@@ -124,7 +130,10 @@ export interface HealthRecord {
   description?: string;
   hospital_name?: string;
   visit_date: string;
+  // ⚠️ DB는 numeric — Supabase가 문자열로 반환하므로 숫자로 쓸 땐 Number()로 감쌀 것.
   cost?: number;
+  // 이 기록 금액(cost)의 통화. 생성 시 지역 기본값을 복사(표시 때 언어/타임존으로 재추론 금지).
+  currency?: 'KRW' | 'USD' | null;
   ai_summary?: string;
   color?: string;
   discharge_date?: string;

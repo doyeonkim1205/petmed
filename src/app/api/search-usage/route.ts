@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { startOfWindowKST } from '@/lib/dailyBoundary';
+import { startOfWindowInTz } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,12 +19,13 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('plan')
+    .select('plan, quota_timezone')
     .eq('id', userId)
     .single();
 
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
+  const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
   // 논문 검색 한도 — plan 의 limitWindow(무료=월/Plus=일). 질병 검색(kind='disease')만 카운트.
   const limit = config.searchPerDay;
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('kind', 'disease')
-    .gte('created_at', startOfWindowKST(config.limitWindow).toISOString());
+    .gte('created_at', startOfWindowInTz(config.limitWindow, quotaTz).toISOString());
 
   const used = count || 0;
   const unlimited = limit === 0;
@@ -59,12 +60,13 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('plan')
+    .select('plan, quota_timezone')
     .eq('id', userId)
     .single();
 
   const plan = getEffectivePlan(profile?.plan);
   const config = getPlanConfig(plan);
+  const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
   // 논문 검색 한도 — plan 의 limitWindow(무료=월/Plus=일).
   const limit = config.searchPerDay;
   const useMonthly = config.limitWindow === 'month';
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('kind', 'disease')
-    .gte('created_at', startOfWindowKST(config.limitWindow).toISOString());
+    .gte('created_at', startOfWindowInTz(config.limitWindow, quotaTz).toISOString());
 
   const unlimited = limit === 0;
   const currentUsed = count || 0;

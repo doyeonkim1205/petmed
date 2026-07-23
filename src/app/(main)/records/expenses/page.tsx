@@ -11,6 +11,8 @@ import {
 import { FilterSheet, PeriodSection } from '@/components/records/FilterSheet';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMarketRegion } from '@/hooks/useMarketRegion';
+import { currencyForRegion, formatMoney, currencyDecimals, roundToCurrency, sanitizeAmountInput, formatAmountInput, type Currency } from '@/lib/region';
 import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { supabase, Pet } from '@/lib/supabase';
@@ -22,7 +24,7 @@ import { NumberPad } from '@/components/ui/NumberPad';
 
 type Period = 'month' | '3month' | 'year' | 'all' | 'custom';
 
-type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string };
+type Expense = { id: string; user_id: string; pet_id: string; category: string; reason: string; amount: number; spent_at: string; created_at?: string; currency?: Currency | null };
 
 // 기록 cost + 직접 입력 지출을 한 형태로 병합한 항목. (category 포함 — 기록 비용은 medical)
 type Item = {
@@ -32,6 +34,7 @@ type Item = {
   date: string;       // YYYY-MM-DD
   createdAt: string;  // ISO 입력 시각 — 같은 날짜 내 정렬(나중 입력이 위) 2차 키
   amount: number;
+  currency: Currency;
   title: string;
   category: string;
   hospital?: string;
@@ -77,15 +80,16 @@ function getEndDate(period: Period, customEnd?: string): Date {
   return new Date();
 }
 
-type TFn = (key: string, values?: Record<string, string | number>) => string;
-
-function formatCost(cost: number, t: TFn): string {
-  return t('record.money', { value: new Intl.NumberFormat('en-US').format(cost) });
-}
-
 function formatMonthLabel(year: number, month: number, locale: string): string {
   if (locale === 'en') return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   return `${year}년 ${month + 1}월`;
+}
+
+// 통화별 합계를 문자열로 — 단일통화면 그 통화 하나, 혼합이면 " · " 로 join.
+function formatTotals(map: Map<Currency, number>, locale: string): string {
+  const entries = [...map.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return formatMoney(0, 'KRW', locale);
+  return entries.map(([c, v]) => formatMoney(v, c, locale)).join(' · ');
 }
 
 export default function ExpensesPage() {
@@ -93,6 +97,8 @@ export default function ExpensesPage() {
   const locale = useLocale();
   const router = useRouter();
   const { user, profile } = useAuth();
+  const region = useMarketRegion();
+  const curr = currencyForRegion(region);   // 입력 통화 (KRW=정수 / USD=소수 2자리)
   const maxMonths = getPlanConfig(getEffectivePlan(profile?.plan)).costStatsMonths;
 
   const defaultPeriod: Period = maxMonths >= 12 ? 'year' : maxMonths >= 3 ? '3month' : 'month';
@@ -159,27 +165,39 @@ export default function ExpensesPage() {
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     for (const r of records) {
-      if (!r.cost || r.cost <= 0) continue;
+      const rCost = Number(r.cost); // health_records.cost 는 numeric → Supabase 가 문자열 반환, 숫자로 변환 후 사용
+      if (!rCost || rCost <= 0) continue;
       const d = new Date(r.visit_date.split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], createdAt: r.created_at || '', amount: r.cost, title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
+      out.push({ key: `r-${r.id}`, source: 'record', id: r.id, date: r.visit_date.split('T')[0], createdAt: r.created_at || '', amount: rCost, currency: (r.currency as Currency) ?? 'KRW', title: r.title, category: 'medical', hospital: r.hospital_name, petName: r.pets?.name });
     }
     for (const e of expenses) {
       const d = new Date(String(e.spent_at).split('T')[0] + 'T00:00:00');
       if (d < startDate || d > endDate) continue;
-      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], createdAt: e.created_at || '', amount: Number(e.amount), title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
+      out.push({ key: `e-${e.id}`, source: 'direct', id: e.id, date: String(e.spent_at).split('T')[0], createdAt: e.created_at || '', amount: Number(e.amount), currency: (e.currency as Currency) ?? 'KRW', title: e.reason || t('expenses.category.' + (e.category || 'medical')), category: e.category || 'medical', petName: pets.find((p) => p.id === e.pet_id)?.name });
     }
     return out;
   }, [records, expenses, startDate, endDate, pets, t]);
 
-  // 카테고리별 합계 (전체 — 도넛/범례용)
-  const categoryTotals = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const it of items) map.set(it.category, (map.get(it.category) || 0) + it.amount);
-    return map;
+  // 통화별 합계 — 단일 통화(현재 일반)면 기존과 동일. 혼합통화(극소수)만 통화별 분리(교차 합산 금지).
+  const totalsByCurrency = useMemo(() => {
+    const m = new Map<Currency, number>();
+    for (const it of items) m.set(it.currency, (m.get(it.currency) || 0) + it.amount);
+    return m;
   }, [items]);
+  const currencies = useMemo(() => [...totalsByCurrency.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c), [totalsByCurrency]);
+  const isMixed = currencies.length > 1;
+  const primaryCurrency: Currency = currencies[0] ?? currencyForRegion(region);
+  const primaryTotal = totalsByCurrency.get(primaryCurrency) || 0;
 
-  const grandTotal = useMemo(() => items.reduce((s, it) => s + it.amount, 0), [items]);
+  // 카테고리별 합계 (도넛/범례용) — 혼합통화면 주 통화 항목만(비율은 단일 통화 기준이어야 의미).
+  const categoryTotals = useMemo(() => {
+    const src = isMixed ? items.filter((it) => it.currency === primaryCurrency) : items;
+    const map = new Map<string, number>();
+    for (const it of src) map.set(it.category, (map.get(it.category) || 0) + it.amount);
+    return map;
+  }, [items, isMixed, primaryCurrency]);
+
 
   // 도넛 세그먼트 (카테고리 순서)
   const segments = useMemo(() => EXP_CATEGORIES.map((c) => ({ value: categoryTotals.get(c.id) || 0, color: c.color })), [categoryTotals]);
@@ -194,13 +212,13 @@ export default function ExpensesPage() {
   const filteredItems = useMemo(() => selectedCategory ? items.filter((it) => it.category === selectedCategory) : items, [items, selectedCategory]);
 
   const monthlyGroups = useMemo(() => {
-    const map = new Map<string, { label: string; total: number; items: Item[] }>();
+    const map = new Map<string, { label: string; totals: Map<Currency, number>; items: Item[] }>();
     for (const it of filteredItems) {
       const d = new Date(it.date + 'T00:00:00');
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth(), locale), total: 0, items: [] });
+      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth(), locale), totals: new Map(), items: [] });
       const g = map.get(key)!;
-      g.total += it.amount;
+      g.totals.set(it.currency, (g.totals.get(it.currency) || 0) + it.amount);
       g.items.push(it);
     }
     // 날짜 내림차순, 같은 날짜면 나중에 입력한(created_at 큰) 항목이 위로.
@@ -212,12 +230,12 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     if (!user || !resolvedPetId || !newAmount) return;
-    const amount = Math.min(Math.max(0, Math.round(Number(newAmount) || 0)), 100000000);
+    const amount = Math.min(Math.max(0, roundToCurrency(Number(newAmount) || 0, curr)), 100000000);
     if (!amount) return;
     const today = todayLocalISO();
     const date = newDate > today ? today : newDate;
     setSaving(true);
-    const { data: exp } = await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date }).select('id').single();
+    const { data: exp } = await supabase.from('expenses').insert({ user_id: user.id, pet_id: resolvedPetId, category: newCategory, reason: newReason.trim() || catMeta(newCategory).label, amount, spent_at: date, currency: currencyForRegion(region) }).select('id').single();
     // 액션만 기록(금액·사유 등 내용 X).
     if (exp) logActivity(user.id, 'expense.create', { resourceType: 'expense', resourceId: exp.id });
     setNewReason(''); setNewAmount(''); setShowAddInput(false); setSaving(false);
@@ -293,14 +311,15 @@ export default function ExpensesPage() {
         ) : (
           <>
             {/* 총액 + 누적 막대 + 접이식 범례 */}
-            {grandTotal > 0 ? (
+            {primaryTotal > 0 ? (
               <div className="rounded-xl border border-gray-100 p-4">
                 <p className="text-[11px] text-gray-400">{t('expenses.totalSpent', { period: t(`expenses.period.${period}`) })}</p>
-                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatCost(grandTotal, t)}</p>
+                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatTotals(totalsByCurrency, locale)}</p>
+                {isMixed && <p className="text-[10px] text-gray-400 -mt-2 mb-2">{t('expenses.mixedNote')}</p>}
                 {/* 카테고리별 누적 막대 */}
                 <div className="flex w-full h-3.5 rounded-full overflow-hidden bg-gray-100">
                   {segments.filter((s) => s.value > 0).map((s, i) => (
-                    <div key={i} style={{ width: `${(s.value / grandTotal) * 100}%`, backgroundColor: s.color }} />
+                    <div key={i} style={{ width: `${(s.value / primaryTotal) * 100}%`, backgroundColor: s.color }} />
                   ))}
                 </div>
                 <button onClick={() => setLegendOpen((v) => !v)}
@@ -311,13 +330,13 @@ export default function ExpensesPage() {
                   <div className="w-full mt-2 space-y-0.5">
                     {legendRows.map((c) => {
                       const sel = selectedCategory === c.id;
-                      const pct = grandTotal > 0 ? Math.round((c.value / grandTotal) * 100) : 0;
+                      const pct = primaryTotal > 0 ? Math.round((c.value / primaryTotal) * 100) : 0;
                       return (
                         <button key={c.id} onClick={() => setSelectedCategory(sel ? null : c.id)}
                           className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${sel ? 'bg-blue-50' : 'active:bg-gray-50'}`}>
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
                           <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{t(`expenses.category.${c.id}`)}</span>
-                          <span className="text-xs font-semibold text-gray-700">{formatCost(c.value, t)}</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatMoney(c.value, primaryCurrency, locale)}</span>
                           <span className="text-[10px] text-gray-400 w-8 text-right">{pct}%</span>
                         </button>
                       );
@@ -373,8 +392,8 @@ export default function ExpensesPage() {
                 <div className="flex gap-2">
                   <input type="text"
                     inputMode={isTouch ? 'none' : 'numeric'}
-                    placeholder={t('expenses.amountPlaceholder')} value={newAmount ? Number(newAmount).toLocaleString() : ''}
-                    onChange={(e) => setNewAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 9))}
+                    placeholder={t('expenses.amountPlaceholder')} value={formatAmountInput(newAmount, curr)}
+                    onChange={(e) => setNewAmount(sanitizeAmountInput(e.target.value, curr, 9))}
                     readOnly={isTouch}
                     onClick={() => { if (isTouch) setShowAmountPad(true); }}
                     autoComplete="off" data-form-type="other" data-1p-ignore="true" data-lpignore="true" name="expense-amount-value"
@@ -390,7 +409,7 @@ export default function ExpensesPage() {
                   </button>
                 </div>
                 {showAmountPad && (
-                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={false} maxIntDigits={9} thousands label={t('expenses.amount')} suffix={t('record.form.wonSuffix')} onClose={() => setShowAmountPad(false)} />
+                  <NumberPad value={newAmount} onChange={setNewAmount} decimal={currencyDecimals(curr) > 0} maxDecimals={currencyDecimals(curr)} maxIntDigits={9} thousands={currencyDecimals(curr) === 0} label={t('expenses.amount')} suffix={currencyDecimals(curr) > 0 ? undefined : t('record.form.wonSuffix')} onClose={() => setShowAmountPad(false)} />
                 )}
               </div>
             ) : (
@@ -406,7 +425,7 @@ export default function ExpensesPage() {
                   <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                       <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
-                      <span className="text-sm font-bold text-blue-600">{formatCost(group.total, t)}</span>
+                      <span className="text-sm font-bold text-blue-600">{formatTotals(group.totals, locale)}</span>
                     </div>
                     <div className="divide-y divide-gray-50">
                       {group.items.map((it) => {
@@ -431,7 +450,7 @@ export default function ExpensesPage() {
                             <button key={it.key} onClick={() => router.push(`/records/${it.id}`)}
                               className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors text-left">
                               <div className="min-w-0 flex-1">{head}</div>
-                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatCost(it.amount, t)}</span>
+                              <span className="text-sm font-semibold text-gray-700 flex-shrink-0 ml-3">{formatMoney(it.amount, it.currency, locale)}</span>
                             </button>
                           );
                         }
@@ -441,7 +460,7 @@ export default function ExpensesPage() {
                             className={`w-full flex items-center justify-between py-3 px-4 transition-colors text-left ${sel ? 'bg-red-50' : 'active:bg-gray-50'}`}>
                             <div className="min-w-0 flex-1">{head}</div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                              <span className="text-sm font-semibold text-gray-700">{formatCost(it.amount, t)}</span>
+                              <span className="text-sm font-semibold text-gray-700">{formatMoney(it.amount, it.currency, locale)}</span>
                               {sel && (
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteExpense(it.id); }}
                                   className="px-2.5 py-1 bg-red-500 text-white text-[11px] rounded-full font-medium">{t('common.delete')}</button>

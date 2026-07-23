@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { sanitizeForLLM } from '@/lib/sanitize';
-import { startOfDayKST, startOfWindowKST } from '@/lib/dailyBoundary';
+import { startOfDayInTz, startOfWindowInTz } from '@/lib/dailyBoundary';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { fetchPetContext, buildPetContextPrompt } from '@/lib/petContext';
 import { lookupVetTerm } from '@/lib/vetTerms';
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // Get user plan
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('plan')
+      .select('plan, quota_timezone')
       .eq('id', userId)
       .single();
     const plan = getEffectivePlan(profile?.plan);
@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
     // 증상분석은 plan 의 limitWindow(무료=월/Plus=일), 재분석은 항상 일일.
     const kind = isRefinement ? 'symptom_refine' : 'symptom';
     const useMonthly = !isRefinement && config.limitWindow === 'month';
-    const since = isRefinement ? startOfDayKST() : startOfWindowKST(config.limitWindow);
+    const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
+    const since = isRefinement ? startOfDayInTz(quotaTz) : startOfWindowInTz(config.limitWindow, quotaTz);
     const limit = isRefinement ? config.symptomRefinePerDay : config.symptomSearchPerDay;
 
     const { count } = await supabaseAdmin

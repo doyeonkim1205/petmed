@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
-import { startOfDayKST } from '@/lib/dailyBoundary';
+import { startOfDayInTz } from '@/lib/dailyBoundary';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('plan')
+    .select('plan, quota_timezone')
     .eq('id', userId)
     .single();
 
@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     used = count || 0;
     limit = config.photoAnalysisLifetimeFree;
   } else {
-    const startOfDay = startOfDayKST();
+    const quotaTz = profile?.quota_timezone || 'Asia/Seoul';
+    const startOfDay = startOfDayInTz(quotaTz);
     const { count } = await supabaseAdmin
       .from('search_logs')
       .select('*', { count: 'exact', head: true })

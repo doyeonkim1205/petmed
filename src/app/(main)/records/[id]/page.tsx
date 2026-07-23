@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { formatMoney, type Currency } from '@/lib/region';
 import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,6 +48,7 @@ const typeConfig = {
 export default function RecordDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { user } = useAuth();
   const { getRecord, deleteRecord } = useHealthRecords();
@@ -148,10 +150,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     });
   };
 
-  const formatCost = (cost: number) => {
-    // 금액은 KRW(토스) 고정 — 숫자만 포맷하고 통화 표기는 locale 메시지(record.money)로.
-    return t('record.money', { value: new Intl.NumberFormat('en-US').format(cost) });
-  };
+  // 금액은 기록에 저장된 통화(record.currency, 없으면 KRW)로 표시.
+  const formatCost = (cost: number, currency: Currency) => formatMoney(Number(cost), currency, locale);
 
   if (loading) {
     return <LoadingScreen inMain />;
@@ -260,10 +260,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-sm font-medium">{record.hospital_name}</span>
             </div>
           )}
-          {record.cost != null && record.cost > 0 && (
+          {record.cost != null && Number(record.cost) > 0 && (
             <div className="flex items-center justify-between py-2 border-t border-gray-50">
               <span className="text-sm text-gray-500">{t('record.field.cost')}</span>
-              <span className="text-sm font-medium text-blue-600">{formatCost(record.cost)}</span>
+              <span className="text-sm font-medium text-blue-600">{formatCost(record.cost, (record.currency as Currency) ?? 'KRW')}</span>
             </div>
           )}
           {record.discharge_date && (
