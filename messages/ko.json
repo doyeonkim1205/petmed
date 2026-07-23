@@ -596,6 +596,7 @@
     "hint": "기록장(진료·입원)에 적은 비용은\n''{category}''로 자동 합산돼요.",
     "totalSpent": "{period} 총 지출",
     "byCategoryShow": "카테고리별 보기",
+    "mixedNote": "카테고리 분류는 주 통화 기준이에요.",
     "byCategoryHide": "카테고리별 접기",
     "empty": "해당 기간에 지출 기록이 없어요",
     "filterActive": "{category}만 보는 중",

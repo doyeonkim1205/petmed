@@ -596,6 +596,7 @@
     "hint": "Costs entered in records (visits/hospitalization) are\nauto-summed into ''{category}''.",
     "totalSpent": "{period} total",
     "byCategoryShow": "Show categories",
+    "mixedNote": "Category breakdown is shown for the primary currency.",
     "byCategoryHide": "Hide categories",
     "empty": "No expenses in this period",
     "filterActive": "Showing {category} only",

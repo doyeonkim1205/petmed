@@ -129,7 +129,7 @@ export default function TimelinePage() {
         supabase.from('excretion_logs').select('id, kind, condition, measured_at').eq('pet_id', pid).gte('measured_at', startISO),
         supabase.from('health_metrics').select('id, metric_type, value, unit, input_pct, measured_at').eq('pet_id', pid).gte('measured_at', startISO),
         supabase.from('weight_logs').select('id, weight, measured_at').eq('pet_id', pid).gte('measured_at', startISO),
-        supabase.from('expenses').select('id, amount, reason, spent_at').eq('pet_id', pid).gte('spent_at', startISO),
+        supabase.from('expenses').select('id, amount, reason, spent_at, currency').eq('pet_id', pid).gte('spent_at', startISO),
       ]);
 
       const medRows = (meds.data || []) as Array<{ id: string; name: string; alarm_times: string[] | null }>;

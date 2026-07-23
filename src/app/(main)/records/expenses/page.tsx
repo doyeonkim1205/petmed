@@ -85,6 +85,13 @@ function formatMonthLabel(year: number, month: number, locale: string): string {
   return `${year}년 ${month + 1}월`;
 }
 
+// 통화별 합계를 문자열로 — 단일통화면 그 통화 하나, 혼합이면 " · " 로 join.
+function formatTotals(map: Map<Currency, number>, locale: string): string {
+  const entries = [...map.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) return formatMoney(0, 'KRW', locale);
+  return entries.map(([c, v]) => formatMoney(v, c, locale)).join(' · ');
+}
+
 export default function ExpensesPage() {
   const t = useTranslations();
   const locale = useLocale();
@@ -171,17 +178,25 @@ export default function ExpensesPage() {
     return out;
   }, [records, expenses, startDate, endDate, pets, t]);
 
-  // 카테고리별 합계 (전체 — 도넛/범례용)
-  const categoryTotals = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const it of items) map.set(it.category, (map.get(it.category) || 0) + it.amount);
-    return map;
+  // 통화별 합계 — 단일 통화(현재 일반)면 기존과 동일. 혼합통화(극소수)만 통화별 분리(교차 합산 금지).
+  const totalsByCurrency = useMemo(() => {
+    const m = new Map<Currency, number>();
+    for (const it of items) m.set(it.currency, (m.get(it.currency) || 0) + it.amount);
+    return m;
   }, [items]);
+  const currencies = useMemo(() => [...totalsByCurrency.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c), [totalsByCurrency]);
+  const isMixed = currencies.length > 1;
+  const primaryCurrency: Currency = currencies[0] ?? currencyForRegion(region);
+  const primaryTotal = totalsByCurrency.get(primaryCurrency) || 0;
 
-  const grandTotal = useMemo(() => items.reduce((s, it) => s + it.amount, 0), [items]);
-  // 표시용 통화 — 항목들의 통화(현재는 단일 통화가 일반적). 없으면 지역 기본값.
-  // ⚠️ 진짜 혼합통화(KR→US 이동) 유저의 통화별 분리 합계는 후속(현재 해당 유저 0명).
-  const displayCurrency: Currency = items[0]?.currency ?? currencyForRegion(region);
+  // 카테고리별 합계 (도넛/범례용) — 혼합통화면 주 통화 항목만(비율은 단일 통화 기준이어야 의미).
+  const categoryTotals = useMemo(() => {
+    const src = isMixed ? items.filter((it) => it.currency === primaryCurrency) : items;
+    const map = new Map<string, number>();
+    for (const it of src) map.set(it.category, (map.get(it.category) || 0) + it.amount);
+    return map;
+  }, [items, isMixed, primaryCurrency]);
+
 
   // 도넛 세그먼트 (카테고리 순서)
   const segments = useMemo(() => EXP_CATEGORIES.map((c) => ({ value: categoryTotals.get(c.id) || 0, color: c.color })), [categoryTotals]);
@@ -196,13 +211,13 @@ export default function ExpensesPage() {
   const filteredItems = useMemo(() => selectedCategory ? items.filter((it) => it.category === selectedCategory) : items, [items, selectedCategory]);
 
   const monthlyGroups = useMemo(() => {
-    const map = new Map<string, { label: string; total: number; items: Item[] }>();
+    const map = new Map<string, { label: string; totals: Map<Currency, number>; items: Item[] }>();
     for (const it of filteredItems) {
       const d = new Date(it.date + 'T00:00:00');
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth(), locale), total: 0, items: [] });
+      if (!map.has(key)) map.set(key, { label: formatMonthLabel(d.getFullYear(), d.getMonth(), locale), totals: new Map(), items: [] });
       const g = map.get(key)!;
-      g.total += it.amount;
+      g.totals.set(it.currency, (g.totals.get(it.currency) || 0) + it.amount);
       g.items.push(it);
     }
     // 날짜 내림차순, 같은 날짜면 나중에 입력한(created_at 큰) 항목이 위로.
@@ -295,14 +310,15 @@ export default function ExpensesPage() {
         ) : (
           <>
             {/* 총액 + 누적 막대 + 접이식 범례 */}
-            {grandTotal > 0 ? (
+            {primaryTotal > 0 ? (
               <div className="rounded-xl border border-gray-100 p-4">
                 <p className="text-[11px] text-gray-400">{t('expenses.totalSpent', { period: t(`expenses.period.${period}`) })}</p>
-                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatMoney(grandTotal, displayCurrency, locale)}</p>
+                <p className="text-xl font-bold text-gray-800 mb-2.5">{formatTotals(totalsByCurrency, locale)}</p>
+                {isMixed && <p className="text-[10px] text-gray-400 -mt-2 mb-2">{t('expenses.mixedNote')}</p>}
                 {/* 카테고리별 누적 막대 */}
                 <div className="flex w-full h-3.5 rounded-full overflow-hidden bg-gray-100">
                   {segments.filter((s) => s.value > 0).map((s, i) => (
-                    <div key={i} style={{ width: `${(s.value / grandTotal) * 100}%`, backgroundColor: s.color }} />
+                    <div key={i} style={{ width: `${(s.value / primaryTotal) * 100}%`, backgroundColor: s.color }} />
                   ))}
                 </div>
                 <button onClick={() => setLegendOpen((v) => !v)}
@@ -313,13 +329,13 @@ export default function ExpensesPage() {
                   <div className="w-full mt-2 space-y-0.5">
                     {legendRows.map((c) => {
                       const sel = selectedCategory === c.id;
-                      const pct = grandTotal > 0 ? Math.round((c.value / grandTotal) * 100) : 0;
+                      const pct = primaryTotal > 0 ? Math.round((c.value / primaryTotal) * 100) : 0;
                       return (
                         <button key={c.id} onClick={() => setSelectedCategory(sel ? null : c.id)}
                           className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${sel ? 'bg-blue-50' : 'active:bg-gray-50'}`}>
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
                           <span className={`text-xs flex-1 text-left ${sel ? 'font-bold text-blue-600' : 'text-gray-600'}`}>{t(`expenses.category.${c.id}`)}</span>
-                          <span className="text-xs font-semibold text-gray-700">{formatMoney(c.value, displayCurrency, locale)}</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatMoney(c.value, primaryCurrency, locale)}</span>
                           <span className="text-[10px] text-gray-400 w-8 text-right">{pct}%</span>
                         </button>
                       );
@@ -408,7 +424,7 @@ export default function ExpensesPage() {
                   <div key={group.label} className="rounded-xl border border-gray-100 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                       <h2 className="text-sm font-bold text-gray-700">{group.label}</h2>
-                      <span className="text-sm font-bold text-blue-600">{formatMoney(group.total, displayCurrency, locale)}</span>
+                      <span className="text-sm font-bold text-blue-600">{formatTotals(group.totals, locale)}</span>
                     </div>
                     <div className="divide-y divide-gray-50">
                       {group.items.map((it) => {
