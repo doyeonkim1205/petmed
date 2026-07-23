@@ -103,6 +103,7 @@ function sampleForChart(data: { date: string; weight: number }[], period: Period
 
 // ─── Weight Chart (SVG line chart) ──────────────────────
 function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
+  const locale = useLocale();
   if (data.length < 2) return null;
   const W = 320, H = 160, PX = 40, PY = 20;
   const weights = data.map(d => d.weight);
@@ -143,7 +144,7 @@ function WeightChart({ data }: { data: { date: string; weight: number }[] }) {
       ))}
       {labelIndices.map((idx) => (
         <text key={idx} x={points[idx].x} y={H - 2} textAnchor="middle" fontSize="9" fill="#9ca3af">
-          {new Date(data[idx].date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+          {new Date(data[idx].date).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR', { month: 'numeric', day: 'numeric' })}
         </text>
       ))}
     </svg>
