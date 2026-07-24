@@ -597,6 +597,10 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
 
       // 저장 성공 → draft + 세션 마커 정리, dirty 해제 (popstate guard 가 가로채지 않도록)
       clearDraftAndSession();
+      // 비교 기준(origin)을 방금 저장한 폼값으로 갱신 → hasFormDiverged=false.
+      //   ← 안 하면 저장 후에도 origin 이 옛값이라 divergence 로 dirty 가 되살아나
+      //     드래프트가 재생성되고, 재진입 시 "불러오기/새로시작" 모달이 오탐으로 뜸.
+      setRecordOrigin(formState);
       // 홈 브리핑 캐시 무효화 — 수정된 record 가 홈 메트릭에 즉시 반영.
       if (user?.id) {
         const { invalidateHealthBriefing } = await import('@/lib/swrCache');
