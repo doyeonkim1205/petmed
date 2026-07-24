@@ -327,6 +327,11 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       guardPushedRef.current = true;
     }
     const handler = () => {
+      // 가드가 해제된 상태(저장/이탈 시 guardPushedRef=false 세팅 후 history.go 로 이동)면 재-push 금지.
+      //   ← 이게 없으면 go(-2) 가 만든 popstate 를 이 핸들러가 받아 (이미 상세 URL 인 상태에서)
+      //     history 를 다시 쌓아 "상세와 같은 유령 항목" 이 생김 → 상세에서 뒤로가기를 두 번
+      //     눌러야 목록으로 나가지는 버그. guardPushedRef 는 ref 라 stale closure 안전.
+      if (!guardPushedRef.current) return;
       // sync 즉시 push — 빠른 연속 back 으로 /edit 페이지가 history 에서 빠지는 race 차단
       window.history.pushState({ editGuard: true }, '');
       if (isDirty && !saving && window.location.pathname.includes('/edit')) {
