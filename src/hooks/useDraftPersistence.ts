@@ -152,7 +152,12 @@ export function useDraftPersistence(
   // add 는 recordOrigin 없어서 effect 자체가 no-op.
   useEffect(() => {
     if (!ready || variant !== 'edit') return;
-    if (!isDirtyRef.current && hasFormDiverged()) {
+    // savedRef=true(저장/명시적 나가기 직후)면 divergence 재검출로 dirty 를 되살리지 않는다.
+    //   ← 저장 후 origin 이 옛값이면 hasFormDiverged 가 계속 true → dirty 부활 → savedRef 리셋 →
+    //     즉시-저장 effect 가 draft 를 재생성 → 재진입 시 "불러오기" 모달 오탐. 이 가드로 차단.
+    //     사용자가 폼을 다시 만지면 setIsDirty(true) 래퍼가 savedRef 를 false 로 리셋해
+    //     onChange race 안전망은 그대로 복구됨(정상 미저장 복원 모달엔 영향 없음).
+    if (!isDirtyRef.current && !savedRef.current && hasFormDiverged()) {
       setIsDirty(true);  // wrapper 가 savedRef.current = false 자동 reset
     }
   }, [ready, variant, formState, hasFormDiverged, setIsDirty]);
