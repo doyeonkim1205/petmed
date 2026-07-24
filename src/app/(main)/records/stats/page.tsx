@@ -412,7 +412,7 @@ export default function StatsPage() {
   return (
     <div className="bg-white min-h-full pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white relative">
+      <div className="sticky top-0 z-30 bg-white relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
             <ArrowLeft className="w-5 h-5" />

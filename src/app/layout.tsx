@@ -83,6 +83,10 @@ export default async function RootLayout({
         ` }} />
       </head>
       <body className={`${geist.variable} antialiased bg-gray-50`}>
+        {/* 상태바(안전영역) 파란 오버레이 — Android 16(API36) 엣지투엣지 강제로 네이티브
+            statusBarColor 가 무시됨 → 웹에서 상태바 자리를 파란색으로 칠한다.
+            env(safe-area-inset-top)=0 인 일반 웹/비노치 기기에선 높이 0 → 안 보임(무영향). */}
+        <div aria-hidden style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 'env(safe-area-inset-top)', backgroundColor: '#2563EB', zIndex: 2147483646, pointerEvents: 'none' }} />
         <NextIntlClientProvider>
           <NetworkStatusBanner />
           <Providers>

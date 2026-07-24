@@ -173,7 +173,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="relative flex items-center justify-center px-4 h-[60px] bg-white sticky top-0 z-10">
+      <header className="relative flex items-center justify-center px-4 h-[60px] bg-white sticky top-0 z-10" style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.75rem + env(safe-area-inset-top))' }}>
         <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>

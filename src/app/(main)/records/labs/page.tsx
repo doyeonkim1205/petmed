@@ -94,7 +94,7 @@ export default function LabsPage() {
 
   return (
     <div className="bg-white min-h-full pb-24">
-      <div className="sticky top-0 z-30 bg-white">
+      <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}><ArrowLeft className="w-5 h-5" /></button>
           <h1 className="text-sm font-semibold text-gray-700">{t('lab.title')}</h1>

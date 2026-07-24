@@ -347,7 +347,7 @@ export default function MedsPage() {
   return (
     <div className="bg-white min-h-full pb-24 relative">
       {/* 헤더 — 건강 통계와 동일: 중앙 정렬 타이틀 + 좌측 뒤로가기 + 펫 칩 */}
-      <div className="sticky top-0 z-30 bg-white relative">
+      <div className="sticky top-0 z-30 bg-white relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
             <ArrowLeft className="w-5 h-5" />

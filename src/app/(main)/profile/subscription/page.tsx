@@ -476,7 +476,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="max-w-lg mx-auto pb-24">
-      <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10">
+      <header className="relative flex items-center justify-center px-4 h-[60px] sticky top-0 bg-white z-10" style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.75rem + env(safe-area-inset-top))' }}>
         <button onClick={() => router.push('/profile')} className="absolute left-2 p-2 text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
