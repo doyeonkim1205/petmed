@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { formatMoney, formatWeight, type Currency } from '@/lib/region';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
-import { ArrowLeft, Edit2, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, Stethoscope, AlertCircle, FileEdit, Building2, Pill, Paperclip, Download, Dog, Cat, Calendar, FileText, PawPrint, X } from 'lucide-react';
 import * as Sentry from '@sentry/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHealthRecords } from '@/hooks/useHealthRecords';
@@ -197,7 +197,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               )}
               <div className="flex items-center gap-0.5 ml-auto">
                 <button onClick={() => router.push(`/records/${record.id}/edit`)} className="p-1.5 text-gray-700 hover:text-gray-900 transition-colors">
-                  <Edit2 size={16} />
+                  <Pencil size={16} />
                 </button>
                 <button onClick={handleDelete} className="p-1.5 text-red-400 hover:text-red-600 transition-colors">
                   <Trash2 size={16} />
