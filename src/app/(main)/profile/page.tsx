@@ -12,7 +12,7 @@ import { logActivity } from '@/lib/activityLog';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { isNativeApp, registerNativePush, unregisterNativePush, isNativePushRegistered } from '@/lib/platform';
 import {
-  User, Settings, Bell, LogOut, ChevronRight, Edit2,
+  User, Settings, Bell, LogOut, ChevronRight, Pencil,
   X, Plus, Trash2, Dog, Cat, Moon, Sun, Type, Heart, Bookmark, Crown,
   Globe, Info, Clock, Shield, Eye, FileText, UserX, AlertTriangle, Flag,
   CreditCard, MapPin, Building2, HardDrive, Loader2,
@@ -318,7 +318,7 @@ function PetModal({
                     aria-label={t('profile.pet.editAria')}
                     className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
                   >
-                    <Edit2 size={14} />
+                    <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => setDeleteTarget({ id: pet.id, name: pet.name })}
@@ -1324,7 +1324,7 @@ export default function ProfilePage() {
               onClick={() => setShowNicknameModal(true)}
               className="p-1 text-gray-300 hover:text-blue-500 transition-colors"
             >
-              <Edit2 size={14} />
+              <Pencil size={14} />
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
