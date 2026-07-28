@@ -33,59 +33,27 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/maskable-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
       "src": "/icons/maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/home.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "PawDex 홈 화면"
-    },
-    {
-      "src": "/screenshots/search.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "질병 검색 화면"
-    },
-    {
-      "src": "/screenshots/records.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "건강 기록장"
-    }
-  ],
   "shortcuts": [
     {
       "name": "질병 검색",
       "short_name": "검색",
-      "url": "/search",
-      "icons": [{ "src": "/icons/shortcut-search.png", "sizes": "96x96" }]
+      "url": "/search"
     },
     {
       "name": "건강 기록",
       "short_name": "기록",
-      "url": "/records",
-      "icons": [{ "src": "/icons/shortcut-records.png", "sizes": "96x96" }]
+      "url": "/records"
     },
     {
       "name": "동물병원 찾기",
       "short_name": "병원",
-      "url": "/map",
-      "icons": [{ "src": "/icons/shortcut-map.png", "sizes": "96x96" }]
+      "url": "/map"
     }
   ]
 }
