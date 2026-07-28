@@ -87,6 +87,7 @@ export function NetworkStatusBanner() {
       className={`sticky top-0 left-0 right-0 z-[70] flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-white transition-colors ${
         offline ? 'bg-red-500' : 'bg-green-500'
       }`}
+      style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}
     >
       {offline ? (
         <>
