@@ -1312,10 +1312,10 @@
       "footer": "결과지 사진/PDF는 저장용량에 포함돼요\nPawDex는 의학적 진단이 아닌 기록·정리 도구예요"
     },
     "usage": {
-      "badge": "Free 플랜 · {used}/{limit}건 사용"
+      "badge": "Free · {used}/{limit}건 사용"
     },
     "limit": {
-      "badge": "Free 플랜 · {used}/{limit}건 사용",
+      "badge": "Free · {used}/{limit}건 사용",
       "title": "검사 기록을 계속 이어가세요",
       "subtitle": "Plus에서는 새 기록을 제한 없이 추가하고\n검사 수치의 변화를 꾸준히 이어서 볼 수 있어요",
       "cta": "Plus로 무제한 기록하기"

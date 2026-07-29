@@ -1312,10 +1312,10 @@
       "footer": "Lab sheet photos/PDFs count toward your storage\nPawDex is a record-keeping tool, not a medical diagnosis"
     },
     "usage": {
-      "badge": "Free plan · {used}/{limit} used"
+      "badge": "Free · {used}/{limit} used"
     },
     "limit": {
-      "badge": "Free plan · {used}/{limit} used",
+      "badge": "Free · {used}/{limit} used",
       "title": "Keep your lab records going",
       "subtitle": "With Plus, add new records without limits\nand keep tracking your lab values over time.",
       "cta": "Get Plus for unlimited records"
