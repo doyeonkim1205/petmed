@@ -1,22 +1,60 @@
 import { supabase } from './supabase';
 
-export interface Announcement {
-  id: string;
-  title: string;
-  body: string;
-  important: boolean;
-  published_at: string;
+export interface AnnouncementCta {
+  label: string; // locale 반영된 버튼 라벨
+  href: string;  // 내부 경로(예: /records/labs) 또는 외부 URL
 }
 
-/** 활성 공지 — 최신순. 실패 시 throw (호출부가 "성공일 때만 읽음 처리" 하도록). */
-export async function fetchAnnouncements(): Promise<Announcement[]> {
+export interface Announcement {
+  id: string;
+  title: string;   // locale 반영된 값
+  body: string;    // locale 반영된 값
+  important: boolean;
+  published_at: string;
+  cta: AnnouncementCta | null;
+}
+
+// DB 원본 행(로케일 컬럼 포함) — 내부용.
+interface AnnouncementRow {
+  id: string;
+  title: string;
+  title_en: string | null;
+  body: string;
+  body_en: string | null;
+  important: boolean;
+  published_at: string;
+  cta_label: string | null;
+  cta_label_en: string | null;
+  cta_href: string | null;
+}
+
+/**
+ * 활성 공지 — 최신순, locale 반영. 실패 시 throw (호출부가 "성공일 때만 읽음 처리" 하도록).
+ * 영어 유저는 번역(title_en+body_en) 있는 공지만 노출 → 한글 노출 0.
+ *   (KR 전용 공지는 영어 유저 목록·안읽음 카운트 양쪽에서 제외 — fetch 단계에서 걸러 일관성 유지.)
+ */
+export async function fetchAnnouncements(locale: string): Promise<Announcement[]> {
   const { data, error } = await supabase
     .from('announcements')
-    .select('id, title, body, important, published_at')
+    .select('id, title, title_en, body, body_en, important, published_at, cta_label, cta_label_en, cta_href')
     .eq('is_active', true)
     .order('published_at', { ascending: false });
   if (error) throw error;
-  return (data as Announcement[]) || [];
+  const isEn = locale === 'en';
+  const out: Announcement[] = [];
+  for (const r of (data as AnnouncementRow[]) || []) {
+    if (isEn && (!r.title_en || !r.body_en)) continue; // 영어 번역 없으면 영어 유저에겐 숨김
+    const label = isEn ? r.cta_label_en : r.cta_label;
+    out.push({
+      id: r.id,
+      title: isEn ? r.title_en! : r.title,
+      body: isEn ? r.body_en! : r.body,
+      important: r.important,
+      published_at: r.published_at,
+      cta: r.cta_href && label ? { label, href: r.cta_href } : null,
+    });
+  }
+  return out;
 }
 
 const seenKey = (uid: string) => `announcementsSeenAt_${uid}`;

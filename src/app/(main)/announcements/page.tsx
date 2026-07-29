@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Megaphone, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Megaphone, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnnouncements, markAnnouncementsSeen, type Announcement } from '@/lib/announcements';
 
@@ -24,7 +24,7 @@ export default function AnnouncementsPage() {
     let alive = true;
     (async () => {
       try {
-        const data = await fetchAnnouncements();
+        const data = await fetchAnnouncements(locale);
         if (!alive) return;
         setItems(data);
         setLoading(false);
@@ -34,14 +34,14 @@ export default function AnnouncementsPage() {
       }
     })();
     return () => { alive = false; };
-  }, [user]);
+  }, [user, locale]);
 
   // NEW 태그 = 발행 7일 이내 (읽었어도 유지 → 나중에도 최근 글 식별).
   const isRecent = (a: Announcement) =>
     Date.now() - new Date(a.published_at).getTime() < RECENT_DAYS * 86400000;
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-white">
       <div className="sticky top-0 z-30 bg-white">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
@@ -52,18 +52,18 @@ export default function AnnouncementsPage() {
       </div>
 
       {loading ? (
-        <div className="p-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white rounded-xl animate-pulse" />)}</div>
+        <div className="px-4 pt-2 pb-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
       ) : items.length === 0 ? (
         <div className="text-center py-20">
           <Megaphone size={40} className="mx-auto mb-3 text-gray-200" />
           <p className="text-gray-400 text-sm">{t('announcements.empty')}</p>
         </div>
       ) : (
-        <div className="p-4 space-y-2.5">
+        <div className="px-4 pt-2 pb-4 space-y-2.5">
           {items.map((a) => {
             const isExp = expanded.has(a.id);
             return (
-              <div key={a.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+              <div key={a.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                 {/* 제목만 보이고, 탭하면 본문 펼침(아코디언) */}
                 <button onClick={() => toggle(a.id)} className="w-full flex items-center gap-1.5 p-4 text-left">
                   {a.important && (
@@ -78,6 +78,15 @@ export default function AnnouncementsPage() {
                 {isExp && (
                   <div className="px-4 pb-4 -mt-1">
                     <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
+                    {a.cta && (
+                      <button
+                        onClick={() => { const h = a.cta!.href; if (h.startsWith('/')) router.push(h); else window.open(h, '_blank', 'noopener'); }}
+                        className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 active:scale-95 transition-transform"
+                      >
+                        {a.cta.label}
+                        <ArrowRight size={14} />
+                      </button>
+                    )}
                     <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 )}
