@@ -1317,7 +1317,7 @@
     "limit": {
       "badge": "Free plan · {used}/{limit} used",
       "title": "Keep your lab records going",
-      "subtitle": "You can still view and edit your existing records.\nWith Plus, add new records without limits\nand keep tracking your lab values over time.",
+      "subtitle": "With Plus, add new records without limits\nand keep tracking your lab values over time.",
       "cta": "Get Plus for unlimited records"
     },
     "detail": {
