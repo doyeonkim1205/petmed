@@ -1151,7 +1151,8 @@
       "count": "{n}개",
       "recentMonths": "최근 {n}개월",
       "allTime": "전체",
-      "devicesCount": "{n}대"
+      "devicesCount": "{n}대",
+      "labsFree": "{n}건"
     },
     "cancel": "구독 해지",
     "cancelConfirm": "구독을 해지하시겠습니까?",
@@ -1310,6 +1311,15 @@
       "cta": "Plus 보기",
       "footer": "결과지 사진/PDF는 저장용량에 포함돼요\nPawDex는 의학적 진단이 아닌 기록·정리 도구예요"
     },
+    "usage": {
+      "badge": "무료 검사 기록 {used}/{limit}건"
+    },
+    "limit": {
+      "badge": "무료 {used}/{limit}건",
+      "title": "무료 검사 기록을 다 쓰셨어요",
+      "subtitle": "Plus로 검사 기록을 무제한으로 남기고\n추이 그래프로 변화를 계속 추적하세요.",
+      "cta": "Plus로 무제한 기록하기"
+    },
     "detail": {
       "title": "검사 상세",
       "notFound": "검사를 찾을 수 없어요.",
@@ -1375,6 +1385,7 @@
       "errStorageFull": "저장용량이 가득 차 결과지 파일은 첨부되지 않았어요. 저장공간을 정리한 뒤 상세에서 다시 첨부해주세요.",
       "errUploadPartial": "검사는 저장됐어요. 다만 파일 {n}개 업로드에 실패했어요. 상세에서 다시 첨부할 수 있어요.",
       "errSave": "저장에 실패했어요. 다시 시도해주세요.",
+      "errLimit": "무료 검사 기록 한도(계정 전체 3건)에 도달했어요. Plus로 업그레이드하면 계속 기록할 수 있어요.",
       "srcInherited": "지난",
       "srcDefault": "기본",
       "srcManual": "입력한",

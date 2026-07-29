@@ -53,6 +53,27 @@ export interface LabTest {
   lab_test_files?: LabTestFile[];
 }
 
+// 서버 한도 초과 신호 — create_lab_test RPC 가 { ok:false, code:'LAB_LIMIT_REACHED' } 반환 시 throw.
+export class LabLimitReachedError extends Error {
+  readonly code = 'LAB_LIMIT_REACHED';
+  used: number;
+  limit: number;
+  constructor(used: number, limit: number) {
+    super('lab test limit reached');
+    this.name = 'LabLimitReachedError';
+    this.used = used;
+    this.limit = limit;
+  }
+}
+
+// 검사 기록 사용량 — lab_test_usage RPC 반환. limit=null = 무제한(Plus).
+export interface LabUsage {
+  plan: string;
+  used: number;
+  limit: number | null;
+  isUnlimited: boolean;
+}
+
 export function useLabTests() {
   const { user } = useAuth();
 
@@ -88,6 +109,17 @@ export function useLabTests() {
     return data as LabTest;
   }, [user]);
 
+  // 검사 기록 사용량(계정 전체) — 서버 RPC 가 authoritative. 목록 화면 "2/3" 표시·게이팅 판단용.
+  const getLabUsage = useCallback(async (): Promise<LabUsage | null> => {
+    if (!user) return null;
+    const { data, error } = await supabase.rpc('lab_test_usage');
+    if (error) {
+      Sentry.captureException(error, { tags: { feature: 'labs', action: 'usage' } });
+      return null;
+    }
+    return data as LabUsage;
+  }, [user]);
+
   // 저장 규칙: value_raw 가 비어있는 항목은 저장하지 않음(호출부가 필터). value_numeric 은 파싱해서 채움.
   const createLabTest = async (payload: {
     pet_id: string;
@@ -99,25 +131,10 @@ export function useLabTests() {
     values: LabValueInput[];
   }): Promise<string> => {
     if (!user) throw new Error('로그인이 필요합니다');
-    const { data: test, error } = await supabase
-      .from('lab_tests')
-      .insert({
-        user_id: user.id,
-        pet_id: payload.pet_id,
-        record_id: payload.record_id ?? null,
-        test_date: payload.test_date,
-        hospital_name: payload.hospital_name?.trim() || null,
-        categories: payload.categories,
-        memo: payload.memo?.trim() || null,
-      })
-      .select('id')
-      .single();
-    if (error) throw error;
-
-    const rows = payload.values
+    // 값 파싱은 기존과 동일(parseNumeric). 빈 value_raw 는 제외.
+    const values = payload.values
       .filter((v) => v.value_raw.trim() !== '')
       .map((v, i) => ({
-        lab_test_id: test.id,
         analyte_key: v.analyte_key,
         label: v.label,
         value_raw: v.value_raw.trim(),
@@ -128,12 +145,24 @@ export function useLabTests() {
         ref_text: v.ref_text?.trim() || null,
         display_order: v.display_order ?? i,
       }));
-    if (rows.length > 0) {
-      const { error: vErr } = await supabase.from('lab_values').insert(rows);
-      if (vErr) throw vErr;
+    // 서버 RPC 로 원자적 생성 — 계정 전체 3건 한도 강제(advisory lock). lab_tests+lab_values 한 트랜잭션.
+    const { data, error } = await supabase.rpc('create_lab_test', {
+      p_pet_id: payload.pet_id,
+      p_test_date: payload.test_date,
+      p_hospital_name: payload.hospital_name ?? null,
+      p_categories: payload.categories,
+      p_memo: payload.memo ?? null,
+      p_record_id: payload.record_id ?? null,
+      p_values: values,
+    });
+    if (error) throw error;
+    const res = data as { ok: boolean; id?: string; code?: string; used?: number; limit?: number };
+    if (!res.ok) {
+      if (res.code === 'LAB_LIMIT_REACHED') throw new LabLimitReachedError(res.used ?? 0, res.limit ?? 0);
+      throw new Error(res.code || 'lab create failed');
     }
-    logActivity(user.id, 'lab.create', { resourceType: 'lab_test', resourceId: test.id, details: { valueCount: rows.length } });
-    return test.id;
+    logActivity(user.id, 'lab.create', { resourceType: 'lab_test', resourceId: res.id!, details: { valueCount: values.length } });
+    return res.id!;
   };
 
   // 수정: 검사 메타 업데이트 + 수치는 전량 교체(간단·안전). 빈 값은 저장 안 함.
@@ -265,5 +294,5 @@ export function useLabTests() {
     logActivity(user.id, 'lab.file_delete', { resourceType: 'lab_test_file', resourceId: id });
   };
 
-  return { getLabTests, getLabTest, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend, getLastAnalyteKeys, getLabFiles, insertLabFile, deleteLabFile, getFileUrl };
+  return { getLabTests, getLabTest, getLabUsage, createLabTest, updateLabTest, deleteLabTest, getAnalyteTrend, getLastAnalyteKeys, getLabFiles, insertLabFile, deleteLabFile, getFileUrl };
 }

@@ -15,6 +15,10 @@ export interface PlanConfig {
   maxSavedAnalyses: number;
   costStatsMonths: number;
   maxPets: number; // 0 = unlimited
+  // 검사 기록(lab_tests) 계정 전체 보관 한도. 0 = 무제한.
+  // ⚠️ authoritative 는 서버 RPC(lab_test_usage/create_lab_test) — 이 값은 UI 표시/폴백용.
+  //    화면 used/limit 은 서버 반환값을 우선(SQL↔TS drift 방지).
+  maxLabTestsPerAccount: number;
   attachmentsPerRecord: number;
   maxDevices: number;
   maxStorageMB: number; // 유저별 총 저장용량 (MB), 0 = unlimited
@@ -42,6 +46,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     maxSavedAnalyses: 0,
     costStatsMonths: 3,
     maxPets: 5,
+    maxLabTestsPerAccount: 3, // 무료 맛보기 — 계정 전체 3건 보관
     attachmentsPerRecord: 1,
     maxDevices: 1,
     maxStorageMB: 50,
@@ -74,6 +79,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     // 무제한 → 10 (악용 방어). 일반 가구 평균 1-3마리, 5마리 넘는 다묘 가구도 드뭄.
     // 한 사용자가 100마리 등록해서 storage/AI 컨텍스트 우회하는 케이스 차단.
     maxPets: 0, // 무제한
+    maxLabTestsPerAccount: 0, // 무제한
     attachmentsPerRecord: 5,
     maxDevices: 3,
     maxStorageMB: 1000,

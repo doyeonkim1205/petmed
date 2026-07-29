@@ -13,7 +13,7 @@ import { uploadFile } from '@/services/fileUpload';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
-import { useLabTests, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
+import { useLabTests, LabLimitReachedError, LabValueInput, LabTestFile } from '@/hooks/useLabTests';
 import { LAB_TEMPLATES, LAB_ANALYTES, analyteDisplay, templateLabel, type LabTemplateKey } from '@/lib/labCatalog';
 import { ageGroupFor, refDefaultFor, opSymbol } from '@/lib/labRefDefaults';
 
@@ -331,6 +331,13 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
       if (fileWarning) { setSavedPartial(fileWarning); setSaving(false); return; } // 확인 누르면 이동
       finishNavigation();
     } catch (e) {
+      // 서버 한도(계정 전체 3건) — 리스트 게이트를 지나 폼까지 왔으나 제출 시점에 초과(경쟁상태 등).
+      //   서버가 authoritative 라 최종 차단. 일반 저장오류가 아닌 한도 안내로 분기.
+      if (e instanceof LabLimitReachedError) {
+        setError(t('lab.form.errLimit'));
+        setSaving(false);
+        return;
+      }
       Sentry.captureException(e, { tags: { feature: 'labs', action: isEdit ? 'update' : 'create' } });
       setError(t('lab.form.errSave'));
       setSaving(false);
