@@ -52,14 +52,14 @@ export default function AnnouncementsPage() {
       </div>
 
       {loading ? (
-        <div className="p-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+        <div className="px-4 pt-2 pb-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
       ) : items.length === 0 ? (
         <div className="text-center py-20">
           <Megaphone size={40} className="mx-auto mb-3 text-gray-200" />
           <p className="text-gray-400 text-sm">{t('announcements.empty')}</p>
         </div>
       ) : (
-        <div className="p-4 space-y-2.5">
+        <div className="px-4 pt-2 pb-4 space-y-2.5">
           {items.map((a) => {
             const isExp = expanded.has(a.id);
             return (
