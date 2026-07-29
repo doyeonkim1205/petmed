@@ -78,16 +78,16 @@ export default function AnnouncementsPage() {
                 {isExp && (
                   <div className="px-4 pb-4 -mt-1">
                     <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
-                    <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     {a.cta && (
                       <button
                         onClick={() => { const h = a.cta!.href; if (h.startsWith('/')) router.push(h); else window.open(h, '_blank', 'noopener'); }}
-                        className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 bg-blue-50 rounded-full pl-3.5 pr-3 py-2 active:scale-95 transition-transform"
+                        className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 active:scale-95 transition-transform"
                       >
                         {a.cta.label}
                         <ArrowRight size={14} />
                       </button>
                     )}
+                    <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 )}
               </div>
