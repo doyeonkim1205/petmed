@@ -70,6 +70,9 @@ export function NumberPad({
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/30" onClick={onClose}>
       <div
         className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-5 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]"
+        // 하단 안전영역 — Android 16(API36) 엣지투엣지에서 내비바(뒤로/홈/최근)가 웹뷰 위로
+        //   덮어 확인버튼과 겹치던 문제. pb-5(1.25rem) + env(safe-area-inset-bottom). 웹=0 무영향.
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 닫기 X (우상단) */}
