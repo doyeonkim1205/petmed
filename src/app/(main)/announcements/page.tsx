@@ -41,7 +41,7 @@ export default function AnnouncementsPage() {
     Date.now() - new Date(a.published_at).getTime() < RECENT_DAYS * 86400000;
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-white">
       <div className="sticky top-0 z-30 bg-white">
         <header className="relative flex items-center justify-center px-4 h-[60px]">
           <button onClick={() => router.back()} className="absolute left-2 p-2 text-gray-500" aria-label={t('common.back')}>
@@ -52,7 +52,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {loading ? (
-        <div className="p-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white rounded-xl animate-pulse" />)}</div>
+        <div className="p-4 space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
       ) : items.length === 0 ? (
         <div className="text-center py-20">
           <Megaphone size={40} className="mx-auto mb-3 text-gray-200" />
