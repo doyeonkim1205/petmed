@@ -63,7 +63,7 @@ export default function AnnouncementsPage() {
           {items.map((a) => {
             const isExp = expanded.has(a.id);
             return (
-              <div key={a.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+              <div key={a.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                 {/* 제목만 보이고, 탭하면 본문 펼침(아코디언) */}
                 <button onClick={() => toggle(a.id)} className="w-full flex items-center gap-1.5 p-4 text-left">
                   {a.important && (
