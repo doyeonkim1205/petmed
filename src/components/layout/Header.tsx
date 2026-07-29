@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { PawIcon } from '@/components/icons/PawIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnnouncements, getSeenAt, countUnread } from '@/lib/announcements';
 
 export function Header() {
   const t = useTranslations();
+  const locale = useLocale();
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
 
@@ -18,7 +19,7 @@ export function Header() {
     let alive = true;
     (async () => {
       try {
-        const items = await fetchAnnouncements();
+        const items = await fetchAnnouncements(locale);
         if (alive) setUnread(countUnread(items, user.created_at, getSeenAt(user.id)));
       } catch { /* 네트워크 오류 — 뱃지 갱신 생략 */ }
     })();
@@ -26,7 +27,7 @@ export function Header() {
     const onSeen = () => { if (alive) setUnread(0); };
     window.addEventListener('announcementsSeen', onSeen);
     return () => { alive = false; window.removeEventListener('announcementsSeen', onSeen); };
-  }, [user]);
+  }, [user, locale]);
 
   return (
     <header

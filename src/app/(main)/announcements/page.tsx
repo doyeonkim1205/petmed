@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { ArrowLeft, Megaphone, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Megaphone, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnnouncements, markAnnouncementsSeen, type Announcement } from '@/lib/announcements';
 
@@ -24,7 +24,7 @@ export default function AnnouncementsPage() {
     let alive = true;
     (async () => {
       try {
-        const data = await fetchAnnouncements();
+        const data = await fetchAnnouncements(locale);
         if (!alive) return;
         setItems(data);
         setLoading(false);
@@ -34,7 +34,7 @@ export default function AnnouncementsPage() {
       }
     })();
     return () => { alive = false; };
-  }, [user]);
+  }, [user, locale]);
 
   // NEW 태그 = 발행 7일 이내 (읽었어도 유지 → 나중에도 최근 글 식별).
   const isRecent = (a: Announcement) =>
@@ -79,6 +79,15 @@ export default function AnnouncementsPage() {
                   <div className="px-4 pb-4 -mt-1">
                     <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line break-keep">{a.body}</p>
                     <p className="text-[11px] text-gray-300 mt-2">{new Date(a.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    {a.cta && (
+                      <button
+                        onClick={() => { const h = a.cta!.href; if (h.startsWith('/')) router.push(h); else window.open(h, '_blank', 'noopener'); }}
+                        className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 bg-blue-50 rounded-full pl-3.5 pr-3 py-2 active:scale-95 transition-transform"
+                      >
+                        {a.cta.label}
+                        <ArrowRight size={14} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
