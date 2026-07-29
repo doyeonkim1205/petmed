@@ -1151,7 +1151,8 @@
       "count": "{n}",
       "recentMonths": "Last {n} mo",
       "allTime": "All",
-      "devicesCount": "{n}"
+      "devicesCount": "{n}",
+      "labsFree": "{n} tests"
     },
     "cancel": "Cancel subscription",
     "cancelConfirm": "Cancel your subscription?",
@@ -1310,6 +1311,15 @@
       "cta": "See Plus",
       "footer": "Lab sheet photos/PDFs count toward your storage\nPawDex is a record-keeping tool, not a medical diagnosis"
     },
+    "usage": {
+      "badge": "Free · {used}/{limit} used"
+    },
+    "limit": {
+      "badge": "Free · {used}/{limit} used",
+      "title": "Keep your lab records going",
+      "subtitle": "With Plus, add new records without limits\nand keep tracking your lab values over time.",
+      "cta": "Get Plus for unlimited records"
+    },
     "detail": {
       "title": "Lab Test",
       "notFound": "Lab test not found.",
@@ -1375,6 +1385,7 @@
       "errStorageFull": "Storage is full, so the lab files weren't attached. Free up space and attach again from the detail page.",
       "errUploadPartial": "The test was saved, but {n} file(s) failed to upload. You can attach them again from the detail page.",
       "errSave": "Failed to save. Please try again.",
+      "errLimit": "You've reached the free lab record limit (3 per account). Upgrade to Plus to keep recording.",
       "srcInherited": "Last",
       "srcDefault": "Default",
       "srcManual": "Entered",
