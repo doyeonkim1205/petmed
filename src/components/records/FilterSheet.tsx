@@ -28,7 +28,7 @@ export function FilterSheet({
   //   z-[60] 이 전역에 먹히게(Footer z-50 위). 안 그러면 완료 버튼이 하단탭에 가려짐.
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-6 max-h-[82vh] overflow-y-auto" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-sm bg-white rounded-t-2xl p-4 pb-5 max-h-[82vh] overflow-y-auto" style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600" aria-label={closeLabel}><X size={20} /></button>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
         <h3 className="text-base font-bold text-gray-900 text-center mb-4">{title}</h3>
