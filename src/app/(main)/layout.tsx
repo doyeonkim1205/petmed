@@ -10,7 +10,9 @@ import { InAppBrowserHint } from '@/components/InAppBrowserHint';
 import { AndroidInAppBrowserHint } from '@/components/AndroidInAppBrowserHint';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyDevice } from '@/lib/deviceSession';
+import { verifyDevice, sendHeartbeat } from '@/lib/deviceSession';
+import { AppUpdateProvider } from '@/contexts/AppUpdateContext';
+import { OptionalUpdateModal } from '@/components/OptionalUpdateModal';
 
 /**
  * (main) route group 공통 레이아웃.
@@ -62,6 +64,12 @@ export default function MainLayout({
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [loading, user, pathname]);
 
+  // 앱 실행 시 버전/빌드 텔레메트리 갱신(1회, 네이티브만·fire-and-forget). verify(GET)와 분리한 POST.
+  useEffect(() => {
+    if (loading || !user) return;
+    sendHeartbeat();
+  }, [loading, user]);
+
   // 세션 확인 전 or 미인증 상태에선 컨텐츠 노출 막기.
   // - loading 중: OAuth 콜백(/auth/callback)과 '동일한' 풀스크린 LoadingScreen(스피너만).
   //   → 콜백 스피너와 위치·모양이 같아 로그인 시 한 번만 뜬 것처럼 보임(깜박임 제거).
@@ -84,18 +92,21 @@ export default function MainLayout({
     pathname.startsWith('/profile/');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center">
-      <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
-        {!hideGlobalHeader && <Header />}
-        <main className="flex-1" style={{ paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
-          {children}
-        </main>
-        <Footer />
-        <InstallPrompt />
-        <IosInstallPrompt />
-        <InAppBrowserHint />
-        <AndroidInAppBrowserHint />
+    <AppUpdateProvider>
+      <div className="min-h-screen bg-gray-50 flex justify-center">
+        <div className="w-full max-w-md bg-white shadow-sm min-h-screen flex flex-col">
+          {!hideGlobalHeader && <Header />}
+          <main className="flex-1" style={{ paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
+            {children}
+          </main>
+          <Footer />
+          <InstallPrompt />
+          <IosInstallPrompt />
+          <InAppBrowserHint />
+          <AndroidInAppBrowserHint />
+          <OptionalUpdateModal />
+        </div>
       </div>
-    </div>
+    </AppUpdateProvider>
   );
 }

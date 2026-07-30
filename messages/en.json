@@ -42,6 +42,14 @@
     "korean": "한국어",
     "english": "English"
   },
+  "appUpdate": {
+    "soft": {
+      "title": "A new version is ready",
+      "body": "We've improved PawDex to be more stable.\nUpdate to the latest version and see what's new."
+    },
+    "later": "Later",
+    "update": "Update"
+  },
   "onboarding": {
     "slide1": {
       "title": "PawDex began with\nEve's treatment journey",
