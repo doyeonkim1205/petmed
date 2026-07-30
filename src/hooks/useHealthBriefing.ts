@@ -60,7 +60,7 @@ function todayLocalISO(): string {
 async function fetchBriefings(userId: string): Promise<BriefingPayload> {
   const today = todayLocalISO();
   // records 의 weight 도 같이 가져오기 위해 select 컬럼 확장. weight_logs 는 별도 쿼리.
-  const [petsRes, recordsRes, apptsRes, weightLogsRes, labTestsRes, preventivesRes, medChecksRes] = await Promise.all([
+  const [petsRes, recordsRes, apptsRes, weightLogsRes, labTestsRes, preventivesRes, medChecksRes, metricsRes] = await Promise.all([
     supabase
       .from('pets')
       .select('*')
@@ -97,6 +97,11 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
       .select('check_date, medications!inner(pet_id)')
       .eq('user_id', userId)
       .eq('checked', true),
+    // 건강통계 나머지 지표 — 음수량·식사·수액·배변·호흡수(metric_type). weight 는 위 weight_logs.
+    supabase
+      .from('health_metrics')
+      .select('pet_id, measured_at')
+      .eq('user_id', userId),
   ]);
 
   const pets = (petsRes.data || []) as Pet[];
@@ -106,6 +111,7 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
   const labTests = labTestsRes.data || [];
   const preventives = preventivesRes.data || [];
   const medChecks = medChecksRes.data || [];
+  const metrics = metricsRes.data || [];
 
   // 펫별 마지막 기록 일자 — 건강기록·체중·검사·예방·복약(체크됨) 통틀어 "오늘까지"의 최신 날짜.
   //   지출은 건강 추적이 아니라 제외. 미래 날짜는 "오늘까지의 마지막 기록"에서 제외(음수 일수 방지).
@@ -119,6 +125,7 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
   };
   for (const r of records) considerActivity(r.pet_id, r.visit_date as string);
   for (const w of weightLogs) considerActivity(w.pet_id, w.measured_at as string);
+  for (const m of metrics) considerActivity((m as { pet_id: string }).pet_id, (m as { measured_at: string }).measured_at);
   for (const l of labTests) considerActivity((l as { pet_id: string }).pet_id, (l as { test_date: string }).test_date);
   for (const p of preventives) considerActivity((p as { pet_id: string }).pet_id, (p as { last_done_date: string | null }).last_done_date);
   for (const c of medChecks) {
