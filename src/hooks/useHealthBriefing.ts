@@ -60,7 +60,7 @@ function todayLocalISO(): string {
 async function fetchBriefings(userId: string): Promise<BriefingPayload> {
   const today = todayLocalISO();
   // records 의 weight 도 같이 가져오기 위해 select 컬럼 확장. weight_logs 는 별도 쿼리.
-  const [petsRes, recordsRes, apptsRes, weightLogsRes] = await Promise.all([
+  const [petsRes, recordsRes, apptsRes, weightLogsRes, labTestsRes, preventivesRes, medChecksRes] = await Promise.all([
     supabase
       .from('pets')
       .select('*')
@@ -81,19 +81,50 @@ async function fetchBriefings(userId: string): Promise<BriefingPayload> {
       .from('weight_logs')
       .select('pet_id, weight, measured_at, created_at')
       .eq('user_id', userId),
+    // "마지막 기록"에 함께 셀 나머지 건강 활동 — 검사·예방·복약(체크됨). 체중은 위 weightLogs 재사용, 지출은 제외.
+    supabase
+      .from('lab_tests')
+      .select('pet_id, test_date')
+      .eq('user_id', userId),
+    supabase
+      .from('preventive_cares')
+      .select('pet_id, last_done_date')
+      .eq('user_id', userId)
+      .not('last_done_date', 'is', null),
+    // medication_checks 는 pet_id 가 없어 medications 로 조인(FK). checked=true 인 복약만 "기록"으로.
+    supabase
+      .from('medication_checks')
+      .select('check_date, medications!inner(pet_id)')
+      .eq('user_id', userId)
+      .eq('checked', true),
   ]);
 
   const pets = (petsRes.data || []) as Pet[];
   const records = recordsRes.data || [];
   const appts = apptsRes.data || [];
   const weightLogs = weightLogsRes.data || [];
+  const labTests = labTestsRes.data || [];
+  const preventives = preventivesRes.data || [];
+  const medChecks = medChecksRes.data || [];
 
-  // 펫별 마지막 기록 일자
+  // 펫별 마지막 기록 일자 — 건강기록·체중·검사·예방·복약(체크됨) 통틀어 "오늘까지"의 최신 날짜.
+  //   지출은 건강 추적이 아니라 제외. 미래 날짜는 "오늘까지의 마지막 기록"에서 제외(음수 일수 방지).
   const lastByPet = new Map<string, string>();
-  for (const r of records) {
-    const cur = lastByPet.get(r.pet_id);
-    const dateOnly = (r.visit_date as string).split('T')[0];
-    if (!cur || dateOnly > cur) lastByPet.set(r.pet_id, dateOnly);
+  const considerActivity = (petId: string | null | undefined, rawDate: string | null | undefined) => {
+    if (!petId || !rawDate) return;
+    const d = rawDate.split('T')[0];
+    if (d > today) return;
+    const cur = lastByPet.get(petId);
+    if (!cur || d > cur) lastByPet.set(petId, d);
+  };
+  for (const r of records) considerActivity(r.pet_id, r.visit_date as string);
+  for (const w of weightLogs) considerActivity(w.pet_id, w.measured_at as string);
+  for (const l of labTests) considerActivity((l as { pet_id: string }).pet_id, (l as { test_date: string }).test_date);
+  for (const p of preventives) considerActivity((p as { pet_id: string }).pet_id, (p as { last_done_date: string | null }).last_done_date);
+  for (const c of medChecks) {
+    const med = (c as { medications: { pet_id: string } | { pet_id: string }[] | null }).medications;
+    const petId = Array.isArray(med) ? med[0]?.pet_id : med?.pet_id;
+    considerActivity(petId, (c as { check_date: string }).check_date);
   }
 
   // 펫별 다음 예약 (가장 가까운 future)
