@@ -843,7 +843,7 @@ export default function SubscriptionPage() {
 
       {/* ── Coming Soon Modal (단건/연간 결제 심사 중) ── */}
       {showComingSoon && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowComingSoon(false)}>
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={() => setShowComingSoon(false)}>
           <div className="bg-white rounded-2xl max-w-xs w-full p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
@@ -878,7 +878,7 @@ export default function SubscriptionPage() {
       {/* 실수 결제 방지 + 토스 심사 경로 확보. "이어서 진행" 누르면 실제 billing-auth 이동. */}
       {trialConfirmTarget && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4"
           onClick={() => setTrialConfirmTarget(null)}
         >
           <div
