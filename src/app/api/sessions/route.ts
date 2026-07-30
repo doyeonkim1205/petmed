@@ -16,12 +16,17 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
-  const { device_id, platform } = await request.json();
+  const { device_id, platform, app_version, app_build } = await request.json();
   if (!device_id) {
     return NextResponse.json({ error: 'device_id is required' }, { status: 400 });
   }
   // 어드민 유입 분석용 플랫폼 라벨. 신뢰 가능한 값만 통과(클라가 보낸 임의 문자열 차단).
   const platformLabel = ['ios', 'android', 'web'].includes(platform) ? platform : null;
+  // 네이티브 앱 버전/빌드(통계용, 버전 분포). 문자열·길이 캡만(신뢰 경계). 판정엔 안 씀.
+  const cleanVer = (v: unknown): string | null =>
+    typeof v === 'string' && v.trim().length > 0 && v.length <= 32 ? v.trim() : null;
+  const appVersion = cleanVer(app_version);
+  const appBuild = cleanVer(app_build);
 
   const { data: profile } = await supabaseAdmin
     .from('profiles')
@@ -40,8 +45,10 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         device_id,
         last_active: new Date().toISOString(),
-        // platform 은 알 때만 갱신 — null 로 덮어 기존 라벨을 지우지 않는다.
+        // platform / app_version / app_build 은 알 때만 갱신 — null 로 덮어 기존 값 지우지 않는다.
         ...(platformLabel ? { platform: platformLabel } : {}),
+        ...(appVersion ? { app_version: appVersion } : {}),
+        ...(appBuild ? { app_build: appBuild } : {}),
       },
       { onConflict: 'user_id,device_id' },
     );

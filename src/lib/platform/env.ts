@@ -49,3 +49,21 @@ export function isInstalledApp(): boolean {
     isNativeApp()
   );
 }
+
+/**
+ * 설치된 네이티브 앱의 버전/빌드 — 세션 하트비트 통계용(active_sessions.app_version/app_build).
+ * 웹/비네이티브 또는 실패 시 null. `@capacitor/app` 은 동적 import (env.ts 규칙: 웹 번들에
+ * Capacitor static import 금지 — 웹 유저 부담 0, 네이티브에서만 로드).
+ *   version = Android versionName / iOS CFBundleShortVersionString
+ *   build   = Android versionCode  / iOS CFBundleVersion
+ */
+export async function getAppInfo(): Promise<{ version: string; build: string } | null> {
+  if (!isNativeApp()) return null;
+  try {
+    const { App } = await import('@capacitor/app');
+    const info = await App.getInfo();
+    return { version: info.version, build: info.build };
+  } catch {
+    return null;
+  }
+}

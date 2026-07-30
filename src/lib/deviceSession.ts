@@ -1,6 +1,13 @@
 import { getDeviceId } from './deviceId';
-import { getPlatform } from './platform/env';
+import { getPlatform, getAppInfo } from './platform/env';
 import { beginClaim, endClaim, isInClaimWindow } from './deviceClaimState';
+
+// 네이티브 앱 버전/빌드 — 세션 중 안 변하므로 1회만 resolve 후 캐시(통계용, claim 에 실림).
+let cachedAppInfo: { version: string; build: string } | null | undefined;
+async function appInfoOnce(): Promise<{ version: string; build: string } | null> {
+  if (cachedAppInfo === undefined) cachedAppInfo = await getAppInfo();
+  return cachedAppInfo;
+}
 
 /**
  * 기기 세션(active_sessions) 관리 — claim / verify 분리.
@@ -60,11 +67,16 @@ export async function syncDeviceSession(user: { id: string } | null | undefined)
 
 export async function claimDevice(): Promise<void> {
   try {
-    const { authFetch } = await import('./authFetch');
+    const [{ authFetch }, appInfo] = await Promise.all([import('./authFetch'), appInfoOnce()]);
     await authFetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform() }),
+      body: JSON.stringify({
+        device_id: getDeviceId(),
+        platform: getPlatform(),
+        // 네이티브일 때만 실림(웹은 null → 서버가 무시). 통계 전용, 게이트 판정과 무관.
+        ...(appInfo ? { app_version: appInfo.version, app_build: appInfo.build } : {}),
+      }),
     });
   } catch {
     // 네트워크 오류 — 다음 호출에서 자연 복구. 로그아웃하지 않음.
