@@ -44,11 +44,11 @@
   },
   "appUpdate": {
     "soft": {
-      "title": "A new version is ready",
-      "body": "We've improved PawDex to be more stable.\nUpdate to the latest version and see what's new."
+      "title": "A new update is ready",
+      "body": "We've improved PawDex to make health tracking\nmore stable and convenient.\nUpdate now to get the latest version."
     },
     "later": "Later",
-    "update": "Update"
+    "update": "Update now"
   },
   "onboarding": {
     "slide1": {
