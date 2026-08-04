@@ -1,5 +1,5 @@
 import { getDeviceId } from './deviceId';
-import { getPlatform, getAppInfo } from './platform/env';
+import { getPlatform, getAppInfo, isNativeApp } from './platform/env';
 import { beginClaim, endClaim, isInClaimWindow } from './deviceClaimState';
 
 // 네이티브 앱 버전/빌드 — 세션 중 안 변하므로 1회만 resolve 후 캐시(통계용, claim 에 실림).
@@ -63,6 +63,26 @@ export async function syncDeviceSession(user: { id: string } | null | undefined)
   }
   if (isInClaimWindow()) return;
   await verifyDevice();
+}
+
+/**
+ * 앱 실행 시 버전/빌드 텔레메트리 갱신(버전 분포 통계). verify(GET)와 분리한 별도 POST.
+ *   claim 과 달리 eviction 없음(서버 update-only). 네이티브만. fire-and-forget(실패 무시).
+ *   → 스토어에서 앱만 업데이트하고 로그인 유지해도 다음 실행에 새 version/build 반영.
+ */
+export async function sendHeartbeat(): Promise<void> {
+  if (!isNativeApp()) return;
+  try {
+    const [{ authFetch }, appInfo] = await Promise.all([import('./authFetch'), appInfoOnce()]);
+    if (!appInfo) return;
+    await authFetch('/api/sessions/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: getDeviceId(), platform: getPlatform(), app_version: appInfo.version, app_build: appInfo.build }),
+    });
+  } catch {
+    // 텔레메트리 — 실패해도 앱/세션에 영향 없음.
+  }
 }
 
 export async function claimDevice(): Promise<void> {

@@ -42,6 +42,14 @@
     "korean": "한국어",
     "english": "English"
   },
+  "appUpdate": {
+    "soft": {
+      "title": "새 업데이트가 도착했어요",
+      "body": "더 안정적이고 편리하게 기록할 수 있도록\nPawDex를 개선했어요.\n최신 버전으로 업데이트해 주세요."
+    },
+    "later": "나중에",
+    "update": "지금 업데이트"
+  },
   "onboarding": {
     "slide1": {
       "title": "PawDex는 이브의 치료 경험에서\n시작됐어요",
