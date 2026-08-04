@@ -112,3 +112,23 @@ export function isValidUpdateConfig(
   }
   return true;
 }
+
+const DAY_MS = 86_400_000;
+
+/**
+ * 소프트 업데이트 "나중에" 억제 만료 시각(ms epoch) — 누른 시각 + reminderDays 일.
+ * 이후 재실행 때 now < until 이면 억제, now >= until 이면 재표시.
+ */
+export function softDismissUntil(dismissedAtMs: number, reminderDays: number): number {
+  return dismissedAtMs + Math.max(1, reminderDays) * DAY_MS;
+}
+
+/**
+ * localStorage 에 저장된 만료값 기준으로 현재 억제 중인지.
+ *   값 없음/비정상 → false(억제 안 함=표시). 만료 시각 도달(now >= until) → false(재표시).
+ */
+export function isSoftDismissActive(storedUntilRaw: string | null | undefined, nowMs: number): boolean {
+  if (storedUntilRaw == null) return false;
+  const until = Number(storedUntilRaw);
+  return Number.isFinite(until) && nowMs < until;
+}

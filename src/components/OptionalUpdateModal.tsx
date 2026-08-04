@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Sparkles, X } from 'lucide-react';
 import { useAppUpdate } from '@/contexts/AppUpdateContext';
+import { softDismissUntil, isSoftDismissActive } from '@/lib/appVersionCompare';
 
 // 선택(soft) 업데이트 안내 — 홈 진입 후 1.5s 뒤 노출. 닫기 가능. 필수(force)는 v1 미구현.
 //   dismiss 키 = platform + latestBuild → 새 빌드 나오면 다시 뜸. reminderDays 지나면 같은 빌드도 재노출.
@@ -25,11 +26,8 @@ export function OptionalUpdateModal() {
     // 홈에서만, soft 이고, 값이 있고, 최근 "나중에" 억제기간이 아닐 때만 1.5s 뒤 노출.
     if (decision !== 'soft' || pathname !== '/' || !latestBuild || !storeUrl) return;
     try {
-      const raw = localStorage.getItem(dismissKey(platform, latestBuild));
-      if (raw) {
-        const until = Number(raw);
-        if (Number.isFinite(until) && Date.now() < until) return; // reminderDays 억제 기간 내
-      }
+      // reminderDays 억제 기간(만료 전)이면 재표시 안 함. 만료 도달·값없음 → 표시.
+      if (isSoftDismissActive(localStorage.getItem(dismissKey(platform, latestBuild)), Date.now())) return;
     } catch { /* localStorage 불가 → 그냥 노출 */ }
     const id = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(id);
@@ -39,7 +37,8 @@ export function OptionalUpdateModal() {
 
   const later = () => {
     try {
-      localStorage.setItem(dismissKey(platform, latestBuild), String(Date.now() + reminderDays * 86400000));
+      // 나중에 → now + reminderDays 일 을 만료로 저장. 그 전까진 억제, 이후 재표시.
+      localStorage.setItem(dismissKey(platform, latestBuild), String(softDismissUntil(Date.now(), reminderDays)));
     } catch { /* ignore */ }
     setVisible(false);
   };

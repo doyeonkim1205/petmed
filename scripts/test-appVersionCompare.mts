@@ -1,5 +1,5 @@
 // 실행: node --experimental-strip-types scripts/test-appVersionCompare.mts
-import { compareBuild, decideUpdate, isValidUpdateConfig, parseBuildSegments } from '../src/lib/appVersionCompare.ts';
+import { compareBuild, decideUpdate, isValidUpdateConfig, parseBuildSegments, softDismissUntil, isSoftDismissActive } from '../src/lib/appVersionCompare.ts';
 
 let pass = 0, fail = 0;
 function eq(actual: unknown, expected: unknown, name: string) {
@@ -46,6 +46,21 @@ eq(isValidUpdateConfig('android', { ...androidOk, reminder_days: 0 }), false, 'r
 eq(isValidUpdateConfig('android', { ...androidOk, latest_build: '44', min_supported_build: '50' }), false, 'min>latest → false');
 eq(isValidUpdateConfig('android', { ...androidOk, latest_build: '1.0-beta' }), false, '비정상 build → false');
 eq(isValidUpdateConfig('ios', { latest_build: '10', min_supported_build: null, store_url: 'https://apps.apple.com/app/id000000000', reminder_days: 7 }), true, 'ios 정상 설정');
+
+console.log('[reminderDays 재표시 경계 — softDismissUntil / isSoftDismissActive]');
+const DAY = 86_400_000;
+const now = 1_000_000_000_000;
+const until = softDismissUntil(now, 7);
+eq(until, now + 7 * DAY, 'softDismissUntil(now,7) = now+7일');
+eq(softDismissUntil(now, 0), now + DAY, 'reminderDays<1 → 최소 1일 클램프');
+eq(isSoftDismissActive(null, now), false, '값 없음 → 표시(false)');
+eq(isSoftDismissActive(undefined, now), false, 'undefined → 표시(false)');
+eq(isSoftDismissActive('abc', now), false, '비정상 값 → 표시(false)');
+eq(isSoftDismissActive(String(until), until - 1), true, '만료 1ms 전 → 억제(true)');
+eq(isSoftDismissActive(String(until), until), false, '만료 정각(경계) → 재표시(false)');
+eq(isSoftDismissActive(String(until), until + 1), false, '만료 1ms 후 → 재표시(false)');
+eq(isSoftDismissActive(String(until), now + 6 * DAY), true, 'dismiss 6일 후 → 아직 억제');
+eq(isSoftDismissActive(String(until), now + 7 * DAY), false, 'dismiss 7일 후(정각) → 재표시');
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
