@@ -14,9 +14,10 @@ export interface AppUpdateState {
   storeUrl: string | null;
   reminderDays: number;
   platform: 'android' | 'ios' | 'web';
+  installedBuild: string | null; // 설치된 네이티브 build (진단 표시 겸)
 }
 
-const DEFAULT: AppUpdateState = { decision: 'none', latestBuild: null, storeUrl: null, reminderDays: 7, platform: 'web' };
+const DEFAULT: AppUpdateState = { decision: 'none', latestBuild: null, storeUrl: null, reminderDays: 7, platform: 'web', installedBuild: null };
 
 const AppUpdateContext = createContext<AppUpdateState>(DEFAULT);
 export const useAppUpdate = () => useContext(AppUpdateContext);
@@ -51,6 +52,7 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
           storeUrl: cfg.storeUrl ?? null,
           reminderDays: typeof cfg.reminderDays === 'number' && cfg.reminderDays >= 1 ? cfg.reminderDays : 7,
           platform,
+          installedBuild: info.build,
         });
       } catch {
         // 네트워크/파싱 실패 → none 유지(fail-open).
