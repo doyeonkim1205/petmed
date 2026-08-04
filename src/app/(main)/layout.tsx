@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { verifyDevice, sendHeartbeat } from '@/lib/deviceSession';
 import { AppUpdateProvider } from '@/contexts/AppUpdateContext';
 import { OptionalUpdateModal } from '@/components/OptionalUpdateModal';
+import { AppUpdateDebugBanner } from '@/components/AppUpdateDebugBanner'; // TEMP 진단 — 검증 후 제거
 
 /**
  * (main) route group 공통 레이아웃.
@@ -105,6 +106,7 @@ export default function MainLayout({
           <InAppBrowserHint />
           <AndroidInAppBrowserHint />
           <OptionalUpdateModal />
+          <AppUpdateDebugBanner />{/* TEMP 진단 — 검증 후 제거 */}
         </div>
       </div>
     </AppUpdateProvider>
