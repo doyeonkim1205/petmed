@@ -424,7 +424,7 @@ export default function StatsPage() {
         </header>
 
         {/* 필터 안내 말풍선 — 필터 버튼 바로 아래 붙음 (첫 방문 1회) */}
-        <div className="absolute right-2 top-[50px] z-20 w-64">
+        <div className="absolute right-2 z-20 w-64" style={{ top: 'calc(50px + env(safe-area-inset-top))' }}>
           <OnboardHint storageKey="hint_stats_filter_v2" pointer="right"
             text={t('stats.filterHint')} />
         </div>

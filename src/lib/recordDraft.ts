@@ -43,6 +43,7 @@ export interface RecordDraft {
   nextAppointmentDate?: string;
   recordColor?: string;
   nextAppointmentColor?: string;
+  nextAppointmentReason?: string;
   petId?: string;
   selectedSubKinds?: DailySubKind[];
 }

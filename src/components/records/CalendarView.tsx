@@ -380,8 +380,8 @@ export function CalendarView({ records, onDateSelect, selectedDate, onRecordClic
                 return (
                 <button key={record.id} onClick={() => onRecordClick?.(record.id)} className="w-full flex items-center gap-2 p-2 rounded-lg hover:opacity-80 transition-opacity text-left" style={{ backgroundColor: apptColor + '18' }}>
                   <Calendar size={14} style={{ color: apptColor }} />
-                  <span className="text-sm font-medium text-gray-800">{record.title}</span>
-                  {record.hospital_name && (
+                  <span className="text-sm font-medium text-gray-800">{record.next_appointment_reason || record.hospital_name || t('calendar.appointmentDefault')}</span>
+                  {record.next_appointment_reason && record.hospital_name && (
                     <span className="text-xs text-gray-400">{record.hospital_name}</span>
                   )}
                 </button>

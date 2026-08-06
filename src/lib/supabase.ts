@@ -139,6 +139,7 @@ export interface HealthRecord {
   discharge_date?: string;
   next_appointment_date?: string;
   next_appointment_color?: string;
+  next_appointment_reason?: string;
   symptom_time?: string;
   weight?: number;
   sub_entries?: DailySubEntry[] | null;
