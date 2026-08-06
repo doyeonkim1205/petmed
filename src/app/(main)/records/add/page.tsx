@@ -100,6 +100,7 @@ export default function RecordAddPage() {
   const [recordColor, setRecordColor] = useState('#3B82F6');
   const [nextAppointmentDate, setNextAppointmentDate] = useState('');
   const [nextAppointmentColor, setNextAppointmentColor] = useState('#8B5CF6');
+  const [nextAppointmentReason, setNextAppointmentReason] = useState('');
   const [dischargeDate, setDischargeDate] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [medications, setMedications] = useState<MedicationInput[]>([]);
@@ -185,7 +186,7 @@ export default function RecordAddPage() {
   const typeDataCache = useRef<Partial<Record<RecordType, {
     title: string; description: string; hospitalName: string; cost: string;
     symptomTime: string; dischargeDate: string; nextAppointmentDate: string;
-    nextAppointmentColor: string; recordColor: string; medications: MedicationInput[];
+    nextAppointmentColor: string; nextAppointmentReason: string; recordColor: string; medications: MedicationInput[];
     files: File[];
   }>>>({});
 
@@ -193,7 +194,7 @@ export default function RecordAddPage() {
     if (newType === recordType) return;
     typeDataCache.current[recordType] = {
       title, description, hospitalName, cost, symptomTime,
-      dischargeDate, nextAppointmentDate, nextAppointmentColor, recordColor, medications,
+      dischargeDate, nextAppointmentDate, nextAppointmentColor, nextAppointmentReason, recordColor, medications,
       files,
     };
     const cached = typeDataCache.current[newType];
@@ -203,6 +204,7 @@ export default function RecordAddPage() {
       setSymptomTime(cached.symptomTime); setDischargeDate(cached.dischargeDate);
       setNextAppointmentDate(cached.nextAppointmentDate);
       setNextAppointmentColor(cached.nextAppointmentColor);
+      setNextAppointmentReason(cached.nextAppointmentReason);
       setRecordColor(cached.recordColor); setMedications(cached.medications);
       setFiles(cached.files);
     } else {
@@ -278,12 +280,13 @@ export default function RecordAddPage() {
     if (d.nextAppointmentDate !== undefined) setNextAppointmentDate(d.nextAppointmentDate);
     if (d.recordColor) setRecordColor(d.recordColor);
     if (d.nextAppointmentColor) setNextAppointmentColor(d.nextAppointmentColor);
+    if (d.nextAppointmentReason !== undefined) setNextAppointmentReason(d.nextAppointmentReason);
   };
 
   // hook 에 전달할 현재 form state — 매 render 마다 새 객체 (hook 안에서 ref mirror).
   const formState: RecordDraft = {
     recordType, title, description, hospitalName, cost, weight, symptomTime,
-    visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor,
+    visitDate, dischargeDate, nextAppointmentDate, recordColor, nextAppointmentColor, nextAppointmentReason,
     petId,
   };
 
@@ -557,6 +560,7 @@ export default function RecordAddPage() {
           // 다음 예약은 진료만 — 입퇴원에서 유형 전환 등으로 상태가 남아도 저장 안 되게 가드.
           next_appointment_date: recordType === 'visit' && nextAppointmentDate ? nextAppointmentDate : undefined,
           next_appointment_color: recordType === 'visit' && nextAppointmentDate ? nextAppointmentColor : undefined,
+          next_appointment_reason: recordType === 'visit' && nextAppointmentDate ? (nextAppointmentReason.trim() || undefined) : undefined,
           symptom_time: recordType === 'symptom' && symptomTime ? symptomTime : undefined,
           weight: weight ? displayWeightToKg(Number(weight), region) : undefined,
         });
@@ -1031,7 +1035,13 @@ export default function RecordAddPage() {
                 min={visitDate}
               />
               {nextAppointmentDate && (
-                <div className="ml-3 pl-3 border-l-2 border-purple-200">
+                <div className="ml-3 pl-3 border-l-2 border-purple-200 space-y-2.5">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">{t('record.field.nextAppointmentReason')} <span className="text-gray-400">{t('common.optional')}</span></label>
+                    <input type="text" value={nextAppointmentReason} onChange={(e) => { setNextAppointmentReason(e.target.value); setIsDirty(true); }} maxLength={40}
+                      placeholder={t('record.form.nextAppointmentReasonPlaceholder')}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
                   <ColorPicker label={t('record.form.appointmentColor')} value={nextAppointmentColor} onChange={setNextAppointmentColor} />
                 </div>
               )}

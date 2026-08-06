@@ -261,7 +261,7 @@ export default function ExpensesPage() {
             <SlidersHorizontal size={16} />
           </button>
         </header>
-        <div className="absolute left-1/2 top-[50px] z-20 w-64 max-w-[88%] -translate-x-1/2">
+        <div className="absolute left-1/2 z-20 w-64 max-w-[88%] -translate-x-1/2" style={{ top: 'calc(50px + env(safe-area-inset-top))' }}>
           <OnboardHint storageKey="hint_expense_record_v2" pointer="center"
             text={t('expenses.hint', { category: t('expenses.category.medical') })} />
         </div>

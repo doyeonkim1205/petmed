@@ -223,6 +223,7 @@
       "hospital": "Hospital",
       "cost": "Cost",
       "dischargeDate": "Discharge date",
+      "nextAppointmentReason": "Appointment note",
       "nextAppointment": "Next appointment"
     },
     "daily": {
@@ -286,6 +287,7 @@
       "calendarColor": "Calendar color",
       "medCalendarColor": "Calendar color",
       "appointmentColor": "Appointment color",
+      "nextAppointmentReasonPlaceholder": "e.g. Recheck, Chemo #3",
       "dischargeHint": "Leave empty if still admitted",
       "hospitalName": "Hospital name",
       "hospitalNamePlaceholder": "Enter hospital name",
@@ -554,6 +556,7 @@
     },
     "medicating": "On medication",
     "appointment": "Appointment",
+    "appointmentDefault": "Next visit",
     "discharge": "Discharge",
     "noRecords": "No records",
     "prevMonth": "Previous month",

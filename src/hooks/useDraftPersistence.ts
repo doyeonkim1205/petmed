@@ -120,6 +120,7 @@ export function useDraftPersistence(
       cur.nextAppointmentDate !== orig.nextAppointmentDate ||
       cur.recordColor !== orig.recordColor ||
       cur.nextAppointmentColor !== orig.nextAppointmentColor ||
+      cur.nextAppointmentReason !== orig.nextAppointmentReason ||
       cur.petId !== orig.petId ||
       a !== b
     );
