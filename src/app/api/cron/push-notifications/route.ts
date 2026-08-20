@@ -78,6 +78,17 @@ function truncate(text: string | null | undefined, maxLen: number, fallback: str
 }
 
 /**
+ * 빈도 문자열 → 하루 회차 수. MedicationCheckList.parseDoseCount 와 동일 규칙(진실원 일치 필수).
+ * 복약 체크 억제 로직에서 "alarm_times 인덱스 = dose_number" 매핑이 유효한지 판정하는 데 쓴다.
+ * (체크리스트는 alarm_times.length === doseCount 일 때만 회차에 시각을 붙이고 dose_number=인덱스로 저장)
+ */
+function parseDoseCount(frequency: string): number {
+  if (frequency.includes('3회')) return 3;
+  if (frequency.includes('2회')) return 2;
+  return 1;
+}
+
+/**
  * 24h 시각을 한국어 자연 표현으로 변환.
  * - 정시 → "오전 9시" / "오후 1시" / "오후 12시"
  * - 분 있음 → "오전 9시 45분" / "오후 1시 30분"
@@ -131,7 +142,7 @@ async function runWithConcurrency<T, R>(
  */
 function buildScheduleMessage(
   petName: string,
-  appts: Array<{ id: string; title: string }>,
+  appts: Array<{ id: string; title: string; reason: string | null; hospital: string | null }>,
   dischs: Array<{ id: string; title: string }>,
   locale: Lang,
 ): { title: string; body: string; category: 'appointment' | 'hospitalization' } {
@@ -139,6 +150,14 @@ function buildScheduleMessage(
   const dischCount = dischs.length;
   const en = locale === 'en';
   const fb = en ? 'schedule' : '일정';
+
+  // 예약 라벨 = 예약 메모 → 병원명 → null. (캘린더 CalendarView 와 동일한 우선순위.
+  //  지난 진료 제목(title)은 "예약 사유"가 아니라 예약을 잡은 진료라 의도적으로 제외 —
+  //  라벨 없으면 제목줄 "오늘 [펫] 예약" + 간결 본문으로 처리)
+  const apptLabelOf = (a: { reason: string | null; hospital: string | null }): string | null => {
+    const s = (a.reason && a.reason.trim()) || (a.hospital && a.hospital.trim()) || '';
+    return s || null;
+  };
 
   // 같은 record 가 예약+퇴원 둘 다 가진 케이스 검출.
   const apptIds = new Set(appts.map((a) => a.id));
@@ -173,25 +192,27 @@ function buildScheduleMessage(
 
   // Case 3: 예약만
   if (dischCount === 0 && apptCount > 0) {
+    const titleOne = en ? `📅 ${petName}'s appointment today` : `📅 오늘 ${petName} 예약`;
+    const titleMany = en ? `📅 ${petName}'s appointments today` : `📅 오늘 ${petName} 예약`;
     if (apptCount === 1) {
-      const t = truncate(appts[0].title, RECORD_TITLE_MAX, fb);
-      return {
-        title: en ? `📅 ${petName}'s appointment today` : `📅 오늘 ${petName} 예약`,
-        body: en ? `"${t}" is scheduled` : `"${t}" 일정이 있어요`,
-        category: 'appointment',
-      };
+      const label = apptLabelOf(appts[0]);
+      // 라벨(메모/병원명) 있으면 표시, 없으면 제목줄만으로 충분하니 간결 본문.
+      const body = label
+        ? (en ? `"${truncate(label, RECORD_TITLE_MAX, fb)}" is scheduled` : `"${truncate(label, RECORD_TITLE_MAX, fb)}" 일정이 있어요`)
+        : (en ? 'You have an appointment today' : '오늘 예약이 있어요');
+      return { title: titleOne, body, category: 'appointment' };
     }
     if (apptCount === 2) {
-      const a = truncate(appts[0].title, 12, fb);
-      const b = truncate(appts[1].title, 12, fb);
-      return {
-        title: en ? `📅 ${petName}'s appointments today` : `📅 오늘 ${petName} 예약`,
-        body: en ? `"${a}", "${b}" are scheduled` : `"${a}", "${b}" 일정이 있어요`,
-        category: 'appointment',
-      };
+      const la = apptLabelOf(appts[0]);
+      const lb = apptLabelOf(appts[1]);
+      // 둘 다 라벨 있을 때만 나열, 하나라도 없으면 건수 안내로 폴백.
+      const body = la && lb
+        ? (en ? `"${truncate(la, 12, fb)}", "${truncate(lb, 12, fb)}" are scheduled` : `"${truncate(la, 12, fb)}", "${truncate(lb, 12, fb)}" 일정이 있어요`)
+        : (en ? '2 appointments today' : '예약 2건이 있어요');
+      return { title: titleMany, body, category: 'appointment' };
     }
     return {
-      title: en ? `📅 ${petName}'s appointments today` : `📅 오늘 ${petName} 예약`,
+      title: titleMany,
       body: en ? `${apptCount} appointments` : `예약 ${apptCount}건이 있어요`,
       category: 'appointment',
     };
@@ -286,41 +307,88 @@ export async function GET(request: NextRequest) {
   // 그러면 record_id NULL 인 독립 약(영양제 등)이 INNER JOIN 에서 빠져 알림이 누락됨.
   const { data: medications } = await supabaseAdmin
     .from('medications')
-    .select('user_id, name, alarm_times, start_date, end_date, pet_id')
+    .select('id, user_id, name, frequency, alarm_times, start_date, end_date, pet_id')
     .eq('alarm_enabled', true)
     .lte('start_date', todayKST)
     .or(`end_date.gte.${todayKST},end_date.is.null`);
+
+  // 1차 패스 — 이번 분(currentTime)에 알람이 매칭된 약을 수집.
+  // doseNumbers = 매칭된 시각의 alarm_times 인덱스들(= 체크리스트가 저장하는 dose_number).
+  //   보통 1개지만 alarm_times 에 같은 시각이 중복이면 여러 개일 수 있음.
+  // suppressible = alarm_times.length === 빈도 회차수 → 이때만 "인덱스=dose_number" 매핑이
+  //   체크리스트와 일치. 불일치면(레거시/설정 이상) 억제하지 않고 그냥 발송(fail-safe: 투약 누락 방지).
+  type MatchedMed = {
+    userId: string; petId: string; medId: string; name: string;
+    doseNumbers: number[]; suppressible: boolean;
+  };
+  const matchedMeds: MatchedMed[] = [];
+
+  for (const med of medications || []) {
+    const times = med.alarm_times as string[] | null;
+    if (!Array.isArray(times) || times.length === 0) continue;
+
+    const doseNumbers: number[] = [];
+    times.forEach((t: string, idx: number) => {
+      const [h, m] = t.split(':').map(Number);
+      if (String(h).padStart(2, '0') === currentHour && m === currentMinute) doseNumbers.push(idx);
+    });
+    if (doseNumbers.length === 0) continue;
+
+    // pet_id 직접 사용 (독립 약 포함). 백필 누락 등으로 비어 있으면 안전하게 스킵.
+    const petId = (med as unknown as { pet_id: string | null }).pet_id;
+    if (!petId) continue;
+
+    const doseCount = parseDoseCount((med as unknown as { frequency: string }).frequency || '');
+    matchedMeds.push({
+      userId: med.user_id,
+      petId,
+      medId: (med as unknown as { id: string }).id,
+      name: med.name,
+      doseNumbers,
+      suppressible: times.length === doseCount,
+    });
+  }
+
+  // 이미 복용 체크된 회차 조회 — suppressible 인 약들만 대상(불필요 쿼리 회피).
+  // check_date 는 cron 기준 KST 당일. (클라 체크는 로컬 날짜라 KR 유저는 일치;
+  //  US 확장 시 자정 경계에서 어긋날 수 있으나 현재 소규모라 수용.)
+  // 대다수 분에는 matchedMeds 가 비어(알람 없음) 이 쿼리 자체가 실행되지 않음.
+  const checkedDoseKeys = new Set<string>(); // `${medicationId}:${doseNumber}`
+  const suppressibleIds = matchedMeds.filter((m) => m.suppressible).map((m) => m.medId);
+  if (suppressibleIds.length > 0) {
+    const { data: doneChecks } = await supabaseAdmin
+      .from('medication_checks')
+      .select('medication_id, dose_number')
+      .eq('check_date', todayKST)
+      .eq('checked', true)
+      .in('medication_id', suppressibleIds);
+    for (const c of doneChecks || []) checkedDoseKeys.add(`${c.medication_id}:${c.dose_number}`);
+  }
 
   // medByUserPet: Map<userId, Map<petId, drugNames[]>>
   // 같은 유저의 같은 펫 같은 시각 약 = 1 알림.
   // 다른 펫의 같은 시각 약 = 알림 분리.
   const medByUserPet = new Map<string, Map<string, string[]>>();
 
-  for (const med of medications || []) {
-    const times = med.alarm_times as string[] | null;
-    if (!times) continue;
-    const hasMatch = times.some((t: string) => {
-      const [h, m] = t.split(':').map(Number);
-      return String(h).padStart(2, '0') === currentHour && m === currentMinute;
-    });
-    if (!hasMatch) continue;
+  for (const m of matchedMeds) {
+    // 억제: suppressible 이고 이번 시각에 매칭된 모든 회차가 이미 체크됐으면 알림 스킵.
+    // (한 회차라도 미체크면 발송 — 예: 3회약 아침만 체크, 점심분은 그대로 알림)
+    if (m.suppressible && m.doseNumbers.every((dn) => checkedDoseKeys.has(`${m.medId}:${dn}`))) {
+      continue;
+    }
 
-    // pet_id 직접 사용 (독립 약 포함). 백필 누락 등으로 비어 있으면 안전하게 스킵.
-    const petId = (med as unknown as { pet_id: string | null }).pet_id;
-    if (!petId) continue;
-
-    let petsMap = medByUserPet.get(med.user_id);
+    let petsMap = medByUserPet.get(m.userId);
     if (!petsMap) {
       petsMap = new Map();
-      medByUserPet.set(med.user_id, petsMap);
+      medByUserPet.set(m.userId, petsMap);
     }
-    const drugs = petsMap.get(petId) || [];
-    drugs.push(med.name);
-    petsMap.set(petId, drugs);
+    const drugs = petsMap.get(m.petId) || [];
+    drugs.push(m.name);
+    petsMap.set(m.petId, drugs);
   }
 
   // 예약/퇴원/결제 대상 수집 (07:00 에만). 1일전 알림은 제거 — 당일만.
-  const apptToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
+  const apptToday: Array<{ id: string; user_id: string; pet_id: string; title: string; reason: string | null; hospital: string | null }> = [];
   const dischargeToday: Array<{ id: string; user_id: string; pet_id: string; title: string }> = [];
   // 예방(백신·심장사상충·구충 등) — next_due_date 가 당일(D-0) 또는 3일 후(D-3) 인 항목.
   const preventiveDue: Array<{ user_id: string; pet_id: string; category: string; name: string; dday: number }> = [];
@@ -340,7 +408,7 @@ export async function GET(request: NextRequest) {
     const [apptsToday2, dischToday2, expiring] = await Promise.all([
       supabaseAdmin
         .from('health_records')
-        .select('id, user_id, pet_id, title, next_appointment_date')
+        .select('id, user_id, pet_id, title, next_appointment_reason, hospital_name, next_appointment_date')
         .eq('next_appointment_date', todayKST),
       supabaseAdmin
         .from('health_records')
@@ -355,7 +423,14 @@ export async function GET(request: NextRequest) {
     ]);
 
     for (const r of apptsToday2.data || []) {
-      apptToday.push({ id: r.id, user_id: r.user_id, pet_id: r.pet_id, title: r.title });
+      apptToday.push({
+        id: r.id,
+        user_id: r.user_id,
+        pet_id: r.pet_id,
+        title: r.title,
+        reason: (r as unknown as { next_appointment_reason: string | null }).next_appointment_reason ?? null,
+        hospital: (r as unknown as { hospital_name: string | null }).hospital_name ?? null,
+      });
     }
     for (const r of dischToday2.data || []) {
       dischargeToday.push({ id: r.id, user_id: r.user_id, pet_id: r.pet_id, title: r.title });
@@ -383,7 +458,7 @@ export async function GET(request: NextRequest) {
 
   // 예약·퇴원 펫별 그룹화: Map<userId, Map<petId, {appts[], dischs[]}>>
   type ScheduleEvents = {
-    appts: Array<{ id: string; title: string }>;
+    appts: Array<{ id: string; title: string; reason: string | null; hospital: string | null }>;
     dischs: Array<{ id: string; title: string }>;
   };
   const scheduleByUserPet = new Map<string, Map<string, ScheduleEvents>>();
@@ -403,7 +478,7 @@ export async function GET(request: NextRequest) {
   };
 
   for (const r of apptToday) {
-    ensurePetEvents(r.user_id, r.pet_id).appts.push({ id: r.id, title: r.title });
+    ensurePetEvents(r.user_id, r.pet_id).appts.push({ id: r.id, title: r.title, reason: r.reason, hospital: r.hospital });
   }
   for (const r of dischargeToday) {
     ensurePetEvents(r.user_id, r.pet_id).dischs.push({ id: r.id, title: r.title });
@@ -776,8 +851,8 @@ async function sendPushToUser(
           { urgency: 'high', TTL: 300 },
         );
         return { ok: true as const };
-      } catch (err: any) {
-        const statusCode = err?.statusCode;
+      } catch (err: unknown) {
+        const statusCode = (err as { statusCode?: number } | null)?.statusCode;
         // 410 Gone / 404 Not Found 만 영구 삭제.
         // 429 rate limit / 5xx / 네트워크 오류는 일시적 실패로 유지 → 다음 cron 재시도.
         if (statusCode === 410 || statusCode === 404) {
