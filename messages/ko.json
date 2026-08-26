@@ -813,7 +813,9 @@
       "confirmPrompt": "확인을 위해 <b>\"{word}\"</b>를 입력해주세요.",
       "confirmWord": "탈퇴합니다",
       "deleting": "처리 중...",
-      "deleteCta": "탈퇴하기"
+      "deleteCta": "탈퇴하기",
+      "storeCancelNotice": "탈퇴 후에도 <b>{store}</b> 구독은 자동으로 취소되지 않아요. 결제를 멈추려면 스토어에서 직접 해지해 주세요.",
+      "storeCancelCta": "{store} 구독 관리 열기"
     },
     "alarm": {
       "title": "알림 기능",

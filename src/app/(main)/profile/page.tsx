@@ -1059,6 +1059,9 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
   const [errorMsg, setErrorMsg] = useState('');
   const [reason, setReason] = useState('');
   const [reasonDetail, setReasonDetail] = useState('');
+  // 활성 스토어 구독(Play/App Store)일 때만 "스토어에서 별도 해지" 안내를 띄운다.
+  // 토스(웹 직접결제)는 탈퇴 시 서버가 청구를 더 안 걸어 자동 중단 → 안내 대상 아님.
+  const [subStore, setSubStore] = useState<'play' | 'apple' | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -1066,10 +1069,34 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
       setErrorMsg('');
       setReason('');
       setReasonDetail('');
+      setSubStore(null);
+      (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const uid = session?.user?.id;
+          if (!uid) return;
+          const { data } = await supabase
+            .from('subscriptions')
+            .select('store')
+            .eq('user_id', uid)
+            .eq('status', 'active')
+            .maybeSingle();
+          if (data?.store === 'play' || data?.store === 'apple') setSubStore(data.store);
+        } catch {}
+      })();
     }
   }, [open]);
 
   if (!open) return null;
+
+  const storeName = subStore === 'apple' ? 'App Store' : 'Google Play';
+  const openStoreManage = async () => {
+    if (!subStore) return;
+    try {
+      const { platformPayments } = await import('@/lib/platform');
+      window.open(platformPayments.manageSubscriptionsUrl(subStore), '_blank');
+    } catch {}
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -1131,6 +1158,18 @@ function DeleteAccountModal({ open, onClose }: { open: boolean; onClose: () => v
             {t.rich('profile.delete.warning', { b: (c) => <span className="text-red-400 font-medium">{c}</span>, br: () => <br /> })}
           </p>
         </div>
+
+        {subStore && (
+          <div className="flex gap-2 items-start bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-3">
+            <Info size={15} className="text-amber-500 flex-shrink-0 mt-[1px]" />
+            <div className="text-[11px] text-amber-700 leading-relaxed">
+              <p>{t.rich('profile.delete.storeCancelNotice', { store: storeName, b: (c) => <span className="font-semibold">{c}</span> })}</p>
+              <button type="button" onClick={openStoreManage} className="mt-1 font-semibold underline underline-offset-2">
+                {t('profile.delete.storeCancelCta', { store: storeName })} →
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mb-3">
           <p className="text-[11px] text-gray-500 mb-1.5">{t('profile.delete.reasonLabel')} <span className="text-gray-300">{t('profile.delete.reasonOptional')}</span></p>

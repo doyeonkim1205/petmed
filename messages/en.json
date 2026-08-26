@@ -813,7 +813,9 @@
       "confirmPrompt": "Type <b>\"{word}\"</b> to confirm.",
       "confirmWord": "DELETE",
       "deleting": "Processing...",
-      "deleteCta": "Delete account"
+      "deleteCta": "Delete account",
+      "storeCancelNotice": "Deleting your account won't cancel your <b>{store}</b> subscription. To stop billing, cancel it directly in {store}.",
+      "storeCancelCta": "Manage subscription in {store}"
     },
     "alarm": {
       "title": "Notifications",
