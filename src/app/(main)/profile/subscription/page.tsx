@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { platformPayments, isNativeApp } from '@/lib/platform';
+import { platformPayments, isNativeApp, getPlatform } from '@/lib/platform';
 import { useMarketRegion } from '@/hooks/useMarketRegion';
 import { PLANS, type PlanType, isTrialActive, trialDaysLeft } from '@/lib/plans';
 
@@ -253,7 +253,12 @@ export default function SubscriptionPage() {
       if (!session) return null;
       const res = await fetch('/api/subscription/sync', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        // 서버가 플랫폼별 RC Public 키를 고르도록 현재 플랫폼 전달 (ios/android).
+        body: JSON.stringify({ platform: getPlatform() }),
       });
       if (!res.ok) return null;
       return await res.json().catch(() => null);
