@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
 
   const rcKey = rcPublicKeyFor(platform);
   if (!rcKey) {
-    // 키 미설정 → dormant (웹훅 폴백). 클라는 낙관적 표시 + 웹훅 반영을 기다리면 됨.
+    // 키(Public) 미설정 → 이 요청의 즉시 sync 는 실패(503). 새 웹훅이 반드시 발생하는 건
+    // 아니므로(구독페이지 재진입 재동기화 등) 여기서 상태가 보장 갱신되진 않고, 이후 RevenueCat
+    // webhook 이벤트(갱신/취소/만료/환불 등)가 발생하면 그때 DB 상태가 다시 갱신될 수 있음.
     return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 });
   }
 
