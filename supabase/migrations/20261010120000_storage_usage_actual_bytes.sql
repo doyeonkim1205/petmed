@@ -55,6 +55,10 @@ AS $$
   GROUP BY 1;
 $$;
 
+-- 새 RPC 를 Data API(PostgREST)가 즉시 인식하도록 스키마 캐시 리로드.
+--   dev 실측: 적용 직후 수 초간 /api/storage-usage 가 503(fail-closed) → 리로드로 공백 제거.
+NOTIFY pgrst, 'reload schema';
+
 -- 롤백 (get_storage_usage_by_user 이전 정의, 20260607000000_admin_stats_rpcs.sql):
 --   CREATE OR REPLACE FUNCTION public.get_storage_usage_by_user()
 --   RETURNS TABLE(user_id uuid, file_count bigint, total_bytes bigint, last_upload timestamptz)
