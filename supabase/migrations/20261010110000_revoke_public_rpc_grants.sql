@@ -7,18 +7,20 @@
 --     - get_storage_usage_by_user   : 전체 사용자 id/파일수/용량
 --     - get_orphan_activity_user_ids: 탈퇴 사용자 id
 --     - get_trends                  : 가입/검색/매출 추이
---     - get_cron_last_run           : 크론 실행 상태 (운영에만 존재)
+--     - get_cron_last_run           : 크론 실행 상태
 --     - upsert_push_subscription    : 임의 p_user_id 로 푸시 구독 등록/덮어쓰기 (호출자 검증 없음)
 --   앱 호출 경로는 전부 서버 라우트(verifyAuth/verifyAdmin 후 service_role 클라이언트):
 --     admin/storage, admin/activity-logs, admin/trends, admin/notifications/stats, push/subscribe.
---   → anon/authenticated 회수해도 앱 동작 영향 없음.
+--   → anon/authenticated 회수해도 앱 동작 영향 없음 (dev 실측: 관리자 API 5경로·푸시 구독/해제 정상).
 --
--- 함수 정의/데이터 변경 없음. 권한만 변경. 존재하는 함수에만 적용 (dev 에는 get_cron_last_run 없음).
--- 롤백: GRANT EXECUTE ON FUNCTION public.<fn>(<args>) TO anon, authenticated;  (권장하지 않음)
+-- 안전장치: 5개가 정확한 서명으로 모두 있어야 실행, 하나라도 없으면 EXCEPTION 으로 전체 중단.
+--           적용 후 권한이 기대와 다르면 EXCEPTION → 블록 전체 롤백.
+-- 함수 정의/데이터 변경 없음. 재실행 안전(멱등).
+-- 장애 시: 먼저 해당 서버 API 가 service_role 키로 호출하는지·실행 경로 확인.
+--          anon/authenticated 재부여(GRANT)는 취약점 재개방이므로 최후의 수단.
 
 DO $$
 DECLARE
-  f regprocedure;
   targets text[] := ARRAY[
     'public.get_storage_usage_by_user()',
     'public.get_orphan_activity_user_ids()',
@@ -27,15 +29,33 @@ DECLARE
     'public.upsert_push_subscription(uuid, text, text, text)'
   ];
   t text;
+  f regprocedure;
+  missing text[] := ARRAY[]::text[];
 BEGIN
+  -- 1) 사전 검증: 5개 모두 정확한 서명으로 존재하는지 확인 (하나라도 없으면 아무것도 바꾸지 않고 중단)
+  FOREACH t IN ARRAY targets LOOP
+    IF to_regprocedure(t) IS NULL THEN
+      missing := array_append(missing, t);
+    END IF;
+  END LOOP;
+  IF array_length(missing, 1) IS NOT NULL THEN
+    RAISE EXCEPTION 'ABORT: target function(s) not found with exact signature: %', array_to_string(missing, ', ');
+  END IF;
+
+  -- 2) 권한 회수 + service_role 실행 보장
   FOREACH t IN ARRAY targets LOOP
     f := to_regprocedure(t);
-    IF f IS NULL THEN
-      RAISE NOTICE 'skip (not found): %', t;
-      CONTINUE;
-    END IF;
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', f);
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f);
-    RAISE NOTICE 'revoked anon/authenticated: %', t;
+  END LOOP;
+
+  -- 3) 사후 검증: 기대 상태가 아니면 예외 → 블록 전체 롤백
+  FOREACH t IN ARRAY targets LOOP
+    f := to_regprocedure(t);
+    IF has_function_privilege('anon', f, 'EXECUTE')
+       OR has_function_privilege('authenticated', f, 'EXECUTE')
+       OR NOT has_function_privilege('service_role', f, 'EXECUTE') THEN
+      RAISE EXCEPTION 'ABORT: unexpected privileges after revoke on %', t;
+    END IF;
   END LOOP;
 END $$;
