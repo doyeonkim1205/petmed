@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     // Content-Security-Policy:
     //   외부 스크립트/이미지/연결 화이트리스트로 XSS 공격 시 데이터 탈취 경로 차단.
     //   필수 도메인:
-    //     - script: Kakao Maps SDK (dapi.kakao.com, t1.daumcdn.net) + Toss (js.tosspayments.com)
+    //     - script: Kakao Maps SDK (dapi.kakao.com, t1.daumcdn.net, t1.kakaocdn.net) + Toss (js.tosspayments.com)
     //     - connect: Supabase, Kakao API, Toss API, OpenAI, PubMed, Sentry
     //     - frame: Toss 결제 iframe
     //     - img: 유저 업로드 + 카카오 아바타 등 모든 https 허용
@@ -22,7 +22,9 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       // Toss SDK는 js.tosspayments.com 외에도 event/stsevent/static 서브도메인에서 스크립트 로드 →
       // *.tosspayments.com 와일드카드로 포괄.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://t1.daumcdn.net https://*.tosspayments.com https://*.toss.im https://*.sentry.io",
+      // Kakao SDK 로더(4.5.x)는 본체 kakao.js·services.js 를 t1.kakaocdn.net 에서 로드 (2026-10 확인).
+      // t1.daumcdn.net 은 구 버전 호환용으로 유지.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://*.tosspayments.com https://*.toss.im https://*.sentry.io",
       "style-src 'self' 'unsafe-inline' https://*.tosspayments.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://*.tosspayments.com",
