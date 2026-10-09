@@ -6,9 +6,9 @@
 --   앱 업로드 경로 = medical-files/{user_id}/{record_or_lab_id}/{uuid}.{ext} (124개 전부 확인).
 --   → 사용량을 storage.objects.metadata.size 합으로 계산 (기록에 연결 안 된 파일도 실제 공간이므로 포함).
 --
--- 보안 수정:
---   기존 RPC 는 REVOKE ... FROM PUBLIC 만 해서 Supabase 기본 권한(anon/authenticated 직접 GRANT)이
---   남아 있었음 → anon 키로 전체 사용자 사용량/탈퇴 user_id 조회 가능. anon/authenticated 명시 회수.
+-- 관리자 RPC 의 anon/authenticated 실행권한 회수는 별도 보안 마이그레이션
+--   (20261010110000_revoke_public_rpc_grants.sql) 으로 분리. 이 파일은 그 권한을 건드리지 않음
+--   (CREATE OR REPLACE 는 기존 ACL 을 유지).
 --
 -- 데이터 변경 없음 (함수 정의/권한만). 롤백 = 하단 주석의 이전 정의로 CREATE OR REPLACE.
 
@@ -30,6 +30,7 @@ AS $$
     AND NOT COALESCE(o.is_delete_marker, false);
 $$;
 
+-- 신규 함수: Supabase 기본 권한이 anon/authenticated 에 직접 EXECUTE 를 주므로 명시 회수 필수.
 REVOKE ALL ON FUNCTION public.storage_used_bytes(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.storage_used_bytes(uuid) TO service_role;
 
@@ -54,13 +55,6 @@ AS $$
   GROUP BY 1;
 $$;
 
-REVOKE ALL ON FUNCTION public.get_storage_usage_by_user() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_storage_usage_by_user() TO service_role;
-
--- 3) 같은 문제의 관리자 RPC 권한 회수 (정의 변경 없음)
-REVOKE ALL ON FUNCTION public.get_orphan_activity_user_ids() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_orphan_activity_user_ids() TO service_role;
-
 -- 롤백 (get_storage_usage_by_user 이전 정의, 20260607000000_admin_stats_rpcs.sql):
 --   CREATE OR REPLACE FUNCTION public.get_storage_usage_by_user()
 --   RETURNS TABLE(user_id uuid, file_count bigint, total_bytes bigint, last_upload timestamptz)
@@ -68,4 +62,4 @@ GRANT EXECUTE ON FUNCTION public.get_orphan_activity_user_ids() TO service_role;
 --     SELECT rf.user_id, COUNT(*)::bigint, COALESCE(SUM(rf.file_size), 0)::bigint, MAX(rf.created_at)
 --     FROM public.record_files rf GROUP BY rf.user_id; $$;
 --   DROP FUNCTION IF EXISTS public.storage_used_bytes(uuid);
---   (권한 회수는 되돌리지 않는 것을 권장)
+--   ⚠️ 롤백 순서: 코드(/api/storage-usage 가 storage_used_bytes 사용)를 먼저 되돌린 뒤 DROP.
