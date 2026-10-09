@@ -14,7 +14,7 @@ import { ColorPicker } from '@/components/records/ColorPicker';
 import { FileUploader } from '@/components/records/FileUploader';
 import { PlusUpgradeNotice } from '@/components/PlusUpgradeNotice';
 import { supabase, Pet, HealthRecord, Medication, RecordFile } from '@/lib/supabase';
-import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit } from '@/services/fileUpload';
+import { uploadFile, saveFileRecord, deleteFile, checkStorageLimit, prepareUploadFiles } from '@/services/fileUpload';
 import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { logActivity } from '@/lib/activityLog';
 import { TimePicker } from '@/components/TimePicker';
@@ -467,13 +467,24 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
     setError('');
 
     try {
+      // 첨부 준비(압축) → 압축 후 크기 합으로 용량 사전검사 — add page 와 동일 기준.
+      let preparedFiles: { original: File; upload: File }[] = [];
       if (newFiles.length > 0) {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-        if (token) {
-          const storage = await checkStorageLimit(token);
+        const prep = await prepareUploadFiles(newFiles);
+        for (const f of prep.failed) {
+          Sentry.captureException(f.error, {
+            tags: { feature: 'records', action: 'file-prepare-edit' },
+            extra: { recordId: id, userId: user?.id, fileName: f.original.name, fileSize: f.original.size, fileType: f.original.type },
+          });
+        }
+        preparedFiles = prep.prepared;
+        if (preparedFiles.length > 0) {
+          const session = await supabase.auth.getSession();
+          const storage = await checkStorageLimit(session.data.session?.access_token, prep.totalBytes);
           if (!storage.canUpload) {
-            if (getEffectivePlan(profile?.plan) === 'plus') {
+            if (storage.checkFailed) {
+              showError(t('record.form.error.storageCheckFailed'));
+            } else if (getEffectivePlan(profile?.plan) === 'plus') {
               showError(t('record.form.error.storageFullApp', { mb: storage.limitMB }));
             } else {
               setError('');
@@ -528,16 +539,16 @@ export default function RecordEditPage({ params }: { params: Promise<{ id: strin
       }
 
       // Upload new files
-      for (const file of newFiles) {
+      for (const { original: file, upload } of preparedFiles) {
         try {
-          const { path } = await uploadFile(file, user.id, id);
+          const { path, size } = await uploadFile(file, user.id, id, upload);
           await saveFileRecord({
             record_id: id,
             user_id: user.id,
             file_name: file.name,
             file_path: path,
             file_type: file.type,
-            file_size: file.size,
+            file_size: size,
           });
         } catch (err) {
           // 첨부 실패는 Sentry 로만 보고 — add page 와 동일 정책.

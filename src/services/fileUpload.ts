@@ -87,11 +87,9 @@ async function compressImage(file: File): Promise<File | null> {
   });
 }
 
-export async function uploadFile(
-  file: File,
-  userId: string,
-  recordId: string,
-): Promise<{ path: string; url: string }> {
+// 업로드 직전 형태(검증 + 이미지 압축)로 변환. 용량 사전검사가 "압축 후 크기"로 계산되도록
+// 업로드와 분리해 둠. 반환 File 의 size = 실제로 Storage 에 올라갈 바이트.
+export async function prepareUploadFile(file: File): Promise<File> {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
   if (!allowedTypes.includes(file.type)) {
     throw new Error('JPG, PNG, WebP, PDF 파일만 업로드 가능합니다.');
@@ -123,6 +121,18 @@ export async function uploadFile(
   } else {
     uploadTarget = file;
   }
+  return uploadTarget;
+}
+
+// prepared 를 넘기면 압축을 다시 하지 않음 (사전검사 때 만든 결과 재사용).
+// 반환 size = Storage 에 실제 저장된 바이트 → record_files/lab_test_files.file_size 에 기록.
+export async function uploadFile(
+  file: File,
+  userId: string,
+  recordId: string,
+  prepared?: File,
+): Promise<{ path: string; url: string; size: number }> {
+  const uploadTarget = prepared ?? await prepareUploadFile(file);
 
   const ext = uploadTarget.type === 'image/webp' ? 'webp' : file.name.split('.').pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -144,10 +154,10 @@ export async function uploadFile(
   logActivity(userId, 'file.upload', {
     resourceType: 'record_file',
     resourceId: recordId,
-    details: { fileName: file.name, fileSize: file.size, fileType: file.type },
+    details: { fileName: file.name, fileSize: uploadTarget.size, originalSize: file.size, fileType: file.type },
   });
 
-  return { path: filePath, url: urlData.signedUrl };
+  return { path: filePath, url: urlData.signedUrl, size: uploadTarget.size };
 }
 
 export async function deleteFile(filePath: string, userId?: string): Promise<void> {
@@ -165,12 +175,48 @@ export async function deleteFile(filePath: string, userId?: string): Promise<voi
   }
 }
 
-export async function checkStorageLimit(token: string): Promise<{ canUpload: boolean; usedMB: number; limitMB: number }> {
-  const res = await fetch('/api/storage-usage', {
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
-  if (!res.ok) return { canUpload: true, usedMB: 0, limitMB: 0 };
-  return res.json();
+export interface StorageCheck {
+  canUpload: boolean;
+  usedMB: number;
+  limitMB: number;
+  // true = 사용량을 확인하지 못함 (네트워크/서버 오류, 토큰 없음). 이 경우 canUpload 는 항상 false.
+  checkFailed: boolean;
+}
+
+// incomingBytes = 이번에 올릴 파일들의 압축 후 합계 (prepareUploadFile 결과 size 합).
+// 사용량 조회 실패 시 업로드를 허용하지 않음(fail-closed) — 기존엔 실패 시 무조건 허용이었음.
+export async function checkStorageLimit(token: string | undefined, incomingBytes = 0): Promise<StorageCheck> {
+  const failed: StorageCheck = { canUpload: false, usedMB: 0, limitMB: 0, checkFailed: true };
+  if (!token) return failed;
+  try {
+    const res = await fetch(`/api/storage-usage?incoming=${Math.max(0, Math.floor(incomingBytes))}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return failed;
+    const data = await res.json();
+    if (typeof data?.canUpload !== 'boolean') return failed;
+    return { canUpload: data.canUpload, usedMB: data.usedMB ?? 0, limitMB: data.limitMB ?? 0, checkFailed: false };
+  } catch {
+    return failed;
+  }
+}
+
+// 여러 파일을 업로드 형태로 준비. 준비 실패(형식 불가·과대 파일 등)는 기존처럼 해당 파일만 건너뜀.
+export async function prepareUploadFiles(files: File[]): Promise<{
+  prepared: { original: File; upload: File }[];
+  failed: { original: File; error: unknown }[];
+  totalBytes: number;
+}> {
+  const prepared: { original: File; upload: File }[] = [];
+  const failed: { original: File; error: unknown }[] = [];
+  for (const original of files) {
+    try {
+      prepared.push({ original, upload: await prepareUploadFile(original) });
+    } catch (error) {
+      failed.push({ original, error });
+    }
+  }
+  return { prepared, failed, totalBytes: prepared.reduce((s, p) => s + p.upload.size, 0) };
 }
 
 export async function saveFileRecord(record: {
