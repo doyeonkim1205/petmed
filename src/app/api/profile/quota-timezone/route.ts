@@ -10,7 +10,8 @@ const supabaseAdmin = createClient(
 // IANA 이름 형태 + 런타임이 실제로 아는 타임존인지 확인 (예: 'Asia/Seoul', 'America/New_York', 'Etc/GMT+9').
 function isValidTimeZone(tz: unknown): tz is string {
   if (typeof tz !== 'string' || tz.length === 0 || tz.length > 64) return false;
-  if (!/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+){0,2}$/.test(tz)) return false;
+  // 문자 집합만 제한(경로·제어문자 차단). 실제 유효성은 아래 Intl 이 판정 — 'EST5EDT' 같은 레거시 이름도 허용.
+  if (!/^[A-Za-z0-9_+-]+(?:\/[A-Za-z0-9_+-]+){0,2}$/.test(tz)) return false;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: tz });
     return true;
@@ -28,19 +29,23 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
   const userId = auth.user!.id;
 
-  let body: { timeZone?: unknown };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 });
   }
-  if (!isValidTimeZone(body.timeZone)) {
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+  }
+  const timeZone = (body as { timeZone?: unknown }).timeZone;
+  if (!isValidTimeZone(timeZone)) {
     return NextResponse.json({ error: 'invalid timeZone' }, { status: 400 });
   }
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .update({ quota_timezone: body.timeZone })
+    .update({ quota_timezone: timeZone })
     .eq('id', userId)
     .is('quota_timezone', null)
     .select('id');
