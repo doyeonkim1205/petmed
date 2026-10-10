@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { authFetch } from '@/lib/authFetch';
 import { isMarketRegion, inferMarketRegion } from '@/lib/region';
 
 /**
@@ -39,17 +40,29 @@ export function RegionSync() {
       }
     }
     // quota_timezone 은 '지역 추정'과 달리 기기 tz 원본을 그대로 저장(확신 문제 없음).
-    if (needQuotaTz && tz) updates.quota_timezone = tz;
+    //   한도 기준이라 클라이언트 직접 UPDATE 권한은 회수 → 서버 API 가 "비어 있을 때 1회만" 기록.
+    const wantQuotaTz = needQuotaTz && !!tz;
 
-    if (Object.keys(updates).length === 0) return;
+    if (Object.keys(updates).length === 0 && !wantQuotaTz) return;
     done.current = true;
-    supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .then(({ error }) => {
-        if (error) done.current = false; // 실패 시 다음 기회에 재시도
-      });
+    const tasks: Promise<boolean>[] = [];
+    if (Object.keys(updates).length > 0) {
+      tasks.push(
+        Promise.resolve(supabase.from('profiles').update(updates).eq('id', user.id)).then(({ error }) => !error),
+      );
+    }
+    if (wantQuotaTz) {
+      tasks.push(
+        authFetch('/api/profile/quota-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ timeZone: tz }),
+        }).then((r) => r.ok).catch(() => false),
+      );
+    }
+    Promise.all(tasks).then((oks) => {
+      if (oks.some((ok) => !ok)) done.current = false; // 실패 시 다음 기회에 재시도
+    });
   }, [user, profile]);
 
   return null;
