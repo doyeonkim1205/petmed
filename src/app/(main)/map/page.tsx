@@ -145,6 +145,13 @@ function KakaoMapView() {
 
     const existing = document.querySelector('script[src*="dapi.kakao.com"]');
     if (existing) {
+      // 재진입/재마운트: 로더 스크립트가 이미 실행됐으면 load 이벤트는 다시 오지 않음 →
+      // kakao.maps.load 는 로딩 중이면 콜백을 큐에 넣고, 완료됐으면 즉시 실행하므로 바로 호출.
+      if (window.kakao?.maps?.load) {
+        clearTimeout(loadTimeout);
+        window.kakao.maps.load(safeInit);
+        return () => clearTimeout(loadTimeout);
+      }
       existing.addEventListener('load', () => {
         clearTimeout(loadTimeout);
         window.kakao?.maps?.load(safeInit);
