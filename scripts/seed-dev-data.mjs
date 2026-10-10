@@ -8,6 +8,7 @@
 
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { tokenForRef } from './lib/managementToken.mjs';
 
 // ── 1. 안전 가드 ──
 const DEV_DB_REF = 'lzmmiksdvioidcldrnvh';
@@ -19,25 +20,30 @@ if (SUPABASE_URL.includes(PROD_DB_REF)) {
   process.exit(1);
 }
 
-// ── 2. Management API access token (.env.local) ──
-const envFile = fs.readFileSync('.env.local', 'utf8');
-const ACCESS_TOKEN = envFile.match(/^SUPABASE_ACCESS_TOKEN\s*=\s*['"]?([^'"\r\n]+)['"]?/m)?.[1];
-if (!ACCESS_TOKEN) {
-  console.error('SUPABASE_ACCESS_TOKEN 이 .env.local 에 없습니다.');
-  process.exit(1);
+// ── 2. dev service_role 키 (출력 X) ──
+//   1순위: .env.development 의 dev 키 (URL 이 dev ref 일 때만). Management API 권한 불필요.
+//   2순위: Management API (SUPABASE_ACCESS_TOKEN_DEV — API keys 읽기 권한 필요).
+function devServiceKeyFromEnvFile() {
+  try {
+    const env = fs.readFileSync('.env.development', 'utf8');
+    const url = env.match(/^NEXT_PUBLIC_SUPABASE_URL\s*=\s*['"]?([^'"\r\n]+)['"]?/m)?.[1] || '';
+    if (!url.includes(DEV_DB_REF)) return null;
+    return env.match(/^SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"]?([^'"\r\n]+)['"]?/m)?.[1] || null;
+  } catch {
+    return null;
+  }
 }
-
-// ── 3. Service role 키 fetch (출력 X) ──
 async function fetchServiceKey() {
   const r = await fetch(`https://api.supabase.com/v1/projects/${DEV_DB_REF}/api-keys`, {
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+    headers: { Authorization: `Bearer ${tokenForRef(DEV_DB_REF)}` },
   });
+  if (!r.ok) throw new Error(`service_role 키 fetch 실패 (HTTP ${r.status}) — .env.development 에 dev 키를 두거나 DEV 토큰에 API keys 읽기 권한 필요`);
   const keys = await r.json();
   const svc = keys.find(k => k.name === 'service_role')?.api_key;
   if (!svc) throw new Error('service_role 키 fetch 실패');
   return svc;
 }
-const SERVICE_KEY = await fetchServiceKey();
+const SERVICE_KEY = devServiceKeyFromEnvFile() ?? await fetchServiceKey();
 // 이 시점부터 SERVICE_KEY 변수만 사용. console.log 절대 X.
 
 const sb = createClient(SUPABASE_URL, SERVICE_KEY, {

@@ -1,22 +1,12 @@
 // 두 Supabase DB (prod / dev) 의 스키마를 받아서 차이를 보고.
 // 실행: node scripts/diff-schemas.mjs
 //
-// SUPABASE_ACCESS_TOKEN 을 .env.local 또는 환경에서 읽음.
+// 토큰: scripts/lib/managementToken.mjs (프로젝트별 scoped PAT).
 
 import fs from 'fs';
 import path from 'path';
 
-function readToken() {
-  // .env.local 에서 SUPABASE_ACCESS_TOKEN 추출
-  try {
-    const env = fs.readFileSync(path.resolve('.env.local'), 'utf8');
-    const m = env.match(/^SUPABASE_ACCESS_TOKEN\s*=\s*['"]?([^'"\r\n]+)['"]?/m);
-    if (m) return m[1];
-  } catch {}
-  return process.env.SUPABASE_ACCESS_TOKEN;
-}
-
-const TOKEN = readToken();
+import { tokenForRef } from './lib/managementToken.mjs';
 const PROD = 'ylbxtzwbwbnlmfxqgmoz';
 const DEV = 'lzmmiksdvioidcldrnvh';
 
@@ -24,7 +14,7 @@ async function q(ref, sql) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${tokenForRef(ref)}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query: sql }),

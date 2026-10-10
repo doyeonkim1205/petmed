@@ -3,18 +3,13 @@
 
 import fs from 'fs';
 
-function readToken() {
-  const env = fs.readFileSync('.env.local', 'utf8');
-  return env.match(/^SUPABASE_ACCESS_TOKEN\s*=\s*['"]?([^'"\r\n]+)['"]?/m)[1];
-}
-
-const TOKEN = readToken();
+import { tokenForRef } from './lib/managementToken.mjs';
 const PROD = 'ylbxtzwbwbnlmfxqgmoz';
 
 async function q(ref, sql) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${tokenForRef(ref)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: sql }),
   });
   return r.json();

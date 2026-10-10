@@ -9,28 +9,17 @@
  *   node scripts/check-security-invariants.mjs            # dev (기본)
  *   node scripts/check-security-invariants.mjs prod       # prod
  *
- * 토큰: .env.local 의 SUPABASE_ACCESS_TOKEN (또는 환경변수). raw 출력/저장 안 함.
+ * 토큰: scripts/lib/managementToken.mjs — 대상 ref 별 scoped PAT (dev/prod 분리). raw 출력/저장 안 함.
  * 실패가 하나라도 있으면 exit 1.
  */
-import { readFileSync } from 'node:fs';
+import { tokenForRef } from './lib/managementToken.mjs';
 
 const REFS = { dev: 'lzmmiksdvioidcldrnvh', prod: 'ylbxtzwbwbnlmfxqgmoz' };
 const target = (process.argv[2] || 'dev').toLowerCase();
 const ref = REFS[target];
 if (!ref) { console.error(`알 수 없는 대상: ${target} (dev|prod)`); process.exit(2); }
 
-// 토큰: env 우선, 없으면 .env.local 파싱
-function readToken() {
-  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
-  try {
-    const env = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
-    const m = env.match(/^SUPABASE_ACCESS_TOKEN=(.+)$/m);
-    if (m) return m[1].trim().replace(/^["']|["']$/g, '');
-  } catch { /* ignore */ }
-  return null;
-}
-const TOKEN = readToken();
-if (!TOKEN) { console.error('SUPABASE_ACCESS_TOKEN 없음 (.env.local 확인)'); process.exit(2); }
+const TOKEN = tokenForRef(ref);
 
 async function q(sql) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
@@ -48,11 +37,17 @@ const eqSet = (a, b) => a.length === b.length && [...a].sort().join() === [...b]
 const SAFE_PROFILE_UPDATE = ['avatar_url', 'is_push_enabled', 'nickname', 'preferred_language'];
 const RLS_TABLES = ['profiles','subscriptions','payment_history','health_records','pets','medications','health_metrics','preventive_cares','expenses'];
 
+// authenticated 의 profiles 컬럼별 UPDATE 권한 — has_column_privilege 는 접속 사용자와 무관하게 대상 역할 기준으로 판정.
+//   (information_schema.column_privileges 는 접속 사용자에게 보이는 행만 반환 → 읽기전용 토큰이면 빈 결과가 나와 오판)
+const PROFILE_UPDATE_COLS_SQL = `select a.attname as column_name from pg_attribute a
+  where a.attrelid = 'public.profiles'::regclass and a.attnum > 0 and not a.attisdropped
+    and has_column_privilege('authenticated', a.attrelid, a.attnum, 'UPDATE')`;
+
 const TESTS = [
   {
     name: '1) profiles.plan/role 는 클라이언트가 UPDATE 못 함 (권한 자가부여 차단)',
     async run() {
-      const rows = await q(`select column_name from information_schema.column_privileges where table_schema='public' and table_name='profiles' and grantee='authenticated' and privilege_type='UPDATE' and column_name in ('plan','role','id','email');`);
+      const rows = await q(`select * from (${PROFILE_UPDATE_COLS_SQL}) x where column_name in ('plan','role','id','email');`);
       const bad = rows.map(r => r.column_name);
       return { ok: bad.length === 0, detail: bad.length ? `위험 컬럼 UPDATE 가능: ${bad.join(', ')}` : 'plan/role/id/email 모두 UPDATE 불가' };
     },
@@ -60,7 +55,7 @@ const TESTS = [
   {
     name: '2) profiles 클라이언트 UPDATE 허용 컬럼 = 안전 화이트리스트와 정확히 일치',
     async run() {
-      const rows = await q(`select column_name from information_schema.column_privileges where table_schema='public' and table_name='profiles' and grantee='authenticated' and privilege_type='UPDATE';`);
+      const rows = await q(`${PROFILE_UPDATE_COLS_SQL};`);
       const cols = rows.map(r => r.column_name);
       return { ok: eqSet(cols, SAFE_PROFILE_UPDATE), detail: `허용=[${cols.sort().join(', ')}] / 기대=[${SAFE_PROFILE_UPDATE.join(', ')}]` };
     },
@@ -86,7 +81,11 @@ const TESTS = [
   {
     name: '5) subscriptions/payment_history: 클라이언트 쓰기/파괴 GRANT 없음 (SELECT 전용)',
     async run() {
-      const rows = await q(`select table_name, privilege_type from information_schema.table_privileges where table_name in ('subscriptions','payment_history') and grantee='authenticated' and privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE');`);
+      // has_table_privilege: 접속 사용자와 무관하게 authenticated 기준 판정 (information_schema 는 읽기전용 토큰에서 거짓 통과 가능)
+      const rows = await q(`select t.table_name, p.privilege_type
+        from (values ('subscriptions'),('payment_history')) t(table_name)
+        cross join (values ('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE')) p(privilege_type)
+        where has_table_privilege('authenticated', 'public.' || t.table_name, p.privilege_type);`);
       const bad = rows.map(r => `${r.table_name}:${r.privilege_type}`);
       return { ok: bad.length === 0, detail: bad.length ? `위험 GRANT: ${bad.join(', ')}` : '결제 테이블에 클라 INSERT/UPDATE/DELETE/TRUNCATE GRANT 없음' };
     },

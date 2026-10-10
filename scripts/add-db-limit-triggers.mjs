@@ -1,16 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { tokenForRef } from './lib/managementToken.mjs';
 
-function readToken() {
-  try {
-    const text = readFileSync('.env.local', 'utf8');
-    const m = text.match(/^SUPABASE_ACCESS_TOKEN=(.*)$/m);
-    if (m) { let v = m[1].trim(); if(v.startsWith('"')&&v.endsWith('"'))v=v.slice(1,-1); return v; }
-  } catch {}
-  return '';
+// ⛔ 사용 중단 (2026-06-12): 플랜 한도를 DB 트리거로 강제하지 않는다는 원칙에 따라 레거시 트리거 제거됨
+//    (supabase/migrations/20260612120000_drop_record_limit_trigger.sql). 이 스크립트는 이력 보존용 — 실행 금지.
+if (!process.argv.includes('--i-know-this-is-deprecated')) {
+  console.error('⛔ add-db-limit-triggers 는 사용 중단된 스크립트입니다 (DB 트리거 한도 금지 원칙). 실행하지 않습니다.');
+  process.exit(1);
 }
-const TOKEN = readToken();
-if (!TOKEN) { console.error('No SUPABASE_ACCESS_TOKEN'); process.exit(1); }
-
 const PROJECTS = {
   production: 'ylbxtzwbwbnlmfxqgmoz',
   development: 'lzmmiksdvioidcldrnvh',
@@ -81,7 +76,7 @@ CREATE TRIGGER enforce_record_limit
 for (const [env, ref] of Object.entries(PROJECTS)) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${tokenForRef(ref)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: SQL }),
   });
   console.log(`[${env}] ${res.status}: ${(await res.text()).slice(0, 200)}`);

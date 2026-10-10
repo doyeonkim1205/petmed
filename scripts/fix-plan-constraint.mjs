@@ -1,16 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-function readToken() {
-  try {
-    const text = readFileSync('.env.local', 'utf8');
-    const m = text.match(/^SUPABASE_ACCESS_TOKEN=(.*)$/m);
-    if (m) { let v = m[1].trim(); if(v.startsWith('"')&&v.endsWith('"'))v=v.slice(1,-1); return v; }
-  } catch {}
-  return '';
-}
-const TOKEN = readToken();
-if (!TOKEN) { console.error('No SUPABASE_ACCESS_TOKEN'); process.exit(1); }
 
+import { tokenForRef } from './lib/managementToken.mjs';
 const SQL = `
 -- 1. Drop old constraint first
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_plan_check;
@@ -27,7 +18,7 @@ ALTER TABLE public.profiles ADD CONSTRAINT profiles_plan_check
 for (const [env, ref] of [['production', 'ylbxtzwbwbnlmfxqgmoz'], ['development', 'lzmmiksdvioidcldrnvh']]) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${tokenForRef(ref)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: SQL }),
   });
   console.log(`[${env}] ${res.status}: ${(await res.text()).slice(0, 300)}`);

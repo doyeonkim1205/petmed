@@ -1,25 +1,9 @@
 // Add billing-related columns to subscriptions on both DBs.
-// Reads SUPABASE_ACCESS_TOKEN from .env.local.
+// 토큰: scripts/lib/managementToken.mjs (프로젝트별 scoped PAT).
 import { readFileSync } from 'node:fs';
 
-function readToken() {
-  try {
-    const text = readFileSync('.env.local', 'utf8');
-    const m = text.match(/^SUPABASE_ACCESS_TOKEN=(.*)$/m);
-    if (m) {
-      let v = m[1].trim();
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      return v;
-    }
-  } catch {}
-  return process.env.SUPABASE_ACCESS_TOKEN || '';
-}
-const TOKEN = readToken();
-if (!TOKEN) {
-  console.error('SUPABASE_ACCESS_TOKEN not found in .env.local. Generate one at https://supabase.com/dashboard/account/tokens');
-  process.exit(1);
-}
 
+import { tokenForRef } from './lib/managementToken.mjs';
 const PROJECTS = {
   production: 'ylbxtzwbwbnlmfxqgmoz',
   development: 'lzmmiksdvioidcldrnvh',
@@ -54,7 +38,7 @@ for (const [env, ref] of Object.entries(PROJECTS)) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${tokenForRef(ref)}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query: SQL }),
