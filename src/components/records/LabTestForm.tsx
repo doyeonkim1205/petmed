@@ -9,7 +9,7 @@ import { ArrowLeft, X, ChevronDown, Check, Paperclip, Image as ImageIcon, FileTe
 import * as Sentry from '@sentry/nextjs';
 import { authFetch } from '@/lib/authFetch';
 import { useAuth } from '@/contexts/AuthContext';
-import { uploadFile } from '@/services/fileUpload';
+import { uploadFile, prepareUploadFiles } from '@/services/fileUpload';
 import { supabase, type Pet } from '@/lib/supabase';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { todayLocalISO } from '@/lib/date';
@@ -313,19 +313,28 @@ export function LabTestForm({ petId, initial, backOnSave }: { petId?: string; in
         try { await deleteLabFile(f.id, f.file_path); } catch { /* 삭제 실패는 조용히 넘어감 */ }
       }
       if (newFiles.length > 0) {
-        const usage = await authFetch('/api/storage-usage').then((r) => (r.ok ? r.json() : null)).catch(() => null);
-        if (usage && !usage.canUpload) {
-          fileWarning = t('lab.form.errStorageFull');
-        } else {
-          let failed = 0;
-          for (const file of newFiles) {
-            try {
-              const { path } = await uploadFile(file, user!.id, labId);
-              await insertLabFile({ lab_test_id: labId, file_name: file.name, file_path: path, file_type: file.type, file_size: file.size });
-            } catch (err) { failed++; Sentry.captureException(err, { tags: { feature: 'labs', action: 'file-upload' } }); }
+        // 압축 후 크기로 사전검사. 사용량 조회 실패 시 파일은 올리지 않음(fail-closed) — 검사 자체는 이미 저장됨.
+        const prep = await prepareUploadFiles(newFiles);
+        let failed = prep.failed.length;
+        for (const f of prep.failed) Sentry.captureException(f.error, { tags: { feature: 'labs', action: 'file-prepare' } });
+        if (prep.prepared.length > 0) {
+          const usage = await authFetch(`/api/storage-usage?incoming=${prep.totalBytes}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
+          if (!usage || typeof usage.canUpload !== 'boolean') {
+            fileWarning = t('lab.form.errStorageCheck');
+          } else if (!usage.canUpload) {
+            fileWarning = t('lab.form.errStorageFull');
+          } else {
+            for (const { original: file, upload } of prep.prepared) {
+              try {
+                const { path, size } = await uploadFile(file, user!.id, labId, upload);
+                await insertLabFile({ lab_test_id: labId, file_name: file.name, file_path: path, file_type: file.type, file_size: size });
+              } catch (err) { failed++; Sentry.captureException(err, { tags: { feature: 'labs', action: 'file-upload' } }); }
+            }
           }
-          if (failed > 0) fileWarning = t('lab.form.errUploadPartial', { n: failed });
         }
+        if (!fileWarning && failed > 0) fileWarning = t('lab.form.errUploadPartial', { n: failed });
       }
 
       if (fileWarning) { setSavedPartial(fileWarning); setSaving(false); return; } // 확인 누르면 이동

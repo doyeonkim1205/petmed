@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '@/lib/adminAuth';
-import { getPlanConfig } from '@/lib/plans';
+import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { startOfDayKST } from '@/lib/dailyBoundary';
 
 export async function GET(request: NextRequest) {
@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  // 사용자별 스토리지 집계 — record_files 전체를 앱으로 끌어오지 않고 DB 에서 집계
-  //   (파일 수만 단위 시 OOM 방지). RPC: get_storage_usage_by_user.
+  // 사용자별 스토리지 집계 — DB 에서 집계 (파일 수만 단위 시 OOM 방지). RPC: get_storage_usage_by_user.
+  //   2026-10 부터 RPC 는 Storage 실제 저장 바이트 기준(사용자 /api/storage-usage 와 동일 기준).
   const { data: usage } = await supabase.rpc('get_storage_usage_by_user');
 
   const { data: profiles } = await supabase
@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
   }>();
 
   for (const p of profiles || []) {
-    const config = getPlanConfig(p.plan || 'free');
+    // 한도는 사용자 API 와 같은 유효 플랜 기준.
+    const config = getPlanConfig(getEffectivePlan(p.plan));
     userMap.set(p.id, {
       email: p.email || '',
       nickname: p.nickname || '',

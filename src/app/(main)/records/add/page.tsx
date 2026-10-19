@@ -15,7 +15,7 @@ import { getPlanConfig, getEffectivePlan } from '@/lib/plans';
 import { FileUploader } from '@/components/records/FileUploader';
 import { PlusUpgradeNotice } from '@/components/PlusUpgradeNotice';
 import { ColorPicker } from '@/components/records/ColorPicker';
-import { uploadFile, saveFileRecord, checkStorageLimit } from '@/services/fileUpload';
+import { uploadFile, saveFileRecord, checkStorageLimit, prepareUploadFiles } from '@/services/fileUpload';
 import { TimePicker } from '@/components/TimePicker';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PetSelectDropdown } from '@/components/records/PetSelectDropdown';
@@ -514,13 +514,24 @@ export default function RecordAddPage() {
     setError('');
 
     try {
+      // 첨부 준비(압축) → 압축 후 크기 합으로 용량 사전검사. 준비 실패 파일은 기존처럼 건너뜀(Sentry 보고).
+      let preparedFiles: { original: File; upload: File }[] = [];
       if (files.length > 0) {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-        if (token) {
-          const storage = await checkStorageLimit(token);
+        const prep = await prepareUploadFiles(files);
+        for (const f of prep.failed) {
+          Sentry.captureException(f.error, {
+            tags: { feature: 'records', action: 'file-prepare' },
+            extra: { userId: user.id, fileName: f.original.name, fileSize: f.original.size, fileType: f.original.type },
+          });
+        }
+        preparedFiles = prep.prepared;
+        if (preparedFiles.length > 0) {
+          const session = await supabase.auth.getSession();
+          const storage = await checkStorageLimit(session.data.session?.access_token, prep.totalBytes);
           if (!storage.canUpload) {
-            if (isPaidUser) {
+            if (storage.checkFailed) {
+              showError(t('record.form.error.storageCheckFailed'));
+            } else if (isPaidUser) {
               showError(t('record.form.error.storageFullApp', { mb: storage.limitMB }));
             } else {
               // 무료 → Plus 업셀 카드로 안내 (일반 에러 배너 대신)
@@ -566,16 +577,16 @@ export default function RecordAddPage() {
         });
       }
 
-      for (const file of files) {
+      for (const { original: file, upload } of preparedFiles) {
         try {
-          const { path } = await uploadFile(file, user.id, record.id);
+          const { path, size } = await uploadFile(file, user.id, record.id, upload);
           await saveFileRecord({
             record_id: record.id,
             user_id: user.id,
             file_name: file.name,
             file_path: path,
             file_type: file.type,
-            file_size: file.size,
+            file_size: size,
           });
         } catch (err) {
           // 첨부 실패는 Sentry 로만 보고. 사용자에겐 표시 X — record 는 이미 저장됐고
